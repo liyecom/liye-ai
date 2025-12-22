@@ -1,0 +1,192 @@
+
+# 🗺️ Data Source Mapping Configuration
+# Version: Pilot-v1
+# Purpose: Map source file headers (often CN) to Canonical Schema Fields (EN)
+
+mappings:
+  # --- 1. Amazon Ads (Campaign Level, Trad. Chinese) ---
+  - profile_name: "amazon_ads_campaign_csv"
+    source_system: "AMAZON_ADS"
+    file_pattern: "Campaign_*.csv"
+    target_table: "fact_ads_keyword_daily_campaign"
+    sheet_name: null # CSV
+    
+    # Header Mapping (Source Header -> Canonical Field)
+    field_map:
+      "廣告活動": "campaign_name_raw" # Will hash to campaign_id if ID not present
+      "狀態": "campaign_status"
+      "類型": "ad_type_raw" # 'Sponsored Products' -> 'SP'
+      "點擊次數": "clicks"
+      "支出": "spend"
+      "訂單": "orders"
+      "銷量": "sales"
+      "ROAS": "roas"
+      "CTR": "ctr"
+      "預算": "budget"
+      
+    # Hardcoded or Derived Fields
+    static_values:
+      marketplace: "US" # Default, logic can override if filename has locale
+      entry_type: "AD"
+      resolution: "CAMPAIGN"
+      attribution_window_days: 7
+
+  # --- 2. Saihu (Campaign Level, Simpl. Chinese) ---
+  - profile_name: "saihu_campaign_xlsx"
+    source_system: "SAIHU"
+    file_pattern: "TIMO-na-US*.xlsx"
+    target_table: "fact_ads_keyword_daily_campaign"
+    sheet_name: 0 
+    
+    field_map:
+      "广告活动": "campaign_name_raw"
+      "站点": "marketplace"
+      "点击量": "clicks"
+      "花费": "spend"
+      "订单量": "orders"
+      "销售额": "sales"
+      "ACOS": "acos"
+      "ROAS": "roas"
+      "加购次数": "add_to_cart" # Rich Metric!
+      "曝光量": "impressions"
+      "标签": "tags"
+      
+    static_values:
+      entry_type: "AD"
+      resolution: "CAMPAIGN"
+      data_confidence: "MED"
+
+  # --- 3. Flywheel (Campaign Level, Simpl. Chinese) ---
+  - profile_name: "flywheel_campaign_xlsx"
+    source_system: "FLYWHEEL"
+    file_pattern: "系统-TIMO*.xlsx"
+    target_table: "fact_ads_keyword_daily_campaign"
+    sheet_name: 0
+    
+    field_map:
+      "广告活动": "campaign_name_raw"
+      "预算": "budget"
+      "竞价策略": "bidding_strategy"
+      # Usually Flywheel has perf metrics too, adding common ones if user re-exports with columns
+      "花费": "spend"
+      "销售额": "sales"
+      
+    static_values:
+      entry_type: "AD"
+      resolution: "CAMPAIGN"
+      
+  # --- 4. Amazon Ads SP Search Term (Product - Traffic Deep Dive) ---
+  - profile_name: "amazon_ads_sp_search_term_xlsx"
+    source_system: "AMAZON_ADS"
+    file_pattern: "商品推廣_搜尋字詞_報告*.xlsx"
+    target_table: "fact_keyword_entry_daily"
+    sheet_name: 0
+    
+    field_map:
+      "廣告活動名稱": "campaign_id" # Hash later
+      "廣告群組名稱": "ad_group_id"
+      "客戶搜尋字詞": "keyword"
+      "匹配類型": "match_type"
+      "曝光數": "impressions"
+      "點擊次數": "clicks"
+      "花費": "spend" # Check if it's 支出 or 花費, loader will handle
+      "支出": "spend"
+      "7 天總訂單數 (#)": "orders"
+      "7 天總銷售額 ": "sales" # Added space
+      "7 天單位總數 (#)": "units"
+      "廣告定位": "targeting" 
+      
+    static_values:
+      entry_type: "AD"
+      ad_type: "SP"
+      recommendation_slot: "NONE"
+      resolution: "SEARCH_TERM"
+      attribution_window_days: 7
+      placement: "ALL"
+
+  # --- 5. Amazon Ads SB Keyword (Brand - Asset Builder) ---
+  - profile_name: "amazon_ads_sb_keyword_xlsx"
+    source_system: "AMAZON_ADS"
+    file_pattern: "品牌推廣_關鍵字_報告*.xlsx"
+    target_table: "fact_keyword_entry_daily" # Still useful even if Keyword level
+    sheet_name: 0
+    
+    field_map:
+      "廣告活動名稱": "campaign_id"
+      "關鍵字": "keyword" # For SB Keyword report, this is the best proxy
+      "匹配類型": "match_type"
+      "曝光數": "impressions"
+      "點擊次數": "clicks"
+      "花費": "spend"
+      "支出": "spend"
+      "14 天總訂單數 (#)": "orders"
+      "14 天總銷售額 ": "sales" # Added space
+      "14 天新品牌客戶訂單 (#)": "new_to_brand_orders"
+      "14 天品牌新客戶銷售": "new_to_brand_sales" # Fixed column name
+      
+    static_values:
+      entry_type: "AD"
+      ad_type: "SB"
+      recommendation_slot: "NONE"
+      resolution: "KEYWORD" # Note functionality difference
+      attribution_window_days: 14
+      asin: "BRAND_ASSET" # Placeholder for SB
+      placement: "ALL"
+      match_type: "UNKNOWN"
+
+  # --- 6. SellersSprite Reverse ASIN (Market Intelligence) ---
+  - profile_name: "sellersprite_reverse_asin_xlsx"
+    source_system: "SELLERSPRITE"
+    file_pattern: "ReverseASIN-*.xlsx"
+    target_table: "fact_keyword_snapshot"
+    sheet_name: 0
+    
+    field_map:
+      "关键词": "keyword"
+      "月搜索量": "search_volume"
+      "自然排名": "organic_rank"
+      "月搜索量": "search_volume"
+      "自然排名": "organic_rank"
+      "自然排名页码": "rank_page_info_raw" # New raw field for parsing
+      "广告排名": "ad_rank"
+      "广告排名页码": "ad_rank_page_info_raw" # New raw field for Ad Page Info parsing
+      "ABA周排名": "aba_rank"
+      "流量占比": "traffic_share" # Need to clean '%'
+      "转化总占比": "conversion_share"
+      "标题密度": "title_density"
+      "SPR": "spr"
+      "需供比": "supply_demand_ratio"
+      "商品数": "product_count"
+      "购买量": "monthly_purchases"
+      "购买率": "purchase_rate" # Need to clean '%'
+      "展示量": "market_total_impressions"
+      "点击量": "market_total_clicks"
+      "近7天广告竞品数": "advertised_product_count"
+      "点击总占比": "aba_top3_click_share"
+      "转化总占比": "aba_top3_conversion_share"
+      "PPC价格": "ppc_bid" # Parse '$'
+      "建议竞价范围": "ppc_bid_raw" # Parse '$Min-$Max'
+      "更新时间": "source_updated_at_raw" # New raw field for timestamp parsing
+      
+    static_values:
+      snapshot_type: "REVERSE_ASIN"
+      marketplace: "US"
+      # ASIN is now extracted dynamically from filename (e.g., ReverseASIN-B0C5Q9Y6YF.xlsx)
+
+  # --- 7. Amazon Business Report (Organic Traffic Source) ---
+  - profile_name: "amazon_business_report_csv"
+    source_system: "AMAZON_BUSINESS_REPORT"
+    file_pattern: "BusinessReport*.csv"
+    target_table: "fact_asin_daily"
+    
+    field_map:
+      "(子) ASIN": "asin"
+      "工作階段 - 總計": "sessions"
+      "頁面瀏覽次數 - 總計": "page_views"
+      "精選優惠 (報價顯示) 百分比": "buy_box_percentage"
+      "已訂購單位數量": "units_ordered"
+      "訂購產品銷售額": "sales"
+      "商品工作階段百分比": "unit_session_percentage" # CVR
+      
+    static_values:
+      marketplace: "US"

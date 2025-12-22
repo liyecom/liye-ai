@@ -1,0 +1,2 @@
+# This file ensures the reports/markdown directory is tracked by Git
+# Generated markdown reports are excluded via .gitignore

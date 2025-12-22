@@ -1,0 +1,43 @@
+listing_diagnosis:
+  description: >
+    **第一步：查阅优化策略**
+    使用 Search Amazon Knowledge Base 工具搜索"Listing 诊断方法"、"流量词优化"和"ACOS 降低策略"，
+    学习经过验证的诊断和优化方法论。
+
+    **第二步：诊断分析**
+    分析目标 ASIN ({asin}) 的流量结构。
+    使用提供的关键词反查数据，对比当前的 Listing 内容 (如果提供) 或通用优化标准。
+    your diagnosis.
+    
+    1. **Diagnose**: Use the tool to run `diagnose_listing` for the ASIN. check for 'High Monopoly Risks'.
+    2. **Deep Dive**: If specific keywords are risky, use `get_keyword_metrics` to check their exact Stats.
+    3. **Report**: Synthesize the "Health Report" focusing on Market Share and Competition.
+  expected_output: >
+    一份详细的《Listing 诊断与修补报告》(中文)，包含：
+    
+    ### 1. 流量健康度诊断
+    - 当前主要流量词概览
+    - 流量词覆盖率评分 (0-100)
+
+    ### 2. 机会缺失 (Missing Opportunities)
+    - **高流量未埋入词**: [列表]
+    - **建议动作**: [具体修改建议，如"添加到五点第一条"]
+
+    ### 3. 负面流量警报 (Negative Keywords)
+    - **建议否定词**: [列表]
+    - **原因**: [如"相关性弱", "只是宽泛大词"]
+
+ppc_audit:
+  description: >
+    **第一步：参考广告打法**
+    使用 Search Amazon Knowledge Base 工具搜索"PPC 优化策略"、"广告打法"和"ACOS 优化方法"，
+    学习 72 种广告打法中适用于当前阶段的策略。
+
+    **第二步：生成优化建议**
+    基于反查数据，为 {asin} 生成广告优化建议。
+    重点关注高展示但低点击/低转化的词，以及高转化的长尾词。
+  expected_output: >
+    一份《PPC 广告优化建议书》(中文)，包含：
+    - **建议新增的 Exact 投放词**: [列表]
+    - **建议否定的 Phrase/Broad 词**: [列表]
+    - **建议霸屏的 Top of Search 词**: [列表]

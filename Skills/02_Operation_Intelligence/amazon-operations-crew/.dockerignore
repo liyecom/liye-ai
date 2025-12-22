@@ -1,0 +1,67 @@
+# ==============================================
+# Docker Ignore File
+# Amazon Growth OS
+# ==============================================
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local development
+.env
+*.log
+logs/
+
+# Test data (keep structure but not data)
+data/*.duckdb
+data/*.json
+data/inputs/*.xlsx
+data/inputs/*.csv
+
+# Reports (regenerated)
+reports/markdown/*.md
+reports/raw_data/*.json
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README.md
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Build artifacts
+dist/
+build/
+*.spec

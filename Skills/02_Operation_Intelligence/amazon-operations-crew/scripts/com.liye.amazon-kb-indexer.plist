@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 任务标识符 -->
+    <key>Label</key>
+    <string>com.liye.amazon-kb-indexer</string>
+
+    <!-- 要执行的脚本 -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/liye/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew/scripts/daily_index.sh</string>
+    </array>
+
+    <!-- 工作目录 -->
+    <key>WorkingDirectory</key>
+    <string>/Users/liye/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew</string>
+
+    <!-- 每天凌晨 2:00 执行 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- 标准输出日志 -->
+    <key>StandardOutPath</key>
+    <string>/Users/liye/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew/logs/indexer_stdout.log</string>
+
+    <!-- 标准错误日志 -->
+    <key>StandardErrorPath</key>
+    <string>/Users/liye/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew/logs/indexer_stderr.log</string>
+
+    <!-- 环境变量 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NO_PROXY</key>
+        <string>localhost,127.0.0.1</string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- 在系统启动时不自动运行 -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- 如果任务失败，不自动重启 -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>

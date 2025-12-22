@@ -1,0 +1,133 @@
+# ==============================================
+# Amazon Growth OS - Docker Compose Configuration
+# Version: 1.0
+# ==============================================
+#
+# Services:
+#   - dashboard: Streamlit Dashboard (port 8501)
+#   - qdrant: Vector Database (port 6333)
+#   - worker: Background task runner
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up dashboard       # Start dashboard only
+#   docker-compose logs -f dashboard  # View logs
+#   docker-compose down               # Stop all services
+#
+# ==============================================
+
+version: '3.8'
+
+services:
+  # Main Dashboard Service
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amazon-growth-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SELLERSPRITE_API_KEY=${SELLERSPRITE_API_KEY:-}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - DATABASE_PATH=/app/data/growth_os.duckdb
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./config:/app/config:ro
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    networks:
+      - growth-os-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Vector Database (Qdrant)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: amazon-growth-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - growth-os-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Background Worker (ETL, Bid Engine, etc.)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amazon-growth-worker
+    entrypoint: ["python", "-m", "src.worker.scheduler"]
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SELLERSPRITE_API_KEY=${SELLERSPRITE_API_KEY:-}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - DATABASE_PATH=/app/data/growth_os.duckdb
+      - WORKER_MODE=true
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./config:/app/config:ro
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    networks:
+      - growth-os-network
+    restart: unless-stopped
+    profiles:
+      - worker  # Only starts with: docker-compose --profile worker up
+
+  # CLI Runner (for one-off commands)
+  cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amazon-growth-cli
+    entrypoint: ["python"]
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SELLERSPRITE_API_KEY=${SELLERSPRITE_API_KEY:-}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - DATABASE_PATH=/app/data/growth_os.duckdb
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./config:/app/config:ro
+    depends_on:
+      - qdrant
+    networks:
+      - growth-os-network
+    profiles:
+      - cli  # Only runs with: docker-compose run cli <script>
+
+networks:
+  growth-os-network:
+    driver: bridge
+
+volumes:
+  qdrant_storage:
+    driver: local

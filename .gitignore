@@ -1,0 +1,176 @@
+# LiYe OS .gitignore
+# Privacy-First Open Source Preparation
+# Version: 1.0
+
+# ============================================
+# 环境与密钥 (Secrets & Environment)
+# ============================================
+.env
+.env.local
+.env.*.local
+*.local.yaml
+*.local.json
+secrets/
+credentials/
+
+# ============================================
+# 数据文件 (Data Files - Contains Client Info)
+# ============================================
+# DuckDB databases (any depth)
+**/data/*.duckdb
+**/data/*.duckdb.wal
+**/data/*.db
+
+# Data inputs/outputs (any depth)
+**/data/inputs/*
+!**/data/inputs/.gitkeep
+**/data/outputs/
+**/data/*.json
+**/data/*.csv
+**/data/*.xlsx
+!**/data/.gitkeep
+
+# ============================================
+# 报告 (Reports - Contains Client Data)
+# ============================================
+**/reports/markdown/*.md
+**/reports/raw_data/*
+!**/reports/raw_data/.gitkeep
+**/reports/*.xlsx
+**/reports/*.csv
+!**/reports/.gitkeep
+!**/reports/markdown/.gitkeep
+
+# ============================================
+# 运行时 (Runtime Files)
+# ============================================
+logs/
+*.log
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env.bak/
+
+# ============================================
+# IDE 与编辑器 (IDE & Editors)
+# ============================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# macOS 系统文件 (macOS System Files)
+# ============================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ============================================
+# Qdrant Vector Database (Runtime Data)
+# ============================================
+qdrant_storage/
+
+# ============================================
+# Jupyter Notebooks (May Contain Client Data)
+# ============================================
+.ipynb_checkpoints/
+*.ipynb
+!notebooks/examples/*.ipynb
+
+# ============================================
+# Node.js (If Any)
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================
+# 客户特定排除 (Client-Specific Exclusions)
+# ============================================
+# Timo store specific data
+**/Timo*/
+**/timo*/
+**/TIMO*/
+**/timo_*.csv
+**/timo_*.xlsx
+
+# Amazon seller data exports
+**/ReverseASIN-*.xlsx
+**/ReverseASIN-*.json
+**/sellersprite_*.xlsx
+**/BusinessReport*.csv
+**/Campaign_*.csv
+
+# Uploads directory (user-uploaded client data)
+**/uploads/
+!**/uploads/.gitkeep
+
+# Reports with client data (more specific patterns)
+**/reports/**/*.json
+**/reports/**/*.xlsx
+**/reports/**/*.csv
+
+# Runtime state files
+**/.index_state.json
+**/.etl_state.json
+**/*_state.json
+
+# ============================================
+# 临时文件 (Temporary Files)
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ============================================
+# 测试覆盖率 (Test Coverage)
+# ============================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
