@@ -25,7 +25,7 @@
 **环境变量（`.env`）：**
 ```bash
 # Notion API
-NOTION_API_KEY=secret_xxxxx
+NOTION_API_KEY=<YOUR_NOTION_API_KEY>
 NOTION_DATABASE_ID=xxxxx
 
 # 本地路径
