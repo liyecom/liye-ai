@@ -1,130 +1,108 @@
 #!/usr/bin/env node
 /**
- * LiYe OS Guardrail - 性能边界检查
- * 确保 CLAUDE.md 和 Packs 不超过规定字符数限制
+ * LiYe OS Guardrail
+ * - Size limits (CLAUDE.md + Packs)
+ * - Secret-like pattern gate (STAGED files only)
  */
 
 import fs from "node:fs";
-import path from "path";
+import path from "node:path";
+import { execSync } from "node:child_process";
 
 const rules = [
   { file: "CLAUDE.md", maxChars: 10000 },
   { dir: ".claude/packs", suffix: ".md", maxChars: 15000 },
 ];
 
-function charCount(filePath) {
-  // Unicode-safe character count (handles emoji, Chinese, etc.)
-  return [...fs.readFileSync(filePath, "utf8")].length;
+// ---- helpers ----
+function charCount(p) {
+  // unicode-safe char count
+  return [...fs.readFileSync(p, "utf8")].length;
 }
 
 function listFiles(dir) {
   const out = [];
-  if (!fs.existsSync(dir)) return out;
-
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name);
-    if (ent.isDirectory()) {
-      out.push(...listFiles(p));
-    } else {
-      out.push(p);
-    }
+    if (ent.isDirectory()) out.push(...listFiles(p));
+    else out.push(p);
   }
   return out;
 }
 
+function stagedFiles() {
+  try {
+    const out = execSync("git diff --cached --name-only", { encoding: "utf8" });
+    return out.split("\n").map(s => s.trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function isTextLikeFile(f) {
+  // 保守：只扫常见文本/配置/文档/代码；避免误扫二进制导致卡顿
+  return /\.(md|txt|json|ya?ml|toml|ini|env|js|mjs|ts|py|sh|bash|zsh|rb|go|java|kt|swift|php|sql|csv)$/i.test(f)
+    || /(^|\/)(README|LICENSE|Dockerfile)(\..*)?$/i.test(f);
+}
+
+// ---- 1) size limits ----
 let failed = false;
-const results = [];
 
 for (const r of rules) {
   if (r.file) {
-    if (!fs.existsSync(r.file)) {
-      results.push({ file: r.file, status: "SKIP", reason: "not found" });
-      continue;
-    }
-
+    if (!fs.existsSync(r.file)) continue;
     const n = charCount(r.file);
-    const status = n > r.maxChars ? "FAIL" : "PASS";
-    results.push({
-      file: r.file,
-      chars: n,
-      maxChars: r.maxChars,
-      status,
-      percentage: Math.round((n / r.maxChars) * 100),
-    });
-
-    if (status === "FAIL") {
-      console.error(`❌ FAIL: ${r.file} has ${n} chars > ${r.maxChars} (${Math.round((n / r.maxChars) * 100)}%)`);
+    if (n > r.maxChars) {
+      console.error(`FAIL: ${r.file} ${n} chars > ${r.maxChars}`);
       failed = true;
     }
   }
-
   if (r.dir) {
-    if (!fs.existsSync(r.dir)) {
-      results.push({ dir: r.dir, status: "SKIP", reason: "not found" });
-      continue;
-    }
-
+    if (!fs.existsSync(r.dir)) continue;
     const files = listFiles(r.dir).filter(f => f.endsWith(r.suffix));
     for (const f of files) {
       const n = charCount(f);
-      const status = n > r.maxChars ? "FAIL" : "PASS";
-      results.push({
-        file: f,
-        chars: n,
-        maxChars: r.maxChars,
-        status,
-        percentage: Math.round((n / r.maxChars) * 100),
-      });
-
-      if (status === "FAIL") {
-        console.error(`❌ FAIL: ${f} has ${n} chars > ${r.maxChars} (${Math.round((n / r.maxChars) * 100)}%)`);
+      if (n > r.maxChars) {
+        console.error(`FAIL: ${f} ${n} chars > ${r.maxChars}`);
         failed = true;
       }
     }
   }
 }
 
-// Print summary
-console.log("\n=== Guardrail Check Results ===\n");
+if (failed) process.exit(1);
 
-const passed = results.filter(r => r.status === "PASS");
-const failedItems = results.filter(r => r.status === "FAIL");
-const skipped = results.filter(r => r.status === "SKIP");
+// ---- 2) secret-like gate (staged only) ----
+const secretPatterns = [
+  // Anthropic
+  { name: "Anthropic sk-ant-api03", re: /sk-ant-api03-[A-Za-z0-9_-]{10,}/g },
+  // OpenAI-like
+  { name: "OpenAI sk-*", re: /sk-[A-Za-z0-9]{20,}/g },
+  // Notion / generic secret_*
+  { name: "secret_* token", re: /secret_[A-Za-z0-9]{12,}/g },
+  // AWS access key id
+  { name: "AWS AKIA", re: /AKIA[0-9A-Z]{16}/g },
+  // Generic Bearer tokens (very conservative)
+  { name: "Bearer token", re: /Authorization:\s*Bearer\s+[A-Za-z0-9._-]{20,}/gi },
+];
 
-if (passed.length > 0) {
-  console.log("✅ PASSED:");
-  for (const r of passed) {
-    console.log(`   ${r.file}: ${r.chars.toLocaleString()} / ${r.maxChars.toLocaleString()} chars (${r.percentage}%)`);
+for (const f of stagedFiles()) {
+  if (!fs.existsSync(f)) continue;
+  if (!isTextLikeFile(f)) continue;
+
+  let txt = "";
+  try {
+    txt = fs.readFileSync(f, "utf8");
+  } catch {
+    continue;
   }
-  console.log();
-}
 
-if (failedItems.length > 0) {
-  console.log("❌ FAILED:");
-  for (const r of failedItems) {
-    const excess = r.chars - r.maxChars;
-    console.log(`   ${r.file}: ${r.chars.toLocaleString()} / ${r.maxChars.toLocaleString()} chars (${r.percentage}%)`);
-    console.log(`      → Excess: ${excess.toLocaleString()} chars (need to reduce)`);
+  for (const p of secretPatterns) {
+    if (p.re.test(txt)) {
+      console.error(`FAIL: secret-like token detected (${p.name}) in staged file: ${f}`);
+      process.exit(1);
+    }
   }
-  console.log();
 }
 
-if (skipped.length > 0) {
-  console.log("⏭️  SKIPPED:");
-  for (const r of skipped) {
-    console.log(`   ${r.file || r.dir}: ${r.reason}`);
-  }
-  console.log();
-}
-
-console.log("=== Summary ===");
-console.log(`Total: ${results.length} | ✅ ${passed.length} | ❌ ${failedItems.length} | ⏭️  ${skipped.length}`);
-console.log();
-
-if (failed) {
-  console.error("❌ Guardrail check FAILED. Please reduce file sizes before committing.");
-  process.exit(1);
-}
-
-console.log("✅ Guardrail check PASSED. All files within limits.");
-process.exit(0);
+console.log("OK: guardrail passed");
