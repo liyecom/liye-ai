@@ -1,0 +1,2 @@
+# This file ensures the reports/raw_data directory is tracked by Git
+# Raw API responses and data exports are excluded via .gitignore

@@ -1,0 +1,302 @@
+# ==============================================
+# External Traffic Attribution Configuration
+# Amazon Growth OS
+# ==============================================
+
+# Amazon Attribution Settings
+amazon_attribution:
+  # API Configuration (for future integration)
+  api:
+    base_url: "https://advertising-api.amazon.com"
+    endpoints:
+      create_tag: "/attribution/tags"
+      get_reports: "/attribution/reports"
+      list_campaigns: "/attribution/campaigns"
+    version: "v2"
+
+  # Attribution Window
+  attribution_window:
+    click_through_days: 14  # Days to attribute after click
+    view_through_days: 1    # Days to attribute after view (if supported)
+
+  # Tag Configuration
+  tag_settings:
+    # Publisher naming convention
+    publisher_prefix: "TIMO"  # Prefix for all attribution tags
+
+    # Standard publisher categories
+    publishers:
+      - id: "social_tiktok"
+        name: "TikTok"
+        type: "social"
+        default_campaign_type: "influencer"
+      - id: "social_instagram"
+        name: "Instagram"
+        type: "social"
+        default_campaign_type: "influencer"
+      - id: "social_facebook"
+        name: "Facebook"
+        type: "social"
+        default_campaign_type: "paid_ads"
+      - id: "social_pinterest"
+        name: "Pinterest"
+        type: "social"
+        default_campaign_type: "organic"
+      - id: "social_youtube"
+        name: "YouTube"
+        type: "social"
+        default_campaign_type: "influencer"
+      - id: "email_newsletter"
+        name: "Email Newsletter"
+        type: "email"
+        default_campaign_type: "owned"
+      - id: "email_promo"
+        name: "Email Promotion"
+        type: "email"
+        default_campaign_type: "owned"
+      - id: "blog_owned"
+        name: "Owned Blog"
+        type: "content"
+        default_campaign_type: "organic"
+      - id: "blog_guest"
+        name: "Guest Post"
+        type: "content"
+        default_campaign_type: "earned"
+      - id: "affiliate"
+        name: "Affiliate"
+        type: "affiliate"
+        default_campaign_type: "partner"
+      - id: "influencer"
+        name: "Influencer"
+        type: "influencer"
+        default_campaign_type: "paid"
+      - id: "pr"
+        name: "Press/PR"
+        type: "pr"
+        default_campaign_type: "earned"
+      - id: "podcast"
+        name: "Podcast"
+        type: "audio"
+        default_campaign_type: "influencer"
+      - id: "other"
+        name: "Other"
+        type: "other"
+        default_campaign_type: "unknown"
+
+# Campaign Types
+campaign_types:
+  influencer:
+    name: "Influencer Campaign"
+    typical_cost_model: "fixed_fee"  # fixed_fee, cpc, cpm, cpa, revenue_share
+    expected_conversion_rate: 0.02  # 2%
+    tracking_priority: "high"
+
+  paid_ads:
+    name: "Paid Social Ads"
+    typical_cost_model: "cpc"
+    expected_conversion_rate: 0.015
+    tracking_priority: "high"
+
+  organic:
+    name: "Organic Content"
+    typical_cost_model: "none"
+    expected_conversion_rate: 0.03
+    tracking_priority: "medium"
+
+  owned:
+    name: "Owned Media"
+    typical_cost_model: "none"
+    expected_conversion_rate: 0.04
+    tracking_priority: "medium"
+
+  earned:
+    name: "Earned Media"
+    typical_cost_model: "none"
+    expected_conversion_rate: 0.025
+    tracking_priority: "low"
+
+  partner:
+    name: "Partner/Affiliate"
+    typical_cost_model: "revenue_share"
+    expected_conversion_rate: 0.035
+    tracking_priority: "high"
+
+# UTM Parameter Configuration
+utm_config:
+  # Standard UTM parameters
+  parameters:
+    source: "utm_source"      # e.g., tiktok, instagram, email
+    medium: "utm_medium"      # e.g., social, email, cpc
+    campaign: "utm_campaign"  # e.g., summer_sale_2025
+    content: "utm_content"    # e.g., video1, carousel2
+    term: "utm_term"          # e.g., keyword (optional)
+
+  # Custom parameters for attribution
+  custom_parameters:
+    influencer_id: "inf_id"
+    creative_id: "cr_id"
+    placement: "placement"
+
+  # URL shortener settings
+  shortener:
+    enabled: true
+    service: "bitly"  # bitly, rebrandly, custom
+    domain: null  # Custom domain if using rebrandly
+
+# Tracking & Metrics
+tracking:
+  # Metrics to track per campaign
+  metrics:
+    traffic:
+      - clicks
+      - unique_clicks
+      - impressions
+      - reach
+    engagement:
+      - detail_page_views
+      - add_to_carts
+      - purchase_clicks
+    conversion:
+      - orders
+      - units_sold
+      - revenue
+      - new_to_brand_orders
+    cost:
+      - ad_spend
+      - influencer_fee
+      - affiliate_commission
+
+  # KPIs to calculate
+  kpis:
+    - name: "CTR"
+      formula: "clicks / impressions"
+      format: "percentage"
+    - name: "CVR"
+      formula: "orders / clicks"
+      format: "percentage"
+    - name: "CPC"
+      formula: "total_cost / clicks"
+      format: "currency"
+    - name: "CPA"
+      formula: "total_cost / orders"
+      format: "currency"
+    - name: "ROAS"
+      formula: "revenue / total_cost"
+      format: "ratio"
+    - name: "AOV"
+      formula: "revenue / orders"
+      format: "currency"
+
+# ROI Calculation Settings
+roi_calculation:
+  # Cost inputs
+  cost_sources:
+    - platform_ad_spend    # From ad platform APIs
+    - influencer_fees      # Manual input
+    - affiliate_commission # Calculated from revenue
+    - content_creation     # Manual input
+    - agency_fees          # Manual input
+
+  # Revenue attribution
+  revenue_attribution:
+    method: "last_click"  # last_click, first_click, linear, time_decay
+    include_organic_lift: false  # Whether to estimate organic boost
+
+  # ROI thresholds
+  thresholds:
+    excellent: 3.0  # ROAS >= 3.0
+    good: 2.0       # ROAS >= 2.0
+    acceptable: 1.5 # ROAS >= 1.5
+    poor: 1.0       # ROAS < 1.5
+
+  # Budget allocation recommendations
+  budget_optimization:
+    enabled: true
+    min_data_days: 14
+    reallocation_frequency: "weekly"
+
+# Reporting
+reporting:
+  # Report types
+  reports:
+    - name: "daily_summary"
+      frequency: "daily"
+      metrics: ["clicks", "orders", "revenue", "ROAS"]
+
+    - name: "campaign_performance"
+      frequency: "weekly"
+      metrics: ["all"]
+      group_by: ["campaign", "publisher"]
+
+    - name: "channel_comparison"
+      frequency: "monthly"
+      metrics: ["all"]
+      group_by: ["publisher_type"]
+
+    - name: "roi_analysis"
+      frequency: "monthly"
+      metrics: ["cost", "revenue", "ROAS", "CPA"]
+      include_recommendations: true
+
+  # Export settings
+  export:
+    formats: ["markdown", "csv", "json"]
+    path: "reports/attribution/"
+
+  # Alerts
+  alerts:
+    - name: "high_spend_low_roas"
+      condition: "daily_spend > 50 AND roas < 1.0"
+      severity: "critical"
+
+    - name: "campaign_underperforming"
+      condition: "cvr < expected_cvr * 0.5"
+      severity: "warning"
+
+    - name: "budget_depleted"
+      condition: "remaining_budget < daily_spend * 2"
+      severity: "info"
+
+# Database Schema
+database:
+  tables:
+    campaigns: "dim_attribution_campaigns"
+    tags: "dim_attribution_tags"
+    daily_metrics: "fact_attribution_daily"
+    costs: "fact_attribution_costs"
+
+# Integration Points
+integrations:
+  # Platforms we can pull data from
+  supported_platforms:
+    - name: "TikTok"
+      api_available: true
+      metrics_available: ["impressions", "clicks", "spend"]
+
+    - name: "Facebook/Instagram"
+      api_available: true
+      metrics_available: ["impressions", "clicks", "spend", "reach"]
+
+    - name: "Google Ads"
+      api_available: true
+      metrics_available: ["impressions", "clicks", "spend", "conversions"]
+
+    - name: "Email (Klaviyo)"
+      api_available: true
+      metrics_available: ["sends", "opens", "clicks"]
+
+    - name: "Affiliate Network"
+      api_available: false
+      metrics_available: ["clicks", "orders", "commission"]
+
+  # Amazon Attribution API (main data source)
+  amazon_attribution:
+    enabled: true
+    sync_frequency: "daily"
+    metrics_available:
+      - detail_page_views
+      - add_to_carts
+      - purchases
+      - units_sold
+      - total_sales
+      - new_to_brand_purchases
