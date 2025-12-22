@@ -95,7 +95,7 @@ nano .env
 # 或者用 VS Code 打开：code .env
 
 # 第 4 步：填入内容（把 xxx 换成你的真实密钥）
-ANTHROPIC_API_KEY=sk-ant-api03-xxx你的密钥xxx
+ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY>
 
 # 第 5 步：保存退出（nano 是 Ctrl+O 保存，Ctrl+X 退出）
 ```

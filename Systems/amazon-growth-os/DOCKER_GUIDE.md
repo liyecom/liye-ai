@@ -69,7 +69,7 @@ nano .env  # 或用任何文本编辑器打开
 
 需要填写的内容：
 ```
-ANTHROPIC_API_KEY=sk-ant-api03-你的密钥...
+ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY>
 SELLERSPRITE_API_KEY=你的卖家精灵密钥（可选）
 ```
 

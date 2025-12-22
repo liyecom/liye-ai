@@ -50,7 +50,7 @@ source venv/bin/activate
 pip install crewai litellm python-dotenv anthropic httpx[socks]
 
 # 5. 配置环境
-# 创建 .env 并填入 ANTHROPIC_API_KEY=sk-...
+# 创建 .env 并填入 ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY>
 
 # 6. 运行
 python main.py
