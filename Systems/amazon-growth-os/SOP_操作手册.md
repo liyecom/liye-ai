@@ -85,7 +85,7 @@
 
 ```bash
 # 第 1 步：进入目录
-cd ~/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew
+cd ~/Documents/liye_workspace/LiYe_OS/Systems/amazon-growth-os
 
 # 第 2 步：创建配置文件
 cp .env.example .env
@@ -120,7 +120,7 @@ ANTHROPIC_API_KEY=sk-ant-api03-xxx你的密钥xxx
 │ 步骤 1：进入工作目录                                      │
 └──────────────────────────────────────────────────────────┘
 
-  cd ~/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew
+  cd ~/Documents/liye_workspace/LiYe_OS/Systems/amazon-growth-os
 
 ┌──────────────────────────────────────────────────────────┐
 │ 步骤 2：运行新品分析命令                                  │
@@ -199,7 +199,7 @@ yoga mat, exercise mat, workout mat, ...
 │ 步骤 1：进入工作目录                                      │
 └──────────────────────────────────────────────────────────┘
 
-  cd ~/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew
+  cd ~/Documents/liye_workspace/LiYe_OS/Systems/amazon-growth-os
 
 ┌──────────────────────────────────────────────────────────┐
 │ 步骤 2：运行老品诊断命令                                  │

@@ -58,7 +58,7 @@ docker --version
 
 ```bash
 # 进入项目目录
-cd ~/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew
+cd ~/Documents/liye_workspace/LiYe_OS/Systems/amazon-growth-os
 
 # 复制模板
 cp .env.example .env
@@ -87,7 +87,7 @@ ANTHROPIC_API_KEY=sk-ant-xxx docker-compose up
 
 ```bash
 # 进入项目目录
-cd ~/Documents/liye_workspace/LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew
+cd ~/Documents/liye_workspace/LiYe_OS/Systems/amazon-growth-os
 
 # 启动所有服务
 docker-compose up -d
@@ -217,7 +217,7 @@ docker-compose run --rm cli tools/analyze_ca_comprehensive.py
 
 # 2. 克隆代码
 git clone git@github.com:YOUR_USERNAME/LiYe_OS.git
-cd LiYe_OS/Skills/02_Operation_Intelligence/amazon-operations-crew
+cd LiYe_OS/Systems/amazon-growth-os
 
 # 3. 复制你的 .env 文件（从备份或重新创建）
 cp /path/to/backup/.env .
