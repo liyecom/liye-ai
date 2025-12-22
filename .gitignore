@@ -33,13 +33,15 @@ credentials/
 # ============================================
 # 报告 (Reports - Contains Client Data)
 # ============================================
-**/reports/markdown/*.md
+**/reports/**/*.md
+**/reports/**/*.json
+**/reports/**/*.xlsx
+**/reports/**/*.csv
 **/reports/raw_data/*
-!**/reports/raw_data/.gitkeep
-**/reports/*.xlsx
-**/reports/*.csv
 !**/reports/.gitkeep
 !**/reports/markdown/.gitkeep
+!**/reports/raw_data/.gitkeep
+!**/reports/**/.gitkeep
 
 # ============================================
 # 运行时 (Runtime Files)
