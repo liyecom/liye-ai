@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# LiYe OS Pre-commit Hook
+# 在每次 git commit 前自动运行检查
+
+set -euo pipefail
+
+echo "🔍 LiYe OS Pre-commit Checks..."
+echo ""
+
+# Check 1: Guardrail (file size limits)
+echo "📏 Checking CLAUDE.md and Packs size limits..."
+if ! node .claude/scripts/guardrail.mjs; then
+  echo ""
+  echo "❌ Commit blocked: Guardrail check failed"
+  echo "   Fix the issues above and try again"
+  exit 1
+fi
+
+# Check 2: Prevent .DS_Store
+if git diff --cached --name-only | grep -q "\.DS_Store"; then
+  echo ""
+  echo "❌ Commit blocked: Attempting to commit .DS_Store files"
+  echo "   Run: find . -name .DS_Store -delete"
+  exit 1
+fi
+
+# Check 3: Prevent large files (>10MB)
+large_files=$(git diff --cached --name-only | while read file; do
+  if [ -f "$file" ]; then
+    size=$(wc -c < "$file" 2>/dev/null || echo 0)
+    if [ "$size" -gt 10485760 ]; then
+      echo "$file ($(numfmt --to=iec-i --suffix=B $size 2>/dev/null || echo $size bytes))"
+    fi
+  fi
+done)
+
+if [ -n "$large_files" ]; then
+  echo ""
+  echo "❌ Commit blocked: Attempting to commit large files (>10MB):"
+  echo "$large_files"
+  echo "   Use Git LFS or move to external storage (~/data)"
+  exit 1
+fi
+
+# Check 4: Prevent data files
+if git diff --cached --name-only | grep -E "\.(csv|xlsx|xls|db|sqlite|duckdb)$"; then
+  echo ""
+  echo "❌ Commit blocked: Attempting to commit data files"
+  echo "   Data files should be in data_external/ (gitignored)"
+  echo "   Update .gitignore if this is intentional"
+  exit 1
+fi
+
+# Check 5: Prevent venv
+if git diff --cached --name-only | grep -E "venv/|\.venv/|node_modules/"; then
+  echo ""
+  echo "❌ Commit blocked: Attempting to commit virtual environment"
+  echo "   Ensure .gitignore includes venv/, .venv/, node_modules/"
+  exit 1
+fi
+
+# Check 6: Prevent .env files
+if git diff --cached --name-only | grep -E "^\.env$|/\.env$"; then
+  echo ""
+  echo "❌ Commit blocked: Attempting to commit .env file"
+  echo "   Sensitive data should not be committed"
+  echo "   Use .env.example instead"
+  exit 1
+fi
+
+echo ""
+echo "✅ All pre-commit checks passed"
+exit 0
