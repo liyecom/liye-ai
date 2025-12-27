@@ -63,6 +63,9 @@ async function main() {
     case 'skill':
       await handleSkill(subcommand, target, args.slice(3));
       break;
+    case 'report':
+      await handleReport(subcommand, args.slice(2));
+      break;
     case 'help':
     case '--help':
     case '-h':
@@ -97,10 +100,18 @@ ${colors.cyan}Commands:${colors.reset}
     validate <name>           Validate skill against v5.0 spec
     list                      List all skills
 
+  ${colors.bold}report${colors.reset}
+    architecture              Generate architecture compliance report
+      --json                  Output machine-readable JSON
+      --domain <name>         Filter by domain
+      --fail-only             Show only failures
+
 ${colors.cyan}Examples:${colors.reset}
   liye agent validate diagnostic-architect
   liye agent scaffold v5 --from market-analyst
   liye skill list
+  liye report architecture
+  liye report architecture --json
 `);
 }
 
@@ -154,6 +165,30 @@ async function handleSkill(subcommand, target, extraArgs) {
       break;
     default:
       log(`❌ Unknown skill subcommand: ${subcommand}`, 'red');
+      process.exit(1);
+  }
+}
+
+// Report commands
+async function handleReport(subcommand, extraArgs) {
+  const architectureReport = require('./report/architecture');
+
+  switch (subcommand) {
+    case 'architecture':
+      const options = {
+        json: extraArgs.includes('--json'),
+        failOnly: extraArgs.includes('--fail-only'),
+        domain: null,
+      };
+      const domainIdx = extraArgs.indexOf('--domain');
+      if (domainIdx >= 0 && extraArgs[domainIdx + 1]) {
+        options.domain = extraArgs[domainIdx + 1];
+      }
+      await architectureReport(REPO_ROOT, options);
+      break;
+    default:
+      log(`❌ Unknown report type: ${subcommand}`, 'red');
+      log('Available: architecture', 'dim');
       process.exit(1);
   }
 }
