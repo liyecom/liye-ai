@@ -1,0 +1,29 @@
+# GEO OS v0.1 Configuration
+version: "0.1.0"
+
+paths:
+  # 使用占位符 {source} 支持动态数据源
+  # 实际路径将在运行时替换，如：
+  #   --source geo_seo -> ~/data/archives/geo_seo
+  #   --source shengcai -> ~/data/archives/shengcai
+  source: ~/data/archives/{source}
+  processed: ~/data/processed/{source}
+  exports: ~/data/exports/{source}
+  logs: ~/github/liye_os/_meta/logs/geo-os
+
+processing:
+  chunk_size: 600
+  chunk_overlap: 100
+  max_heading_level: 3
+  skip_empty_chunks: true
+
+output:
+  format: geo_unit_v0.1
+  include_metadata: true
+  pretty_print: true
+  create_latest_symlink: true
+
+logging:
+  level: INFO
+  console_output: true
+  filename_pattern: "geo_run_%Y%m%d_%H%M%S.log"

@@ -1,0 +1,95 @@
+# LiYe AI Domain Workflow - Amazon Diagnosis
+# Location: src/domain/amazon-growth/workflows/diagnose.yaml
+
+workflow:
+  id: amazon-diagnose
+  name: Amazon Performance Diagnosis Workflow
+  version: 1.0.0
+  track: quick
+  domain: amazon-growth
+  description: Quick diagnosis workflow for Amazon performance issues
+
+phases:
+  - id: collect
+    name: Data Collection
+    description: Collect performance data from multiple sources
+    agents:
+      - diagnostic-architect
+      - review-sentinel
+    tasks:
+      - id: collect-performance
+        agent: diagnostic-architect
+        skill: performance_diagnosis
+        inputs:
+          - asin
+          - date_range
+        outputs:
+          - performance_data
+
+      - id: collect-reviews
+        agent: review-sentinel
+        skill: review_analysis
+        inputs:
+          - asin
+          - date_range
+        outputs:
+          - review_data
+
+      - id: collect-ppc
+        agent: diagnostic-architect
+        skill: ppc_analysis
+        inputs:
+          - campaign_ids
+          - date_range
+        outputs:
+          - ppc_data
+
+  - id: analyze
+    name: Root Cause Analysis
+    description: Analyze data to identify root causes
+    depends_on: [collect]
+    agents:
+      - diagnostic-architect
+    tasks:
+      - id: traffic-analysis
+        agent: diagnostic-architect
+        skill: traffic_gap_analysis
+        inputs:
+          - performance_data
+          - ppc_data
+        outputs:
+          - traffic_report
+
+      - id: conversion-analysis
+        agent: diagnostic-architect
+        skill: root_cause_analysis
+        inputs:
+          - performance_data
+          - review_data
+        outputs:
+          - conversion_report
+
+      - id: synthesize
+        agent: diagnostic-architect
+        skill: diagnostic_report
+        depends_on: [traffic-analysis, conversion-analysis]
+        inputs:
+          - traffic_report
+          - conversion_report
+        outputs:
+          - diagnosis_summary
+
+transitions:
+  - from: collect
+    to: analyze
+    condition: "collect.complete"
+
+  - from: analyze
+    to: complete
+    condition: "analyze.complete"
+
+guards:
+  - phase: collect
+    condition: "inputs.asin != null"
+    action: block
+    message: "ASIN must be specified for diagnosis"

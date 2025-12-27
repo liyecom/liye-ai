@@ -1,0 +1,257 @@
+# Multi-Agent Flow Configuration
+# Amazon Growth OS - Complex Scenario Orchestration
+# Version: 1.0
+
+# Flow Definitions
+flows:
+  # Competitive Response Flow
+  competitive_response:
+    name: "Competitive Response Flow"
+    description: "Coordinated response to competitor price changes"
+    trigger:
+      type: "alert"
+      alert_types:
+        - "price_drop"
+        - "price_war"
+        - "competitor_oos"
+    agents:
+      - id: "price_analyst"
+        role: "Analyze price change impact"
+        tools: ["CompetitorMonitorTool"]
+        outputs: ["price_analysis", "market_position"]
+
+      - id: "ppc_strategist"
+        role: "Adjust PPC strategy"
+        tools: ["QdrantKnowledgeTool", "RAGDecisionTool"]
+        depends_on: ["price_analyst"]
+        outputs: ["bid_adjustments", "budget_reallocation"]
+
+      - id: "listing_optimizer"
+        role: "Update listing if needed"
+        tools: ["ABTestingTool"]
+        depends_on: ["price_analyst"]
+        outputs: ["listing_changes", "a_b_tests"]
+
+      - id: "coordinator"
+        role: "Synthesize recommendations"
+        depends_on: ["ppc_strategist", "listing_optimizer"]
+        outputs: ["action_plan", "timeline"]
+
+    output_template: "competitive_response_report"
+    timeout_minutes: 30
+    escalation:
+      if_no_consensus: "human_review"
+      if_timeout: "use_default_strategy"
+
+  # Brand Crisis Flow
+  brand_crisis:
+    name: "Brand Crisis Management Flow"
+    description: "Emergency response to brand health decline"
+    trigger:
+      type: "health_score"
+      condition: "score < 35 OR score_drop > 15"
+    agents:
+      - id: "crisis_assessor"
+        role: "Assess crisis severity and root cause"
+        tools: ["BrandHealthTool", "CompetitorMonitorTool"]
+        outputs: ["severity_level", "root_causes"]
+
+      - id: "review_analyst"
+        role: "Analyze recent negative reviews"
+        tools: ["BrandHealthTool"]
+        depends_on: ["crisis_assessor"]
+        outputs: ["review_themes", "customer_complaints"]
+
+      - id: "recovery_planner"
+        role: "Create recovery action plan"
+        tools: ["QdrantKnowledgeTool", "BrandHealthTool"]
+        depends_on: ["crisis_assessor", "review_analyst"]
+        outputs: ["recovery_actions", "timeline", "kpis"]
+
+      - id: "communication_drafter"
+        role: "Draft customer communications"
+        depends_on: ["review_analyst"]
+        outputs: ["response_templates", "faq_updates"]
+
+    output_template: "crisis_response_report"
+    timeout_minutes: 60
+    escalation:
+      if_critical: "immediate_human_escalation"
+      if_timeout: "basic_defense_mode"
+
+  # New Product Launch Flow
+  product_launch:
+    name: "New Product Launch Flow"
+    description: "Coordinated new product introduction"
+    trigger:
+      type: "manual"
+      requires: ["product_info", "target_market"]
+    agents:
+      - id: "market_researcher"
+        role: "Research market and competitors"
+        tools: ["QdrantKnowledgeTool", "CompetitorMonitorTool"]
+        outputs: ["market_analysis", "competitor_map"]
+
+      - id: "keyword_analyst"
+        role: "Discover and prioritize keywords"
+        tools: ["QdrantKnowledgeTool"]
+        depends_on: ["market_researcher"]
+        outputs: ["keyword_list", "tes_scores"]
+
+      - id: "listing_creator"
+        role: "Create optimized listing"
+        tools: ["ABTestingTool"]
+        depends_on: ["keyword_analyst"]
+        outputs: ["listing_draft", "seo_report"]
+
+      - id: "ppc_planner"
+        role: "Design launch PPC strategy"
+        tools: ["QdrantKnowledgeTool", "RAGDecisionTool"]
+        depends_on: ["keyword_analyst"]
+        outputs: ["campaign_structure", "budget_plan"]
+
+      - id: "launch_coordinator"
+        role: "Create integrated launch plan"
+        depends_on: ["listing_creator", "ppc_planner"]
+        outputs: ["launch_plan", "milestone_checklist"]
+
+    output_template: "product_launch_plan"
+    timeout_minutes: 120
+    escalation:
+      if_incomplete: "partial_launch_mode"
+
+  # Performance Optimization Flow
+  performance_optimization:
+    name: "Performance Optimization Flow"
+    description: "Cross-functional performance improvement"
+    trigger:
+      type: "scheduled"
+      schedule: "weekly"
+      # Also trigger if ACOS > threshold
+      conditions:
+        - "acos > 30"
+        - "sales_decline > 10%"
+    agents:
+      - id: "performance_auditor"
+        role: "Audit current performance metrics"
+        tools: ["BrandHealthTool", "CompetitorMonitorTool"]
+        outputs: ["performance_snapshot", "issues_identified"]
+
+      - id: "keyword_optimizer"
+        role: "Optimize keyword performance"
+        tools: ["QdrantKnowledgeTool", "RAGDecisionTool"]
+        depends_on: ["performance_auditor"]
+        outputs: ["keyword_actions", "bid_changes"]
+
+      - id: "listing_auditor"
+        role: "Audit and improve listings"
+        tools: ["ABTestingTool"]
+        depends_on: ["performance_auditor"]
+        outputs: ["listing_improvements", "test_recommendations"]
+
+      - id: "attribution_analyst"
+        role: "Analyze traffic sources and ROI"
+        tools: ["AttributionTool"]
+        depends_on: ["performance_auditor"]
+        outputs: ["traffic_analysis", "channel_recommendations"]
+
+      - id: "synthesis_agent"
+        role: "Create unified optimization plan"
+        depends_on: ["keyword_optimizer", "listing_auditor", "attribution_analyst"]
+        outputs: ["optimization_plan", "priority_actions"]
+
+    output_template: "optimization_report"
+    timeout_minutes: 45
+    escalation:
+      if_no_improvements: "deep_dive_analysis"
+
+# Agent Configuration
+agent_defaults:
+  model: "claude-3-5-sonnet-20241022"
+  temperature: 0.3
+  max_tokens: 4000
+  retry_attempts: 2
+  timeout_seconds: 300
+
+# Handoff Protocol
+handoff:
+  format: "structured_json"
+  include_context: true
+  include_reasoning: true
+  max_context_tokens: 2000
+
+# Output Templates
+output_templates:
+  competitive_response_report:
+    sections:
+      - title: "Situation Summary"
+        required: true
+      - title: "Impact Analysis"
+        required: true
+      - title: "Recommended Actions"
+        required: true
+        subsections:
+          - "Immediate (24h)"
+          - "Short-term (7 days)"
+          - "Medium-term (30 days)"
+      - title: "PPC Adjustments"
+        required: false
+      - title: "Listing Changes"
+        required: false
+      - title: "Risk Assessment"
+        required: true
+
+  crisis_response_report:
+    sections:
+      - title: "Crisis Assessment"
+        required: true
+      - title: "Root Cause Analysis"
+        required: true
+      - title: "Recovery Plan"
+        required: true
+      - title: "Customer Communications"
+        required: true
+      - title: "Monitoring KPIs"
+        required: true
+      - title: "Escalation Points"
+        required: true
+
+  product_launch_plan:
+    sections:
+      - title: "Market Analysis"
+        required: true
+      - title: "Competitive Landscape"
+        required: true
+      - title: "Keyword Strategy"
+        required: true
+      - title: "Listing Content"
+        required: true
+      - title: "PPC Launch Strategy"
+        required: true
+      - title: "Timeline & Milestones"
+        required: true
+      - title: "Success Metrics"
+        required: true
+
+  optimization_report:
+    sections:
+      - title: "Performance Summary"
+        required: true
+      - title: "Issues Identified"
+        required: true
+      - title: "Optimization Actions"
+        required: true
+      - title: "Expected Improvements"
+        required: true
+      - title: "Implementation Priority"
+        required: true
+
+# Execution Settings
+execution:
+  parallel_agents: true
+  max_parallel: 3
+  use_memory: true
+  share_context: true
+  log_decisions: true
+  store_artifacts: true
+  artifact_path: "reports/flows/"

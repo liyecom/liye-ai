@@ -1,0 +1,66 @@
+# LiYe AI Domain Configuration - Amazon Growth
+# Location: src/domain/amazon-growth/config.yaml
+
+domain:
+  id: amazon-growth
+  name: Amazon Growth Operations
+  version: 1.0.0
+  description: AI-driven Amazon product launch and optimization system
+
+# === Agents Configuration ===
+agents:
+  enabled:
+    - market-analyst
+    - keyword-architect
+    - listing-optimizer
+    - ppc-strategist
+    - diagnostic-architect
+    - execution-agent
+    - quality-gate
+    - review-sentinel
+    - sprint-orchestrator
+
+  orchestrator: sprint-orchestrator
+
+# === Workflows Configuration ===
+workflows:
+  default: amazon-launch
+  available:
+    - amazon-launch
+    - amazon-optimize
+    - amazon-diagnose
+
+# === Evolution Configuration ===
+evolution:
+  enabled: true
+  graduation_threshold: 0.85
+  minimum_samples: 10
+  storage: .liye/evolution/amazon-growth/
+
+# === Knowledge Sources ===
+knowledge:
+  qdrant:
+    host: localhost
+    port: 6333
+    collections:
+      - amazon_knowledge_base
+      - agent_experiences
+      - decision_patterns
+
+  local:
+    - ~/Documents/出海跨境/Amazon/
+
+# === Guardrails ===
+guardrails:
+  max_bid: 2.00
+  max_daily_budget: 200
+  max_bid_change_pct: 30
+  require_quality_gate: true
+
+# === Sprint Configuration ===
+sprint:
+  duration_days: 3
+  rhythm:
+    day_1: "规划 + 执行任务1-2"
+    day_2: "执行任务3 + 监控"
+    day_3: "效果评估 + 归档 + 进化例程"

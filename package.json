@@ -1,0 +1,37 @@
+{
+  "name": "liye-ai",
+  "version": "3.1.0",
+  "description": "LiYe AI - Personal AI Operating System with Four-Layer Architecture",
+  "main": "cli/index.js",
+  "bin": {
+    "liye-ai": "./cli/index.js",
+    "liye-os": "./cli/index.js"
+  },
+  "scripts": {
+    "start": "node cli/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liye-ai/liye-ai.git"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "multi-agent",
+    "workflow",
+    "personal-os",
+    "bmad",
+    "crewai",
+    "skill-forge"
+  ],
+  "author": "LiYe",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/liye-ai/liye-ai/issues"
+  },
+  "homepage": "https://liye.ai",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

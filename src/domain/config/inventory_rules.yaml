@@ -1,0 +1,84 @@
+# ==============================================
+# Inventory-Budget Linkage Rules
+# Amazon Growth OS - Inventory Management System
+# Version: 1.0
+# ==============================================
+
+# Purpose: Automatically adjust ad spend based on inventory levels
+# to prevent stockouts and maximize ROI during low inventory periods.
+
+# Inventory Alert Thresholds (Days of Cover)
+thresholds:
+  critical: 7       # < 7 days: Emergency - reduce spend drastically
+  warning: 14       # < 14 days: Warning - moderate spend reduction
+  caution: 21       # < 21 days: Caution - slight reduction
+  healthy: 30       # >= 30 days: Normal operations
+  overstock: 90     # > 90 days: Consider increasing spend
+
+# Budget Modifiers by Inventory Status
+# These multiply the normal daily budget for the ASIN
+budget_modifiers:
+  critical:
+    modifier: 0.10          # Only 10% of normal budget
+    max_daily_spend_usd: 5  # Hard cap
+    pause_new_keywords: true
+    description: "Critical inventory - emergency reduction"
+
+  warning:
+    modifier: 0.30          # 30% of normal budget
+    max_daily_spend_usd: 20
+    pause_new_keywords: true
+    description: "Low inventory warning - significant reduction"
+
+  caution:
+    modifier: 0.60          # 60% of normal budget
+    max_daily_spend_usd: 50
+    pause_new_keywords: false
+    description: "Inventory caution - moderate reduction"
+
+  healthy:
+    modifier: 1.00          # 100% normal budget
+    max_daily_spend_usd: null  # No additional limit
+    pause_new_keywords: false
+    description: "Healthy inventory - normal operations"
+
+  overstock:
+    modifier: 1.20          # 120% of normal budget
+    max_daily_spend_usd: null
+    pause_new_keywords: false
+    aggressive_bidding: true
+    description: "Overstock - increase visibility"
+
+# Velocity Calculation Settings
+velocity:
+  lookback_days: 14         # Days to look back for sales velocity
+  smoothing_method: "ema"   # Options: simple, ema (exponential moving average)
+  ema_alpha: 0.3            # EMA smoothing factor (higher = more weight to recent)
+  min_sales_for_forecast: 3 # Minimum sales to calculate velocity
+
+# Restock Settings
+restock:
+  lead_time_days: 21        # Average time from order to FBA available
+  safety_stock_days: 7      # Buffer stock
+  alert_on_reorder: true    # Alert when it's time to reorder
+
+# ASIN-Specific Overrides (optional)
+asin_overrides:
+  # Example:
+  # B0C5Q9Y6YF:
+  #   lead_time_days: 14    # Faster supplier
+  #   critical_threshold: 5
+  #   notes: "Primary product - prioritize inventory"
+
+# Actions Configuration
+actions:
+  auto_pause_at_stockout: true      # Auto-pause ads when inventory = 0
+  auto_resume_after_restock: true   # Resume when inventory restored
+  notify_on_critical: true          # Send alert on critical inventory
+  integrate_with_bidding: true      # Link to bid adjustment system
+
+# Execution Settings
+execution:
+  check_frequency: "daily"          # How often to check inventory
+  log_all_changes: true
+  dry_run: false                    # Set to true to test without changes

@@ -1,0 +1,159 @@
+# LiYe AI Domain Workflow - Amazon Optimization
+# Location: src/domain/amazon-growth/workflows/optimize.yaml
+
+workflow:
+  id: amazon-optimize
+  name: Amazon Product Optimization Workflow
+  version: 1.0.0
+  track: standard
+  domain: amazon-growth
+  description: Continuous optimization workflow for Amazon products
+
+phases:
+  - id: diagnose
+    name: Performance Diagnosis
+    description: Analyze current performance and identify issues
+    agents:
+      - diagnostic-architect
+      - review-sentinel
+    tasks:
+      - id: performance-diagnosis
+        agent: diagnostic-architect
+        skill: performance_diagnosis
+        inputs:
+          - asin
+          - performance_data
+        outputs:
+          - diagnosis_report
+
+      - id: review-monitoring
+        agent: review-sentinel
+        skill: review_analysis
+        inputs:
+          - asin
+          - review_period
+        outputs:
+          - review_insights
+
+      - id: root-cause-analysis
+        agent: diagnostic-architect
+        skill: root_cause_analysis
+        depends_on: [performance-diagnosis, review-monitoring]
+        inputs:
+          - diagnosis_report
+          - review_insights
+        outputs:
+          - root_cause_report
+
+  - id: plan
+    name: Optimization Planning
+    description: Create optimization plan based on diagnosis
+    depends_on: [diagnose]
+    agents:
+      - keyword-architect
+      - ppc-strategist
+      - listing-optimizer
+    tasks:
+      - id: keyword-optimization
+        agent: keyword-architect
+        skill: lifecycle_management
+        inputs:
+          - root_cause_report
+          - current_keywords
+        outputs:
+          - keyword_plan
+
+      - id: ppc-optimization
+        agent: ppc-strategist
+        skill: bid_optimization
+        inputs:
+          - root_cause_report
+          - current_campaigns
+        outputs:
+          - ppc_plan
+
+      - id: listing-optimization
+        agent: listing-optimizer
+        skill: content_optimization
+        inputs:
+          - root_cause_report
+          - current_listing
+        outputs:
+          - listing_plan
+
+  - id: execute
+    name: Execute Optimizations
+    description: Apply optimization changes
+    depends_on: [plan]
+    agents:
+      - execution-agent
+      - quality-gate
+    tasks:
+      - id: apply-changes
+        agent: execution-agent
+        skill: task_execution
+        inputs:
+          - keyword_plan
+          - ppc_plan
+          - listing_plan
+        outputs:
+          - execution_log
+
+      - id: quality-validation
+        agent: quality-gate
+        skill: quality_check
+        depends_on: [apply-changes]
+        inputs:
+          - execution_log
+        outputs:
+          - quality_report
+
+  - id: monitor
+    name: Monitor Results
+    description: Monitor optimization results
+    depends_on: [execute]
+    agents:
+      - diagnostic-architect
+      - sprint-orchestrator
+    tasks:
+      - id: result-tracking
+        agent: diagnostic-architect
+        skill: performance_diagnosis
+        inputs:
+          - asin
+          - baseline_data
+        outputs:
+          - result_report
+
+      - id: sprint-review
+        agent: sprint-orchestrator
+        skill: retrospective_analysis
+        depends_on: [result-tracking]
+        inputs:
+          - result_report
+          - execution_log
+        outputs:
+          - sprint_summary
+
+transitions:
+  - from: diagnose
+    to: plan
+    condition: "diagnose.complete && root_cause_report.issues.length > 0"
+
+  - from: plan
+    to: execute
+    condition: "plan.approved"
+
+  - from: execute
+    to: monitor
+    condition: "quality_validation.passed"
+
+  - from: monitor
+    to: complete
+    condition: "sprint_review.complete"
+
+guards:
+  - phase: execute
+    condition: "quality_gate.enabled"
+    action: block
+    message: "Quality gate must be enabled before execution"

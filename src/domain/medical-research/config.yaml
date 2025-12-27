@@ -1,0 +1,116 @@
+# LiYe AI Domain Configuration - Medical Research
+# Location: src/domain/medical-research/config.yaml
+
+domain:
+  id: medical-research
+  name: Medical Research Intelligence
+  version: 1.0.0
+  description: AI-powered medical research, evidence synthesis, and clinical decision support
+
+  # Tri-Fork Integration
+  method_layer: src/method/
+  skill_layer: src/skill/
+  runtime_layer: src/runtime/
+
+# === Agent Configuration ===
+agents:
+  enabled:
+    - literature-analyst        # PubMed/文献检索分析
+    - evidence-synthesizer      # 循证医学综合
+    - clinical-advisor          # 临床决策支持
+    - treatment-researcher      # 治疗方案研究
+    - safety-monitor            # 药物安全监测
+
+  orchestrator: evidence-synthesizer
+
+  persona_source: src/method/personas/researcher.yaml
+
+# === Workflow Configuration ===
+workflows:
+  available:
+    - literature-review         # 系统性文献综述
+    - evidence-synthesis        # 证据综合分析
+    - treatment-comparison      # 治疗方案对比
+    - safety-assessment         # 安全性评估
+
+  default: literature-review
+
+  track_mapping:
+    quick: [literature-review]
+    standard: [evidence-synthesis, treatment-comparison]
+    enterprise: [safety-assessment]
+
+# === Skill Configuration ===
+skills:
+  atomic:
+    - pubmed_search             # PubMed 检索
+    - evidence_grading          # 证据等级评定 (GRADE)
+    - risk_assessment           # 风险评估
+    - drug_interaction_check    # 药物相互作用检查
+    - outcome_extraction        # 结局指标提取
+
+  composite:
+    - systematic_review         # 系统性综述 = search + grade + synthesize
+    - meta_analysis             # Meta分析 = extract + statistical + interpret
+
+# === Evolution Configuration ===
+evolution:
+  enabled: true
+
+  learn_from:
+    - literature_search_accuracy   # 检索准确率
+    - evidence_quality_scores      # 证据质量评分
+    - clinical_relevance_ratings   # 临床相关性评分
+    - user_feedback                # 用户反馈
+
+  storage: .liye/evolution/medical-research/
+
+  graduation_threshold: 0.90       # 医疗领域要求更高准确性
+
+# === Knowledge Sources ===
+knowledge:
+  sources:
+    - type: pubmed
+      name: PubMed/MEDLINE
+      priority: 1
+    - type: cochrane
+      name: Cochrane Library
+      priority: 2
+    - type: guidelines
+      name: Clinical Practice Guidelines
+      priority: 3
+    - type: local
+      path: skills/05_medical/
+      priority: 4
+
+# === Guardrails ===
+guardrails:
+  # Medical-specific safety rules
+  require_evidence_citation: true
+  minimum_evidence_level: moderate
+
+  # Never provide direct medical advice
+  disclaimer_required: true
+  disclaimer_text: |
+    This information is for research purposes only and should not be
+    considered medical advice. Always consult healthcare professionals
+    for medical decisions.
+
+  # Prohibited actions
+  prohibited:
+    - direct_diagnosis
+    - treatment_prescription
+    - dosage_recommendation_without_context
+
+# === Quality Metrics ===
+quality:
+  metrics:
+    - name: evidence_accuracy
+      threshold: 0.95
+      weight: 0.4
+    - name: citation_completeness
+      threshold: 0.90
+      weight: 0.3
+    - name: clinical_relevance
+      threshold: 0.85
+      weight: 0.3

@@ -1,0 +1,115 @@
+# LiYe AI Domain Configuration - GEO OS (Knowledge Engine)
+# Location: src/domain/geo-os/config.yaml
+
+domain:
+  id: geo-os
+  name: GEO OS Knowledge Engine
+  version: 0.1.0
+  description: Core knowledge extraction and processing engine for LiYe OS
+  layer: core  # Note: This is core infrastructure, not application domain
+
+  # Tri-Fork Integration
+  method_layer: src/method/
+  skill_layer: src/skill/
+  runtime_layer: src/runtime/
+
+# === System Position ===
+architecture:
+  position: core-infrastructure
+  consumers:
+    - amazon-growth      # Consumes geo_units.json
+    - medical-research   # Consumes geo_units.json
+  provides:
+    - geo_units.json     # Structured knowledge units
+  data_flow: |
+    Raw Data (archives) → GEO OS → geo_units.json → Application Systems
+
+# === Processing Pipeline ===
+pipeline:
+  stages:
+    - id: ingest
+      name: Ingestion
+      module: ingestion/normalize.py
+      description: Normalize documents to Markdown
+      inputs: [pdf, docx, md]
+      outputs: [normalized_md]
+
+    - id: chunk
+      name: Chunking
+      module: processing/chunk.py
+      description: Split documents into fixed-size chunks
+      inputs: [normalized_md]
+      outputs: [chunks]
+
+    - id: extract
+      name: Extraction
+      module: processing/extract.py
+      description: Extract structure (headings, lists)
+      inputs: [chunks]
+      outputs: [structured_chunks]
+
+    - id: export
+      name: Export
+      module: outputs/export_json.py
+      description: Export to geo_units.json format
+      inputs: [structured_chunks]
+      outputs: [geo_units.json]
+
+# === Skill Mapping ===
+skills:
+  # GEO OS uses Python modules as skills
+  pipeline_skills:
+    - normalize         # ingestion/normalize.py
+    - chunk            # processing/chunk.py
+    - extract          # processing/extract.py
+    - export_json      # outputs/export_json.py
+
+  # Future v0.2 skills (AI-powered)
+  future:
+    - vectorize        # Vector embedding generation
+    - entity_extract   # Named entity recognition
+    - claim_extract    # Claim extraction
+    - graph_build      # Knowledge graph construction
+
+# === Data Paths ===
+paths:
+  source: ~/data/archives/         # Raw input data (read-only)
+  processed: ~/data/processed/     # Intermediate processing
+  exports: ~/data/exports/         # Final output (geo_units.json)
+
+# === Processing Configuration ===
+processing:
+  chunk_size: 600         # Characters per chunk
+  chunk_overlap: 100      # Overlap between chunks
+  max_heading_level: 3    # H1, H2, H3 extraction
+  supported_formats:
+    - pdf
+    - docx
+    - md
+    - txt
+
+# === Output Configuration ===
+output:
+  format: json
+  version: "0.1.0"
+  pretty_print: true
+  create_latest_symlink: true
+  filename_pattern: "geo_units_v{version}.json"
+
+# === Evolution Configuration ===
+evolution:
+  enabled: false  # v0.1 is deterministic, no AI learning
+  future_metrics:
+    - extraction_accuracy
+    - chunk_coherence
+    - entity_precision
+
+# === Quality Gates ===
+quality:
+  validation:
+    - name: json_valid
+      description: Output is valid JSON
+    - name: schema_compliant
+      description: Output matches geo_units schema
+    - name: no_empty_chunks
+      description: No chunks with empty content

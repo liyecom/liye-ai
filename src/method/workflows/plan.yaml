@@ -1,0 +1,65 @@
+# LiYe AI Workflow DSL - Plan Phase
+# Location: src/method/workflows/plan.yaml
+
+workflow:
+  id: plan
+  name: Planning Phase Workflow
+  version: 1.0.0
+  track: quick
+  description: Strategy and planning workflow
+
+phases:
+  - id: plan
+    name: Plan
+    description: Strategy and planning phase
+    agents:
+      - pm
+      - architect
+    tasks:
+      - id: define-requirements
+        agent: pm
+        skill: requirements_analysis
+        inputs:
+          - business_context
+          - user_needs
+        outputs:
+          - requirements_doc
+
+      - id: create-stories
+        agent: pm
+        skill: user_story_creation
+        depends_on: [define-requirements]
+        inputs:
+          - requirements_doc
+        outputs:
+          - user_stories
+
+      - id: design-architecture
+        agent: architect
+        skill: system_design
+        depends_on: [define-requirements]
+        inputs:
+          - requirements_doc
+        outputs:
+          - architecture_design
+
+      - id: create-plan
+        agent: pm
+        skill: prioritization
+        depends_on: [create-stories, design-architecture]
+        inputs:
+          - user_stories
+          - architecture_design
+        outputs:
+          - project_plan
+
+transitions:
+  - from: plan
+    to: complete
+    condition: "plan.approved"
+
+guards:
+  - phase: plan
+    condition: "requirements_doc.validated"
+    action: warn
+    message: "Requirements should be validated before planning"
