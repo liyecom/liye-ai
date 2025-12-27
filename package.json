@@ -1,38 +1,35 @@
 {
   "name": "liye-ai",
-  "version": "3.1.0",
-  "description": "LiYe AI - Personal AI Operating System with Four-Layer Architecture",
+  "version": "5.0.0",
+  "description": "LiYe AI - AI-driven personal operating system",
   "main": "cli/index.js",
   "bin": {
+    "liye": "./cli/index.js",
     "liye-ai": "./cli/index.js",
     "liye-os": "./cli/index.js"
   },
   "scripts": {
     "start": "node cli/index.js",
-    "test": "echo \"Tests passing\" && exit 0",
-    "lint": "echo \"Lint passing\" && exit 0",
-    "build": "echo \"Build passing\" && exit 0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/liye-ai/liye-ai.git"
+    "agent:validate": "node cli/index.js agent validate",
+    "agent:list": "node cli/index.js agent list",
+    "skill:list": "node cli/index.js skill list"
   },
   "keywords": [
     "ai",
     "agent",
-    "multi-agent",
-    "workflow",
-    "personal-os",
-    "bmad",
+    "automation",
     "crewai",
     "skill-forge"
   ],
-  "author": "LiYe",
+  "author": "LiYe AI",
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/liye-ai/liye-ai/issues"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liyecom/liye-ai.git"
   },
-  "homepage": "https://liye.ai",
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  },
   "engines": {
     "node": ">=18.0.0"
   }
