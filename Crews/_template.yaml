@@ -1,0 +1,86 @@
+# LiYe AI Crew Template
+# Copy this file and customize for your crew
+
+crew:
+  id: my-crew                     # Unique identifier (kebab-case)
+  name: My Crew Name              # Human-readable name
+  version: 1.0.0                  # Semantic version
+  domain: core                    # core | amazon-growth | medical-research | geo-os
+
+# ============================================
+# Team Composition
+# Define the agents that make up this crew
+# ============================================
+agents:
+  - role: lead                    # lead | member | specialist
+    agent_id: orchestrator        # Reference to Agents/*.yaml
+    responsibilities:
+      - "Coordinate team activities"
+      - "Make final decisions"
+
+  - role: member
+    agent_id: researcher
+    responsibilities:
+      - "Gather information"
+      - "Verify sources"
+
+  - role: member
+    agent_id: analyst
+    responsibilities:
+      - "Analyze data"
+      - "Generate insights"
+
+# ============================================
+# Process Configuration
+# How the crew executes tasks
+# ============================================
+process:
+  type: hierarchical              # sequential | hierarchical | parallel
+  allow_delegation: true          # Agents can delegate subtasks
+  verbose: true                   # Detailed logging
+
+# ============================================
+# Goals & Objectives
+# What the crew aims to achieve
+# ============================================
+goals:
+  primary: "Main objective description"
+  secondary:
+    - "Supporting objective 1"
+    - "Supporting objective 2"
+
+  success_criteria:
+    - metric: task_completion
+      threshold: 1.0
+    - metric: quality_score
+      threshold: 0.85
+
+# ============================================
+# Constraints & Guardrails
+# Operational boundaries
+# ============================================
+constraints:
+  max_iterations: 10              # Maximum workflow cycles
+  timeout: 3600                   # Total timeout in seconds
+  max_rpm: 20                     # Rate limit (requests per minute)
+
+  guardrails:
+    require_human_approval: false
+    sensitive_topics: []
+
+# ============================================
+# Memory & Context
+# How the crew manages information
+# ============================================
+memory:
+  type: short_term                # short_term | long_term | entity
+  shared: true                    # Agents share context
+
+# ============================================
+# Evolution Configuration
+# ============================================
+evolution:
+  enabled: true
+  learn_from:
+    - crew_performance
+    - agent_collaboration_patterns

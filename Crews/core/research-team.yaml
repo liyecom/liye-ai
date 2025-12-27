@@ -1,0 +1,70 @@
+# LiYe AI Core Crew: Research Team
+# Comprehensive information gathering and synthesis
+
+crew:
+  id: research-team
+  name: Research Team
+  version: 1.0.0
+  domain: core
+
+agents:
+  - role: lead
+    agent_id: orchestrator
+    responsibilities:
+      - "Coordinate research activities"
+      - "Prioritize information sources"
+      - "Synthesize findings"
+
+  - role: specialist
+    agent_id: researcher
+    responsibilities:
+      - "Gather information from multiple sources"
+      - "Verify source credibility"
+      - "Document findings"
+
+  - role: specialist
+    agent_id: analyst
+    responsibilities:
+      - "Analyze collected data"
+      - "Identify patterns and trends"
+      - "Generate actionable insights"
+
+process:
+  type: hierarchical
+  allow_delegation: true
+  verbose: true
+
+goals:
+  primary: "Gather comprehensive, verified information on a given topic"
+  secondary:
+    - "Ensure source diversity and credibility"
+    - "Synthesize findings into actionable insights"
+    - "Identify knowledge gaps"
+
+  success_criteria:
+    - metric: source_count
+      threshold: 5
+    - metric: verification_rate
+      threshold: 0.90
+    - metric: insight_quality
+      threshold: 0.85
+
+constraints:
+  max_iterations: 15
+  timeout: 1800
+  max_rpm: 30
+
+  guardrails:
+    require_primary_sources: true
+    max_unverified_claims: 0
+
+memory:
+  type: short_term
+  shared: true
+
+evolution:
+  enabled: true
+  learn_from:
+    - research_effectiveness
+    - source_quality_patterns
+    - synthesis_feedback

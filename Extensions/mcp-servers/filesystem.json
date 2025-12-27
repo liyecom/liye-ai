@@ -1,0 +1,37 @@
+{
+  "name": "liye-filesystem",
+  "description": "Filesystem access for LiYe AI repository",
+  "version": "1.0.0",
+  "command": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-filesystem",
+    "${LIYE_OS_ROOT:-./}"
+  ],
+  "env": {},
+  "tools": [
+    "read_file",
+    "write_file",
+    "list_directory",
+    "search_files",
+    "get_file_info"
+  ],
+  "permissions": {
+    "read": true,
+    "write": true,
+    "allowedPaths": [
+      "Agents/",
+      "Crews/",
+      "Extensions/",
+      "Glossaries/",
+      "skills/",
+      "src/",
+      "docs/"
+    ],
+    "deniedPaths": [
+      ".env",
+      "secrets/",
+      "credentials/"
+    ]
+  }
+}

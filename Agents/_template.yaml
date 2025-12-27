@@ -1,0 +1,68 @@
+# LiYe AI Agent Template
+# Copy this file and customize for your agent
+
+agent:
+  id: my-agent                    # Unique identifier (kebab-case)
+  name: My Agent Name             # Human-readable name
+  version: 1.0.0                  # Semantic version
+  domain: core                    # core | amazon-growth | medical-research | geo-os
+
+# ============================================
+# Persona Layer (WHO) - from BMad Method
+# Defines the agent's identity and behavior
+# ============================================
+persona:
+  role: "Role description"
+  goal: "What this agent aims to achieve"
+  backstory: "Background context that shapes behavior"
+  communication_style: "How the agent communicates"
+
+# ============================================
+# Skills Layer (WHAT) - from Skill Forge
+# Defines capabilities the agent can use
+# ============================================
+skills:
+  atomic:                         # Single-purpose skills
+    - skill_name_1
+    - skill_name_2
+  composite:                      # Multi-skill combinations
+    - composite_skill_1
+
+# ============================================
+# Runtime Layer (HOW) - from CrewAI
+# Defines execution behavior
+# ============================================
+runtime:
+  process: sequential             # sequential | hierarchical | parallel
+  memory: true                    # Enable context memory
+  delegation: false               # Can delegate to other agents
+  max_iterations: 5               # Maximum execution cycles
+  timeout: 300                    # Timeout in seconds
+
+# ============================================
+# LiYe Extensions
+# Domain-specific configurations
+# ============================================
+liyedata:
+  workflow_stage: "Stage Name"
+  story_template: "As {role}, I want to {action} so that {outcome}"
+
+  acceptance_criteria:
+    - metric: completion_rate
+      threshold: 0.90
+
+  guardrails:
+    max_change_magnitude: 0.20
+    require_review: false
+
+# ============================================
+# Evolution Configuration
+# How the agent learns and improves
+# ============================================
+evolution:
+  enabled: true
+  storage: .liye/evolution/{agent_id}/
+  learn_from:
+    - execution_logs
+    - user_feedback
+  retention_days: 90

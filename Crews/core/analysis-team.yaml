@@ -1,0 +1,63 @@
+# LiYe AI Core Crew: Analysis Team
+# Data analysis and insight generation
+
+crew:
+  id: analysis-team
+  name: Analysis Team
+  version: 1.0.0
+  domain: core
+
+agents:
+  - role: lead
+    agent_id: analyst
+    responsibilities:
+      - "Lead analysis activities"
+      - "Define analysis methodology"
+      - "Validate conclusions"
+
+  - role: member
+    agent_id: researcher
+    responsibilities:
+      - "Gather supporting data"
+      - "Verify data sources"
+      - "Provide context"
+
+process:
+  type: sequential
+  allow_delegation: false
+  verbose: true
+
+goals:
+  primary: "Transform data into actionable insights"
+  secondary:
+    - "Identify meaningful patterns"
+    - "Quantify findings with confidence"
+    - "Provide clear recommendations"
+
+  success_criteria:
+    - metric: analysis_depth
+      threshold: 0.85
+    - metric: statistical_rigor
+      threshold: 0.95
+    - metric: recommendation_clarity
+      threshold: 0.90
+
+constraints:
+  max_iterations: 10
+  timeout: 1200
+  max_rpm: 20
+
+  guardrails:
+    require_confidence_intervals: true
+    max_assumptions: 3
+
+memory:
+  type: short_term
+  shared: true
+
+evolution:
+  enabled: true
+  learn_from:
+    - analysis_accuracy
+    - insight_adoption
+    - stakeholder_feedback
