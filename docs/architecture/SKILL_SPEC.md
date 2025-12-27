@@ -1,309 +1,210 @@
-# LiYe AI Skill Specification
+# SKILL_SPEC · Skill 工程级规范
+Skill Engineering Specification (v5.0)
 
-> **Version**: 3.1 Final
+> **Version**: 5.0
 > **Status**: FROZEN
 > **Date**: 2025-12-27
-> **Layer**: Skill Layer (Capability Only)
 
 ---
 
-## 1. Overview
+## §0 定义声明（冻结）
 
-Skills are the **capability units** in LiYe AI, forked from Skill Forge.
+**Skill = 可复用、可组合、可执行的能力单元（WHAT）**
 
-**Key Principle**: Skills define **WHAT** can be done, not **WHO** does it or **HOW** it's done.
-- No Agent concepts in Skills
-- No Flow concepts in Skills
-- Pure capability definitions
+Skill 不是：
+- 角色（Agent）
+- 方法论（Methodology）
+- 工作流（Workflow）
+- 运行时（Runtime）
 
----
+Skill 只回答一个问题：
 
-## 2. Skill Types
-
-| Type | Description | Location |
-|------|-------------|----------|
-| **Atomic** | Single capability unit | `src/skill/atomic/` |
-| **Composite** | Combination of atomic skills | `src/skill/composite/` |
+> **"系统能做什么？"**
 
 ---
 
-## 3. Atomic Skill Structure
+## §1 Skill 的职责边界
 
-```typescript
-// Location: src/skill/atomic/{skill_name}.ts
+### Skill 可以做的
+- 接收输入
+- 执行单一或组合能力
+- 返回结构化输出
 
-import { Skill, SkillInput, SkillOutput } from '@liye-ai/skill';
+### Skill 不可以做的
+- 定义角色或人格
+- 控制流程阶段（Workflow / Phase）
+- 执行跨 Domain 的业务编排
+- 修改 Runtime / Method 规则
 
-export const market_research: Skill = {
-  // === Metadata ===
-  id: 'market_research',
-  name: 'Market Research',
-  version: '1.0.0',
-  description: 'Conducts comprehensive market research and analysis',
+---
 
-  // === Input/Output Schema ===
-  input: {
-    type: 'object',
-    properties: {
-      product_category: { type: 'string', required: true },
-      target_market: { type: 'string', required: true },
-      depth: { type: 'string', enum: ['basic', 'detailed', 'comprehensive'] }
-    }
-  },
+## §2 Skill 的工程分类（冻结）
 
-  output: {
-    type: 'object',
-    properties: {
-      market_size: { type: 'number' },
-      growth_rate: { type: 'number' },
-      key_players: { type: 'array', items: { type: 'string' } },
-      trends: { type: 'array', items: { type: 'string' } },
-      report: { type: 'string' }
-    }
-  },
+### 2.1 Atomic Skill（原子技能）
 
-  // === Execution ===
-  async execute(input: SkillInput): Promise<SkillOutput> {
-    // Implementation
-    return {
-      market_size: 1000000,
-      growth_rate: 0.15,
-      key_players: ['Player A', 'Player B'],
-      trends: ['Trend 1', 'Trend 2'],
-      report: 'Market research report...'
-    };
-  },
+**定义**
+Atomic Skill 是 **不可再拆分的最小能力单元**。
 
-  // === Validation ===
-  validate(input: SkillInput): boolean {
-    return !!input.product_category && !!input.target_market;
-  }
-};
+- 单一职责
+- 无内部流程分支
+- 可被多个 Agent / Composite Skill 复用
+
+**位置**
+```text
+src/skill/atomic/
+src/domain/<domain>/skills/atomic/
+```
+
+**示例**
+- `market_research`
+- `keyword_clustering`
+- `sentiment_analysis`
+
+### 2.2 Composite Skill（组合技能）
+
+**定义**
+Composite Skill 是由 **多个 Atomic Skill 组合而成的能力链**。
+
+- 本身不实现底层能力
+- 只负责编排与组合
+- 可被 Agent 直接使用
+
+**位置**
+```text
+src/skill/composite/
+src/domain/<domain>/skills/composite/
+```
+
+**示例**
+- `market_intelligence_report`
+- `listing_optimization_pipeline`
+
+---
+
+## §3 Atomic Skill 工程结构（冻结）
+
+```text
+market_research/
+├── index.ts          # Skill 实现（必须）
+├── spec.yaml         # Skill 接口定义（必须）
+└── README.md         # 可选说明
+```
+
+**spec.yaml（必需）**
+```yaml
+id: market_research
+type: atomic
+domain: global | <domain-name>
+
+input:
+  type: object
+  properties:
+    seed_keywords:
+      type: array
+      items: { type: string }
+  required: [seed_keywords]
+
+output:
+  type: object
+  properties:
+    insights:
+      type: array
+      items: { type: string }
 ```
 
 ---
 
-## 4. Composite Skill Structure
+## §4 Composite Skill 工程结构（冻结）
 
-```typescript
-// Location: src/skill/composite/{skill_name}.ts
+```text
+market_intelligence_report/
+├── index.ts
+├── spec.yaml
+└── compose.yaml
+```
 
-import { CompositeSkill } from '@liye-ai/skill';
+**compose.yaml（必需）**
+```yaml
+id: market_intelligence_report
+type: composite
+skills:
+  - market_research
+  - competitor_analysis
+  - trend_detection
 
-export const market_intelligence_report: CompositeSkill = {
-  id: 'market_intelligence_report',
-  name: 'Market Intelligence Report',
-  version: '1.0.0',
-  description: 'Generates comprehensive market intelligence report',
+mapping:
+  market_research.insights -> report.market
+```
 
-  // === Skill Chain ===
-  chain: [
-    {
-      skill: 'market_research',
-      input_mapping: {
-        product_category: 'input.product_category',
-        target_market: 'input.target_market'
-      },
-      output_alias: 'market_data'
-    },
-    {
-      skill: 'competitor_analysis',
-      input_mapping: {
-        market_data: 'market_data',
-        competitors: 'input.competitors'
-      },
-      output_alias: 'competitor_data'
-    },
-    {
-      skill: 'report_generation',
-      input_mapping: {
-        market_data: 'market_data',
-        competitor_data: 'competitor_data'
-      },
-      output_alias: 'final_report'
-    }
-  ],
+**规则**：
+- Composite Skill 不得实现 Atomic 逻辑
+- 只能组合已注册 Skill
 
-  // === Final Output ===
-  output_mapping: {
-    report: 'final_report.report',
-    summary: 'final_report.summary'
-  }
-};
+---
+
+## §5 Skill 注册与加载规则
+
+- 所有 Skill 必须注册到 **Skill Registry**
+- Agent / Runtime 只能通过 Registry 调用 Skill
+- 禁止直接 import 未注册 Skill
+
+---
+
+## §6 Skill 与 Agent 的关系（冻结）
+
+- Skill 定义能力
+- Agent 选择并调用 Skill
+- Skill 不感知 Agent 的存在
+
+```text
+Agent  →  Skill
+Skill  ✕  Agent
 ```
 
 ---
 
-## 5. Skill Registry
+## §7 禁止模式（红线）
 
-```typescript
-// Location: src/skill/registry/index.ts
-
-import { SkillRegistry } from '@liye-ai/skill';
-
-// Register all atomic skills
-import { market_research } from '../atomic/market_research';
-import { competitor_analysis } from '../atomic/competitor_analysis';
-import { trend_detection } from '../atomic/trend_detection';
-
-// Register all composite skills
-import { market_intelligence_report } from '../composite/market_intelligence_report';
-
-export const registry = new SkillRegistry();
-
-// Atomic skills
-registry.register(market_research);
-registry.register(competitor_analysis);
-registry.register(trend_detection);
-
-// Composite skills
-registry.register(market_intelligence_report);
-
-export default registry;
-```
+| 违规模式 | 说明 |
+|----------|------|
+| ❌ Skill 内定义 Persona | Persona 属于 Agent |
+| ❌ Skill 内定义 Workflow / Phase | Workflow 属于 Method |
+| ❌ Composite Skill 内实现 Atomic 逻辑 | Composite 只编排 |
+| ❌ Skill 跨 Domain 强依赖 | 每个 Skill 归属唯一 Domain |
+| ❌ Skill 直接调用 Runtime Executor | Skill 不感知 Runtime |
 
 ---
 
-## 6. Skill Loader
+## §8 校验规则（供工具使用）
 
-```typescript
-// Location: src/skill/loader/index.ts
+一个合法 Skill 必须满足：
 
-import { SkillLoader } from '@liye-ai/skill';
-import registry from '../registry';
-
-export const loader = new SkillLoader(registry);
-
-// Load skill by ID
-const skill = loader.load('market_research');
-
-// Load multiple skills
-const skills = loader.loadMany(['market_research', 'competitor_analysis']);
-```
+- [ ] 有唯一 `id`
+- [ ] `spec.yaml` 定义完整 I/O
+- [ ] Atomic / Composite 类型明确
+- [ ] Composite Skill 仅组合，不实现
+- [ ] 不触碰红线规则
 
 ---
 
-## 7. Field Specifications
+## §9 裁决顺序
 
-### 7.1 Skill Metadata
+当 Skill 定义产生争议时：
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique identifier (snake_case) |
-| `name` | string | Yes | Human-readable name |
-| `version` | semver | Yes | Semantic version |
-| `description` | string | Yes | Skill description |
-
-### 7.2 Input Schema
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | `object` |
-| `properties` | object | Yes | Property definitions |
-| `required` | string[] | No | Required properties |
-
-### 7.3 Output Schema
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | `object` |
-| `properties` | object | Yes | Property definitions |
+1. `NAMING.md`
+2. **`SKILL_SPEC.md`**
+3. `AGENT_SPEC.md`
+4. `ARCHITECTURE.md`
 
 ---
 
-## 8. Standard Skills
+## §10 冻结声明
 
-### 8.1 Research Skills
-
-| ID | Name | Description |
-|----|------|-------------|
-| `market_research` | Market Research | Market analysis |
-| `competitor_analysis` | Competitor Analysis | Competitor analysis |
-| `trend_detection` | Trend Detection | Trend identification |
-| `keyword_research` | Keyword Research | Keyword analysis |
-
-### 8.2 Analysis Skills
-
-| ID | Name | Description |
-|----|------|-------------|
-| `data_analysis` | Data Analysis | Data processing |
-| `performance_diagnosis` | Performance Diagnosis | Performance analysis |
-| `root_cause_analysis` | Root Cause Analysis | Problem diagnosis |
-
-### 8.3 Optimization Skills
-
-| ID | Name | Description |
-|----|------|-------------|
-| `content_optimization` | Content Optimization | Content improvement |
-| `seo_optimization` | SEO Optimization | SEO enhancement |
-| `bid_optimization` | Bid Optimization | PPC bid optimization |
-
-### 8.4 Execution Skills
-
-| ID | Name | Description |
-|----|------|-------------|
-| `task_execution` | Task Execution | Execute tasks |
-| `progress_tracking` | Progress Tracking | Track progress |
-| `quality_check` | Quality Check | Quality validation |
+自本文件生效起：
+- 新增 / 修改 Skill 必须符合本规范
+- 违反规范的 Skill 视为架构违规
+- 本文件修改需单独 PR，并注明原因
 
 ---
 
-## 9. Domain-Specific Skills
-
-Domains can define their own skills:
-
-```
-src/domain/amazon-growth/skills/
-├── atomic/
-│   ├── asin_research.ts
-│   ├── review_analysis.ts
-│   └── ppc_analysis.ts
-└── composite/
-    └── amazon_product_audit.ts
-```
-
----
-
-## 10. Validation Rules
-
-### 10.1 Required Checks
-- [ ] `id` must be unique in registry
-- [ ] `id` must be snake_case
-- [ ] `version` must follow semver
-- [ ] `input` schema must be valid JSON Schema
-- [ ] `output` schema must be valid JSON Schema
-- [ ] `execute` function must be async
-
-### 10.2 Composite Skill Checks
-- [ ] All skills in chain must exist in registry
-- [ ] Input mappings must reference valid paths
-- [ ] Output mappings must reference valid aliases
-- [ ] Chain must be acyclic
-
----
-
-## 11. Anti-Patterns (DO NOT DO)
-
-```typescript
-// ❌ WRONG: Skill with Agent concept
-export const analyst_skill = {
-  agent: 'market-analyst',  // ← NO Agent in Skills!
-  // ...
-};
-
-// ❌ WRONG: Skill with Flow concept
-export const workflow_skill = {
-  workflow: 'amazon-launch',  // ← NO Flow in Skills!
-  // ...
-};
-
-// ✅ CORRECT: Pure capability
-export const market_research = {
-  id: 'market_research',
-  // ...no agent, no workflow
-};
-```
-
----
-
-**This document is FROZEN as of v3.1 Final (2025-12-27).**
+**This document is FROZEN as of v5.0 (2025-12-27).**
