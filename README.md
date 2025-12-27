@@ -18,6 +18,38 @@
 
 ---
 
+
+## 🧠 Skill 三层模型（Tri-Layer Skill Model）
+
+LiYe AI 中的 **Skill 不是单一概念**，而是一个跨人类、系统、AI 的三层能力模型。
+该模型已在 v5.0 架构中冻结，用于避免规模化后的语义混乱。
+
+### 三层定义
+
+| 层级 | 名称 | 位置 | 回答的问题 |
+|------|------|------|------------|
+| L1 | Methodology Skill | `docs/methodology/` | 我如何成为这个领域的专家？ |
+| L2 | Executable Skill | `src/skill/`、`src/domain/*/skills/` | 系统如何稳定调用这个能力？ |
+| L3 | Instruction Skill | `.claude/skills/` | Claude 应该如何协助执行？ |
+
+### 权威链（宪法级规则）
+
+```text
+docs/methodology
+        ↓
+src/domain/*  /  src/skill
+        ↓
+.claude/skills
+```
+
+- 只允许 **自上而下依赖**
+- Claude 指令属于实现细节，**不得反向定义方法论**
+
+完整规范请参见：
+- `docs/architecture/SKILL_CONSTITUTION.md`
+
+---
+
 ## 快速上手
 
 ```bash
