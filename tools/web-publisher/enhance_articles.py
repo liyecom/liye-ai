@@ -139,6 +139,8 @@ intent: "commercial"  # informational/commercial/transactional
 - 不要用"我们"，用"我"
 - 数据要具体（不要"很多"，要"187 单"）
 - 避免空洞的建议（如"认真分析"），要具体操作（如"打开 Jungle Scout，点击 Product Database，设置筛选条件：月销量 300-1000"）
+- **禁止生成占位符链接**：不要写 `[复制链接]`、`[视频链接]`、`[模板链接]` 等假链接
+- **工具推荐方式**：直接写工具名称和用途，不要添加链接（如："使用 Helium 10 进行关键词研究"，而不是"[Helium 10 链接]"）
 
 现在开始改写：
 """
@@ -219,6 +221,39 @@ def detect_hallucination(content):
     """检测幻觉问题（方案 D 第 5 步）- 中英文混杂"""
     issues = []
 
+    # 跨境电商术语白名单（正常的中英文混合使用）
+    ecommerce_whitelist = [
+        # Amazon 服务和功能
+        r'VINE', r'FBA', r'PPC', r'ACOS', r'ROAS', r'AMS', r'DSP',
+        r'Prime', r'Subscribe', r'Save', r'Lightning', r'Deal',
+
+        # 产品相关
+        r'spatula', r'spoon', r'bowl', r'cup', r'plate', r'fork', r'knife',
+        r'silicone', r'stainless', r'steel', r'plastic', r'wooden',
+        r'non[- ]?stick', r'dishwasher', r'microwave', r'oven',
+
+        # 运营术语
+        r'listing', r'ASIN', r'BSR', r'SKU', r'UPC', r'EAN',
+        r'A\+?\s*Content', r'Brand\s*Registry', r'Seller\s*Central',
+
+        # 广告和关键词
+        r'CPC', r'CTR', r'CVR', r'ROI', r'ROAS', r'impressions',
+        r'auto', r'manual', r'broad', r'phrase', r'exact',
+
+        # 常见工具和平台
+        r'Helium\s*10', r'Jungle\s*Scout', r'Google\s*Sheets?',
+        r'Facebook', r'Instagram', r'TikTok', r'YouTube',
+
+        # 常见单词组合
+        r'[A-Z]{1,4}[测试验证优化策略分析]',  # 如 "A/B测试"
+        r'[A-Z]{1,4}链接?',  # 如 "A链接"
+        r'ABCD[四条链接测试]',  # 如 "ABCD四条链接"
+        r'SEO', r'SEM', r'CRM', r'ERP', r'API', r'URL',
+    ]
+
+    # 构建白名单正则（忽略大小写）
+    whitelist_pattern = '|'.join(f'(?:{w})' for w in ecommerce_whitelist)
+
     # 检测中英文混杂模式（中文词汇中夹杂英文字母）
     # 例如："人工干prejection"、"数据analyz分析"
     hallucination_patterns = [
@@ -233,21 +268,41 @@ def detect_hallucination(content):
         matches = re.finditer(pattern, content)
         for match in matches:
             text = match.group()
+
+            # 跳过白名单中的术语
+            if re.search(whitelist_pattern, text, re.IGNORECASE):
+                continue
+
             # 排除常见的正常情况（如 "A/B测试"、"SEO优化"）
-            if not re.match(r'[\u4e00-\u9fa5]{0,2}[A-Z]{1,3}/?[A-Z]{0,3}[\u4e00-\u9fa5]{0,2}', text):
-                suspicious_texts.append(text)
+            if re.match(r'[\u4e00-\u9fa5]{0,2}[A-Z]{1,3}/?[A-Z]{0,3}[\u4e00-\u9fa5]{0,2}', text):
+                continue
+
+            # 排除包含数字的情况（如 "2个test"）
+            if re.search(r'\d', text):
+                continue
+
+            suspicious_texts.append(text)
 
     if suspicious_texts:
         # 去重并限制显示前 5 个
         unique_texts = list(set(suspicious_texts))[:5]
         issues.append(f"检测到中英文混杂（疑似幻觉）: {', '.join(unique_texts)}")
 
-    # 检测不完整的 Markdown 表格
+    # 检测不完整的 Markdown 表格（优化：跳过表头分隔行）
     table_lines = [line for line in content.split('\n') if line.strip().startswith('|')]
     if table_lines:
         for i, line in enumerate(table_lines):
+            # 跳过表头分隔行（如 |---|---|）
+            if re.match(r'^\|[\s\-:|]+\|$', line.strip()):
+                continue
+
             cells = [c.strip() for c in line.split('|')]
+            # 过滤掉空字符串（行首尾的 | 会产生空元素）
+            cells = [c for c in cells if c]
+
             # 检查是否有空单元格或异常短的单元格
+            if not cells:  # 空行
+                continue
             empty_cells = sum(1 for c in cells if len(c) < 2)
             if empty_cells > len(cells) * 0.3:  # 超过 30% 的单元格为空
                 issues.append(f"表格第 {i+1} 行数据不完整")
