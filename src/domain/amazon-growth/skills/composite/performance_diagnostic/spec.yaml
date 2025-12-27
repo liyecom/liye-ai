@@ -1,0 +1,36 @@
+# Skill Spec v5.0 (SKILL_SPEC.md compliant)
+# Composite Skill: performance_diagnostic
+
+id: performance_diagnostic
+type: composite
+domain: amazon-growth
+
+description: |
+  End-to-end performance diagnostic pipeline.
+  Combines diagnostic_analysis and root_cause_detection into a complete diagnostic workflow.
+
+input:
+  type: object
+  properties:
+    asin:
+      type: string
+    metrics:
+      type: array
+      items: { type: string }
+    time_range:
+      type: object
+      properties:
+        start: { type: string, format: date }
+        end: { type: string, format: date }
+  required: [asin, metrics, time_range]
+
+output:
+  type: object
+  properties:
+    diagnostic_report:
+      type: object
+      properties:
+        anomalies: { type: array }
+        root_causes: { type: array }
+        recommendations: { type: array, items: { type: string } }
+        severity_summary: { type: string }

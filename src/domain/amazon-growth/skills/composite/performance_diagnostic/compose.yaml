@@ -1,0 +1,39 @@
+# Compose Spec v5.0 (SKILL_SPEC.md §4 compliant)
+# Composite Skill: performance_diagnostic
+#
+# Rule: Composite Skill ONLY orchestrates, does NOT implement Atomic logic
+
+id: performance_diagnostic
+type: composite
+
+skills:
+  - diagnostic_analysis
+  - root_cause_detection
+
+# Data flow mapping between skills
+mapping:
+  # Step 1: Run diagnostic analysis
+  diagnostic_analysis:
+    input:
+      asin: $.input.asin
+      metrics: $.input.metrics
+      time_range: $.input.time_range
+
+  # Step 2: For each anomaly, run root cause detection
+  root_cause_detection:
+    input:
+      anomaly: $.diagnostic_analysis.output.anomalies[*]
+      max_depth: 5
+
+  # Final output assembly
+  output:
+    diagnostic_report:
+      anomalies: $.diagnostic_analysis.output.anomalies
+      root_causes: $.root_cause_detection.output.root_causes
+      recommendations: $.root_cause_detection.output.actionable_insights
+      severity_summary: $.diagnostic_analysis.output.summary
+
+# Execution mode
+execution:
+  mode: sequential  # diagnostic_analysis -> root_cause_detection
+  on_failure: continue  # Continue even if one anomaly fails root cause

@@ -1,99 +1,95 @@
-agent:
-  name: Diagnostic Architect
-  id: diagnostic-architect
-  title: Traffic–Conversion–Advertising Diagnostic Engineer
-  icon: "\U0001F50D"
-  whenToUse: >
-    Use for ACOS diagnosis, traffic drop analysis, conversion drop analysis,
-    anomaly detection, and causal mapping.
+# =============================================================================
+# AGENT_SPEC.md v5.0 Compliant
+# Agent = Persona (WHO) + Skill Set (WHAT) + Runtime Shell (HOW)
+# =============================================================================
 
+# -----------------------------------------------------------------------------
+# §4.1 Agent Core (Required)
+# -----------------------------------------------------------------------------
+agent:
+  id: diagnostic-architect
+  name: Diagnostic Architect
+  version: 1.0.0
+  domain: amazon-growth
+
+# -----------------------------------------------------------------------------
+# §4.2 Persona (Required, Method Layer)
+# Source: src/method/personas/
+# Responsibility: Role, Goal, Communication Style
+# Forbidden: Skill implementation, Flow control
+# -----------------------------------------------------------------------------
 persona:
   role: Amazon Performance Diagnostic Architect
-  style: Precise, forensic, systems thinking
-  identity: >
+  goal: >
+    Identify root causes of performance anomalies in Amazon listings
+    through multi-signal correlation and systematic 5-Why analysis.
+  backstory: >
     Specialist in multi-signal performance analysis with 6+ years experience.
-    Expert in root cause analysis and 5-Why methodology.
-  focus:
-    - causal graph building
-    - multi-signal correlation
-    - cross-data validation
-    - anomaly detection
-    - traffic gap analysis
-  core_principles:
-    - "Diagnose before Adjust: never act on symptoms"
-    - "Multi-signal correlation > single metric interpretation"
-    - "Every anomaly has root-cause structure"
-    - "Document patterns for future detection"
-    - "5-Why追问: always find the real root cause"
+    Expert in root cause analysis, causal graph building, and cross-data validation.
+    Believes in "Diagnose before Adjust" - never act on symptoms alone.
+  communication_style: Precise, forensic, systems thinking
 
-knowledge:
-  sources:
-    - uri: qdrant://localhost:6333/amazon_knowledge_base
-      query_prefix: diagnostics
-      retrieval_top_k: 5
-    - uri: file://~/Documents/出海跨境/Amazon/诊断体系/
-      type: reference
-    - uri: file://src/strategy/analysis_queries.py
-      type: sql_templates
-    - uri: qdrant://localhost:6333/agent_experiences
-      query_prefix: diagnostic-architect
-      retrieval_top_k: 3
-  embedding_model: all-MiniLM-L6-v2
+# -----------------------------------------------------------------------------
+# §4.3 Skills (Required, Skill Layer)
+# Rule: Agent can only USE Skills, cannot DEFINE Skills
+# Skills must exist in: src/skill/ or src/domain/*/skills/
+# -----------------------------------------------------------------------------
+skills:
+  atomic:
+    - diagnostic_analysis      # Multi-signal anomaly detection
+    - root_cause_detection     # 5-Why root cause analysis
+  composite:
+    - performance_diagnostic   # Full diagnostic pipeline
 
-  rag_triggers:
-    - scenario: "销量突然下跌"
-      query_template: "销量下跌根因分析"
-      action: load_diagnostic_framework
-    - scenario: "ACOS飙升"
-      query_template: "ACOS异常诊断"
-      action: search_similar_cases
+# -----------------------------------------------------------------------------
+# §4.4 Runtime (Required, Runtime Layer)
+# Rule: Only execution strategy, no business logic
+# -----------------------------------------------------------------------------
+runtime:
+  process: sequential          # Execution mode: sequential | hierarchical | parallel
+  memory: true                 # Enable context memory
+  delegation: false            # Whether can delegate to other agents
+  max_iterations: 5            # Maximum execution rounds
 
-tools:
-  - name: ACOSBreakdownTool
-    status: planned
-  - name: ConversionDropAnalyzer
-    status: planned
-  - name: TrafficAnomalyDetector
-    status: planned
-  - name: DuckDBQueryTool
-    status: implemented
-    path: src/data_lake/query_executor.py
-  - name: SellersSpriteTool
-    status: implemented
+# -----------------------------------------------------------------------------
+# §5 LiYe Extension (liyedata)
+# Purpose: Business constraints and acceptance criteria, NOT execution logic
+# Allowed: workflow_stage, acceptance_criteria, guardrails
+# Forbidden: Execution logic, Override upper layer rules
+# -----------------------------------------------------------------------------
+liyedata:
+  workflow_stage: "Optimize: Step 1 - Diagnostics"
+  acceptance_criteria:
+    - metric: diagnosis_accuracy
+      threshold: 0.85
+    - metric: root_cause_identification_rate
+      threshold: 0.80
+    - metric: time_to_diagnosis_minutes
+      threshold: 30
+  guardrails:
+    max_change_magnitude: 0.20
+    require_review: true
 
-bmaddata:
-  workflow_stage: "Optimize: Step 1 – Diagnostics"
-  story_template: "As Diagnostic Architect, I want to {action} so that {outcome}"
-
+# -----------------------------------------------------------------------------
+# §6 Evolution (Configuration Only)
+# EVOLUTION_PROTOCOL.md v5.0: Domain can ONLY enable/disable
+# Forbidden: Modify learning signals, judgment rules, storage structure
+# Decision Power: Method Layer
+# Execution Power: Runtime Layer
+# Configuration Power: Domain Layer (this field)
+# -----------------------------------------------------------------------------
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/diagnostic-architect/
 
-  tracked_metrics:
-    - diagnosis_accuracy
-    - root_cause_identification_rate
-    - time_to_diagnosis
-
-  proven_patterns:
-    - id: da-001
-      name: "5Why根因分析"
-      description: "连续追问5个为什么找到根本原因"
-      success_rate: 0.88
-    - id: da-002
-      name: "流量缺口诊断"
-      method: "反查流量词 vs Listing实际埋词"
-      success_rate: 0.91
-
-  graduation_status:
-    流量缺口分析: graduated
-    ACOS异常检测: graduated
-    根因分析: manual
-
+# -----------------------------------------------------------------------------
+# Dependencies (Agent Collaboration)
+# Note: This is for documentation, not execution control
+# -----------------------------------------------------------------------------
 dependencies:
   receives_from:
-    - review-sentinel
+    - review-sentinel          # Receives anomaly signals
   outputs_to:
-    - keyword-architect
-    - listing-optimizer
-    - ppc-strategist
-    - sprint-orchestrator
+    - keyword-architect        # Sends keyword gaps
+    - listing-optimizer        # Sends listing issues
+    - ppc-strategist           # Sends ACOS diagnostics
+    - sprint-orchestrator      # Sends diagnostic reports

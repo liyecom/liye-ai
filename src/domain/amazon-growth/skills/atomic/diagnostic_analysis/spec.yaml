@@ -1,0 +1,54 @@
+# Skill Spec v5.0 (SKILL_SPEC.md compliant)
+# Atomic Skill: diagnostic_analysis
+
+id: diagnostic_analysis
+type: atomic
+domain: amazon-growth
+
+description: |
+  Multi-signal performance analysis for Amazon listings.
+  Analyzes traffic, conversion, and advertising metrics to identify anomalies.
+
+input:
+  type: object
+  properties:
+    asin:
+      type: string
+      description: Target ASIN to diagnose
+    metrics:
+      type: array
+      items:
+        type: string
+        enum: [traffic, conversion, acos, ctr, cvr]
+      description: Metrics to analyze
+    time_range:
+      type: object
+      properties:
+        start: { type: string, format: date }
+        end: { type: string, format: date }
+      required: [start, end]
+  required: [asin, metrics, time_range]
+
+output:
+  type: object
+  properties:
+    anomalies:
+      type: array
+      items:
+        type: object
+        properties:
+          metric: { type: string }
+          severity: { type: string, enum: [low, medium, high, critical] }
+          deviation: { type: number }
+          timestamp: { type: string }
+    correlations:
+      type: array
+      items:
+        type: object
+        properties:
+          signal_a: { type: string }
+          signal_b: { type: string }
+          correlation: { type: number }
+    summary:
+      type: string
+      description: Human-readable diagnostic summary

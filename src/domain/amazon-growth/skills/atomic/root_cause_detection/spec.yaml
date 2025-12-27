@@ -1,0 +1,54 @@
+# Skill Spec v5.0 (SKILL_SPEC.md compliant)
+# Atomic Skill: root_cause_detection
+
+id: root_cause_detection
+type: atomic
+domain: amazon-growth
+
+description: |
+  5-Why root cause analysis methodology for Amazon performance issues.
+  Traces anomalies back to their fundamental causes through systematic questioning.
+
+input:
+  type: object
+  properties:
+    anomaly:
+      type: object
+      properties:
+        metric: { type: string }
+        description: { type: string }
+        context: { type: object }
+      required: [metric, description]
+    max_depth:
+      type: integer
+      default: 5
+      description: Maximum depth for 5-Why analysis
+    known_factors:
+      type: array
+      items: { type: string }
+      description: Already known contributing factors
+  required: [anomaly]
+
+output:
+  type: object
+  properties:
+    root_causes:
+      type: array
+      items:
+        type: object
+        properties:
+          cause: { type: string }
+          confidence: { type: number, minimum: 0, maximum: 1 }
+          evidence: { type: array, items: { type: string } }
+          depth: { type: integer }
+    why_chain:
+      type: array
+      items:
+        type: object
+        properties:
+          level: { type: integer }
+          question: { type: string }
+          answer: { type: string }
+    actionable_insights:
+      type: array
+      items: { type: string }
