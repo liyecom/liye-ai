@@ -1,0 +1,126 @@
+# LiYe AI Workflow DSL - Full Development Cycle
+# Location: src/method/workflows/full-cycle.yaml
+
+workflow:
+  id: full-cycle
+  name: Full Development Cycle
+  version: 1.0.0
+  track: standard
+  description: Complete 4-phase development workflow
+
+phases:
+  - id: analyze
+    name: Analyze
+    description: Research and analysis
+    agents:
+      - researcher
+      - analyst
+    tasks:
+      - id: research
+        agent: researcher
+        skill: research_methodology
+        outputs: [research_report]
+
+      - id: analyze
+        agent: analyst
+        skill: data_analysis
+        depends_on: [research]
+        outputs: [analysis_report]
+
+  - id: plan
+    name: Plan
+    description: Strategy and planning
+    depends_on: [analyze]
+    agents:
+      - pm
+      - architect
+    tasks:
+      - id: requirements
+        agent: pm
+        skill: requirements_analysis
+        inputs: [analysis_report]
+        outputs: [requirements_doc]
+
+      - id: architecture
+        agent: architect
+        skill: system_design
+        depends_on: [requirements]
+        outputs: [architecture_doc]
+
+      - id: stories
+        agent: pm
+        skill: user_story_creation
+        depends_on: [requirements]
+        outputs: [user_stories]
+
+  - id: design
+    name: Design
+    description: Detailed design
+    depends_on: [plan]
+    agents:
+      - designer
+      - developer
+    tasks:
+      - id: ux-design
+        agent: designer
+        skill: wireframing
+        inputs: [user_stories]
+        outputs: [wireframes]
+
+      - id: tech-design
+        agent: developer
+        skill: code_implementation
+        inputs: [architecture_doc]
+        outputs: [tech_design]
+
+  - id: execute
+    name: Execute
+    description: Implementation and testing
+    depends_on: [design]
+    agents:
+      - developer
+      - qa
+      - guardian
+    tasks:
+      - id: implement
+        agent: developer
+        skill: code_implementation
+        inputs: [tech_design, wireframes]
+        outputs: [code]
+
+      - id: test
+        agent: qa
+        skill: test_automation
+        depends_on: [implement]
+        inputs: [code]
+        outputs: [test_results]
+
+      - id: quality-gate
+        agent: guardian
+        skill: quality_gate_management
+        depends_on: [test]
+        inputs: [test_results]
+        outputs: [quality_report]
+
+transitions:
+  - from: analyze
+    to: plan
+    condition: "analyze.complete && analyze.quality_score >= 0.8"
+
+  - from: plan
+    to: design
+    condition: "plan.approved"
+
+  - from: design
+    to: execute
+    condition: "design.reviewed"
+
+  - from: execute
+    to: complete
+    condition: "quality_gate.passed"
+
+guards:
+  - phase: execute
+    condition: "all_previous_phases.complete"
+    action: block
+    message: "All previous phases must be complete"

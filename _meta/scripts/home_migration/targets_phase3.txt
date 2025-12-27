@@ -1,0 +1,19 @@
+# Phase 3 Migration Targets
+# Format: SOURCE:DEST
+# Lines starting with # are comments
+
+# ✅ Already migrated
+# ~/Documents/生财有术:~/data/archives/shengcai
+
+# 📋 Remaining large files to migrate
+~/Documents/面试相关资料:~/data/personal/interview_materials
+~/Documents/TencentMeeting:~/data/personal/tencent_meeting
+~/Documents/职场成长服务相关行业研报:~/data/archives/career_reports
+~/Documents/hangye.com.cn行业研报:~/data/archives/industry_reports
+~/Documents/个人资料:~/data/personal/personal_files
+~/Documents/GEO-SEO:~/data/archives/geo_seo
+~/Documents/星座命理:~/data/personal/astrology
+~/Documents/癌症领域:~/data/medical/cancer_research
+
+# ⚠️ Large backup - check before migrating (4.0GB)
+# ~/Documents/出海跨境_backup_20251225:~/data/backups/crossborder_backup_20251225

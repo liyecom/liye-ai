@@ -1,0 +1,51 @@
+# LiYe OS System Registry
+# 所有系统必须在此注册
+
+version: "1.0.0"
+last_updated: "2025-12-23"
+
+systems:
+  geo-os:
+    layer: core
+    status: active
+    type: infrastructure
+    purpose: "知识提取、标准化、原子化处理"
+    version: "0.1.0"
+    dependencies: []
+    provides:
+      - "geo_units.json (structured knowledge export)"
+    consumes:
+      - "~/data/archives/* (raw content)"
+    data_ownership:
+      - "~/data/processed/*/"
+      - "~/data/exports/*/"
+    maintainer: "liye"
+
+  amazon-growth-os:
+    layer: application
+    status: active
+    type: business
+    purpose: "亚马逊运营自动化"
+    version: "1.0.0"
+    dependencies:
+      - geo-os: ">=0.1.0"
+    provides:
+      - "AmazonListingAPI"
+      - "PPCOptimizationAPI"
+    consumes:
+      - "~/data/exports/*/geo_units.json"
+    data_ownership:
+      - "~/data/amazon/"
+    maintainer: "liye"
+
+reserved_systems:
+  identity-os:
+    trigger_condition: "当3个以上系统需要共享实体数据时"
+    estimated_start: "2025-Q2"
+    dependencies:
+      - geo-os
+
+  data-os:
+    trigger_condition: "当数据源超过5个时"
+    estimated_start: "2025-Q3"
+    dependencies: []

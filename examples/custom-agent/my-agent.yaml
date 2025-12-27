@@ -1,0 +1,53 @@
+# Custom Agent Example
+# This demonstrates the three-in-one agent format
+
+agent:
+  id: example-analyst
+  name: Example Data Analyst
+  version: 1.0.0
+  domain: examples
+
+# Persona (from BMad Method)
+persona:
+  role: "Data Analysis Specialist"
+  goal: "Analyze data and provide actionable insights"
+  backstory: |
+    An experienced data analyst with expertise in
+    transforming raw data into meaningful insights.
+  communication_style: "Clear, precise, data-driven"
+
+# Skills (from Skill Forge)
+skills:
+  atomic:
+    - data_validation
+    - statistical_analysis
+    - trend_detection
+  composite:
+    - comprehensive_analysis
+
+# Runtime (from CrewAI)
+runtime:
+  process: sequential
+  memory: true
+  delegation: false
+  max_iterations: 5
+
+# LiYe Extensions
+liyedata:
+  workflow_stage: "Analysis: Data Processing"
+  story_template: "As a {role}, I want to {action} so that {outcome}"
+
+  acceptance_criteria:
+    - metric: data_accuracy
+      threshold: 0.95
+    - metric: insight_relevance
+      threshold: 0.85
+
+  guardrails:
+    max_processing_time: 300  # seconds
+    require_validation: true
+
+# Evolution
+evolution:
+  enabled: true
+  storage: .liye/evolution/example-analyst/

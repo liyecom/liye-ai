@@ -1,0 +1,160 @@
+# ==============================================
+# Review Monitoring & Alert Configuration
+# Amazon Growth OS
+# ==============================================
+
+# Alert Thresholds
+alerts:
+  # Negative review spike alert
+  negative_spike:
+    enabled: true
+    threshold: 2  # Number of negative reviews
+    window_hours: 24  # Time window
+    min_severity: 3  # Minimum severity (1-5 stars, 3 = 1-2 stars)
+    priority: high
+
+  # Rating drop alert
+  rating_drop:
+    enabled: true
+    drop_threshold: 0.2  # Alert if rating drops by this much
+    comparison_window_days: 7  # Compare to average of last N days
+    min_reviews: 10  # Minimum reviews for valid comparison
+    priority: medium
+
+  # Critical keyword alert
+  critical_keywords:
+    enabled: true
+    keywords:
+      - "fake"
+      - "scam"
+      - "defective"
+      - "broke"
+      - "dangerous"
+      - "lawsuit"
+      - "refund"
+      - "return"
+      - "waste of money"
+    priority: high
+
+  # Competitor mention alert
+  competitor_mention:
+    enabled: true
+    competitor_brands:
+      - "GORILLA GRIP"
+      - "Kangaroo"
+      - "WiseLife"
+    priority: low
+
+# Sentiment Analysis Settings
+sentiment:
+  # Thresholds for classification
+  thresholds:
+    positive: 0.6   # Sentiment score > 0.6 = positive
+    negative: -0.3  # Sentiment score < -0.3 = negative
+    # Scores between -0.3 and 0.6 = neutral
+
+  # Keywords that indicate sentiment
+  positive_keywords:
+    - "love"
+    - "perfect"
+    - "excellent"
+    - "amazing"
+    - "great quality"
+    - "highly recommend"
+    - "worth every penny"
+    - "exceeded expectations"
+
+  negative_keywords:
+    - "disappointed"
+    - "terrible"
+    - "poor quality"
+    - "waste"
+    - "cheaply made"
+    - "falling apart"
+    - "don't buy"
+    - "regret"
+
+# Topic Extraction Settings
+topics:
+  # Pre-defined topics to track
+  categories:
+    size:
+      keywords: ["size", "dimension", "fit", "too big", "too small", "measurement"]
+      importance: high
+
+    quality:
+      keywords: ["quality", "material", "durable", "sturdy", "flimsy", "well-made", "cheap"]
+      importance: high
+
+    cleaning:
+      keywords: ["clean", "wash", "machine wash", "vacuum", "stain", "dirt"]
+      importance: medium
+
+    appearance:
+      keywords: ["look", "color", "pattern", "design", "aesthetic", "beautiful", "ugly"]
+      importance: medium
+
+    slip_resistance:
+      keywords: ["slip", "slide", "grip", "non-slip", "stay in place", "moves around"]
+      importance: high
+
+    shipping:
+      keywords: ["shipping", "delivery", "arrived", "package", "damaged"]
+      importance: low
+
+    price:
+      keywords: ["price", "value", "expensive", "cheap", "worth", "money"]
+      importance: medium
+
+# Notification Settings
+notifications:
+  # Notification channels
+  channels:
+    console:
+      enabled: true
+
+    file:
+      enabled: true
+      path: "logs/review_alerts.log"
+
+    # Future: webhook, email, slack
+    webhook:
+      enabled: false
+      url: ""
+
+    email:
+      enabled: false
+      recipients: []
+
+  # Cooldown to prevent alert spam
+  cooldown_minutes: 60  # Don't repeat same alert within this window
+
+# Data Collection Settings
+collection:
+  # Review sources (for future API integration)
+  sources:
+    - amazon_api
+    - keepa
+    - helium10
+
+  # Collection schedule
+  schedule:
+    frequency: daily
+    time: "08:00"  # UTC
+
+  # Historical lookback
+  lookback_days: 30
+
+# ASIN Configuration
+asins:
+  # Default ASINs to monitor (Timo Store)
+  monitored:
+    - asin: "B0C5Q9Y6YF"
+      name: "Timo Runner Rug Grey"
+      importance: high
+    - asin: "B0XXXXXX"
+      name: "Timo Doormat"
+      importance: medium
+
+  # Alert customization per ASIN
+  overrides: {}

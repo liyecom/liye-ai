@@ -1,0 +1,55 @@
+# LiYe AI Workflow DSL - Analyze Phase
+# Location: src/method/workflows/analyze.yaml
+
+workflow:
+  id: analyze
+  name: Analysis Phase Workflow
+  version: 1.0.0
+  track: quick
+  description: Research and analysis workflow for understanding context
+
+phases:
+  - id: analyze
+    name: Analyze
+    description: Research and analysis phase
+    agents:
+      - researcher
+      - analyst
+    tasks:
+      - id: research-context
+        agent: researcher
+        skill: research_methodology
+        inputs:
+          - topic
+          - scope
+        outputs:
+          - research_findings
+
+      - id: analyze-data
+        agent: analyst
+        skill: data_analysis
+        depends_on: [research-context]
+        inputs:
+          - research_findings
+        outputs:
+          - analysis_report
+
+      - id: synthesize-insights
+        agent: analyst
+        skill: knowledge_synthesis
+        depends_on: [analyze-data]
+        inputs:
+          - analysis_report
+        outputs:
+          - insights_summary
+
+transitions:
+  - from: analyze
+    to: complete
+    condition: "analyze.complete && analyze.quality_score >= 0.8"
+
+guards:
+  - phase: analyze
+    condition: "inputs.topic != null"
+    action: block
+    message: "Topic must be specified"

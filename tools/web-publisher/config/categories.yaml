@@ -1,0 +1,141 @@
+# GEO OS - 垂类分类定义
+# 用于将 units 分配到不同的垂类网站
+
+categories:
+  amazon-optimization:
+    name: "Amazon 优化"
+    description: "Amazon Listing 优化、PPC 广告、A9 算法"
+    keywords:
+      - amazon
+      - listing
+      - ppc
+      - a9
+      - seller
+      - asin
+      - 优化
+      - 广告
+    target_count: 60
+    domain: "amazon-seo.com"
+    affiliate_focus: "amazon_seller_tools"
+
+  ai-applications:
+    name: "AI 应用"
+    description: "AI 工具、ChatGPT、Claude、AI 写作"
+    keywords:
+      - ai
+      - gpt
+      - claude
+      - chatgpt
+      - 人工智能
+      - 机器学习
+      - 深度学习
+    target_count: 50
+    domain: "ai-tools-guide.com"
+    affiliate_focus: "ai_writing_tools"
+
+  side-hustle:
+    name: "副业创收"
+    description: "副业、兼职、被动收入、在线赚钱"
+    keywords:
+      - 副业
+      - 兼职
+      - 创收
+      - 赚钱
+      - 被动收入
+      - 在线收入
+    target_count: 50
+    domain: "side-income-hub.com"
+    affiliate_focus: "online_courses"
+
+  crossborder-ecommerce:
+    name: "跨境电商"
+    description: "跨境电商、选品、供应链、物流"
+    keywords:
+      - 跨境
+      - 电商
+      - 选品
+      - 供应链
+      - 物流
+      - 独立站
+    target_count: 60
+    domain: "crossborder-tips.com"
+    affiliate_focus: "ecommerce_platforms"
+
+  marketing-growth:
+    name: "营销增长"
+    description: "增长黑客、营销策略、流量获取"
+    keywords:
+      - 营销
+      - 增长
+      - 流量
+      - 转化
+      - seo
+      - sem
+    target_count: 50
+    domain: "growth-hacks.com"
+    affiliate_focus: "marketing_software"
+
+  personal-growth:
+    name: "个人成长"
+    description: "个人成长、自我提升、学习方法"
+    keywords:
+      - 成长
+      - 提升
+      - 学习
+      - 认知
+      - 思维
+    target_count: 40
+    domain: "personal-growth.com"
+    affiliate_focus: "books"
+
+  entrepreneurship:
+    name: "创业投资"
+    description: "创业、投资、商业模式"
+    keywords:
+      - 创业
+      - 投资
+      - 商业
+      - 融资
+      - 估值
+    target_count: 40
+    domain: "startup-insights.com"
+    affiliate_focus: "online_courses"
+
+  content-operations:
+    name: "内容运营"
+    description: "内容运营、文案写作、新媒体"
+    keywords:
+      - 内容
+      - 运营
+      - 文案
+      - 新媒体
+      - 公众号
+    target_count: 40
+    domain: "content-strategy.com"
+    affiliate_focus: "ai_writing_tools"
+
+  data-analytics:
+    name: "数据分析"
+    description: "数据分析、数据可视化、BI 工具"
+    keywords:
+      - 数据
+      - 分析
+      - 可视化
+      - bi
+      - tableau
+    target_count: 40
+    domain: "data-driven.com"
+    affiliate_focus: "marketing_software"
+
+  product-design:
+    name: "产品设计"
+    description: "产品设计、用户体验、UI/UX"
+    keywords:
+      - 产品
+      - 设计
+      - 用户体验
+      - ui
+      - ux
+    target_count: 40
+    domain: "product-design-hub.com"
+    affiliate_focus: "marketing_software"

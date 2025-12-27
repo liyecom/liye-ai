@@ -1,0 +1,116 @@
+# GEO OS - 联盟产品库
+# 定义可推广的联盟产品
+
+products:
+  # Amazon 卖家工具
+  amazon_seller_tools:
+    - id: "jungle_scout"
+      name: "Jungle Scout"
+      description: "Amazon 选品和市场调研工具"
+      category: "amazon_seller_tools"
+      affiliate_link: "https://junglescout.com/?via=affiliate"  # 示例链接
+      commission_rate: "20%"
+      image: "/images/products/jungle-scout.png"
+
+    - id: "helium10"
+      name: "Helium 10"
+      description: "Amazon 卖家全能工具套件"
+      category: "amazon_seller_tools"
+      affiliate_link: "https://helium10.com/?via=affiliate"
+      commission_rate: "10%"
+      image: "/images/products/helium10.png"
+
+    - id: "sellersprite"
+      name: "卖家精灵"
+      description: "Amazon 中文卖家工具"
+      category: "amazon_seller_tools"
+      affiliate_link: "https://sellersprite.com/?via=affiliate"
+      commission_rate: "15%"
+      image: "/images/products/sellersprite.png"
+
+  # 电商平台
+  ecommerce_platforms:
+    - id: "shopify"
+      name: "Shopify"
+      description: "全球领先的独立站平台"
+      category: "ecommerce_platforms"
+      affiliate_link: "https://shopify.com/?via=affiliate"
+      commission_rate: "$58/sale"
+      image: "/images/products/shopify.png"
+
+    - id: "woocommerce"
+      name: "WooCommerce"
+      description: "WordPress 电商插件"
+      category: "ecommerce_platforms"
+      affiliate_link: "https://woocommerce.com/?via=affiliate"
+      commission_rate: "30%"
+      image: "/images/products/woocommerce.png"
+
+  # AI 写作工具
+  ai_writing_tools:
+    - id: "jasper"
+      name: "Jasper AI"
+      description: "AI 内容创作工具"
+      category: "ai_writing_tools"
+      affiliate_link: "https://jasper.ai/?via=affiliate"
+      commission_rate: "30%"
+      image: "/images/products/jasper.png"
+
+    - id: "copy_ai"
+      name: "Copy.ai"
+      description: "AI 文案生成工具"
+      category: "ai_writing_tools"
+      affiliate_link: "https://copy.ai/?via=affiliate"
+      commission_rate: "25%"
+      image: "/images/products/copy-ai.png"
+
+  # 营销软件
+  marketing_software:
+    - id: "semrush"
+      name: "SEMrush"
+      description: "SEO 和营销分析工具"
+      category: "marketing_software"
+      affiliate_link: "https://semrush.com/?via=affiliate"
+      commission_rate: "40%"
+      image: "/images/products/semrush.png"
+
+    - id: "ahrefs"
+      name: "Ahrefs"
+      description: "SEO 工具和反向链接分析"
+      category: "marketing_software"
+      affiliate_link: "https://ahrefs.com/?via=affiliate"
+      commission_rate: "20%"
+      image: "/images/products/ahrefs.png"
+
+  # 在线课程
+  online_courses:
+    - id: "coursera"
+      name: "Coursera"
+      description: "在线课程平台"
+      category: "online_courses"
+      affiliate_link: "https://coursera.org/?via=affiliate"
+      commission_rate: "45%"
+      image: "/images/products/coursera.png"
+
+    - id: "udemy"
+      name: "Udemy"
+      description: "技能学习平台"
+      category: "online_courses"
+      affiliate_link: "https://udemy.com/?via=affiliate"
+      commission_rate: "15%"
+      image: "/images/products/udemy.png"
+
+  # 书籍
+  books:
+    - id: "amazon_books"
+      name: "Amazon 图书"
+      description: "Amazon 联盟图书推广"
+      category: "books"
+      affiliate_link: "https://amazon.com/?tag=affiliate"
+      commission_rate: "4.5%"
+      image: "/images/products/amazon-books.png"
+
+# 默认推荐（如果 AI 无法分类）
+default_products:
+  - online_courses
+  - books

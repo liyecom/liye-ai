@@ -1,0 +1,11 @@
+# GEO OS Web Publisher - Python 依赖
+
+# Claude API
+anthropic>=0.40.0
+
+# 数据处理
+pyyaml>=6.0.1
+
+# 网络爬虫（用于未来的数据采集）
+requests>=2.31.0
+beautifulsoup4>=4.12.0

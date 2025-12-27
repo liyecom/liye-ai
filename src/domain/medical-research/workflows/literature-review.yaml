@@ -1,0 +1,183 @@
+# LiYe AI Domain Workflow - Literature Review
+# Location: src/domain/medical-research/workflows/literature-review.yaml
+
+workflow:
+  id: literature-review
+  name: Systematic Literature Review Workflow
+  version: 1.0.0
+  track: standard
+  domain: medical-research
+  description: PRISMA-compliant systematic literature review workflow
+
+phases:
+  - id: protocol
+    name: Protocol Development
+    description: Define review scope, PICO criteria, and search strategy
+    agents:
+      - literature-analyst
+    tasks:
+      - id: define-pico
+        agent: literature-analyst
+        skill: protocol_development
+        inputs:
+          - research_question
+          - review_type
+        outputs:
+          - pico_criteria
+          - inclusion_criteria
+          - exclusion_criteria
+
+      - id: develop-strategy
+        agent: literature-analyst
+        skill: search_strategy
+        depends_on: [define-pico]
+        inputs:
+          - pico_criteria
+          - databases
+        outputs:
+          - search_queries
+          - mesh_terms
+
+  - id: search
+    name: Literature Search
+    description: Execute search across databases
+    depends_on: [protocol]
+    agents:
+      - literature-analyst
+    tasks:
+      - id: execute-search
+        agent: literature-analyst
+        skill: pubmed_search
+        inputs:
+          - search_queries
+          - search_filters
+        outputs:
+          - raw_results
+          - search_log
+
+      - id: deduplicate
+        agent: literature-analyst
+        skill: deduplication
+        depends_on: [execute-search]
+        inputs:
+          - raw_results
+        outputs:
+          - unique_articles
+          - duplicate_count
+
+  - id: screen
+    name: Screening
+    description: Title/abstract and full-text screening
+    depends_on: [search]
+    agents:
+      - literature-analyst
+      - evidence-synthesizer
+    tasks:
+      - id: abstract-screen
+        agent: literature-analyst
+        skill: abstract_screening
+        inputs:
+          - unique_articles
+          - inclusion_criteria
+          - exclusion_criteria
+        outputs:
+          - screened_articles
+          - exclusion_reasons
+
+      - id: fulltext-screen
+        agent: evidence-synthesizer
+        skill: fulltext_screening
+        depends_on: [abstract-screen]
+        inputs:
+          - screened_articles
+          - inclusion_criteria
+        outputs:
+          - included_studies
+          - exclusion_log
+
+  - id: extract
+    name: Data Extraction
+    description: Extract data from included studies
+    depends_on: [screen]
+    agents:
+      - evidence-synthesizer
+    tasks:
+      - id: extract-data
+        agent: evidence-synthesizer
+        skill: data_extraction
+        inputs:
+          - included_studies
+          - extraction_template
+        outputs:
+          - extracted_data
+          - study_characteristics
+
+      - id: assess-quality
+        agent: evidence-synthesizer
+        skill: evidence_grading
+        depends_on: [extract-data]
+        inputs:
+          - extracted_data
+        outputs:
+          - quality_assessment
+          - evidence_levels
+
+  - id: synthesize
+    name: Evidence Synthesis
+    description: Synthesize findings and generate conclusions
+    depends_on: [extract]
+    agents:
+      - evidence-synthesizer
+    tasks:
+      - id: narrative-synthesis
+        agent: evidence-synthesizer
+        skill: narrative_synthesis
+        inputs:
+          - extracted_data
+          - quality_assessment
+        outputs:
+          - synthesis_narrative
+          - key_findings
+
+      - id: generate-report
+        agent: evidence-synthesizer
+        skill: report_generation
+        depends_on: [narrative-synthesis]
+        inputs:
+          - synthesis_narrative
+          - prisma_data
+        outputs:
+          - review_report
+          - prisma_diagram
+
+transitions:
+  - from: protocol
+    to: search
+    condition: "protocol.approved"
+
+  - from: search
+    to: screen
+    condition: "unique_articles.count > 0"
+
+  - from: screen
+    to: extract
+    condition: "included_studies.count > 0"
+
+  - from: extract
+    to: synthesize
+    condition: "quality_assessment.complete"
+
+  - from: synthesize
+    to: complete
+    condition: "review_report.generated"
+
+guards:
+  - phase: protocol
+    condition: "pico_criteria.defined"
+    action: block
+    message: "PICO criteria must be defined before proceeding"
+
+  - phase: synthesize
+    condition: "included_studies.count >= 2"
+    action: warn
+    message: "Synthesis with fewer than 2 studies may have limited validity"
