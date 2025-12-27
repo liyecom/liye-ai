@@ -1,241 +1,209 @@
-# LiYe AI Agent Specification
+# AGENT_SPEC · Agent 工程级规范
+Agent Engineering Specification (v5.0)
 
-> **Version**: 3.1 Final
+> **Version**: 5.0
 > **Status**: FROZEN
 > **Date**: 2025-12-27
 
 ---
 
-## 1. Core Formula
+## §0 定义声明（冻结）
+
+**Agent = Persona（WHO） + Skill Set（WHAT） + Runtime Shell（HOW）**
+
+Agent 是一个 **可执行的角色实例**，
+不是方法论、不是能力集合、不是流程定义。
 
 ```
-Agent = Persona (BMad) + Skills (Skill Forge) + Runtime Shell (CrewAI)
-
 ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
 │   WHO       │ + │   WHAT      │ + │   HOW       │
-│  Persona    │   │  Skills     │   │  Executor   │
-│  ← BMad     │   │← SkillForge │   │  ← CrewAI   │
+│  Persona    │   │  Skills     │   │  Runtime    │
+│  (Method)   │   │  (Skill)    │   │  (Executor) │
 └─────────────┘   └─────────────┘   └─────────────┘
 ```
 
-| Component | Source | Responsibility | Example |
-|-----------|--------|----------------|---------|
-| **Persona** | BMad Method | WHO: Role definition, personality, communication style | "Market analyst, rigorous, data-driven" |
-| **Skills** | Skill Forge | WHAT: Executable capability set | `[market_research, competitor_analysis]` |
-| **Runtime** | CrewAI | HOW: Execution engine, task scheduling | `sequential` / `hierarchical` |
+---
+
+## §1 Agent 的工程职责边界
+
+### Agent 可以做的
+- 选择并组合 Skill
+- 以 Persona 方式与用户/系统交互
+- 在 Runtime 中被调度与执行
+
+### Agent 不可以做的
+- 定义 Skill 的实现
+- 定义 Workflow / Phase
+- 修改 Method / Skill / Runtime 的规则
 
 ---
 
-## 2. Agent YAML Structure
+## §2 Agent 文件位置（冻结）
+
+```text
+Agents/
+src/domain/<domain-name>/agents/
+```
+
+- 每个 Agent 必须归属 **一个 Domain**
+- 不允许"全局 Agent"
+
+---
+
+## §3 Agent YAML 总体结构（冻结）
 
 ```yaml
-# Location: src/domain/{domain-name}/agents/{agent-id}.yaml
-
-# === Basic Information ===
 agent:
-  id: market-analyst           # Unique identifier (kebab-case)
-  name: Market Intelligence Analyst
-  version: 1.0.0
-  domain: amazon-growth        # Parent domain
+  id: <string>
+  name: <string>
+  version: <semver>
+  domain: <domain-name>
 
-# === ① Persona Layer (← BMad Method) ===
 persona:
-  role: "Market Intelligence Analyst"
-  goal: "Provide accurate market insights to support product decisions"
-  backstory: "10 years of Amazon market analysis experience, skilled in data-driven decision making"
-  communication_style: "Rigorous, data-oriented, concise"
+  role: <string>
+  goal: <string>
+  backstory: <string>
+  communication_style: <string>
 
-# === ② Skills Layer (← Skill Forge) ===
 skills:
-  atomic:                      # Atomic skills (single capability)
-    - market_research
-    - competitor_analysis
-    - trend_detection
-    - pricing_analysis
-  composite:                   # Composite skills (skill chains)
-    - market_intelligence_report   # = market_research + competitor_analysis
+  atomic:
+    - <skill_id>
+  composite:
+    - <skill_id>
 
-# === ③ Runtime Layer (← CrewAI) ===
 runtime:
-  process: sequential          # Execution mode: sequential | hierarchical | parallel
-  memory: true                 # Enable context memory
-  delegation: false            # Can delegate to other agents
-  max_iterations: 5            # Maximum iterations
-  verbose: false               # Verbose output
+  process: sequential | hierarchical | parallel
+  memory: true | false
+  delegation: true | false
+  max_iterations: <number>
 
-# === ④ LiYe Extension ===
 liyedata:
-  module: amazon-growth
-  workflow_stage: "Launch: Step 1"
-  story_template: "As {role}, I want to {action} so that {outcome}"
+  workflow_stage: <string>
+  acceptance_criteria:
+    - metric: <string>
+      threshold: <number>
+  guardrails:
+    max_change_magnitude: <number>
+    require_review: true | false
 
-  acceptance_criteria:         # Acceptance criteria
-    - metric: market_coverage
-      threshold: 0.80
-    - metric: data_freshness
-      threshold: 7d
-
-  guardrails:                  # Execution constraints
-    max_change_magnitude: 0.20
-    require_review: true
-    timeout: 300s
-
-# === ⑤ Evolution Configuration ===
 evolution:
-  enabled: true
-  storage: .liye/evolution/market-analyst/
-  learn_from:
-    - execution_logs
-    - user_feedback
-  graduation_threshold: 0.85
+  enabled: true | false
 ```
 
 ---
 
-## 3. Field Specifications
+## §4 Agent Core 字段规范
 
-### 3.1 Agent Block (Required)
+### 4.1 agent（必填）
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique identifier (kebab-case) |
-| `name` | string | Yes | Human-readable name |
-| `version` | semver | Yes | Semantic version |
-| `domain` | string | Yes | Parent domain name |
+| 字段 | 含义 | 规则 |
+|------|------|------|
+| id | Agent 唯一 ID | kebab-case，全局唯一 |
+| name | 展示名 | 可读，不用于引用 |
+| version | 版本 | semver |
+| domain | 所属领域 | 必须存在于 src/domain |
 
-### 3.2 Persona Block (Required)
+### 4.2 persona（必填，Method 层）
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `role` | string | Yes | Agent's role title |
-| `goal` | string | Yes | Agent's primary goal |
-| `backstory` | string | No | Background story for context |
-| `communication_style` | string | No | How the agent communicates |
+- **来源**：`src/method/personas/`
+- **职责**：定义 角色、目标、沟通方式
+- **禁止**：
+  - 技能实现
+  - 流程控制
 
-### 3.3 Skills Block (Required)
+### 4.3 skills（必填，Skill 层）
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `atomic` | string[] | Yes | List of atomic skill IDs |
-| `composite` | string[] | No | List of composite skill IDs |
+- `atomic`：原子技能（单一能力）
+- `composite`：组合技能（技能链）
+- **规则**：
+  - Skill 必须存在于 `src/skill/` 或 `src/domain/*/skills/`
+  - Agent 只能 **使用** Skill，不得定义 Skill
 
-### 3.4 Runtime Block (Required)
+### 4.4 runtime（必填，Runtime 层）
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `process` | enum | `sequential` | Execution mode |
-| `memory` | boolean | `true` | Enable memory |
-| `delegation` | boolean | `false` | Allow delegation |
-| `max_iterations` | integer | `5` | Max iterations |
-| `verbose` | boolean | `false` | Verbose output |
+| 字段 | 含义 |
+|------|------|
+| process | 执行模式 |
+| memory | 是否启用上下文记忆 |
+| delegation | 是否允许委派 |
+| max_iterations | 最大执行轮数 |
 
-**Process Modes:**
-- `sequential`: Tasks run one after another
-- `hierarchical`: Manager agent delegates to workers
-- `parallel`: Tasks run concurrently
-
-### 3.5 LiYeData Block (Required)
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `module` | string | Yes | Module identifier |
-| `workflow_stage` | string | Yes | Current workflow stage |
-| `story_template` | string | No | Story template |
-| `acceptance_criteria` | array | No | Acceptance criteria |
-| `guardrails` | object | No | Execution constraints |
-
-### 3.6 Evolution Block (Optional)
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable evolution |
-| `storage` | string | `.liye/evolution/{id}/` | Storage path |
-| `learn_from` | string[] | `[]` | Learning sources |
-| `graduation_threshold` | float | `0.85` | Success threshold |
+- **规则**：
+  - Runtime 只负责 **执行策略**
+  - 不包含业务判断
 
 ---
 
-## 4. Standard Personas (Method Layer)
+## §5 LiYe 扩展字段（liyedata）
 
-The following 12 standard personas are available in `src/method/personas/`:
+`liyedata` 用于 **业务约束与验收标准**，不是执行逻辑。
 
-| ID | Role | Description |
-|----|------|-------------|
-| `pm` | Product Manager | Defines requirements and priorities |
-| `architect` | Architect | Designs system architecture |
-| `developer` | Developer | Implements features |
-| `qa` | QA Engineer | Ensures quality |
-| `devops` | DevOps Engineer | Manages deployment |
-| `analyst` | Business Analyst | Analyzes business needs |
-| `designer` | Designer | Creates user experience |
-| `researcher` | Researcher | Conducts research |
-| `writer` | Technical Writer | Creates documentation |
-| `reviewer` | Code Reviewer | Reviews code quality |
-| `coordinator` | Sprint Coordinator | Orchestrates sprints |
-| `guardian` | Quality Guardian | Guards quality gates |
+**允许**：
+- `workflow_stage`（阶段标识）
+- `acceptance_criteria`（验收指标）
+- `guardrails`（风险护栏）
+
+**禁止**：
+- 出现执行逻辑
+- 覆盖上层规则
 
 ---
 
-## 5. Domain Agent Examples
-
-### 5.1 amazon-growth Domain Agents
-
-| Agent ID | Role | Skills |
-|----------|------|--------|
-| `market-analyst` | Market Intelligence | `market_research`, `competitor_analysis` |
-| `keyword-architect` | Keyword Strategy | `keyword_research`, `seo_optimization` |
-| `listing-optimizer` | Listing Optimization | `content_optimization`, `a_plus_content` |
-| `ppc-strategist` | PPC Strategy | `campaign_analysis`, `bid_optimization` |
-| `diagnostic-architect` | Diagnostic Analysis | `performance_diagnosis`, `root_cause_analysis` |
-| `execution-agent` | Task Execution | `task_execution`, `progress_tracking` |
-| `quality-gate` | Quality Assurance | `quality_check`, `compliance_validation` |
-| `review-sentinel` | Review Management | `review_analysis`, `response_generation` |
-| `sprint-orchestrator` | Sprint Management | `sprint_planning`, `task_coordination` |
-
----
-
-## 6. Validation Rules
-
-### 6.1 Required Checks
-- [ ] `agent.id` must be unique within domain
-- [ ] `agent.version` must follow semver
-- [ ] `persona.role` and `persona.goal` must be non-empty
-- [ ] `skills.atomic` must contain at least one skill
-- [ ] All referenced skills must exist in Skill Registry
-
-### 6.2 Recommended Checks
-- [ ] `persona.backstory` should be provided for context
-- [ ] `liyedata.acceptance_criteria` should define success metrics
-- [ ] `evolution.enabled` should be true for production agents
-
----
-
-## 7. Migration Guide
-
-### From Legacy Format
+## §6 Evolution（进化配置）
 
 ```yaml
-# Before (Legacy)
-bmaddata:
-  workflow_stage: "Launch: Step 1"
-  story_template: "As {role}..."
-
-# After (v3.1)
-persona:
-  role: "..."
-  goal: "..."
-
-skills:
-  atomic: [...]
-
-runtime:
-  process: sequential
-
-liyedata:
-  workflow_stage: "Launch: Step 1"
-  story_template: "As {role}..."
+evolution:
+  enabled: true | false
 ```
+
+- **决策权**：Method
+- **执行权**：Runtime
+- **Agent 仅能开启或关闭**
 
 ---
 
-**This document is FROZEN as of v3.1 Final (2025-12-27).**
+## §7 禁止模式（红线）
+
+| 违规模式 | 说明 |
+|----------|------|
+| ❌ Agent 内实现 Skill | Skill 应在 src/skill/ 定义 |
+| ❌ Agent 内定义 Workflow | Workflow 属于 Method 层 |
+| ❌ Persona 中出现执行逻辑 | Persona 只声明角色 |
+| ❌ Agent 跨 Domain 引用 Skill | 每个 Agent 归属唯一 Domain |
+| ❌ Agent 覆盖 Runtime / Method 规则 | Agent 是使用者，不是定义者 |
+
+---
+
+## §8 校验规则（供工具使用）
+
+一个合法 Agent 必须满足：
+
+- [ ] Persona 存在且只声明角色
+- [ ] Skill 均可解析
+- [ ] Runtime 参数完整
+- [ ] Domain 唯一归属
+- [ ] 无红线违规
+
+---
+
+## §9 裁决顺序
+
+当 Agent 定义出现争议时：
+
+1. `NAMING.md`
+2. **`AGENT_SPEC.md`**
+3. `SKILL_SPEC.md`
+4. `ARCHITECTURE.md`
+
+---
+
+## §10 冻结声明
+
+自本文件生效起：
+- 新增 / 修改 Agent 必须符合本规范
+- 不符合规范的 Agent 视为架构违规
+- 本文件修改需单独 PR，并说明原因
+
+---
+
+**This document is FROZEN as of v5.0 (2025-12-27).**
