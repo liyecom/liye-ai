@@ -1,0 +1,83 @@
+name: "\U0001F9F1 Architecture Debt (v5.0)"
+description: Track and resolve architecture violations reported by liye report architecture
+title: "[ARCH-DEBT] <agent-or-skill-name>"
+labels: ["architecture", "debt", "v5.0"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Architecture Debt Issue (v5.0)
+
+        This issue is generated based on **`liye report architecture`**.
+        Do **not** debate architecture rules here — they are already frozen.
+
+  - type: input
+    id: source_report
+    attributes:
+      label: Source Report
+      description: Paste the report snapshot reference (date / commit)
+      placeholder: "Architecture Report v5.0 — commit 8dfb253"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: object_type
+    attributes:
+      label: Affected Object Type
+      options:
+        - Agent
+        - Skill
+    validations:
+      required: true
+
+  - type: input
+    id: object_name
+    attributes:
+      label: Object Name
+      description: Domain/name (e.g. amazon-growth/ppc-strategist)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity Level
+      options:
+        - FAIL (blocking)
+        - WARN (fixable)
+    validations:
+      required: true
+
+  - type: textarea
+    id: violations
+    attributes:
+      label: Detected Violations
+      description: Copy directly from `liye report architecture`
+      placeholder: |
+        - TOOLS_USED_INSTEAD_OF_SKILLS
+        - INVALID_EVOLUTION_CONFIG
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria (Frozen)
+      description: Issue is complete ONLY when the following command passes.
+      value: |
+        ```bash
+        liye agent validate <object-name>
+        ```
+        Result must be:
+        VALID: Agent complies with v5.0 spec
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ### Rules
+        - Do NOT add new architecture interpretations
+        - Do NOT bypass validation
+        - Progress is measured only by validation result
