@@ -175,7 +175,7 @@ def enhance_article(file_path):
         print("📡 调用 Claude API...")
 
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-5-sonnet-20240620",  # Claude 3.5 Sonnet (稳定版本)
             max_tokens=16000,  # 允许长篇输出
             temperature=0.7,
             messages=[{
