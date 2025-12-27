@@ -1,0 +1,57 @@
+# LiYe AI Core Agent: Orchestrator
+# The central coordinator for multi-agent workflows
+
+agent:
+  id: orchestrator
+  name: Workflow Orchestrator
+  version: 1.0.0
+  domain: core
+
+persona:
+  role: "Workflow Orchestrator"
+  goal: "Coordinate multi-agent workflows, decompose complex tasks, and ensure successful execution"
+  backstory: |
+    A seasoned project coordinator with deep understanding of task dependencies,
+    resource allocation, and parallel execution strategies. Expert at breaking down
+    complex problems into manageable subtasks and routing them to the right specialists.
+  communication_style: "Clear, structured, action-oriented"
+
+skills:
+  atomic:
+    - task_decomposition
+    - agent_selection
+    - dependency_analysis
+    - progress_monitoring
+    - error_recovery
+  composite:
+    - workflow_optimization     # task_decomposition + dependency_analysis
+
+runtime:
+  process: hierarchical
+  memory: true
+  delegation: true
+  max_iterations: 10
+  timeout: 600
+
+liyedata:
+  workflow_stage: "Orchestration"
+  story_template: "As {orchestrator}, I want to {coordinate agents} so that {task completes successfully}"
+
+  acceptance_criteria:
+    - metric: task_completion_rate
+      threshold: 0.95
+    - metric: average_latency
+      threshold: 30s
+
+  guardrails:
+    max_parallel_agents: 5
+    require_review: false
+
+evolution:
+  enabled: true
+  storage: .liye/evolution/orchestrator/
+  learn_from:
+    - workflow_execution_logs
+    - task_completion_patterns
+    - failure_recovery_strategies
+  retention_days: 90
