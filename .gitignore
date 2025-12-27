@@ -250,3 +250,5 @@ temp/
 # --- Private assets (never in public repos) ---
 websites/
 */websites/
+.Systems_backup*
+*.env.example
