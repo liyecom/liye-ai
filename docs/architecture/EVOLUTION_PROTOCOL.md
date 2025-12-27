@@ -1,342 +1,179 @@
-# LiYe AI Evolution Protocol
+# EVOLUTION_PROTOCOL · 进化协议
+Evolution Protocol Specification (v5.0)
 
-> **Version**: 3.1 Final
+> **Version**: 5.0
 > **Status**: FROZEN
 > **Date**: 2025-12-27
-> **Governance**: Three Powers Separation
 
 ---
 
-## 1. Overview
+## §0 定义声明（冻结）
 
-Evolution is LiYe AI's self-improvement mechanism. It learns from execution patterns and adapts agent behavior over time.
+**Evolution = 系统从执行结果中学习、记录、并在未来被安全复用的机制。**
 
-**Key Principle**: Three Powers Separation
-- **Decision** (Method Layer): What to learn, how to judge
-- **Execution** (Runtime Layer): Actual learning, recording, replaying
-- **Configuration** (Domain Layer): Enable/disable only, cannot modify rules
+Evolution 不是：
+- 即时反馈
+- 即兴优化
+- Agent 自我修改
 
----
-
-## 2. Governance Model
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    EVOLUTION GOVERNANCE                      │
-├─────────────────┬─────────────────┬─────────────────────────┤
-│    DECISION     │    EXECUTION    │     CONFIGURATION       │
-│   (Method)      │    (Runtime)    │      (Domain)           │
-├─────────────────┼─────────────────┼─────────────────────────┤
-│ • What to learn │ • Run learning  │ • Enable/disable        │
-│ • How to judge  │ • Record data   │ • Set thresholds        │
-│ • Define rules  │ • Replay        │ • ❌ Cannot modify rules│
-│ • Set metrics   │ • Store results │ • ❌ Cannot change logic│
-└─────────────────┴─────────────────┴─────────────────────────┘
-```
+Evolution 必须是：
+- 可追溯
+- 可回放
+- 可关闭
+- 可审计
 
 ---
 
-## 3. Evolution Protocol (YAML)
+## §1 三权分离原则（宪法级）
+
+Evolution 严格实行 **三权分离**：
+
+| 权限 | 所属层 | 职责 |
+|------|--------|------|
+| 决策权 | Method | 定义"学什么、怎么判断" |
+| 执行权 | Runtime | 记录、存储、回放 |
+| 配置权 | Domain | 启用 / 禁用 |
+
+**任何单一层不得同时拥有两种权力。**
+
+---
+
+## §2 Evolution 的决策权（Method 层）
+
+### 2.1 学习信号白名单（冻结）
+
+Method 层定义 **允许被学习的信号类型**：
 
 ```yaml
-# Location: src/method/evolution/protocol.yaml
-
-protocol:
-  version: "3.1"
-  status: frozen
-
-# === 1. Learning Sources (What to Learn) ===
 learn_from:
-  - type: execution_logs
-    description: Agent execution history
-    weight: 0.4
+  - agent_execution_logs        # Agent 执行日志
+  - workflow_completion_rate    # 工作流完成率
+  - acceptance_criteria_result  # 验收指标达成情况
+  - user_feedback_signal        # 用户反馈（显式）
+  - proven_pattern_success      # 已验证模式成功率
+```
 
-  - type: workflow_completion
-    description: Workflow success/failure rates
-    weight: 0.3
+**禁止**：
+- 临时上下文
+- 未验证的中间推理
+- 单次失败样本
 
-  - type: user_feedback
-    description: Explicit user signals
-    weight: 0.2
+### 2.2 判断规则（声明式）
 
-  - type: proven_patterns
-    description: Validated successful patterns
-    weight: 0.1
+Method 层只声明规则，不执行：
 
-# === 2. Judgment Rules (How to Judge) ===
-judgment:
-  success_criteria:
-    - metric: task_completion_rate
-      threshold: 0.85
-      weight: 0.4
+```yaml
+decision_rules:
+  min_sample_size: 5
+  confidence_threshold: 0.8
+  decay_window: 30d
+```
 
-    - metric: quality_score
-      threshold: 0.80
-      weight: 0.3
+---
 
-    - metric: user_satisfaction
-      threshold: 0.75
-      weight: 0.3
+## §3 Evolution 的执行权（Runtime 层）
 
-  graduation_threshold: 0.85
-  minimum_samples: 10
+### 3.1 存储规范（冻结）
 
-# === 3. Storage Configuration ===
+```yaml
 storage:
   location: .liye/evolution/
   format: jsonl
   retention: 90d
-  compression: gzip
+```
 
-# === 4. Replay Mechanism ===
+**规则**：
+- 只追加（append-only）
+- 不覆盖历史
+- 支持回放与审计
+
+### 3.2 回放机制（冻结）
+
+```yaml
 replay:
-  trigger: workflow_init
+  trigger:
+    - workflow_init
+    - agent_start
   mechanism: pattern_match
   fallback: default_behavior
-  cache_ttl: 24h
-
-# === 5. Safety Guards ===
-guards:
-  max_adaptation_per_cycle: 0.10  # Max 10% change per cycle
-  require_validation: true
-  rollback_on_regression: true
 ```
+
+**说明**：
+- 回放仅作为 **建议信号**
+- 不得强制覆盖当前决策
 
 ---
 
-## 4. Learning Sources
+## §4 Domain 的配置权（严格限制）
 
-### 4.1 Execution Logs
-
-```jsonl
-{"timestamp": "2025-12-27T10:00:00Z", "agent": "market-analyst", "task": "market-research", "status": "success", "duration": 120, "quality_score": 0.92}
-{"timestamp": "2025-12-27T10:05:00Z", "agent": "market-analyst", "task": "competitor-analysis", "status": "success", "duration": 90, "quality_score": 0.88}
-```
-
-### 4.2 Workflow Completion
-
-```jsonl
-{"timestamp": "2025-12-27T12:00:00Z", "workflow": "amazon-launch", "phase": "analyze", "status": "complete", "score": 0.90}
-```
-
-### 4.3 User Feedback
-
-```jsonl
-{"timestamp": "2025-12-27T14:00:00Z", "type": "explicit", "signal": "approve", "agent": "market-analyst", "task": "market-research"}
-```
-
-### 4.4 Proven Patterns
-
-```jsonl
-{"pattern_id": "p001", "description": "Pre-fetch competitor data", "success_rate": 0.95, "samples": 50, "status": "graduated"}
-```
-
----
-
-## 5. Runtime Implementation
-
-### 5.1 Evolution Engine
-
-```typescript
-// Location: src/runtime/evolution/engine.ts
-
-import { EvolutionEngine } from '@liye-ai/runtime';
-
-export class LiYeEvolutionEngine implements EvolutionEngine {
-  private protocol: EvolutionProtocol;
-  private storage: EvolutionStorage;
-
-  constructor(protocol: EvolutionProtocol) {
-    this.protocol = protocol;
-    this.storage = new EvolutionStorage(protocol.storage);
-  }
-
-  // Record execution
-  async record(event: ExecutionEvent): Promise<void> {
-    await this.storage.append(event);
-  }
-
-  // Pattern matching for replay
-  async match(context: ExecutionContext): Promise<Pattern | null> {
-    const patterns = await this.storage.getGraduatedPatterns();
-    return this.findBestMatch(patterns, context);
-  }
-
-  // Evaluate and graduate patterns
-  async evaluate(): Promise<void> {
-    const candidates = await this.storage.getCandidatePatterns();
-    for (const pattern of candidates) {
-      if (this.meetsGraduationCriteria(pattern)) {
-        await this.graduate(pattern);
-      }
-    }
-  }
-}
-```
-
-### 5.2 Storage Interface
-
-```typescript
-// Location: src/runtime/evolution/storage.ts
-
-export interface EvolutionStorage {
-  append(event: ExecutionEvent): Promise<void>;
-  query(filter: QueryFilter): Promise<ExecutionEvent[]>;
-  getGraduatedPatterns(): Promise<Pattern[]>;
-  getCandidatePatterns(): Promise<Pattern[]>;
-  graduate(pattern: Pattern): Promise<void>;
-}
-```
-
----
-
-## 6. Domain Configuration
-
-Domains can only configure, not modify rules:
+Domain 只能进行 **布尔配置**：
 
 ```yaml
-# Location: src/domain/amazon-growth/config.yaml
-
 evolution:
-  enabled: true                    # ✅ Can enable/disable
-  graduation_threshold: 0.90       # ✅ Can set threshold
-  minimum_samples: 20              # ✅ Can set sample size
-
-  # ❌ CANNOT DO:
-  # learn_from: [...]             # Cannot change learning sources
-  # judgment: {...}               # Cannot change judgment rules
-  # replay: {...}                 # Cannot change replay mechanism
+  enabled: true | false
 ```
+
+**Domain 禁止**：
+- 修改学习信号
+- 修改判断规则
+- 修改存储结构
 
 ---
 
-## 7. Pattern Lifecycle
+## §5 与 Agent / Skill 的边界
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  OBSERVED   │ ──▶ │  CANDIDATE  │ ──▶ │  GRADUATED  │
-│  (Raw Data) │     │ (Testing)   │     │ (Production)│
-└─────────────┘     └─────────────┘     └─────────────┘
-       │                   │                   │
-       │                   │                   │
-       ▼                   ▼                   ▼
-   Record in           Evaluate           Apply in
-   storage             metrics            execution
-```
+### Agent
+- 不能决定是否学习
+- 不能修改 Evolution 规则
+- 只能被动提供执行结果
 
-### 7.1 States
-
-| State | Description | Next State |
-|-------|-------------|------------|
-| `observed` | Raw execution data collected | `candidate` |
-| `candidate` | Pattern identified, testing | `graduated` or `rejected` |
-| `graduated` | Proven pattern, used in production | - |
-| `rejected` | Failed evaluation | - |
-
-### 7.2 Graduation Criteria
-
-```yaml
-graduation:
-  required:
-    - success_rate >= graduation_threshold
-    - samples >= minimum_samples
-    - no_regression: true
-  optional:
-    - user_approved: true
-```
+### Skill
+- 不感知 Evolution 的存在
+- 不参与学习或回放决策
 
 ---
 
-## 8. Safety Mechanisms
+## §6 禁止模式（红线）
 
-### 8.1 Adaptation Limits
-
-```yaml
-safety:
-  max_adaptation_per_cycle: 0.10  # Max 10% behavior change
-  require_validation: true        # Validate before applying
-  rollback_on_regression: true    # Auto-rollback if performance drops
-```
-
-### 8.2 Rollback
-
-```typescript
-// Automatic rollback on regression
-if (currentScore < previousScore * 0.95) {
-  await this.rollback(previousVersion);
-  await this.markPatternAsRejected(pattern);
-}
-```
+| 违规模式 | 说明 |
+|----------|------|
+| ❌ Agent 自我修改行为 | Agent 不能改变自身规则 |
+| ❌ Runtime 发明学习规则 | Runtime 只执行，不决策 |
+| ❌ Domain 改写 Method 决策 | Domain 只能开关 |
+| ❌ Evolution 覆盖实时执行 | Evolution 是建议，不是命令 |
+| ❌ Evolution 黑箱不可追溯 | 必须可审计 |
 
 ---
 
-## 9. Metrics
+## §7 校验规则（供工具使用）
 
-### 9.1 Core Metrics
+Evolution 系统必须满足：
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| `task_completion_rate` | Tasks completed successfully | ≥ 85% |
-| `quality_score` | Output quality | ≥ 80% |
-| `user_satisfaction` | User feedback score | ≥ 75% |
-| `execution_time` | Task duration | ≤ baseline |
-
-### 9.2 Tracking
-
-```yaml
-# .liye/evolution/metrics.jsonl
-{"date": "2025-12-27", "agent": "market-analyst", "task_completion_rate": 0.92, "quality_score": 0.88, "patterns_graduated": 3}
-```
+- [ ] 三权分离明确
+- [ ] 信号来源在白名单内
+- [ ] 存储 append-only
+- [ ] 回放为建议而非强制
+- [ ] 可完全关闭
 
 ---
 
-## 10. Integration Points
+## §8 裁决顺序
 
-### 10.1 Workflow Init (Replay Trigger)
+当 Evolution 行为产生争议时：
 
-```typescript
-// Before workflow starts
-const pattern = await evolutionEngine.match(workflowContext);
-if (pattern) {
-  applyPattern(pattern, workflow);
-}
-```
-
-### 10.2 Task Complete (Record Trigger)
-
-```typescript
-// After task completes
-await evolutionEngine.record({
-  agent: task.agent,
-  task: task.id,
-  status: result.status,
-  duration: result.duration,
-  quality_score: result.qualityScore
-});
-```
+1. `NAMING.md`
+2. **`EVOLUTION_PROTOCOL.md`**
+3. `ARCHITECTURE.md`
 
 ---
 
-## 11. Anti-Patterns (DO NOT DO)
+## §9 冻结声明
 
-```yaml
-# ❌ WRONG: Domain modifying learning sources
-# src/domain/amazon-growth/evolution.yaml
-evolution:
-  learn_from:                      # ← Domain CANNOT modify this!
-    - type: custom_source
-
-# ❌ WRONG: Domain modifying judgment rules
-evolution:
-  judgment:                        # ← Domain CANNOT modify this!
-    success_criteria: [...]
-
-# ✅ CORRECT: Domain only configures
-evolution:
-  enabled: true
-  graduation_threshold: 0.90
-```
+自本协议生效起：
+- Evolution 行为必须遵循本协议
+- 不符合协议的学习视为架构违规
+- 本文件修改需单独 PR，并明确动机
 
 ---
 
-**This document is FROZEN as of v3.1 Final (2025-12-27).**
+**This document is FROZEN as of v5.0 (2025-12-27).**
