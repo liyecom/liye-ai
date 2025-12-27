@@ -1,0 +1,65 @@
+name: Architecture Gate (v5.0)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  architecture-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Detect changed agents and skills
+        id: diff
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
+
+          echo "Changed files:"
+          cat changed_files.txt
+
+          AGENTS=$(grep -E '^Agents/.*\.ya?ml$' changed_files.txt || true)
+          SKILLS=$(grep -E '^src/.*/skills/' changed_files.txt || true)
+
+          echo "agents<<EOF" >> $GITHUB_OUTPUT
+          echo "$AGENTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "skills<<EOF" >> $GITHUB_OUTPUT
+          echo "$SKILLS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Validate changed agents
+        if: steps.diff.outputs.agents != ''
+        run: |
+          echo "Validating Agents..."
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            name=$(basename "$file" .yaml)
+            name=$(basename "$name" .yml)
+            echo "-> liye agent validate $name"
+            npx liye agent validate "$name"
+          done <<< "${{ steps.diff.outputs.agents }}"
+
+      - name: Validate changed skills
+        if: steps.diff.outputs.skills != ''
+        run: |
+          echo "Validating Skills..."
+          echo "${{ steps.diff.outputs.skills }}" | cut -d/ -f1-5 | sort -u | while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            skill=$(basename "$dir")
+            echo "-> liye skill validate $skill"
+            npx liye skill validate "$skill"
+          done
