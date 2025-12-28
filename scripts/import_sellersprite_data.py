@@ -35,14 +35,24 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-def import_sellersprite_data():
-    """Import SellerSprite CSV data into DuckDB."""
+def import_sellersprite_data(csv_file: str = None):
+    """Import SellerSprite CSV data into DuckDB.
+
+    Args:
+        csv_file: Optional CSV file path. If not provided, uses default location.
+    """
     print("=" * 60)
     print("SellerSprite Data Import")
     print("=" * 60)
 
     # Paths
-    csv_path = project_root / "data" / "sellersprite" / "sellersprite_keyword_snapshot.csv"
+    if csv_file:
+        csv_path = Path(csv_file)
+        if not csv_path.is_absolute():
+            csv_path = project_root / csv_file
+    else:
+        csv_path = project_root / "data" / "sellersprite" / "sellersprite_keyword_snapshot.csv"
+
     db_path = project_root / "src" / "domain" / "data" / "growth_os.duckdb"
 
     # Check CSV exists
@@ -164,10 +174,11 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Import SellerSprite data")
     parser.add_argument("--sample", action="store_true", help="Create sample CSV for testing")
+    parser.add_argument("--file", "-f", type=str, help="CSV file path (default: data/sellersprite/sellersprite_keyword_snapshot.csv)")
     args = parser.parse_args()
 
     if args.sample:
         create_sample_csv()
     else:
-        success = import_sellersprite_data()
+        success = import_sellersprite_data(csv_file=args.file)
         sys.exit(0 if success else 1)

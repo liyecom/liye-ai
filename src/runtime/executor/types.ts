@@ -51,6 +51,16 @@ export interface TaskResult {
   error?: string;
 }
 
+// === Skill Interface (Runtime's view of skills) ===
+// Note: This is Runtime's own interface, not imported from Skill layer
+// Domain layer is responsible for loading skills and passing them here
+export interface SkillInterface {
+  id: string;
+  name: string;
+  execute(input: Record<string, any>): Promise<Record<string, any>>;
+  validate(input: Record<string, any>): boolean;
+}
+
 // === Execution Types ===
 export interface ExecutionContext {
   workflow_id: string;
@@ -58,6 +68,8 @@ export interface ExecutionContext {
   task_id: string;
   inputs: Record<string, any>;
   memory: Record<string, any>;
+  // Skills loaded by Domain layer, passed to Runtime
+  skills: Map<string, SkillInterface>;
 }
 
 export interface ExecutionResult {
