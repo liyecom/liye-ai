@@ -705,8 +705,8 @@ function pickPacks(taskDesc) {
     picks.add("research");
   }
 
-  // Infrastructure Pack 触发词
-  if (/(notion|para|架构|配置|命名|index|sync|同步|obsidian|vault|文件系统|目录)/i.test(taskDesc)) {
+  // Infrastructure Pack 触发词（扩展：工程设计类）
+  if (/(notion|para|架构|配置|命名|index|sync|同步|obsidian|vault|文件系统|目录|系统设计|architecture|system design|backend|frontend|devops|api|rest|microservice|微服务)/i.test(taskDesc)) {
     picks.add("infrastructure");
   }
 
@@ -829,16 +829,22 @@ if (bmadAgents.length > 0) {
   }
 }
 
-// 3. 仲裁 + 按优先级排序 + 截断
+// 3. 仲裁 + 稳定排序 + 截断
 const deduplicatedRoles = arbitrateRoles(allRoles);
-// 按优先级排序：BMad (2) > VoltAgent (1)
+// 稳定排序：priority 降序 → source 字典序 → name 字典序
 const sortedRoles = deduplicatedRoles.sort((a, b) => {
   const pa = ROLE_PRIORITY[a.source] || 0;
   const pb = ROLE_PRIORITY[b.source] || 0;
-  return pb - pa; // 降序，高优先级在前
+  if (pb !== pa) return pb - pa; // 优先级降序
+  if (a.source !== b.source) return a.source.localeCompare(b.source);
+  return (a.name || '').localeCompare(b.name || '');
 });
+
+// 截断并记录丢弃原因
 const arbitratedRoles = sortedRoles.slice(0, MAX_ROLES);
-const rolesDropped = allRoles.length - arbitratedRoles.length;
+const droppedByConflict = allRoles.length - deduplicatedRoles.length;
+const droppedByCap = deduplicatedRoles.length - arbitratedRoles.length;
+const droppedList = sortedRoles.slice(MAX_ROLES).map(r => `${r.source}:${r.name}`).slice(0, 5);
 
 // 4. 输出到 context
 for (const role of arbitratedRoles) {
@@ -876,12 +882,16 @@ if (remoteSkills.length > 0) {
   console.log(`   - Remote Skills: ${remoteSkills.length} loaded`);
 }
 
-// Role 仲裁统计
+// Role 仲裁统计（可审计）
 if (allRoles.length > 0) {
   console.log(`   - Roles total: ${allRoles.length}`);
   console.log(`   - Roles kept: ${arbitratedRoles.length}`);
-  if (rolesDropped > 0) {
-    console.log(`   - Roles dropped: ${rolesDropped}`);
+  if (droppedByConflict > 0) {
+    console.log(`   - Roles dropped (conflict): ${droppedByConflict}`);
+  }
+  if (droppedByCap > 0) {
+    console.log(`   - Roles dropped (cap): ${droppedByCap}`);
+    console.log(`   - Dropped list: ${droppedList.join(', ')}`);
   }
 }
 
