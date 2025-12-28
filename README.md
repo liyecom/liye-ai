@@ -174,9 +174,11 @@ npm run lint   # 代码检查
 ## 致谢
 
 LiYe AI 的设计受以下项目启发：
-- [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) — 方法论设计
 - [CrewAI](https://github.com/joaomdmoura/crewAI) — 多智能体执行框架
 - [Skill Forge](https://github.com/anthropics/agent-skills) — 技能管理概念
+- [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) — 提供 35+ 高质量 Claude Code 技能，LiYe OS 技能扩展生态的基础
+- [VoltAgent/awesome-claude-code-subagents](https://github.com/VoltAgent/awesome-claude-code-subagents) — 提供 100+ 专业智能体角色模板，LiYe OS 角色扮演层的基础
+- [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) — 提供 9+ 专业 YAML 角色定义（Analyst、Architect、Developer 等），已整合至 LiYe OS 上下文编译层
 
 > 注：核心代码为原创 TypeScript 实现，不包含上述项目源代码。
 > 详见 [Non-Fork Statement](docs/architecture/NON_FORK_STATEMENT.md)
