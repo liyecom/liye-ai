@@ -1,0 +1,52 @@
+# Skills/12_Meta_Cognition/index.yaml
+# LiYe OS 逻辑层索引 - 元认知域
+
+domain: 12_Meta_Cognition
+name: 元认知
+description: 思维方法论、持续改进、自我提升相关技能
+
+skills:
+  # ===== P1 优先级技能 =====
+  - ref: 00_Core_Utilities/productivity/kaizen
+    alias: continuous-improvement
+    usage: PDCA 循环、5 Why 分析、价值流图、浪费识别
+    priority: P1
+    status: active
+
+  # ===== P2 优先级技能 =====
+  - ref: 00_Core_Utilities/meta/prompt-engineering
+    alias: prompt-optimization
+    usage: 提示工程技术、Agent 设计模式、Claude 交互优化、Token 优化
+    priority: P2
+    status: active
+
+  - ref: 00_Core_Utilities/meta/software-architecture
+    alias: architecture-patterns
+    usage: Clean Architecture、SOLID 原则、GoF 设计模式、ADR
+    priority: P2
+    status: active
+
+# 与 Evolution Protocol 的关系
+evolution_protocol_alignment:
+  description: Kaizen 理念与 LiYe OS Evolution Protocol 高度一致
+  shared_principles:
+    - 持续改进
+    - 数据驱动决策
+    - 可追溯记录
+    - 渐进式优化
+
+# 跨域引用
+cross_domain_refs:
+  - from: 11_Life_Design
+    skills: [kaizen]
+    usage: 生活流程优化、习惯改进
+
+  - from: 06_Technical_Development
+    skills: [kaizen]
+    usage: 开发流程改进、代码质量提升
+
+# 元数据
+metadata:
+  created: "2025-12-28"
+  updated: "2025-12-28"
+  version: "1.0.0"

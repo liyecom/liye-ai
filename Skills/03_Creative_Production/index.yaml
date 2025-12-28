@@ -1,0 +1,37 @@
+# Skills/03_Creative_Production/index.yaml
+# LiYe OS 逻辑层索引 - 创意生产域
+
+domain: 03_Creative_Production
+name: 创意生产
+description: 视觉设计、内容创作、媒体制作相关技能
+
+skills:
+  # ===== P1 优先级技能 =====
+  - ref: 00_Core_Utilities/creative/canvas-design
+    alias: visual-design
+    usage: 海报设计、信息图表、产品图、社交媒体素材创作
+    priority: P1
+    status: active
+
+  # ===== P2 优先级技能 =====
+  - ref: 00_Core_Utilities/creative/theme-factory
+    alias: theme-styling
+    usage: 统一视觉风格、品牌主题应用、快速换肤、10个预设主题
+    priority: P2
+    status: active
+
+# 跨域引用
+cross_domain_refs:
+  - from: 02_Operation_Intelligence
+    skills: [canvas-design]
+    usage: Amazon 产品图设计、A+ 页面素材
+
+  - from: 08_Communication
+    skills: [canvas-design]
+    usage: 演示素材、汇报可视化
+
+# 元数据
+metadata:
+  created: "2025-12-28"
+  updated: "2025-12-28"
+  version: "1.0.0"

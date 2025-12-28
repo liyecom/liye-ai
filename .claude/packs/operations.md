@@ -1,6 +1,35 @@
 # Context Pack: Operations（跨境/亚马逊/运营）
 
-**加载条件：** 涉及 Amazon/ASIN/Listing/PPC/关键词/跨境/Timo/运营系统时加载。
+**加载条件：** 涉及 Amazon/ASIN/Listing/PPC/关键词/跨境/Timo/运营系统/Excel/电子表格/xlsx/csv分析时加载。
+
+## 新增技能（来自 Awesome Claude Skills）
+
+### xlsx - Excel 数据分析
+**位置：** `Skills/00_Core_Utilities/document-processing/xlsx/`
+**引用：** `Skills/02_Operation_Intelligence/index.yaml`
+
+电子表格操作工具包，支持：
+- 读写 .xlsx/.xlsm/.csv/.tsv 文件
+- 公式计算与保留
+- 图表和数据可视化
+- 数据分析与转换
+
+**典型使用场景：**
+- Amazon 销售数据分析
+- 关键词报表处理
+- PPC 广告数据分析
+
+### csv-summarizer - 自动数据洞察
+**位置：** `Skills/00_Core_Utilities/data-analysis/csv-summarizer/`
+**引用：** `Skills/02_Operation_Intelligence/index.yaml`
+
+自动分析 CSV 文件并生成洞察报告：
+- 自动数据摘要
+- 统计分析与异常检测
+- 趋势识别
+- 自动可视化
+
+---
 
 ## Amazon Growth OS
 

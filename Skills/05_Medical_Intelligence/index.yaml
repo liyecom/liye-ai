@@ -1,0 +1,28 @@
+# Skills/05_Medical_Intelligence/index.yaml
+# 医疗智能域技能索引
+
+domain: 05_Medical_Intelligence
+name: 医疗智能
+description: 医学研究、循证医学、临床决策支持相关技能
+
+# 从 00_Core_Utilities 引用的技能
+skills:
+  - ref: 00_Core_Utilities/document-processing/pdf
+    alias: literature-reader
+    usage: |
+      - 医学文献解析
+      - 临床指南阅读
+      - 研究论文分析
+      - 药物说明书提取
+
+# 域内原生技能
+native_skills:
+  - path: Medical_Research_Analyst
+    status: active
+    description: 医学研究分析师方法论
+
+# 元数据
+metadata:
+  created: 2025-12-28
+  updated: 2025-12-28
+  version: 1.0.0

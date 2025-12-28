@@ -1,0 +1,35 @@
+# Skills/99_Incubator/index.yaml
+# 孵化器域技能索引
+
+domain: 99_Incubator
+name: 孵化器
+description: 实验性技能开发与测试，成熟后迁移到正式域
+
+# 从 00_Core_Utilities 引用的技能
+skills:
+  - ref: 00_Core_Utilities/meta/skill-creator
+    alias: skill-development
+    usage: |
+      - 新技能结构设计
+      - SKILL.md 编写指导
+      - 三层架构适配
+      - 技能验证与发布
+
+# 域内实验技能
+experimental_skills:
+  - path: test-skill
+    status: active
+    description: 技能开发测试模板
+
+# 毕业条件
+graduation_criteria:
+  - 完成功能验证
+  - 编写完整文档
+  - 通过代码审查
+  - 确定目标域归属
+
+# 元数据
+metadata:
+  created: 2025-12-28
+  updated: 2025-12-28
+  version: 1.0.0

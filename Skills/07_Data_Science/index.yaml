@@ -1,0 +1,33 @@
+# Skills/07_Data_Science/index.yaml
+# 数据科学域技能索引
+
+domain: 07_Data_Science
+name: 数据科学
+description: 数据分析、可视化、统计建模相关技能
+
+# 从 00_Core_Utilities 引用的技能
+skills:
+  - ref: 00_Core_Utilities/data-analysis/csv-summarizer
+    alias: auto-insights
+    usage: |
+      - 自动数据摘要生成
+      - 统计分析 (均值/中位数/分布)
+      - 异常值检测
+      - 趋势识别
+      - 自动可视化
+
+  - ref: 00_Core_Utilities/document-processing/xlsx
+    alias: spreadsheet-analysis
+    usage: |
+      - 复杂电子表格分析
+      - 公式计算
+      - 数据透视表
+
+# 域内原生技能
+native_skills: []
+
+# 元数据
+metadata:
+  created: 2025-12-28
+  updated: 2025-12-28
+  version: 1.0.0

@@ -1,6 +1,34 @@
 # Context Pack: Infrastructure（架构/Notion/PARA/配置）
 
-**加载条件：** 涉及 Notion 同步、PARA 组织、路径配置、命名规范、系统架构理解时加载。
+**加载条件：** 涉及 Notion 同步、PARA 组织、路径配置、命名规范、系统架构理解、MCP 服务器开发、技能创建时加载。
+
+## 新增技能（来自 Awesome Claude Skills）
+
+### mcp-builder - MCP 服务器构建
+**位置：** `Skills/00_Core_Utilities/development-tools/mcp-builder/`
+**引用：** `Skills/06_Technical_Development/index.yaml`
+
+MCP (Model Context Protocol) 服务器构建指南：
+- MCP 服务器架构设计
+- Python/TypeScript 实现指导
+- 工具定义最佳实践
+- 扩展 LiYe OS MCP 生态
+
+**LiYe OS 已有 MCP 服务器参考：**
+- `src/runtime/mcp/servers/amazon/sellersprite_server.py`
+- `src/runtime/mcp/servers/knowledge/qdrant_server.py`
+
+### skill-creator - 技能创建指南
+**位置：** `Skills/00_Core_Utilities/meta/skill-creator/`
+**引用：** `Skills/99_Incubator/index.yaml`
+
+创建 Claude Skills 的完整指导：
+- Skill 结构设计
+- SKILL.md 编写规范
+- LiYe OS 三层架构适配
+- 技能验证与发布流程
+
+---
 
 ## Notion Sync 系统
 

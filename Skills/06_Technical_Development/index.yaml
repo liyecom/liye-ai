@@ -1,0 +1,59 @@
+# Skills/06_Technical_Development/index.yaml
+# 技术开发域技能索引
+
+domain: 06_Technical_Development
+name: 技术开发
+description: 软件工程、架构设计、技术框架相关技能
+
+# 从 00_Core_Utilities 引用的技能
+skills:
+  - ref: 00_Core_Utilities/development-tools/mcp-builder
+    alias: mcp-server-builder
+    usage: |
+      - MCP 服务器架构设计
+      - Python/TypeScript 实现
+      - 工具定义最佳实践
+      - 扩展 LiYe OS MCP 生态
+
+  - ref: 00_Core_Utilities/development-tools/playwright
+    alias: web-automation
+    usage: |
+      - Web 应用测试
+      - 自动化验证
+      - 爬虫验证
+      - 跨浏览器测试 (Chromium/Firefox/WebKit)
+    priority: P1
+    status: active
+
+  - ref: 00_Core_Utilities/development-tools/artifacts-builder
+    alias: frontend-builder
+    usage: |
+      - React 组件开发
+      - 复杂前端构建
+      - 仪表盘界面
+      - shadcn/ui 组件库应用
+    priority: P1
+    status: active
+
+  # ===== P2 优先级技能 =====
+  - ref: 00_Core_Utilities/meta/software-architecture
+    alias: architecture-design
+    usage: |
+      - Clean Architecture 设计
+      - SOLID 原则应用
+      - 设计模式选择
+      - 架构决策记录 (ADR)
+    priority: P2
+    status: active
+
+# 域内原生技能
+native_skills:
+  - path: CrewAI_Multi_Agent_Framework
+    status: partial
+    description: CrewAI 多智能体框架
+
+# 元数据
+metadata:
+  created: 2025-12-28
+  updated: 2025-12-28
+  version: 1.0.0

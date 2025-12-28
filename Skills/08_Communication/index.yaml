@@ -1,0 +1,37 @@
+# Skills/08_Communication/index.yaml
+# LiYe OS 逻辑层索引 - 沟通域
+
+domain: 08_Communication
+name: 沟通
+description: 内容写作、演示制作、信息传达相关技能
+
+skills:
+  # ===== P1 优先级技能 =====
+  - ref: 00_Core_Utilities/communication/content-writer
+    alias: content-research
+    usage: 博客写作、研究报告、带引用的专业文章撰写
+    priority: P1
+    status: active
+
+  # ===== P2 优先级技能 =====
+  - ref: 00_Core_Utilities/document-processing/pptx
+    alias: presentation
+    usage: 演示文稿创建、汇报材料、培训课件、模板应用
+    priority: P2
+    status: active
+
+# 跨域引用
+cross_domain_refs:
+  - from: 02_Operation_Intelligence
+    skills: [content-writer]
+    usage: Amazon Listing 文案优化、产品描述撰写
+
+  - from: 05_Medical_Intelligence
+    skills: [content-writer]
+    usage: 医学研究报告、文献综述撰写
+
+# 元数据
+metadata:
+  created: "2025-12-28"
+  updated: "2025-12-28"
+  version: "1.0.0"
