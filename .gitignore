@@ -251,4 +251,4 @@ temp/
 websites/
 */websites/
 .Systems_backup*
-*.env.example
+!*.env.example
