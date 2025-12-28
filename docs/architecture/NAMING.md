@@ -119,7 +119,45 @@ npx liye-ai agent run market-analyst
 
 ---
 
-## §5 Crew / Workflow / Domain（冻结）
+## §5 MCP 相关命名（冻结）
+
+### 5.1 MCP (Model Context Protocol)
+
+- **含义**：AI 系统与外部世界的标准化连接协议
+- **不是**：工具库、插件系统、API 框架
+- **位置**：`src/runtime/mcp/`
+- **层级**：Runtime 层
+
+### 5.2 MCP Server
+
+- **含义**：暴露特定能力的 MCP 服务端实现
+- **命名**：`kebab-case`（如 `qdrant-knowledge`）
+- **位置**：`src/runtime/mcp/servers/`
+- **禁止**：
+  - 在 Server 中定义业务逻辑
+  - 在 Server 中存储状态
+
+### 5.3 MCP Transport
+
+- **含义**：MCP 通信传输层
+- **类型**：`stdio`、`http`、`websocket`
+- **规则**：必须通过配置声明，不得硬编码
+
+### 5.4 MCP Adapter
+
+- **含义**：将 MCP Server 转换为 Agent 框架工具的适配器
+- **位置**：`src/runtime/mcp/adapters/`
+- **示例**：`crewai_adapter.py`
+
+### 5.5 MCP Registry
+
+- **含义**：MCP Server 的注册与发现中心
+- **位置**：`src/runtime/mcp/registry.py`
+- **职责**：生命周期管理、配置加载
+
+---
+
+## §6 Crew / Workflow / Domain（冻结）
 
 ### Crew
 
@@ -142,7 +180,7 @@ npx liye-ai agent run market-analyst
 
 ---
 
-## §6 禁止混用清单（红线）
+## §7 禁止混用清单（红线）
 
 | 错误用法 | 说明 |
 |----------|------|
@@ -151,20 +189,23 @@ npx liye-ai agent run market-analyst
 | ❌ Skill ≠ Workflow | 技能是能力，工作流是流程 |
 | ❌ Domain ≠ System | Domain 是业务场景，不是独立系统 |
 | ❌ Claude Skill ≠ 方法论 | Claude 指令是实现细节 |
+| ❌ MCP Server ≠ Tool | MCP Server 暴露 Tool，本身不是 Tool |
+| ❌ MCP ≠ Extensions | MCP 是 Runtime 基础设施 |
 
 ---
 
-## §7 裁决规则
+## §8 裁决规则
 
 当命名含义发生争议时，裁决顺序如下：
 
 1. **本文件（NAMING.md）**
-2. `SKILL_CONSTITUTION.md`
-3. `ARCHITECTURE.md`
+2. `MCP_SPEC.md`
+3. `SKILL_CONSTITUTION.md`
+4. `ARCHITECTURE.md`
 
 ---
 
-## §8 文件与目录命名规范
+## §9 文件与目录命名规范
 
 | 类型 | 规范 | 示例 |
 |------|------|------|
@@ -172,10 +213,12 @@ npx liye-ai agent run market-analyst
 | TypeScript 文件 | `snake_case.ts` | `market_research.ts` |
 | 宪法文档 | `UPPER_CASE.md` | `ARCHITECTURE.md` |
 | 领域目录 | `kebab-case` | `amazon-growth/` |
+| MCP Server | `kebab-case` | `qdrant-knowledge` |
+| MCP 配置文件 | `snake_case.yaml` | `mcp_servers.yaml` |
 
 ---
 
-## §9 废弃名称（禁止使用）
+## §10 废弃名称（禁止使用）
 
 | 废弃 | 替代 |
 |------|------|
@@ -184,10 +227,11 @@ npx liye-ai agent run market-analyst
 | `bmad-method` | `liye-ai` |
 | `Skills/`（大写） | `docs/methodology/` |
 | `Systems/` | `src/domain/` |
+| `Extensions/mcp-servers/`（实现） | `src/runtime/mcp/` |
 
 ---
 
-## §10 冻结声明
+## §11 冻结声明
 
 自本文件生效起：
 - 所有新文件、目录、PR 必须遵循本命名规范

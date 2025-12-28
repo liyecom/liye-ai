@@ -1,0 +1,38 @@
+# Constitution Enforcement: Layer Dependency Guard
+#
+# This CI gate enforces the LiYe OS Architecture Constitution rule:
+# "Forbidden cross-layer dependencies must not exist"
+#
+# See: docs/architecture/ARCHITECTURE.md (Section 2: Dependency Rules)
+# See: docs/architecture/CI_GOVERNANCE.md
+
+name: Constitution - Layer Dependency Guard
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  layer-dependency-check:
+    runs-on: ubuntu-latest
+    name: Layer Dependency Check
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Layer Dependency Guard
+        uses: liyecom/constitution-gate/.github/actions/layer-dependency@v1
+        with:
+          layer_rules: |
+            [
+              {"from": "src/method", "to": "src/runtime", "pattern": "from.*runtime|import.*runtime"},
+              {"from": "src/method", "to": "src/skill", "pattern": "from.*skill|import.*skill"},
+              {"from": "src/skill", "to": "src/runtime", "pattern": "from.*runtime|import.*runtime"},
+              {"from": "src/skill", "to": "src/domain", "pattern": "from.*domain|import.*domain"},
+              {"from": "src/runtime", "to": "src/skill", "pattern": "from.*skill|import.*skill"}
+            ]
+          file_extensions: "ts,js,py"
+          exclude_dirs: "node_modules,dist,.git,__pycache__"
