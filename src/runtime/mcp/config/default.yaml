@@ -1,0 +1,134 @@
+# MCP Default Configuration
+# ==========================
+#
+# This is the system-level default configuration for MCP servers.
+# Domain configurations can inherit and override these settings.
+#
+# Configuration Model (three-tier):
+# 1. System (this file) - defines defaults
+# 2. Domain (src/domain/*/config/mcp_servers.yaml) - enables/disables
+# 3. Session (.claude/settings.local.json) - developer overrides
+#
+# See: docs/architecture/MCP_SPEC.md §5
+#
+# Version: 5.0
+# Status: FROZEN (schema), MUTABLE (values)
+
+version: "1.0"
+schema: "mcp-config-v5"
+
+servers:
+  # ============================================
+  # Knowledge Base Servers
+  # ============================================
+
+  qdrant-knowledge:
+    type: custom
+    module: src.runtime.mcp.servers.knowledge.qdrant_server
+    class: QdrantMCPServer
+    transport: stdio
+    enabled: false  # Enable in domain config
+    config:
+      url: "${QDRANT_URL:-http://localhost:6333}"
+      collection: "default"
+    permissions:
+      read: true
+      write: false
+    tools:
+      - semantic_search
+      - similar_docs
+      - get_document
+
+  # ============================================
+  # Filesystem Server (External)
+  # ============================================
+
+  liye-filesystem:
+    type: external
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "${LIYE_OS_ROOT:-.}"
+    transport: stdio
+    enabled: false
+    permissions:
+      read: true
+      write: true
+      allowed_paths:
+        - "Artifacts_Vault/"
+        - "reports/"
+        - "docs/"
+      denied_paths:
+        - ".env"
+        - "secrets/"
+        - ".git/"
+        - "node_modules/"
+    tools:
+      - read_file
+      - write_file
+      - list_directory
+      - search_files
+
+  # ============================================
+  # Amazon Domain Servers (Phase 2)
+  # ============================================
+
+  sellersprite:
+    type: custom
+    module: src.runtime.mcp.servers.amazon.sellersprite_server
+    class: SellersSpriteMCPServer
+    transport: stdio
+    enabled: false
+    config:
+      api_key: "${SELLERSPRITE_API_KEY}"
+      marketplace: "US"
+    permissions:
+      read: true
+      write: false
+      rate_limit: 60  # requests per minute
+    tools:
+      - keyword_research
+      - reverse_asin
+      - market_analysis
+
+  # ============================================
+  # Data Servers (Phase 2)
+  # ============================================
+
+  duckdb-datalake:
+    type: custom
+    module: src.runtime.mcp.servers.data.duckdb_server
+    class: DuckDBMCPServer
+    transport: stdio
+    enabled: false
+    config:
+      database: "${DUCKDB_PATH:-src/domain/data/growth_os.duckdb}"
+    permissions:
+      read: true
+      write: false
+    tools:
+      - execute_query
+      - get_schema
+      - list_tables
+
+# ============================================
+# Global Settings
+# ============================================
+
+settings:
+  # Default timeout for tool calls (seconds)
+  default_timeout: 30
+
+  # Maximum output tokens (for LLM context)
+  max_output_tokens: 25000
+
+  # Audit logging
+  audit:
+    enabled: true
+    path: "~/.liye/mcp_audit.jsonl"
+
+  # Credential vault
+  vault:
+    path: "~/.liye/mcp_vault.encrypted"
+    env_prefix: true  # Check env vars before vault
