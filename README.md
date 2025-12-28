@@ -483,6 +483,15 @@ npm run build         # 构建
 
 ---
 
+## Governance
+
+This project is governed by **LiYe Governance Stack** —
+a constitution-driven CI governance framework.
+
+📘 Whitepaper: [docs/whitepaper/GOVERNANCE_STACK.md](docs/whitepaper/GOVERNANCE_STACK.md)
+
+---
+
 ## 许可证
 
 Apache License 2.0 — 详见 [LICENSE](LICENSE)
