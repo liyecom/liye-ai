@@ -155,6 +155,10 @@ const REMOTE_ROLE_INDEX = {
   // 01-core-development (核心开发)
   '后端': 'categories/01-core-development/backend-developer.md',
   'backend': 'categories/01-core-development/backend-developer.md',
+  'api': 'categories/01-core-development/api-designer.md',
+  'api design': 'categories/01-core-development/api-designer.md',
+  'rest': 'categories/01-core-development/api-designer.md',
+  'restful': 'categories/01-core-development/api-designer.md',
   '前端': 'categories/01-core-development/frontend-developer.md',
   'frontend': 'categories/01-core-development/frontend-developer.md',
   '全栈': 'categories/01-core-development/fullstack-developer.md',
