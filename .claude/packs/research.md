@@ -1,6 +1,27 @@
 # Context Pack: Research（医疗研究/多智能体）
 
-**加载条件：** 涉及医疗、治疗方案、药物、临床试验解读、循证医学、CrewAI 多智能体编排时加载。
+**加载条件：** 涉及医疗、治疗方案、药物、临床试验解读、循证医学、CrewAI 多智能体编排、PDF文献、论文解析时加载。
+
+## 新增技能（来自 Awesome Claude Skills）
+
+### pdf - PDF 文献解析
+**位置：** `Skills/00_Core_Utilities/document-processing/pdf/`
+**引用：** `Skills/05_Medical_Intelligence/index.yaml`
+
+PDF 综合操作工具，支持：
+- 文本与表格提取
+- 元数据读取
+- PDF 合并与拆分
+- 注释添加
+- 表单处理
+
+**典型使用场景：**
+- 医学文献解析
+- 临床指南阅读
+- 研究论文分析
+- 药物说明书提取
+
+---
 
 ## Medical Research Analyst（循证医学分析）
 

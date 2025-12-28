@@ -1,0 +1,35 @@
+# Skills/02_Operation_Intelligence/index.yaml
+# 运营智能域技能索引
+
+domain: 02_Operation_Intelligence
+name: 运营智能
+description: Amazon 跨境电商运营相关技能
+
+# 从 00_Core_Utilities 引用的技能
+skills:
+  - ref: 00_Core_Utilities/document-processing/xlsx
+    alias: excel-analysis
+    usage: |
+      - Amazon 销售数据分析
+      - 关键词报表处理
+      - PPC 广告数据分析
+      - 库存报表处理
+
+  - ref: 00_Core_Utilities/data-analysis/csv-summarizer
+    alias: report-insights
+    usage: |
+      - 自动化报表数据洞察
+      - 销售趋势分析
+      - 广告性能分析
+
+# 域内原生技能
+native_skills:
+  - path: amazon-operations-crew
+    status: placeholder
+    description: Amazon 运营多智能体工作流
+
+# 元数据
+metadata:
+  created: 2025-12-28
+  updated: 2025-12-28
+  version: 1.0.0

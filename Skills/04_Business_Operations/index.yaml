@@ -1,0 +1,30 @@
+# Skills/04_Business_Operations/index.yaml
+# LiYe OS 逻辑层索引 - 商业运营域
+
+domain: 04_Business_Operations
+name: 商业运营
+description: 商务文档、合同管理、企业流程相关技能
+
+skills:
+  # ===== P2 优先级技能 =====
+  - ref: 00_Core_Utilities/document-processing/docx
+    alias: business-documents
+    usage: 合同生成、商务报告、提案文档、正式函件
+    priority: P2
+    status: active
+
+# 跨域引用
+cross_domain_refs:
+  - from: 08_Communication
+    skills: [docx]
+    usage: 正式文档撰写与格式化
+
+  - from: 02_Operation_Intelligence
+    skills: [docx]
+    usage: 运营报告文档化
+
+# 元数据
+metadata:
+  created: "2025-12-28"
+  updated: "2025-12-28"
+  version: "1.0.0"
