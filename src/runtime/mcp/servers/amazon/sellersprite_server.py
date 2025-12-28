@@ -357,7 +357,7 @@ Returns top N keywords with full metrics.""",
                     COUNT(*) as total_keywords,
                     SUM(search_volume) as total_market_volume,
                     AVG(ppc_bid) as avg_ppc_bid,
-                    AVG(aba_top3_click_share) as avg_monopoly,
+                    AVG(monopoly_pct) as avg_monopoly,
                     SUM(monthly_purchases) as est_total_sales_potential
                 FROM {self._keyword_table}
                 WHERE search_volume > 0
@@ -365,9 +365,9 @@ Returns top N keywords with full metrics.""",
 
             # Get high-risk keywords
             risks = self._conn.execute(f"""
-                SELECT keyword, aba_top3_click_share, search_volume
+                SELECT keyword, monopoly_pct, search_volume
                 FROM {self._keyword_table}
-                WHERE aba_top3_click_share > 0.50
+                WHERE monopoly_pct > 0.50
                 ORDER BY search_volume DESC
                 LIMIT 5
             """).fetchall()
@@ -416,27 +416,27 @@ Returns top N keywords with full metrics.""",
         try:
             if strategy == "blue_ocean":
                 query = f"""
-                    SELECT keyword, search_volume, aba_top3_click_share, ppc_bid
+                    SELECT keyword, search_volume, monopoly_pct, ppc_bid
                     FROM {self._keyword_table}
-                    WHERE aba_top3_click_share < 0.30 AND search_volume > 5000
-                    ORDER BY aba_top3_click_share ASC
+                    WHERE monopoly_pct < 0.30 AND search_volume > 5000
+                    ORDER BY monopoly_pct ASC
                     LIMIT 10
                 """
                 title = "Blue Ocean Opportunities (Low Monopoly)"
 
             elif strategy == "golden_conversion":
                 query = f"""
-                    SELECT keyword, search_volume, purchase_rate, ppc_bid
+                    SELECT keyword, search_volume, conversion_rate, ppc_bid
                     FROM {self._keyword_table}
-                    WHERE purchase_rate > 0.10
-                    ORDER BY purchase_rate DESC
+                    WHERE conversion_rate > 0.10
+                    ORDER BY conversion_rate DESC
                     LIMIT 10
                 """
                 title = "Golden Conversion Keywords (Rate > 10%)"
 
             elif strategy == "low_bid":
                 query = f"""
-                    SELECT keyword, search_volume, ppc_bid, aba_top3_click_share
+                    SELECT keyword, search_volume, ppc_bid, monopoly_pct
                     FROM {self._keyword_table}
                     WHERE ppc_bid < 1.00 AND search_volume > 3000
                     ORDER BY search_volume DESC
@@ -455,10 +455,10 @@ Returns top N keywords with full metrics.""",
             for row in rows:
                 opp = dict(zip(columns, row))
                 # Format percentages
-                if 'aba_top3_click_share' in opp and opp['aba_top3_click_share']:
-                    opp['monopoly_percent'] = round(opp['aba_top3_click_share'] * 100, 1)
-                if 'purchase_rate' in opp and opp['purchase_rate']:
-                    opp['conversion_percent'] = round(opp['purchase_rate'] * 100, 2)
+                if 'monopoly_pct' in opp and opp['monopoly_pct']:
+                    opp['monopoly_percent'] = round(opp['monopoly_pct'] * 100, 1)
+                if 'conversion_rate' in opp and opp['conversion_rate']:
+                    opp['conversion_percent'] = round(opp['conversion_rate'] * 100, 2)
                 opportunities.append(opp)
 
             return {
@@ -508,9 +508,9 @@ Returns top N keywords with full metrics.""",
                 "keyword": keyword,
                 "metrics": {
                     "search_volume": metrics.get("search_volume"),
-                    "purchase_rate_percent": round(metrics.get("purchase_rate", 0) * 100, 2),
+                    "conversion_rate_percent": round(metrics.get("conversion_rate", 0) * 100, 2),
                     "spr": metrics.get("spr"),
-                    "monopoly_percent": round(metrics.get("aba_top3_click_share", 0) * 100, 1),
+                    "monopoly_percent": round(metrics.get("monopoly_pct", 0) * 100, 1),
                     "ppc_bid": round(metrics.get("ppc_bid", 0), 2),
                     "product_count": metrics.get("product_count"),
                     "monthly_purchases": metrics.get("monthly_purchases")
@@ -537,8 +537,8 @@ Returns top N keywords with full metrics.""",
                     SUM(search_volume) as total_volume,
                     AVG(search_volume) as avg_volume,
                     AVG(ppc_bid) as avg_ppc,
-                    AVG(aba_top3_click_share) as avg_monopoly,
-                    AVG(purchase_rate) as avg_conversion
+                    AVG(monopoly_pct) as avg_monopoly,
+                    AVG(conversion_rate) as avg_conversion
                 FROM {self._keyword_table}
                 WHERE search_volume >= {min_volume}
             """).fetchone()
@@ -593,10 +593,10 @@ Returns top N keywords with full metrics.""",
             if sort_by == "volume":
                 order = "search_volume DESC"
             elif sort_by == "conversion":
-                order = "purchase_rate DESC"
+                order = "conversion_rate DESC"
             elif sort_by == "opportunity":
                 # Opportunity score = volume / monopoly (higher is better)
-                order = "(search_volume / NULLIF(aba_top3_click_share, 0)) DESC NULLS LAST"
+                order = "(search_volume / NULLIF(monopoly_pct, 0)) DESC NULLS LAST"
             else:
                 order = "search_volume DESC"
 
@@ -604,8 +604,8 @@ Returns top N keywords with full metrics.""",
                 SELECT
                     keyword,
                     search_volume,
-                    purchase_rate,
-                    aba_top3_click_share,
+                    conversion_rate,
+                    monopoly_pct,
                     ppc_bid
                 FROM {self._keyword_table}
                 WHERE search_volume > 0
