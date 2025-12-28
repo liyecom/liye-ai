@@ -10,10 +10,11 @@ import {
   Task,
   TaskResult,
   ExecutionContext,
-  ExecutionResult
+  ExecutionResult,
+  SkillInterface
 } from './types';
-import { loader as skillLoader } from '../../skill/loader';
-import { Skill } from '../../skill/types';
+// Note: Skills are loaded by Domain layer and passed via ExecutionContext
+// Runtime does NOT import from Skill layer (architecture rule)
 
 /**
  * Agent Executor
@@ -35,10 +36,10 @@ export class AgentExecutor {
     const startTime = Date.now();
 
     try {
-      // Load the skill
-      const skill = skillLoader.load(task.skill) as Skill;
+      // Get skill from context (loaded by Domain layer)
+      const skill = context.skills.get(task.skill);
       if (!skill) {
-        throw new Error(`Skill ${task.skill} not found`);
+        throw new Error(`Skill ${task.skill} not found in context. Domain layer must load skills before execution.`);
       }
 
       // Validate inputs
