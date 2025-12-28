@@ -3,182 +3,192 @@
 SellerSprite Data Import Script
 ================================
 
-Imports SellerSprite keyword data from CSV into DuckDB.
+Imports SellerSprite keyword data from CSV/XLSX into DuckDB.
+Supports batch import of multiple files.
 
 Usage:
-    python scripts/import_sellersprite_data.py
-
-Expected CSV location:
-    data/sellersprite/sellersprite_keyword_snapshot.csv
-
-Required CSV columns (per SellerSprite_DATA_CONTRACT.md):
-    - asin: Amazon product ASIN
-    - keyword: Search keyword
-    - search_volume: Monthly search volume
-    - competition: Competition index (0-1)
-    - conversion_rate: Purchase rate percentage
-    - snapshot_date: Data snapshot date (YYYY-MM-DD)
-
-Optional columns:
-    - monopoly_pct: Top 3 ASIN market share
-    - ppc_bid: Suggested PPC bid
-    - spr: Sales per review
-    - ranking: Keyword ranking for ASIN
+    python scripts/import_sellersprite_data.py              # Import all xlsx files
+    python scripts/import_sellersprite_data.py -f file.xlsx # Import single file
 """
 
 import sys
+import re
 from pathlib import Path
 from datetime import datetime
 
-# Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+# Column mapping (Chinese -> English)
+COLUMN_MAPPING = {
+    '关键词': 'keyword',
+    '月搜索量': 'search_volume',
+    '购买率': 'conversion_rate',
+    '关键词翻译': 'keyword_translation',
+    '流量占比': 'traffic_share',
+    '预估周曝光量': 'weekly_impressions',
+    '自然排名': 'organic_rank',
+    '广告排名': 'ad_rank',
+    'ABA周排名': 'aba_rank',
+    'SPR': 'spr',
+    '标题密度': 'title_density',
+    '购买量': 'purchase_count',
+    '展示量': 'impressions',
+    '点击量': 'clicks',
+    '商品数': 'product_count',
+    '需供比': 'demand_supply_ratio',
+    '点击总占比': 'click_share',
+    '转化总占比': 'conversion_share',
+    'PPC价格': 'ppc_bid',
+    '建议竞价范围': 'suggested_bid_range',
+    '前十ASIN': 'top10_asins',
+    '近7天广告竞品数': 'ad_competitors_7d',
+    '关键词类型': 'keyword_type',
+    '转化效果': 'conversion_effect',
+    '流量词类型': 'traffic_type',
+    '自然流量占比': 'organic_traffic_share',
+    '广告流量占比': 'ad_traffic_share',
+    '自然排名页码': 'organic_rank_page',
+    '广告排名页码': 'ad_rank_page',
+    '更新时间': 'update_time',
+}
 
-def import_sellersprite_data(csv_file: str = None):
-    """Import SellerSprite CSV data into DuckDB.
 
-    Args:
-        csv_file: Optional CSV file path. If not provided, uses default location.
-    """
+def extract_asin_from_filename(filename: str) -> str:
+    """Extract ASIN from filename."""
+    match = re.search(r'B[0-9A-Z]{9}', filename)
+    return match.group(0) if match else None
+
+
+def read_and_transform_file(file_path: Path) -> 'pd.DataFrame':
+    """Read file and transform columns."""
+    import pandas as pd
+
+    # Read file
+    if file_path.suffix.lower() == '.xlsx':
+        df = pd.read_excel(file_path)
+    else:
+        df = pd.read_csv(file_path)
+
+    # Rename columns
+    df = df.rename(columns={k: v for k, v in COLUMN_MAPPING.items() if k in df.columns})
+
+    # Add ASIN from filename
+    asin = extract_asin_from_filename(file_path.name)
+    if asin and 'asin' not in df.columns:
+        df['asin'] = asin
+
+    # Add source file
+    df['source_file'] = file_path.name
+
+    return df
+
+
+def import_sellersprite_data(file_path_arg: str = None):
+    """Import SellerSprite data (single file or batch)."""
     print("=" * 60)
     print("SellerSprite Data Import")
     print("=" * 60)
 
-    # Paths
-    if csv_file:
-        csv_path = Path(csv_file)
-        if not csv_path.is_absolute():
-            csv_path = project_root / csv_file
-    else:
-        csv_path = project_root / "data" / "sellersprite" / "sellersprite_keyword_snapshot.csv"
+    import pandas as pd
+    import duckdb
 
     db_path = project_root / "src" / "domain" / "data" / "growth_os.duckdb"
+    data_dir = project_root / "data" / "sellersprite"
 
-    # Check CSV exists
-    if not csv_path.exists():
-        print(f"\n❌ CSV file not found: {csv_path}")
-        print("\nPlease export your SellerSprite data and save it as:")
-        print(f"  {csv_path}")
-        print("\nRequired columns:")
-        print("  - asin, keyword, search_volume, competition, conversion_rate, snapshot_date")
+    # Find files
+    if file_path_arg:
+        file_path = Path(file_path_arg)
+        if not file_path.is_absolute():
+            file_path = project_root / file_path_arg
+        files = [file_path] if file_path.exists() else []
+    else:
+        files = sorted(data_dir.glob("*.xlsx"))
+
+    if not files:
+        print("❌ No files found")
         return False
 
-    print(f"\n📂 CSV file: {csv_path}")
-    print(f"📂 Database: {db_path}")
+    # Show files
+    print(f"\n📄 Files to import: {len(files)}")
+    for f in files:
+        asin = extract_asin_from_filename(f.name)
+        print(f"   • {f.name} (ASIN: {asin})")
 
-    # Import duckdb
-    try:
-        import duckdb
-    except ImportError:
-        print("\n❌ DuckDB not installed. Run: pip install duckdb")
+    # Read and merge all files
+    print("\n📋 Reading files...")
+    all_dfs = []
+    for f in files:
+        try:
+            df = read_and_transform_file(f)
+            all_dfs.append(df)
+            print(f"   ✓ {f.name}: {len(df)} rows")
+        except Exception as e:
+            print(f"   ✗ {f.name}: {e}")
+
+    if not all_dfs:
+        print("❌ No data loaded")
         return False
 
-    # Connect to database
+    # Merge all DataFrames
+    print("\n🔄 Merging data...")
+    merged_df = pd.concat(all_dfs, ignore_index=True)
+
+    # Add metadata
+    merged_df['snapshot_date'] = datetime.now().strftime('%Y-%m-%d')
+    merged_df['import_date'] = datetime.now().strftime('%Y-%m-%d')
+
+    print(f"   Total rows: {len(merged_df)}")
+    print(f"   Unique ASINs: {merged_df['asin'].nunique()}")
+
+    # Import to DuckDB
+    print("\n🔧 Importing to DuckDB...")
     conn = duckdb.connect(str(db_path))
 
     try:
-        # Preview CSV
-        print("\n📋 Previewing CSV...")
-        preview = conn.execute(f"""
-            SELECT * FROM read_csv_auto('{csv_path}') LIMIT 5
-        """).fetchdf()
-        print(preview)
-
-        # Get column names
-        columns = list(preview.columns)
-        print(f"\n📊 Columns found: {columns}")
-
-        # Check required columns
-        required = ['asin', 'keyword', 'search_volume']
-        missing = [c for c in required if c.lower() not in [col.lower() for col in columns]]
-        if missing:
-            print(f"\n⚠️  Missing required columns: {missing}")
-            print("   Will attempt import anyway...")
-
-        # Create table
-        print("\n🔧 Creating fact_keyword_snapshot table...")
-
-        # Drop existing table if exists
         conn.execute("DROP TABLE IF EXISTS fact_keyword_snapshot")
+        conn.register('merged_df', merged_df)
+        conn.execute("CREATE TABLE fact_keyword_snapshot AS SELECT * FROM merged_df")
 
-        # Create table from CSV
-        conn.execute(f"""
-            CREATE TABLE fact_keyword_snapshot AS
-            SELECT
-                *,
-                CURRENT_DATE as import_date
-            FROM read_csv_auto('{csv_path}')
-        """)
-
-        # Verify import
+        # Verify
         count = conn.execute("SELECT COUNT(*) FROM fact_keyword_snapshot").fetchone()[0]
-        print(f"\n✅ Imported {count} rows into fact_keyword_snapshot")
+        asins = conn.execute("SELECT DISTINCT asin FROM fact_keyword_snapshot").fetchdf()
 
-        # Show sample
+        print(f"\n✅ Imported {count} rows")
+        print(f"\n📊 ASINs in database:")
+        for asin in asins['asin'].tolist():
+            asin_count = conn.execute(f"SELECT COUNT(*) FROM fact_keyword_snapshot WHERE asin = '{asin}'").fetchone()[0]
+            print(f"   • {asin}: {asin_count} keywords")
+
+        # Sample
         print("\n📋 Sample data:")
         sample = conn.execute("""
-            SELECT * FROM fact_keyword_snapshot LIMIT 5
+            SELECT asin, keyword, search_volume, conversion_rate
+            FROM fact_keyword_snapshot
+            ORDER BY TRY_CAST(search_volume AS DOUBLE) DESC NULLS LAST
+            LIMIT 5
         """).fetchdf()
         print(sample)
-
-        # Show table schema
-        print("\n📐 Table schema:")
-        schema = conn.execute("""
-            DESCRIBE fact_keyword_snapshot
-        """).fetchdf()
-        print(schema)
 
         print("\n" + "=" * 60)
         print("✅ Import Complete!")
         print("=" * 60)
-        print(f"\nTable: fact_keyword_snapshot")
-        print(f"Rows: {count}")
-        print(f"Database: {db_path}")
-        print("\nYou can now run MCP verification to unlock Phase 3:")
-        print("  python src/domain/amazon-growth/scripts/verify_mcp_integration.py")
-
         return True
 
     except Exception as e:
-        print(f"\n❌ Import failed: {e}")
+        print(f"❌ Import failed: {e}")
         import traceback
         traceback.print_exc()
         return False
-
     finally:
         conn.close()
-
-
-def create_sample_csv():
-    """Create a sample CSV for testing."""
-    sample_path = project_root / "data" / "sellersprite" / "sellersprite_keyword_snapshot_sample.csv"
-
-    sample_data = """asin,keyword,search_volume,competition,conversion_rate,snapshot_date,monopoly_pct,ppc_bid,ranking
-B08N5WRWNW,wireless earbuds,150000,0.85,3.2,2025-12-28,0.45,2.50,5
-B08N5WRWNW,bluetooth earbuds,120000,0.78,2.8,2025-12-28,0.38,2.20,8
-B08N5WRWNW,earbuds wireless,95000,0.72,3.5,2025-12-28,0.42,1.95,12
-B09XYZ1234,phone case,200000,0.65,4.1,2025-12-28,0.25,1.50,3
-B09XYZ1234,iphone case,180000,0.70,3.8,2025-12-28,0.30,1.75,6
-"""
-
-    with open(sample_path, 'w') as f:
-        f.write(sample_data)
-
-    print(f"✅ Sample CSV created: {sample_path}")
-    print("\nTo test import, rename it to:")
-    print(f"  mv {sample_path} {sample_path.parent}/sellersprite_keyword_snapshot.csv")
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Import SellerSprite data")
-    parser.add_argument("--sample", action="store_true", help="Create sample CSV for testing")
-    parser.add_argument("--file", "-f", type=str, help="CSV file path (default: data/sellersprite/sellersprite_keyword_snapshot.csv)")
+    parser.add_argument("--file", "-f", type=str, help="Single file to import")
     args = parser.parse_args()
 
-    if args.sample:
-        create_sample_csv()
-    else:
-        success = import_sellersprite_data(csv_file=args.file)
-        sys.exit(0 if success else 1)
+    success = import_sellersprite_data(args.file)
+    sys.exit(0 if success else 1)
