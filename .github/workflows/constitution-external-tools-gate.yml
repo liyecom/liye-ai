@@ -1,0 +1,31 @@
+# Constitution Enforcement: External Tools Boundary Guard
+#
+# This CI gate enforces the LiYe OS Architecture Constitution rule:
+# "Method and Skill layers must remain tool-agnostic"
+#
+# See: docs/architecture/ARCHITECTURE.md (Section 3: Layer Boundary Rules)
+# See: docs/architecture/EXTERNAL_TOOLS_POLICY.md
+
+name: Constitution - External Tools Boundary Guard
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  external-tools-boundary-check:
+    runs-on: ubuntu-latest
+    name: External Tools Boundary Check
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: External Tools Boundary Guard
+        uses: liyecom/constitution-gate/.github/actions/external-tools-boundary@v1
+        with:
+          protected_paths: "src/method,src/skill"
+          forbidden_patterns: "crewai,CrewAI,langchain,LangChain,AutoGPT,autogpt,agent\\.kickoff,Crew\\.from_,tool_call,external\\.tool,from crewai,import crewai,from langchain,import langchain"
+          exclude_dirs: "node_modules,dist,.git"
