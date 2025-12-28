@@ -120,6 +120,43 @@ LiYe AI 采用四层架构：
 
 ---
 
+## 上下文编译器（Context Compiler）
+
+LiYe AI 的核心能力之一：**多源角色插件 + 可审计仲裁**。
+
+### 三层上下文加载
+
+| 层级 | 来源 | 说明 |
+|------|------|------|
+| **Packs** | 本地 | 业务领域知识（operations, research, infrastructure） |
+| **Skills** | 远程 Fork | 35+ 能力技能（来自 awesome-claude-skills） |
+| **Roles** | 远程 Fork | 100+ 角色模板（VoltAgent + BMad Method） |
+
+### 角色仲裁规则
+
+```
+优先级：Packs > Skills > Roles（BMad > VoltAgent）
+上限：MAX_ROLES = 3
+```
+
+- **BMad Method**（优先级 2）：方法论沉淀的工程人格
+- **VoltAgent**（优先级 1）：泛化专家人格
+- 同名冲突时，高优先级覆盖低优先级
+
+### 可审计输出
+
+```
+📊 Stats:
+   - Roles total: 5
+   - Roles kept: 3
+   - Roles dropped (cap): 2
+   - Dropped list: voltagent:devops-engineer, voltagent:frontend-developer
+```
+
+**企业级特性**：可预测（Deterministic）/ 可观测（Observable）/ 可控（Controllable）
+
+---
+
 ## 目前支持的领域
 
 | 领域 | 状态 | 说明 |
