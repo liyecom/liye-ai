@@ -1,0 +1,143 @@
+# Amazon Growth OS MCP Configuration
+# ====================================
+#
+# This is the domain-level MCP configuration for Amazon Growth OS.
+# It inherits from system defaults and enables/overrides domain-specific servers.
+#
+# Configuration Model:
+# 1. Inherits: src/runtime/mcp/config/default.yaml
+# 2. Enables: Servers needed for this domain
+# 3. Overrides: Domain-specific parameters
+#
+# See: docs/architecture/MCP_SPEC.md §5.4
+#
+# Version: 5.0
+# Domain: amazon-growth
+
+version: "1.0"
+inherit: src/runtime/mcp/config/default.yaml
+
+servers:
+  # ============================================
+  # Knowledge Base (Week 1-2)
+  # ============================================
+
+  qdrant-knowledge:
+    enabled: true
+    type: custom
+    module: src.runtime.mcp.servers.knowledge.qdrant_server
+    class: QdrantMCPServer
+    transport: stdio
+    config:
+      url: "${QDRANT_URL:-http://localhost:6333}"
+      collection: "amazon_knowledge_base"
+      top_k: 5
+    permissions:
+      read: true
+      write: false
+    tools:
+      - semantic_search
+      - similar_docs
+      - get_document
+      - list_collections
+
+  # ============================================
+  # Amazon Analytics (Week 3-4)
+  # ============================================
+
+  sellersprite:
+    enabled: true
+    type: custom
+    module: src.runtime.mcp.servers.amazon.sellersprite_server
+    class: SellersSpriteMCPServer
+    transport: stdio
+    config:
+      database: "src/domain/data/growth_os.duckdb"
+      keyword_table: "fact_keyword_snapshot"
+      asin_table: "dim_asin"
+    permissions:
+      read: true
+      write: false
+    tools:
+      - diagnose_listing
+      - find_opportunities
+      - get_keyword_metrics
+      - analyze_market
+      - top_keywords
+
+  # ============================================
+  # Data Warehouse (Week 3-4)
+  # ============================================
+
+  duckdb-datalake:
+    enabled: true
+    type: custom
+    module: src.runtime.mcp.servers.data.duckdb_server
+    class: DuckDBMCPServer
+    transport: stdio
+    config:
+      database: "src/domain/data/growth_os.duckdb"
+      read_only: true
+      max_rows: 500
+    permissions:
+      read: true
+      write: false
+    tools:
+      - execute_query
+      - get_schema
+      - list_tables
+      - get_sample
+      - describe_stats
+
+  # ============================================
+  # Filesystem (for reports and artifacts)
+  # ============================================
+
+  liye-filesystem:
+    enabled: false  # Enable when needed
+    type: custom
+    module: src.runtime.mcp.servers.filesystem_server
+    class: FilesystemMCPServer
+    transport: stdio
+    config:
+      allowed_paths:
+        - "Artifacts_Vault/amazon-growth/"
+        - "reports/"
+    permissions:
+      read: true
+      write: true
+
+# ============================================
+# Domain-Specific Settings
+# ============================================
+
+settings:
+  # Default servers to load for agents
+  default_servers:
+    - qdrant-knowledge
+    - sellersprite
+    - duckdb-datalake
+
+  # Agent-specific server mappings
+  agent_servers:
+    keyword-architect:
+      - qdrant-knowledge
+      - sellersprite
+      - duckdb-datalake
+
+    market-analyst:
+      - sellersprite
+      - duckdb-datalake
+
+    ppc-strategist:
+      - sellersprite
+      - duckdb-datalake
+
+    listing-optimizer:
+      - qdrant-knowledge
+      - sellersprite
+
+    diagnostic-architect:
+      - qdrant-knowledge
+      - sellersprite
+      - duckdb-datalake
