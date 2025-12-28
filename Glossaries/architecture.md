@@ -18,7 +18,7 @@ Terminology for LiYe AI's four-layer architecture.
 
 **Key Principle**: Only declarations, no execution code.
 
-**Source**: Fork of BMad Method
+**Source**: Inspired by BMad Method (no source code included)
 
 ---
 
@@ -34,7 +34,7 @@ Terminology for LiYe AI's four-layer architecture.
 
 **Key Principle**: Only execution, no business semantics.
 
-**Source**: Fork of CrewAI
+**Source**: Inspired by CrewAI patterns (pip dependency only)
 
 ---
 
@@ -49,7 +49,7 @@ Terminology for LiYe AI's four-layer architecture.
 
 **Key Principle**: Only capabilities, no Agent/Flow concepts.
 
-**Source**: Fork of Skill Forge
+**Source**: Inspired by Skill Forge concepts (original implementation)
 
 ---
 
@@ -122,3 +122,26 @@ Agent = Persona (WHO) + Skills (WHAT) + Runtime (HOW)
 - `kebab-case` - File names, agent IDs
 - `PascalCase` - TypeScript classes
 - `camelCase` - Variables and functions
+
+---
+
+## Tri-Fork Fusion
+
+### Definition
+LiYe OS 的架构融合模式，指从三个上游项目**借鉴理念**，而非复制代码。
+
+### Key Principle
+```
+Tri-Fork ≠ Copy Source Code
+Tri-Fork = 借鉴理念 + 原创实现 + 依赖调用
+```
+
+### Clarification
+
+| 上游项目 | 融合方式 | LiYe OS 实现 |
+|----------|---------|--------------|
+| BMad Method | 理念借鉴 | 原创 YAML 规范 |
+| CrewAI | pip 依赖 + 模式参考 | TypeScript Runtime + Python 调用 |
+| Skill Forge | 概念参考 | TypeScript Skill 层 |
+
+**See also**: [NON_FORK_STATEMENT.md](../docs/architecture/NON_FORK_STATEMENT.md)

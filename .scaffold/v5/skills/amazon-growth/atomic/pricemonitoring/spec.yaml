@@ -1,0 +1,11 @@
+id: pricemonitoring
+type: atomic
+domain: amazon-growth
+description: 'TODO: Add skill description'
+input:
+  type: object
+  properties: {}
+  required: []
+output:
+  type: object
+  properties: {}

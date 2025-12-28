@@ -1,6 +1,6 @@
 # LiYe AI / LiYe OS Architecture Constitution
 
-> **Version**: 3.1 Final
+> **Version**: 3.2
 > **Status**: FROZEN - No modifications allowed without governance review
 > **Date**: 2025-12-27
 > **Brand**: LiYe AI (product) / LiYe OS (technical kernel)
@@ -12,7 +12,7 @@
 ```
 LiYe OS Four-Layer Architecture (Tri-Fork Fusion)
 ┌─────────────────────────────────────────────────────────────┐
-│ ① LiYe Method Layer   (WHY)  ← fork BMad Method            │
+│ ① LiYe Method Layer   (WHY)  ← inspired by BMad Method     │
 │    - Phase/Stage definitions                                │
 │    - Agent Persona declarations (YAML)                      │
 │    - Workflow DSL definitions                               │
@@ -20,7 +20,7 @@ LiYe OS Four-Layer Architecture (Tri-Fork Fusion)
 │    - Evolution Protocol definitions                         │
 │    【DECLARATION ONLY - No execution code】                 │
 ├─────────────────────────────────────────────────────────────┤
-│ ② LiYe Runtime Layer  (HOW)  ← fork CrewAI                  │
+│ ② LiYe Runtime Layer  (HOW)  ← wraps CrewAI (pip dep)       │
 │    - Agent Executor (runtime shell)                         │
 │    - Task Scheduler (DAG)                                   │
 │    - Process Manager (Sequential/Parallel)                  │
@@ -28,7 +28,7 @@ LiYe OS Four-Layer Architecture (Tri-Fork Fusion)
 │    - Evolution Engine (executes protocol)                   │
 │    【EXECUTION ONLY - No business semantics】               │
 ├─────────────────────────────────────────────────────────────┤
-│ ③ LiYe Skill Layer    (WHAT) ← fork Skill Forge             │
+│ ③ LiYe Skill Layer    (WHAT) ← inspired by Skill Forge      │
 │    - Atomic Skills (single capability)                      │
 │    - Composite Skills (skill chains)                        │
 │    - Skill Registry                                         │
@@ -90,10 +90,23 @@ LiYe OS Four-Layer Architecture (Tri-Fork Fusion)
 
 | Layer | CAN DO | CANNOT DO | Source |
 |-------|--------|-----------|--------|
-| **Method** | Declare Agent Persona, Define Workflow DSL, Set Phase | Contain execution code, Call APIs directly | BMad |
-| **Runtime** | Execute Agent, Schedule tasks, Manage memory, Run evolution | Define business semantics, Contain Persona | CrewAI |
-| **Skill** | Define atomic skills, Composite skills, Register skills | Contain Agent concept, Flow concept | Skill Forge |
-| **Domain** | Assemble layers, Implement business, Configure domain params | Modify upper layers, Cross-domain coupling | LiYe |
+| **Method** | Declare Agent Persona, Define Workflow DSL, Set Phase | Contain execution code, Call APIs directly | Inspired by BMad |
+| **Runtime** | Execute Agent, Schedule tasks, Manage memory, Run evolution | Define business semantics, Contain Persona | Wraps CrewAI |
+| **Skill** | Define atomic skills, Composite skills, Register skills | Contain Agent concept, Flow concept | Inspired by Skill Forge |
+| **Domain** | Assemble layers, Implement business, Configure domain params | Modify upper layers, Cross-domain coupling | LiYe Original |
+
+### 3.1 CI Enforcement (Constitution Guard)
+
+The layer boundary rules are enforced by CI gates:
+
+| CI Gate | Enforces | Action |
+|---------|----------|--------|
+| `constitution-external-tools-gate.yml` | External tools (CrewAI, LangChain) must NOT appear in Method/Skill layers | PR blocked on violation |
+
+**Forbidden Zones**: `src/method/`, `src/skill/`
+**Allowed Zones**: `src/runtime/`, `src/domain/`
+
+See: `.github/workflows/constitution-external-tools-gate.yml`
 
 ---
 
@@ -187,7 +200,10 @@ Any modification to this constitution requires:
 - [WORKFLOW_DSL.md](./WORKFLOW_DSL.md) - Workflow DSL specification
 - [SKILL_SPEC.md](./SKILL_SPEC.md) - Skill specification
 - [EVOLUTION_PROTOCOL.md](./EVOLUTION_PROTOCOL.md) - Evolution protocol
+- [TRI_FORK_IMPLEMENTATION.md](./TRI_FORK_IMPLEMENTATION.md) - Tri-Fork implementation details & resource map
+- [NON_FORK_STATEMENT.md](./NON_FORK_STATEMENT.md) - Non-fork declaration
+- [EXTERNAL_TOOLS_POLICY.md](./EXTERNAL_TOOLS_POLICY.md) - External tools usage policy (enforced)
 
 ---
 
-**This document is FROZEN as of v3.1 Final (2025-12-27).**
+**This document is FROZEN as of v3.2 (2025-12-27).**

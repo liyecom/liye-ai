@@ -18,38 +18,6 @@
 
 ---
 
-
-## 🧠 Skill 三层模型（Tri-Layer Skill Model）
-
-LiYe AI 中的 **Skill 不是单一概念**，而是一个跨人类、系统、AI 的三层能力模型。
-该模型已在 v5.0 架构中冻结，用于避免规模化后的语义混乱。
-
-### 三层定义
-
-| 层级 | 名称 | 位置 | 回答的问题 |
-|------|------|------|------------|
-| L1 | Methodology Skill | `docs/methodology/` | 我如何成为这个领域的专家？ |
-| L2 | Executable Skill | `src/skill/`、`src/domain/*/skills/` | 系统如何稳定调用这个能力？ |
-| L3 | Instruction Skill | `.claude/skills/` | Claude 应该如何协助执行？ |
-
-### 权威链（宪法级规则）
-
-```text
-docs/methodology
-        ↓
-src/domain/*  /  src/skill
-        ↓
-.claude/skills
-```
-
-- 只允许 **自上而下依赖**
-- Claude 指令属于实现细节，**不得反向定义方法论**
-
-完整规范请参见：
-- `docs/architecture/SKILL_CONSTITUTION.md`
-
----
-
 ## 快速上手
 
 ```bash
@@ -491,14 +459,11 @@ Apache License 2.0 — 详见 [LICENSE](LICENSE)
 
 ## 致谢
 
-LiYe AI 的架构设计受以下开源项目启发：
+LiYe AI 基于以下开源项目构建：
 
-- **[BMad Method](https://github.com/bmad-code-org/BMAD-METHOD)** (Apache 2.0) — 方法论层的理念来源
-- **[CrewAI](https://github.com/joaomdmoura/crewAI)** (MIT) — 运行时层的模式参考（作为 pip 依赖调用）
-- **[Skill Forge](https://github.com/anthropics/agent-skills)** (MIT) — 技能层的概念参考
-
-> **注**：LiYe OS 的核心代码为 TypeScript 原创实现，不包含上述项目的源代码。
-> 详见 [Non-Fork Statement](docs/architecture/NON_FORK_STATEMENT.md)
+- **[BMad Method](https://github.com/bmad-code-org/BMAD-METHOD)** (Apache 2.0) — AI 驱动的敏捷方法论
+- **[CrewAI](https://github.com/joaomdmoura/crewAI)** (MIT) — 多智能体编排框架
+- **[Skill Forge](https://github.com/anthropics/agent-skills)** (MIT) — 智能体技能管理
 
 ---
 
