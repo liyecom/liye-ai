@@ -23,6 +23,14 @@ const REMOTE_BASE_URL = 'https://raw.githubusercontent.com/liyecom/skill-packs/m
 const CACHE_DIR = path.join(os.homedir(), '.liye', 'skill-cache');
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 天缓存
 
+// === Context Priority Rules ===
+// Role 冲突仲裁优先级：BMad > VoltAgent
+const ROLE_PRIORITY = {
+  'bmad-method': 2,   // BMad = 方法论沉淀的工程人格
+  'voltagent': 1,     // VoltAgent = 泛化专家人格
+};
+const MAX_ROLES = 3;  // Role 总数上限
+
 // 关键词 → 技能路径映射
 const REMOTE_SKILL_INDEX = {
   // artifacts-builder (React/前端组件)
@@ -619,6 +627,37 @@ function matchBmadAgents(taskDesc) {
   return [...matched];
 }
 
+/**
+ * Role 冲突仲裁函数
+ * 规则：BMad > VoltAgent（同类角色冲突时，高优先级覆盖低优先级）
+ * @param {Array} roles - 角色数组，每个角色需有 { name, source, ... }
+ * @returns {Array} - 仲裁后的角色数组
+ */
+function arbitrateRoles(roles) {
+  const roleMap = new Map();
+
+  for (const role of roles) {
+    // roleKey 用于判断"同类角色"（基于名称去重）
+    const roleKey = role.name || role.path || JSON.stringify(role).slice(0, 50);
+
+    if (!roleMap.has(roleKey)) {
+      roleMap.set(roleKey, role);
+      continue;
+    }
+
+    const existing = roleMap.get(roleKey);
+    const existingPriority = ROLE_PRIORITY[existing.source] || 0;
+    const incomingPriority = ROLE_PRIORITY[role.source] || 0;
+
+    // 优先级高的覆盖低的（BMad > VoltAgent）
+    if (incomingPriority > existingPriority) {
+      roleMap.set(roleKey, role);
+    }
+  }
+
+  return Array.from(roleMap.values());
+}
+
 // ============================================================
 // 原有代码
 // ============================================================
@@ -744,48 +783,71 @@ if (remoteSkills.length > 0) {
   }
 }
 
-// 加载远程角色（带 Metadata 解析）
-const loadedRolesMetadata = []; // 收集 metadata 用于未来扩展
+// ============================================================
+// 加载 Roles（统一仲裁：BMad > VoltAgent）
+// ============================================================
+const allRoles = [];
+
+// 1. 收集 VoltAgent 角色
 if (remoteRoles.length > 0) {
-  console.log(`🎭 Loading remote roles...`);
+  console.log(`🎭 Loading VoltAgent roles...`);
   for (const rolePath of remoteRoles) {
     const content = fetchRemoteRole(rolePath);
     if (content) {
-      // 解析 Metadata（预留接口）
       const metadata = parseRoleMetadata(content);
       const roleName = metadata.name || inferRoleName(rolePath);
-
-      // 收集 metadata（用于未来 Ranking / 冲突裁决）
-      loadedRolesMetadata.push({
-        path: rolePath,
+      allRoles.push({
         name: roleName,
-        ...metadata,
+        path: rolePath,
+        source: 'voltagent',
+        content: content,
+        metadata: metadata,
       });
-
-      // 输出时包含 metadata 摘要（注释形式，不影响 Claude 理解）
-      out += `## Remote Role: ${roleName}\n\n`;
-      out += `<!-- Role Metadata: confidence=${metadata.confidence}, source=${metadata.source}, priority=${metadata.priority} -->\n\n`;
-      out += `${content}\n\n`;
-      out += `---\n\n`;
     }
   }
 }
 
-// 加载 BMad Agents（作为 YAML Role Prompts，不是 Runtime Agents）
-// ⚠️ 重要：BMad Agents 仅用于上下文增强，不进入 CrewAI Runtime
+// 2. 收集 BMad 角色
 if (bmadAgents.length > 0) {
   console.log(`🧠 Loading BMad roles (YAML)...`);
   for (const agentPath of bmadAgents) {
     const content = fetchBmadAgent(agentPath);
     if (content) {
-      // 从路径提取角色名 (e.g., src/modules/bmm/agents/dev.agent.yaml -> dev)
       const agentName = agentPath.split('/').pop().replace('.agent.yaml', '');
-
-      out += `## BMad Role: ${agentName}\n\n`;
-      out += `<!-- BMad Role (YAML): source=BMad-METHOD, layer=context-only, NOT runtime-executable -->\n\n`;
-      out += `\`\`\`yaml\n${content}\n\`\`\`\n\n`;
-      out += `---\n\n`;
+      allRoles.push({
+        name: agentName,
+        path: agentPath,
+        source: 'bmad-method',
+        content: content,
+        metadata: { source: 'BMad-METHOD' },
+      });
     }
+  }
+}
+
+// 3. 仲裁 + 按优先级排序 + 截断
+const deduplicatedRoles = arbitrateRoles(allRoles);
+// 按优先级排序：BMad (2) > VoltAgent (1)
+const sortedRoles = deduplicatedRoles.sort((a, b) => {
+  const pa = ROLE_PRIORITY[a.source] || 0;
+  const pb = ROLE_PRIORITY[b.source] || 0;
+  return pb - pa; // 降序，高优先级在前
+});
+const arbitratedRoles = sortedRoles.slice(0, MAX_ROLES);
+const rolesDropped = allRoles.length - arbitratedRoles.length;
+
+// 4. 输出到 context
+for (const role of arbitratedRoles) {
+  if (role.source === 'voltagent') {
+    out += `## Remote Role: ${role.name}\n\n`;
+    out += `<!-- Role Metadata: confidence=${role.metadata.confidence}, source=${role.metadata.source}, priority=${role.metadata.priority} -->\n\n`;
+    out += `${role.content}\n\n`;
+    out += `---\n\n`;
+  } else if (role.source === 'bmad-method') {
+    out += `## BMad Role: ${role.name}\n\n`;
+    out += `<!-- BMad Role (YAML): source=BMad-METHOD, layer=context-only, NOT runtime-executable -->\n\n`;
+    out += `\`\`\`yaml\n${role.content}\n\`\`\`\n\n`;
+    out += `---\n\n`;
   }
 }
 
@@ -810,12 +872,13 @@ if (remoteSkills.length > 0) {
   console.log(`   - Remote Skills: ${remoteSkills.length} loaded`);
 }
 
-if (remoteRoles.length > 0) {
-  console.log(`   - Remote Roles: ${remoteRoles.length} loaded`);
-}
-
-if (bmadAgents.length > 0) {
-  console.log(`   - BMad Roles: ${bmadAgents.length} loaded`);
+// Role 仲裁统计
+if (allRoles.length > 0) {
+  console.log(`   - Roles total: ${allRoles.length}`);
+  console.log(`   - Roles kept: ${arbitratedRoles.length}`);
+  if (rolesDropped > 0) {
+    console.log(`   - Roles dropped: ${rolesDropped}`);
+  }
 }
 
 console.log(`   - Total: ${[...out].length} chars`);
