@@ -1,0 +1,16 @@
+# Site Deployer Dependencies
+
+# HTTP requests
+requests>=2.31.0
+
+# YAML configuration
+pyyaml>=6.0.1
+
+# Progress bars
+tqdm>=4.66.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# HTTP client for Vercel API
+httpx>=0.25.0

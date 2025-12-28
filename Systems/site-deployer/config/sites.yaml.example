@@ -1,0 +1,29 @@
+# Site configuration example
+# Copy this file to sites.yaml and customize for your sites
+
+sites:
+  - name: kuachu
+    description: "跨境出海运营百科"
+    source_path: /Users/liye/github/liye_os/websites/kuachu
+    domain: kuachu.com
+    framework: astro
+    analytics:
+      umami:
+        enabled: true
+        website_id: e1e476cf-cb25-4db4-a207-bd6fc8712b5b
+    seo:
+      google_search_console: true
+      submit_sitemap: true
+
+  # Add more sites here
+  # - name: amazon-optimization
+  #   description: "Amazon SEO 优化指南"
+  #   source_path: /Users/liye/github/liye_os/websites/amazon-optimization
+  #   domain: amazon-seo.com
+  #   framework: astro
+  #   analytics:
+  #     umami:
+  #       enabled: true
+  #   seo:
+  #     google_search_console: true
+  #     submit_sitemap: true

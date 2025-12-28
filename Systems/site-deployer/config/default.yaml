@@ -1,0 +1,33 @@
+# Default configuration for Site Deployer
+
+# Deployment settings
+deployment:
+  platform: vercel  # vercel, netlify, or custom
+  concurrent_limit: 5  # Max parallel deployments
+  timeout: 600  # Deployment timeout in seconds (10 minutes)
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+
+# Build settings
+build:
+  framework: astro  # astro, hugo, next, etc.
+  output_directory: dist
+  install_command: npm install
+  build_command: npm run build
+
+# Umami integration
+umami:
+  enabled: true
+  api_url: https://umami-iota-blush.vercel.app  # Your Umami instance
+  auto_inject: true  # Automatically inject tracking script
+
+# Google Search Console
+google_search_console:
+  enabled: true
+  auto_submit_sitemap: true
+
+# Logging
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  file: logs/site-deployer.log
+  console: true
