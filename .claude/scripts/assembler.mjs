@@ -339,8 +339,8 @@ const BMAD_AGENT_INDEX = {
 function fetchRemoteSkill(skillPath) {
   const cachePath = path.join(CACHE_DIR, skillPath);
 
-  // 1. 检查缓存
-  if (fs.existsSync(cachePath)) {
+  // 1. 检查缓存（--refresh 跳过缓存）
+  if (!FORCE_REFRESH && fs.existsSync(cachePath)) {
     try {
       const stat = fs.statSync(cachePath);
       const age = Date.now() - stat.mtimeMs;
@@ -409,8 +409,8 @@ function matchRemoteSkills(taskDesc) {
 function fetchRemoteRole(rolePath) {
   const cachePath = path.join(ROLE_CACHE_DIR, rolePath);
 
-  // 1. 检查缓存
-  if (fs.existsSync(cachePath)) {
+  // 1. 检查缓存（--refresh 跳过缓存）
+  if (!FORCE_REFRESH && fs.existsSync(cachePath)) {
     try {
       const stat = fs.statSync(cachePath);
       const age = Date.now() - stat.mtimeMs;
@@ -555,8 +555,8 @@ function fetchBmadAgent(agentPath) {
   // 使用 __ 替换 / 避免创建深层目录
   const cachePath = path.join(BMAD_CACHE_DIR, agentPath.replace(/\//g, '__'));
 
-  // 1. 检查缓存
-  if (fs.existsSync(cachePath)) {
+  // 1. 检查缓存（--refresh 跳过缓存）
+  if (!FORCE_REFRESH && fs.existsSync(cachePath)) {
     try {
       const stat = fs.statSync(cachePath);
       const age = Date.now() - stat.mtimeMs;
@@ -626,10 +626,13 @@ function matchBmadAgents(taskDesc) {
 const argv = process.argv.slice(2);
 const taskIdx = argv.indexOf("--task");
 const task = taskIdx >= 0 ? (argv[taskIdx + 1] || "").trim() : "";
+const FORCE_REFRESH = argv.includes('--refresh');
 
 if (!task) {
-  console.error("Usage: node assembler.mjs --task \"your task description\"");
+  console.error("Usage: node assembler.mjs --task \"your task description\" [--refresh]");
   console.error("Example: node assembler.mjs --task \"优化 Amazon Listing\"");
+  console.error("Options:");
+  console.error("  --refresh  Force refresh all cached skills/roles");
   process.exit(1);
 }
 
@@ -690,6 +693,9 @@ const remoteRoles = matchRemoteRoles(task);
 const bmadAgents = matchBmadAgents(task);
 
 console.log(`📋 Task: ${task}`);
+if (FORCE_REFRESH) {
+  console.log(`🔄 Refresh mode: forcing cache refresh`);
+}
 console.log(`📦 Selected Packs: ${selected.join(", ")}`);
 if (remoteSkills.length > 0) {
   console.log(`🌐 Remote Skills: ${remoteSkills.length} matched`);
