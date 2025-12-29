@@ -5,6 +5,7 @@
  * Main entry point
  *
  * Usage:
+ *   liye "任务描述"                    # 快捷方式：编译上下文
  *   liye agent validate <agent-name>
  *   liye agent scaffold v5 --from v3
  *   liye skill list
@@ -77,9 +78,39 @@ async function main() {
       console.log('liye-ai v5.0.0');
       break;
     default:
-      log(`❌ Unknown command: ${command}`, 'red');
-      showHelp();
-      process.exit(1);
+      // 不是已知命令，当作任务描述处理
+      const task = args.join(' ');
+      await handleTask(task);
+      break;
+  }
+}
+
+// Task handler - 调用 assembler 编译上下文
+async function handleTask(task) {
+  if (!task || task.trim() === '') {
+    showHelp();
+    return;
+  }
+
+  const { execSync } = require('child_process');
+  const assemblerPath = path.join(REPO_ROOT, '.claude/scripts/assembler.mjs');
+
+  if (!fs.existsSync(assemblerPath)) {
+    log('❌ assembler.mjs not found. Are you in a LiYe OS project?', 'red');
+    process.exit(1);
+  }
+
+  log(`\n🚀 LiYe AI - 编译任务上下文`, 'cyan');
+  log(`📋 任务: ${task}\n`, 'reset');
+
+  try {
+    execSync(`node "${assemblerPath}" --task "${task}"`, {
+      cwd: REPO_ROOT,
+      stdio: 'inherit',
+    });
+  } catch (err) {
+    log('❌ 编译失败', 'red');
+    process.exit(1);
   }
 }
 
@@ -87,31 +118,23 @@ function showHelp() {
   console.log(`
 ${colors.bold}LiYe AI CLI v5.0${colors.reset}
 
-${colors.cyan}Usage:${colors.reset}
-  liye <command> <subcommand> [options]
+${colors.cyan}快捷用法:${colors.reset}
+  liye "任务描述"             根据任务自动编译专家上下文
 
-${colors.cyan}Commands:${colors.reset}
-  ${colors.bold}agent${colors.reset}
-    validate <name>           Validate agent against v5.0 spec
-    scaffold v5 --from <src>  Scaffold v5 agent from v3
-    list                      List all agents
+${colors.cyan}示例:${colors.reset}
+  liye "帮我分析亚马逊关键词"
+  liye "帮我建个网站"
+  liye "帮我分析比特币行情"
 
-  ${colors.bold}skill${colors.reset}
-    validate <name>           Validate skill against v5.0 spec
-    list                      List all skills
+${colors.cyan}高级命令:${colors.reset}
+  liye agent list             列出所有智能体
+  liye agent validate <name>  验证智能体配置
+  liye skill list             列出所有技能
+  liye report architecture    生成架构合规报告
 
-  ${colors.bold}report${colors.reset}
-    architecture              Generate architecture compliance report
-      --json                  Output machine-readable JSON
-      --domain <name>         Filter by domain
-      --fail-only             Show only failures
-
-${colors.cyan}Examples:${colors.reset}
-  liye agent validate diagnostic-architect
-  liye agent scaffold v5 --from market-analyst
-  liye skill list
-  liye report architecture
-  liye report architecture --json
+${colors.cyan}帮助:${colors.reset}
+  liye --help                 显示此帮助
+  liye --version              显示版本号
 `);
 }
 
