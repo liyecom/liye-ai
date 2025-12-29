@@ -13,7 +13,7 @@ Usage:
 import argparse
 import yaml
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 
 from ingestion.normalize import normalize
@@ -103,6 +103,103 @@ def load_tier_guard_config():
         with open(config_path) as f:
             return yaml.safe_load(f)
     return {}
+
+
+# ============================================================
+# T1 Metadata Validation (Decay & Review Guard)
+# ============================================================
+
+def validate_t1_metadata(unit):
+    """
+    Validate that a T1 unit has all required metadata fields.
+
+    Args:
+        unit: A knowledge unit dict with 'id' and 'metadata'
+
+    Raises:
+        TierGuardError: If any required field is missing or invalid
+    """
+    required_fields = [
+        "confidence_level",
+        "source_provenance",
+        "promotion",
+        "review",
+        "decay",
+    ]
+
+    metadata = unit.get("metadata", {})
+
+    for field in required_fields:
+        if field not in metadata:
+            raise TierGuardError(
+                f"[TierGuard] T1 unit '{unit.get('id')}' missing required metadata field: {field}"
+            )
+
+    # Validate decay configuration
+    decay = metadata.get("decay", {})
+    if decay.get("decay_after_days", 0) <= 0:
+        raise TierGuardError(
+            f"[TierGuard] T1 unit '{unit.get('id')}' has invalid decay_after_days"
+        )
+
+    # Validate confidence_level
+    valid_confidence = ["high", "medium", "low"]
+    if metadata.get("confidence_level") not in valid_confidence:
+        raise TierGuardError(
+            f"[TierGuard] T1 unit '{unit.get('id')}' has invalid confidence_level"
+        )
+
+
+def is_t1_expired(unit):
+    """
+    Check if a T1 unit has expired based on its decay policy.
+
+    Args:
+        unit: A knowledge unit dict with metadata
+
+    Returns:
+        True if the unit has expired and needs review/demotion
+    """
+    metadata = unit.get("metadata", {})
+    decay = metadata.get("decay", {})
+    promotion = metadata.get("promotion", {})
+
+    promoted_at_str = promotion.get("promoted_at")
+    if not promoted_at_str:
+        return True  # No promotion date = expired
+
+    try:
+        promoted_at = datetime.fromisoformat(promoted_at_str.replace('Z', '+00:00'))
+    except (ValueError, AttributeError):
+        return True  # Invalid date = expired
+
+    decay_days = decay.get("decay_after_days", 90)  # Default 90 days
+
+    # Make both datetimes naive for comparison
+    now = datetime.utcnow()
+    if promoted_at.tzinfo is not None:
+        promoted_at = promoted_at.replace(tzinfo=None)
+
+    return now > promoted_at + timedelta(days=decay_days)
+
+
+def check_t1_units(units):
+    """
+    Validate all T1 units before export/RAG usage.
+
+    Args:
+        units: List of knowledge units
+
+    Raises:
+        TierGuardError: If any T1 unit fails validation
+    """
+    for unit in units:
+        if unit.get("tier") == "T1" or unit.get("metadata", {}).get("tier") == "T1":
+            validate_t1_metadata(unit)
+            if is_t1_expired(unit):
+                raise TierGuardError(
+                    f"[TierGuard] T1 unit '{unit.get('id')}' expired and must be reviewed or demoted"
+                )
 
 
 def load_raw_config():
