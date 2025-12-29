@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 GEO OS v0.1 - Main Entry Point
-知识引擎主入口
+知识引擎主入口 - 支持多数据源
 
 Usage:
-    python run.py                    # 处理默认数据源
+    python run.py                    # 处理所有启用的数据源
+    python run.py --source geo_seo   # 只处理指定数据源
     python run.py --dry-run          # 干运行模式
-    python run.py --source sample    # 指定数据源
+    python run.py --list-sources     # 列出所有数据源
 """
 
 import argparse
@@ -21,28 +22,82 @@ from processing.extract import extract_structure
 from outputs.export_json import export_units
 
 
-def load_config(source_name='shengcai'):
+def load_raw_config():
     """
-    加载配置文件
-
-    Args:
-        source_name: 数据源名称
+    加载原始配置文件
 
     Returns:
-        配置字典
+        原始配置字典
     """
     config_path = Path(__file__).parent / 'config/geo.yaml'
 
     with open(config_path) as f:
-        config = yaml.safe_load(f)
+        return yaml.safe_load(f)
 
-    # 展开路径，替换 ~ 为用户主目录，替换 {source} 占位符
-    for key in ['source', 'processed', 'exports', 'logs']:
-        path_str = config['paths'][key]
-        # 替换数据源名称占位符（支持两种格式）
-        path_str = path_str.replace('{source}', source_name)
-        path_str = path_str.replace('shengcai', source_name)
-        config['paths'][key] = Path(path_str).expanduser()
+
+def get_enabled_sources(raw_config):
+    """
+    获取所有启用的数据源列表
+
+    Args:
+        raw_config: 原始配置
+
+    Returns:
+        启用的数据源列表，按优先级排序
+    """
+    sources = raw_config.get('sources', {})
+    enabled = []
+
+    for source_id, source_config in sources.items():
+        if source_config.get('enabled', False):
+            enabled.append({
+                'id': source_id,
+                'name': source_config.get('name', source_id),
+                'path': source_config.get('path', ''),
+                'priority': source_config.get('priority', 99),
+                'description': source_config.get('description', ''),
+                'estimated_size': source_config.get('estimated_size', 'unknown')
+            })
+
+    # 按优先级排序
+    enabled.sort(key=lambda x: x['priority'])
+    return enabled
+
+
+def load_config_for_source(raw_config, source_id):
+    """
+    为指定数据源加载配置
+
+    Args:
+        raw_config: 原始配置
+        source_id: 数据源ID
+
+    Returns:
+        配置字典（包含展开的路径）
+    """
+    config = raw_config.copy()
+
+    # 获取源配置
+    source_config = raw_config.get('sources', {}).get(source_id, {})
+    if not source_config:
+        raise ValueError(f"Unknown source: {source_id}")
+
+    # 构建路径
+    paths = raw_config.get('paths', {})
+    config['paths'] = {
+        'source': Path(source_config.get('path', paths.get('source_template', '').replace('{source}', source_id))).expanduser(),
+        'processed': Path(paths.get('processed_template', '~/data/processed/{source}').replace('{source}', source_id)).expanduser(),
+        'exports': Path(paths.get('exports_template', '~/data/exports/{source}').replace('{source}', source_id)).expanduser(),
+        'logs': Path(paths.get('logs', '~/github/liye_os/_meta/logs/geo-os')).expanduser(),
+        'merged_exports': Path(paths.get('merged_exports', '~/data/exports/_merged')).expanduser()
+    }
+
+    # 添加源信息
+    config['current_source'] = {
+        'id': source_id,
+        'name': source_config.get('name', source_id),
+        'description': source_config.get('description', '')
+    }
 
     return config
 
@@ -59,66 +114,160 @@ def setup_logging(config):
     """
     log_file = config['paths']['logs'] / f"geo_run_{datetime.now():%Y%m%d_%H%M%S}.log"
     log_file.parent.mkdir(parents=True, exist_ok=True)
-
-    # 简单日志：将输出同时写入文件（可选，暂时不实现复杂日志）
     return log_file
+
+
+def process_source(config, source_id, dry_run=False, verbose=False):
+    """
+    处理单个数据源
+
+    Args:
+        config: 配置字典
+        source_id: 数据源ID
+        dry_run: 是否干运行
+        verbose: 是否详细输出
+
+    Returns:
+        处理结果字典
+    """
+    results = {}
+
+    print(f"\n{'='*60}")
+    print(f"Processing Source: {source_id}")
+    print(f"Path: {config['paths']['source']}")
+    print(f"{'='*60}")
+
+    # Step 1: Normalize
+    print("\n  Step 1/4: Normalizing documents")
+    print("  " + "-" * 40)
+    results['normalize'] = normalize(config, dry_run=dry_run)
+
+    # Step 2: Chunk
+    print("\n  Step 2/4: Chunking documents")
+    print("  " + "-" * 40)
+    results['chunk'] = chunk_documents(config, dry_run=dry_run)
+
+    # Step 3: Extract
+    print("\n  Step 3/4: Extracting structure")
+    print("  " + "-" * 40)
+    results['extract'] = extract_structure(config, dry_run=dry_run)
+
+    # Step 4: Export
+    print("\n  Step 4/4: Exporting to JSON")
+    print("  " + "-" * 40)
+    results['export'] = export_units(config, dry_run=dry_run)
+
+    return results
+
+
+def print_source_summary(source_id, results):
+    """打印单个数据源的处理总结"""
+    print(f"\n  📊 {source_id} Summary:")
+
+    if 'normalize' in results:
+        norm = results['normalize']
+        print(f"     Normalize: {norm.get('files_processed', 0)} files")
+
+    if 'chunk' in results:
+        chunk = results['chunk']
+        print(f"     Chunks: {chunk.get('chunks_created', 0)} created")
+
+    if 'extract' in results:
+        extract = results['extract']
+        print(f"     Units: {extract.get('units_created', 0)} created")
+
+    if 'export' in results:
+        export = results['export']
+        print(f"     Export: {export.get('file_size_mb', 0):.2f} MB")
+
+
+def list_sources(raw_config):
+    """列出所有数据源"""
+    print("\n" + "=" * 60)
+    print("GEO OS - Available Truth Sources")
+    print("=" * 60)
+
+    sources = raw_config.get('sources', {})
+
+    print("\n✅ Enabled Sources:")
+    print("-" * 40)
+    for source_id, source_config in sorted(sources.items(), key=lambda x: x[1].get('priority', 99)):
+        if source_config.get('enabled', False):
+            print(f"  [{source_config.get('priority', '?')}] {source_id}")
+            print(f"      Name: {source_config.get('name', 'N/A')}")
+            print(f"      Path: {source_config.get('path', 'N/A')}")
+            print(f"      Size: {source_config.get('estimated_size', 'unknown')}")
+            print()
+
+    print("\n❌ Disabled Sources:")
+    print("-" * 40)
+    for source_id, source_config in sorted(sources.items(), key=lambda x: x[1].get('priority', 99)):
+        if not source_config.get('enabled', False):
+            print(f"  [{source_config.get('priority', '?')}] {source_id}")
+            print(f"      Name: {source_config.get('name', 'N/A')}")
+            print()
 
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description='GEO OS v0.1 - Knowledge Engine')
+    parser = argparse.ArgumentParser(description='GEO OS v0.1 - Knowledge Engine (Multi-Source)')
     parser.add_argument('--dry-run', action='store_true', help='Dry run mode (不实际执行)')
-    parser.add_argument('--source', default='shengcai', help='Source name (数据源名称)')
+    parser.add_argument('--source', default=None, help='Process specific source only (默认处理所有启用的源)')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    parser.add_argument('--list-sources', action='store_true', help='List all available sources')
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("GEO OS v0.1 - Knowledge Engine")
-    print("=" * 60)
-    print(f"Source: {args.source}")
-    print(f"Dry run: {args.dry_run}")
-    print(f"Verbose: {args.verbose}")
-    print()
-
-    # 加载配置
+    # 加载原始配置
     try:
-        config = load_config(args.source)
-        log_file = setup_logging(config)
-        print(f"📝 Config loaded: {config['paths']['source']}")
-        print(f"📝 Log file: {log_file}")
-        print()
+        raw_config = load_raw_config()
     except Exception as e:
         print(f"❌ Error loading config: {e}")
         sys.exit(1)
 
-    # 执行pipeline
+    # 列出数据源
+    if args.list_sources:
+        list_sources(raw_config)
+        sys.exit(0)
+
+    # 确定要处理的数据源
+    if args.source:
+        sources_to_process = [{'id': args.source}]
+    else:
+        sources_to_process = get_enabled_sources(raw_config)
+
+    if not sources_to_process:
+        print("❌ No sources to process. Check config/geo.yaml")
+        sys.exit(1)
+
+    # 打印启动信息
+    print("=" * 60)
+    print("GEO OS v0.1 - Knowledge Engine")
+    print("=" * 60)
+    print(f"Mode: {'Single Source' if args.source else 'All Enabled Sources'}")
+    print(f"Sources: {', '.join([s['id'] for s in sources_to_process])}")
+    print(f"Dry run: {args.dry_run}")
+    print(f"Verbose: {args.verbose}")
+
+    # 设置日志
+    try:
+        first_config = load_config_for_source(raw_config, sources_to_process[0]['id'])
+        log_file = setup_logging(first_config)
+        print(f"📝 Log file: {log_file}")
+    except Exception as e:
+        print(f"❌ Error setting up logging: {e}")
+        sys.exit(1)
+
+    # 执行 pipeline
     start_time = datetime.now()
-    results = {}
+    all_results = {}
 
     try:
-        # Step 1: Normalize
-        print("\n" + "=" * 60)
-        print("Step 1/4: Normalizing documents")
-        print("=" * 60)
-        results['normalize'] = normalize(config, dry_run=args.dry_run)
-
-        # Step 2: Chunk
-        print("\n" + "=" * 60)
-        print("Step 2/4: Chunking documents")
-        print("=" * 60)
-        results['chunk'] = chunk_documents(config, dry_run=args.dry_run)
-
-        # Step 3: Extract
-        print("\n" + "=" * 60)
-        print("Step 3/4: Extracting structure")
-        print("=" * 60)
-        results['extract'] = extract_structure(config, dry_run=args.dry_run)
-
-        # Step 4: Export
-        print("\n" + "=" * 60)
-        print("Step 4/4: Exporting to JSON")
-        print("=" * 60)
-        results['export'] = export_units(config, dry_run=args.dry_run)
+        for source_info in sources_to_process:
+            source_id = source_info['id']
+            config = load_config_for_source(raw_config, source_id)
+            results = process_source(config, source_id, dry_run=args.dry_run, verbose=args.verbose)
+            all_results[source_id] = results
+            print_source_summary(source_id, results)
 
         # 总结
         elapsed = datetime.now() - start_time
@@ -126,36 +275,19 @@ def main():
         print("✅ GEO OS Pipeline Completed Successfully")
         print("=" * 60)
         print(f"⏱️  Total time: {elapsed.total_seconds():.1f} seconds")
-        print()
-        print("📊 Results Summary:")
+        print(f"📦 Sources processed: {len(all_results)}")
 
-        if 'normalize' in results:
-            norm = results['normalize']
-            print(f"   Normalize:")
-            print(f"      Files found: {norm.get('files_found', 0)}")
-            print(f"      Processed: {norm.get('files_processed', 0)}")
-            print(f"      Skipped: {norm.get('files_skipped', 0)}")
-            print(f"      Failed: {norm.get('files_failed', 0)}")
-
-        if 'chunk' in results:
-            chunk = results['chunk']
-            print(f"   Chunk:")
-            print(f"      Files found: {chunk.get('files_found', 0)}")
-            print(f"      Chunks created: {chunk.get('chunks_created', 0)}")
-
-        if 'extract' in results:
-            extract = results['extract']
-            print(f"   Extract:")
-            print(f"      Units created: {extract.get('units_created', 0)}")
-            print(f"      With headings: {extract.get('units_with_headings', 0)}")
-            print(f"      With bullets: {extract.get('units_with_bullets', 0)}")
-
-        if 'export' in results:
-            export = results['export']
-            print(f"   Export:")
-            print(f"      Units exported: {export.get('units_exported', 0)}")
-            print(f"      File size: {export.get('file_size_mb', 0):.2f} MB")
-            print(f"      Output: {export.get('output_file', 'N/A')}")
+        # 汇总统计
+        total_units = sum(
+            r.get('extract', {}).get('units_created', 0)
+            for r in all_results.values()
+        )
+        total_size = sum(
+            r.get('export', {}).get('file_size_mb', 0)
+            for r in all_results.values()
+        )
+        print(f"📊 Total units: {total_units}")
+        print(f"💾 Total size: {total_size:.2f} MB")
 
     except Exception as e:
         print(f"\n❌ Pipeline failed: {e}")

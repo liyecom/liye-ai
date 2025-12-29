@@ -1,8 +1,8 @@
 # GEO OS v0.1 - Knowledge Engine
 
-> Core System of LiYe OS  
-> Layer: Core Infrastructure  
-> Status: 🚧 In Development (目录结构已建立，代码待实现)
+> Core System of LiYe OS
+> Layer: Core Infrastructure
+> Status: 🚧 In Development (多数据源支持已实现)
 
 ## 📋 Purpose
 
@@ -15,7 +15,10 @@ Application Systems (Amazon OS, Research OS, etc.)
            ↓ (consumes geo_units.json)
        GEO OS ← YOU ARE HERE
            ↓ (processes)
-      Raw Data (~/data/archives/)
+      Truth Sources (~/data/archives/)
+        ├── geo_seo      [Priority 1] GEO-SEO 知识库
+        ├── shengcai     [Priority 2] 生财有术知识库
+        └── ...          [扩展中]
 ```
 
 ---
@@ -74,19 +77,22 @@ python3 _meta/governance/validator.py
 
 ```bash
 # 进入GEO OS目录
-cd Systems/geo-os
+cd src/domain/geo-os
 
-# 干运行（查看会执行什么）
+# 列出所有数据源
+python3 run.py --list-sources
+
+# 干运行（查看会处理什么）
 python3 run.py --dry-run
 
-# TODO: 实际运行（需要先实现代码）
-# python3 run.py
+# 处理所有启用的数据源
+python3 run.py
 
-# TODO: 指定数据源
-# python3 run.py --source sample
+# 只处理指定数据源
+python3 run.py --source geo_seo
 
-# TODO: 详细输出
-# python3 run.py --verbose
+# 详细输出
+python3 run.py --verbose
 ```
 
 ### Check Output
@@ -132,19 +138,32 @@ geo-os/
 配置文件位于 `config/geo.yaml`：
 
 ```yaml
-paths:
-  source: ~/data/archives/shengcai      # 输入（只读）
-  processed: ~/data/processed/shengcai  # 中间产物
-  exports: ~/data/exports/shengcai      # 最终输出
+# 真相源定义
+sources:
+  geo_seo:
+    name: GEO-SEO Knowledge Base
+    path: ~/data/archives/geo_seo
+    priority: 1
+    enabled: true
 
+  shengcai:
+    name: ShengCai Library
+    path: ~/data/archives/shengcai
+    priority: 2
+    enabled: true
+
+# 路径模板
+paths:
+  source_template: ~/data/archives/{source}
+  processed_template: ~/data/processed/{source}
+  exports_template: ~/data/exports/{source}
+  merged_exports: ~/data/exports/_merged
+
+# 处理参数
 processing:
   chunk_size: 600        # 分块大小
   chunk_overlap: 100     # 重叠大小
   max_heading_level: 3   # 最大标题层级
-
-output:
-  pretty_print: true     # 美化JSON输出
-  create_latest_symlink: true  # 创建latest链接
 ```
 
 ---

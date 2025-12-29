@@ -73,9 +73,20 @@ skills:
 
 # === Data Paths ===
 paths:
-  source: ~/data/archives/         # Raw input data (read-only)
-  processed: ~/data/processed/     # Intermediate processing
-  exports: ~/data/exports/         # Final output (geo_units.json)
+  source_template: ~/data/archives/{source}      # Raw input data (read-only)
+  processed_template: ~/data/processed/{source}  # Intermediate processing
+  exports_template: ~/data/exports/{source}      # Per-source output
+  merged_exports: ~/data/exports/_merged         # Merged output (all sources)
+
+# === Truth Sources ===
+# Reference: config/geo.yaml for full source definitions
+sources:
+  enabled:
+    - geo_seo      # Priority 1: GEO-SEO Knowledge Base (46MB)
+    - shengcai     # Priority 2: ShengCai Library (500MB+)
+  disabled:
+    - industry_reports
+    - career_reports
 
 # === Processing Configuration ===
 processing:
