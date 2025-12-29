@@ -22,6 +22,89 @@ from processing.extract import extract_structure
 from outputs.export_json import export_units
 
 
+# ============================================================
+# Tier Guard - Prevent Cross-Tier Misuse
+# ============================================================
+
+class TierGuardError(Exception):
+    """Raised when tier guard rules are violated"""
+    pass
+
+
+class TierGuard:
+    """
+    Enforces Truth Source Tier rules before processing.
+    Fail-fast: any violation immediately terminates execution.
+    """
+
+    def __init__(self, config):
+        self.enabled = config.get('tier_guard', {}).get('enabled', False)
+        self.rules = config.get('tier_guard', {}).get('rules', {})
+
+    def check(self, source_name, source_cfg, args):
+        """
+        Check if source can be processed under current args.
+
+        Args:
+            source_name: Source identifier
+            source_cfg: Source configuration dict
+            args: Command line arguments
+
+        Raises:
+            TierGuardError: If any tier rule is violated
+        """
+        if not self.enabled:
+            return
+
+        tier = source_cfg.get('tier')
+        if not tier:
+            raise TierGuardError(
+                f"[TierGuard] Source '{source_name}' has no tier defined. "
+                f"All sources MUST have explicit tier: T0/T1/T2"
+            )
+
+        rule = self.rules.get(tier)
+        if not rule:
+            raise TierGuardError(
+                f"[TierGuard] No guard rules defined for tier {tier}"
+            )
+
+        # Default run protection (no --source specified)
+        if not rule.get('allow_default_run', False) and not args.source:
+            raise TierGuardError(
+                f"[TierGuard] Tier {tier} source '{source_name}' "
+                f"cannot be processed by default run. Use --source {source_name}"
+            )
+
+        # RAG protection (future)
+        if getattr(args, 'rag', False) and not rule.get('allow_rag', False):
+            raise TierGuardError(
+                f"[TierGuard] Tier {tier} source '{source_name}' "
+                f"is forbidden from RAG usage"
+            )
+
+        # Export protection
+        if getattr(args, 'export', True) and not rule.get('allow_export', False):
+            raise TierGuardError(
+                f"[TierGuard] Tier {tier} source '{source_name}' "
+                f"is forbidden from export"
+            )
+
+
+def load_tier_guard_config():
+    """
+    Load tier guard configuration from config.yaml
+
+    Returns:
+        Tier guard config dict
+    """
+    config_path = Path(__file__).parent / 'config.yaml'
+    if config_path.exists():
+        with open(config_path) as f:
+            return yaml.safe_load(f)
+    return {}
+
+
 def load_raw_config():
     """
     加载原始配置文件
@@ -193,7 +276,8 @@ def list_sources(raw_config):
     print("-" * 40)
     for source_id, source_config in sorted(sources.items(), key=lambda x: x[1].get('priority', 99)):
         if source_config.get('enabled', False):
-            print(f"  [{source_config.get('priority', '?')}] {source_id}")
+            tier = source_config.get('tier', '?')
+            print(f"  [{tier}] {source_id}")
             print(f"      Name: {source_config.get('name', 'N/A')}")
             print(f"      Path: {source_config.get('path', 'N/A')}")
             print(f"      Size: {source_config.get('estimated_size', 'unknown')}")
@@ -203,7 +287,8 @@ def list_sources(raw_config):
     print("-" * 40)
     for source_id, source_config in sorted(sources.items(), key=lambda x: x[1].get('priority', 99)):
         if not source_config.get('enabled', False):
-            print(f"  [{source_config.get('priority', '?')}] {source_id}")
+            tier = source_config.get('tier', '?')
+            print(f"  [{tier}] {source_id}")
             print(f"      Name: {source_config.get('name', 'N/A')}")
             print()
 
@@ -223,6 +308,10 @@ def main():
     except Exception as e:
         print(f"❌ Error loading config: {e}")
         sys.exit(1)
+
+    # 加载 Tier Guard 配置
+    tier_guard_config = load_tier_guard_config()
+    guard = TierGuard(tier_guard_config)
 
     # 列出数据源
     if args.list_sources:
@@ -247,6 +336,7 @@ def main():
     print(f"Sources: {', '.join([s['id'] for s in sources_to_process])}")
     print(f"Dry run: {args.dry_run}")
     print(f"Verbose: {args.verbose}")
+    print(f"TierGuard: {'ENABLED' if guard.enabled else 'disabled'}")
 
     # 设置日志
     try:
@@ -264,6 +354,11 @@ def main():
     try:
         for source_info in sources_to_process:
             source_id = source_info['id']
+
+            # === Tier Guard Check (fail-fast) ===
+            source_cfg = raw_config.get('sources', {}).get(source_id, {})
+            guard.check(source_id, source_cfg, args)
+
             config = load_config_for_source(raw_config, source_id)
             results = process_source(config, source_id, dry_run=args.dry_run, verbose=args.verbose)
             all_results[source_id] = results

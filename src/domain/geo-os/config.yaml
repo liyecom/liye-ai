@@ -124,3 +124,27 @@ quality:
       description: Output matches geo_units schema
     - name: no_empty_chunks
       description: No chunks with empty content
+
+# ----------------------------------------
+# Truth Source Tier Guard
+# ----------------------------------------
+tier_guard:
+  enabled: true
+
+  rules:
+    T0:
+      allow_default_run: true
+      allow_rag: true
+      allow_export: true
+
+    T1:
+      allow_default_run: false
+      allow_rag: true
+      allow_export: true
+      require_promotion_flag: true
+
+    T2:
+      allow_default_run: false
+      allow_rag: false
+      allow_export: false
+      require_refinement_pipeline: true
