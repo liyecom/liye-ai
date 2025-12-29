@@ -63,12 +63,8 @@ cat _meta/docs/FILE_SYSTEM_GOVERNANCE.md
 | 多智能体协作/职责分工/交付协议       | `.claude/packs/protocols.md`      | multi-agent, 协作, 协议 |
 
 **使用方式：**
-1. **智能加载（推荐）**：Claude 检测到上述关键词时，自动运行：
-   ```bash
-   node .claude/scripts/assembler.mjs --task "用户的任务描述"
-   ```
-   然后读取 `.claude/.compiled/context.md` 继续工作。
-2. **手动加载**：直接 `Read .claude/packs/operations.md`
+1. **手动加载**：直接 `Read .claude/packs/operations.md`
+2. **自动加载**：使用 Assembler 根据任务关键词自动拼接
 
 ## 核心原则（Guardrails）
 
@@ -171,6 +167,6 @@ git commit -m "..."
 
 ---
 
-**Version**: 1.1
-**Last Updated**: 2025-12-29
-**Char Count**: ~5,600 / 10,000 ✅
+**Version**: 1.0
+**Last Updated**: 2025-12-23
+**Char Count**: ~4,500 / 10,000 ✅
