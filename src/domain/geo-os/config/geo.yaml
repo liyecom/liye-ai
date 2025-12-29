@@ -7,6 +7,7 @@ version: "0.1.0"
 sources:
   # GEO-SEO 知识库 - T0 Baseline (FROZEN)
   geo_seo:
+    tier: T0                   # MANDATORY: Canonical Truth Source
     name: GEO-SEO Knowledge Base
     description: 生成式引擎优化研究资料，包含学术论文、深度解析、工具系列
     path: ~/data/archives/geo_seo
@@ -25,6 +26,7 @@ sources:
 
   # 生财有术知识库 - 经验矿山（需精炼）
   shengcai:
+    tier: T2                          # MANDATORY: Raw/Exploratory Source
     name: ShengCai Library
     description: 生财有术课程、项目精选、思维课等商业知识
     path: ~/data/archives/shengcai
@@ -41,6 +43,7 @@ sources:
 
   # 行业报告
   industry_reports:
+    tier: T2                  # MANDATORY: Raw/Exploratory Source
     name: Industry Reports
     description: 行业分析报告和市场研究
     path: ~/data/archives/industry_reports
@@ -52,6 +55,7 @@ sources:
 
   # 职业发展报告
   career_reports:
+    tier: T2                  # MANDATORY: Raw/Exploratory Source
     name: Career Reports
     description: 职业发展和技能提升资料
     path: ~/data/archives/career_reports
