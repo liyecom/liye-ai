@@ -112,6 +112,28 @@ node .claude/scripts/guardrail.mjs
 └── Artifacts_Vault/       # 产物归档
 ```
 
+## 架构边界（重要）
+
+### LiYe CLI vs LiYe OS
+
+| 概念 | 职责 | 位置 |
+|------|------|------|
+| **LiYe CLI** | 命令入口，路由命令 | `cli/` |
+| **LiYe OS** | 能力平台（知识+技能+引擎） | 其他所有目录 |
+| **Context Compiler** | 智能上下文编译 | `.claude/scripts/assembler.mjs`（属于 OS） |
+
+**关键边界**：
+- CLI 只负责解析命令和调用 assembler.mjs
+- CLI 不编译上下文、不执行 Agent、不管理知识
+- assembler.mjs 属于 OS，不是 CLI 组件
+
+### Runtime ≠ CLI
+
+注意术语区分：
+- **Runtime** = OS 的执行引擎层（`src/runtime/`），包含 AgentExecutor、MCP
+- **CLI** = 命令行入口（`cli/`），只做路由
+- 两者不是同一个东西
+
 ## 快速开始
 
 ### 第一次使用
@@ -167,6 +189,6 @@ git commit -m "..."
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-12-23
-**Char Count**: ~4,500 / 10,000 ✅
+**Version**: 1.1
+**Last Updated**: 2025-12-29
+**Char Count**: ~5,200 / 10,000 ✅
