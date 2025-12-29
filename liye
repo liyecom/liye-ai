@@ -1,0 +1,13 @@
+#!/bin/bash
+# LiYe OS 上下文编译器快捷命令
+# 用法: ./liye "你的任务描述"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ -z "$1" ]; then
+  echo "用法: liye \"你的任务描述\""
+  echo "示例: liye \"帮我分析亚马逊关键词\""
+  exit 1
+fi
+
+node "$SCRIPT_DIR/.claude/scripts/assembler.mjs" --task "$1"
