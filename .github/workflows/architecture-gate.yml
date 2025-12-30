@@ -30,10 +30,14 @@ jobs:
           echo "Changed files:"
           cat changed_files.txt
 
+          # Exclude legacy agents (amazon-growth) and templates from v5.0 validation
           AGENTS=$(grep -E '^Agents/.*\.ya?ml$' changed_files.txt || true)
           AGENTS=$(echo "$AGENTS" | grep -v 'Agents/amazon-growth/' || true)
           AGENTS=$(echo "$AGENTS" | grep -v '_template' || true)
           SKILLS=$(grep -E '^src/.*/skills/' changed_files.txt || true)
+
+          echo "Agents to validate (excluding legacy amazon-growth):"
+          echo "$AGENTS"
 
           echo "agents<<EOF" >> $GITHUB_OUTPUT
           echo "$AGENTS" >> $GITHUB_OUTPUT
