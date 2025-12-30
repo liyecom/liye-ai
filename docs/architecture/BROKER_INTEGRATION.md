@@ -227,6 +227,76 @@ liye broker check
 liye broker routes
 ```
 
+## Cost Governance
+
+### Cost Report Command
+
+```bash
+# Generate cost governance report (default: last 7 days)
+liye cost report
+
+# Specify time range
+liye cost report --days 30
+liye cost report --from 2025-12-01 --to 2025-12-31
+
+# Filter by broker/route
+liye cost report --broker codex
+liye cost report --route ask
+
+# Output formats
+liye cost report --format json
+```
+
+### Report Metrics
+
+The cost report aggregates from `data/events.jsonl`:
+
+| Metric | Description |
+|--------|-------------|
+| Success Rate | `ok / (ok + fail + needs_manual)` |
+| Needs Manual Rate | Broker availability risk indicator |
+| Avg Runtime | Average execution time per broker/route |
+| Error Code Distribution | Top errors (BROKER_NOT_INSTALLED, AUTH_REQUIRED, etc.) |
+| Dangerous Action Blocks | FORBIDDEN_ACTION count |
+
+### Actionable Recommendations
+
+The report generates rule-based recommendations:
+
+- High needs_manual rate → Check broker CLI availability
+- BROKER_NOT_INSTALLED → Install missing CLIs
+- AUTH_REQUIRED → Configure authentication
+- FORBIDDEN_ACTION → Review prompts for policy violations
+- Slow runtime → Optimize prompts or use faster models
+
+### Report Storage
+
+Reports are saved to: `reports/cost/<YYYYMMDD>_cost_report.md`
+
+## Auto-Summary (Ingest Enhancement)
+
+When `liye mission ingest` runs and `outputs/answer.md` exists:
+
+1. Generates `outputs/summary.md` (≤10 lines)
+2. Prioritizes content from "结论/总结/建议/决策" sections
+3. Logs artifact event with `artifact_kind: "summary"`
+
+### Summary Rules (Deterministic)
+
+- Max 10 lines, each ≤120 characters
+- Header: `> Auto-summary (deterministic) · Generated at <timestamp>`
+- Priority: conclusion sections → first N lines of content
+- Truncated lines end with `…`
+
+### Rebuilding Summary
+
+Summary is a derived artifact and can be regenerated:
+
+```bash
+# Re-run ingest to regenerate summary
+liye mission ingest <mission-dir>
+```
+
 ## Architecture Boundaries
 
 ### LiYe CLI (Control Plane)
