@@ -8,6 +8,7 @@ const path = require('path');
 const { readYaml, readJson, listFiles, formatTimestamp } = require('./utils');
 const { appendEvent } = require('../context/eventlog');
 const { updateIndex } = require('../context/index');
+const { generateMissionSummary } = require('./summary');
 
 /**
  * Ingest mission artifacts
@@ -65,6 +66,35 @@ async function ingestMission(missionDir, options = {}) {
   const metaPath = path.join(missionDir, 'meta.json');
   const meta = fs.existsSync(metaPath) ? readJson(metaPath) : {};
 
+  // Generate auto-summary if answer.md exists
+  let summaryResult = { generated: false };
+  const answerPath = path.join(outputsDir, 'answer.md');
+  if (fs.existsSync(answerPath)) {
+    summaryResult = generateMissionSummary(missionDir);
+    if (summaryResult.generated) {
+      // Add summary to outputs list
+      const summaryPath = path.join(outputsDir, 'summary.md');
+      const stats = fs.statSync(summaryPath);
+      outputs.push({
+        name: 'summary.md',
+        path: summaryPath,
+        size: stats.size,
+        modified: stats.mtime.toISOString(),
+      });
+
+      // Log summary artifact event
+      await appendEvent(repoRoot, {
+        type: 'artifact',
+        artifact_kind: 'summary',
+        mission_dir: missionDir,
+        mission_id: mission.id,
+        path: 'outputs/summary.md',
+        run_id: meta.run_id || null,
+        tags: mission.tags || [],
+      });
+    }
+  }
+
   // Log artifact event
   await appendEvent(repoRoot, {
     type: 'artifact',
@@ -97,6 +127,7 @@ async function ingestMission(missionDir, options = {}) {
     outputs,
     evidence,
     indexed: true,
+    summary: summaryResult,
   };
 }
 
