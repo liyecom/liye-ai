@@ -1,0 +1,116 @@
+name: BMAD Dehydration Guard
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  dehydration-check:
+    name: Enforce BMAD Dehydration at Runtime Boundary
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ajv-cli for schema validation
+        run: npm install -g ajv-cli
+
+      - name: Validate runtime agent schemas (if any JSON agents exist)
+        run: |
+          set -euo pipefail
+          echo "=== Validating Runtime Agent Schemas ==="
+
+          # Find JSON agent definitions in runtime directories
+          JSON_AGENTS=$(git ls-files 'src/agents/**/*.json' 'src/runtime/**/*.json' 2>/dev/null || true)
+
+          if [ -z "$JSON_AGENTS" ]; then
+            echo "No JSON agent definitions found in src/agents/ or src/runtime/"
+            echo "Schema validation skipped (no files to validate)"
+          else
+            echo "Found JSON agents to validate:"
+            echo "$JSON_AGENTS"
+            for f in $JSON_AGENTS; do
+              echo "-> Validating: $f"
+              ajv validate -s schemas/runtime_agent.schema.json -d "$f"
+            done
+            echo "All JSON agents passed schema validation"
+          fi
+
+      - name: Scan for BMAD semantic leakage
+        run: |
+          set -euo pipefail
+          echo "=== Scanning for BMAD Semantic Leakage ==="
+
+          # Check if target directories exist
+          HAS_TARGETS=false
+          [ -d "src/agents" ] && HAS_TARGETS=true
+          [ -d "src/runtime" ] && HAS_TARGETS=true
+
+          if [ "$HAS_TARGETS" = "false" ]; then
+            echo "No src/agents/ or src/runtime/ directories found"
+            echo "Semantic scan skipped"
+            exit 0
+          fi
+
+          # Scan for blacklisted terms
+          # Use grep to filter out comments from blacklist
+          PATTERNS=$(grep -v '^#' governance/bmad_semantic_blacklist.txt | grep -v '^$' || true)
+
+          if [ -z "$PATTERNS" ]; then
+            echo "No patterns in blacklist"
+            exit 0
+          fi
+
+          # Create temp file with patterns
+          echo "$PATTERNS" > /tmp/bmad_patterns.txt
+
+          # Scan both directories
+          VIOLATIONS=""
+          for dir in src/agents src/runtime; do
+            if [ -d "$dir" ]; then
+              FOUND=$(grep -rn -f /tmp/bmad_patterns.txt "$dir" 2>/dev/null || true)
+              if [ -n "$FOUND" ]; then
+                VIOLATIONS="${VIOLATIONS}${FOUND}\n"
+              fi
+            fi
+          done
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::BMAD semantic leakage detected in runtime layer!"
+            echo ""
+            echo "Violations found:"
+            echo -e "$VIOLATIONS"
+            echo ""
+            echo "Fix: Remove design-time semantics from runtime layer"
+            echo "Ref: docs/architecture/BOUNDARY_DEHYDRATION.md"
+            exit 1
+          fi
+
+          echo "No BMAD semantic leakage detected"
+          echo "Runtime boundary is clean"
+
+      - name: Summary
+        if: success()
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "BMAD Dehydration Guard: PASSED"
+          echo "=========================================="
+          echo ""
+          echo "Runtime layer is dehydrated:"
+          echo "- No BMAD method references"
+          echo "- No design-time semantics"
+          echo "- No role identity leakage"
+          echo ""
+          echo "Principle: DESIGN produces STRUCTURE."
+          echo "           RUNTIME executes STRUCTURE."
+          echo "           METHOD must never execute itself."
