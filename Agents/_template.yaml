@@ -8,7 +8,7 @@ agent:
   domain: core                    # core | amazon-growth | medical-research | geo-os
 
 # ============================================
-# Persona Layer (WHO) - from BMad Method
+# Persona Layer (WHO)
 # Defines the agent's identity and behavior
 # ============================================
 persona:

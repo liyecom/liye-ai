@@ -27,6 +27,12 @@ persona:
     - "Knowledge Accumulation: crystallize patterns"
     - "Cross-agent Learning: share insights across agents"
 
+sprint_rhythm:
+  duration_days: 3
+  day_1: "规划 + 执行任务1-2"
+  day_2: "执行任务3 + 监控"
+  day_3: "效果评估 + 归档 + 进化例程"
+
 evolution_management:
   sprint_evolution_routine:
     trigger: "Sprint Day 3 复盘结束后"
@@ -65,8 +71,6 @@ knowledge:
     - uri: qdrant://localhost:6333/decision_patterns
       query_prefix: all
       retrieval_top_k: 5
-    - uri: file://~/.npm/_npx/...//
-      type: methodology
   embedding_model: all-MiniLM-L6-v2
 
 tools:
