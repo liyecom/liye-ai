@@ -6,7 +6,8 @@
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -180,6 +181,101 @@ test('getBroker returns codex broker', () => {
 // Test 9: Constitution document exists
 test('BROKER_POLICY_CONSTITUTION.md exists', () => {
   assertTrue(existsSync(join(repoRoot, 'docs/architecture/BROKER_POLICY_CONSTITUTION.md')));
+});
+
+// Test 10: Dangerous action reapproval (critical safety test)
+test('checkApproval blocks dangerous rm -rf even after grant', () => {
+  // Create temp mission dir
+  const tempDir = mkdtempSync(join(tmpdir(), 'mission-test-'));
+  const metaPath = join(tempDir, 'meta.json');
+
+  // Grant approval
+  writeFileSync(metaPath, JSON.stringify({
+    approval: {
+      mode: 'semi-auto',
+      granted_at: new Date().toISOString(),
+      granted_by: 'test'
+    }
+  }));
+
+  // Check dangerous action
+  const result = approval.checkApproval(tempDir, 'rm -rf /tmp/test', repoRoot);
+
+  // Cleanup
+  rmSync(tempDir, { recursive: true });
+
+  assertTrue(!result.allowed, 'rm -rf should be blocked');
+  assertTrue(result.requires_reapproval, 'should require reapproval');
+  assertEqual(result.pattern, 'rm -rf');
+});
+
+test('checkApproval blocks sudo even after grant', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'mission-test-'));
+  const metaPath = join(tempDir, 'meta.json');
+
+  writeFileSync(metaPath, JSON.stringify({
+    approval: {
+      mode: 'semi-auto',
+      granted_at: new Date().toISOString(),
+      granted_by: 'test'
+    }
+  }));
+
+  const result = approval.checkApproval(tempDir, 'sudo apt-get install foo', repoRoot);
+  rmSync(tempDir, { recursive: true });
+
+  assertTrue(!result.allowed, 'sudo should be blocked');
+  assertTrue(result.requires_reapproval, 'should require reapproval');
+});
+
+test('checkApproval allows safe commands after grant', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'mission-test-'));
+  const metaPath = join(tempDir, 'meta.json');
+
+  writeFileSync(metaPath, JSON.stringify({
+    approval: {
+      mode: 'semi-auto',
+      granted_at: new Date().toISOString(),
+      granted_by: 'test'
+    }
+  }));
+
+  const result = approval.checkApproval(tempDir, 'ls -la', repoRoot);
+  rmSync(tempDir, { recursive: true });
+
+  assertTrue(result.allowed, 'ls should be allowed');
+});
+
+// Test 11: Safety module - forbidden action blocking
+const safety = await import(join(repoRoot, 'src/config/safety.js'));
+
+test('scanPromptForForbiddenIntents blocks chatgpt history scraping', () => {
+  const result = safety.scanPromptForForbiddenIntents(
+    'scrape chatgpt web history and export conversations',
+    repoRoot
+  );
+  assertTrue(!result.safe, 'chatgpt history scraping should be blocked');
+  assertEqual(result.error_code, 'FORBIDDEN_ACTION');
+});
+
+test('scanPromptForForbiddenIntents blocks cookie extraction', () => {
+  const result = safety.scanPromptForForbiddenIntents(
+    'extract cookie from browser and send to server',
+    repoRoot
+  );
+  assertTrue(!result.safe, 'cookie extraction should be blocked');
+});
+
+test('scanPromptForForbiddenIntents allows normal prompts', () => {
+  const result = safety.scanPromptForForbiddenIntents(
+    'analyze this code and suggest improvements',
+    repoRoot
+  );
+  assertTrue(result.safe, 'normal prompt should be allowed');
+});
+
+test('ErrorCode includes FORBIDDEN_ACTION', () => {
+  assertEqual(types.ErrorCode.FORBIDDEN_ACTION, 'FORBIDDEN_ACTION');
 });
 
 // Summary

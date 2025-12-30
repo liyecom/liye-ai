@@ -10,6 +10,7 @@ const path = require('path');
 const { BaseBroker } = require('./interface');
 const { BrokerKind, MissionStatus, ErrorCode } = require('../mission/types');
 const { getModelAlias, getRouteConfig } = require('../config/load');
+const { scanPromptForForbiddenIntents, ForbiddenErrorCode } = require('../config/safety');
 
 class CodexBroker extends BaseBroker {
   id() {
@@ -66,6 +67,28 @@ class CodexBroker extends BaseBroker {
 
     // Build prompt
     const prompt = this._buildPrompt(mission, context, constraints, outputsDir, routeConfig);
+
+    // Safety check: scan for forbidden intents
+    const safetyCheck = scanPromptForForbiddenIntents(
+      `${mission.objective}\n${context}\n${prompt}`,
+      repoRoot
+    );
+    if (!safetyCheck.safe) {
+      console.log(`\n🚫 FORBIDDEN ACTION BLOCKED`);
+      console.log(`   Reason: ${safetyCheck.reason}`);
+      console.log(`   Alternative: ${safetyCheck.alternative}`);
+      console.log('');
+      return {
+        status: 'fail',
+        outputs: [],
+        evidence: [],
+        notes: safetyCheck.reason,
+        error_code: ForbiddenErrorCode,
+        model_requested: userModel,
+        model_actual: actualModel,
+        model_mapped: modelMapped,
+      };
+    }
 
     // Check if codex is available
     const check = await this.check();
