@@ -1,0 +1,200 @@
+# =============================================================================
+# Amazon Growth OS - Priority Score Configuration v4.2
+# =============================================================================
+# CRITICAL: Priority Score 是假设，不是真理
+# - 每次使用必须写入 TRACE
+# - 设置验证窗口，更新置信度
+# - 失败假设禁止复用
+# =============================================================================
+
+version: "4.2"
+last_updated: "2025-12-30"
+
+# -----------------------------------------------------------------------------
+# Core Definition
+# -----------------------------------------------------------------------------
+priority_score:
+  status: hypothesis            # 不是 truth，是假设
+  alias: "PS"
+  description: |
+    Priority Score 用于对意图桶和关键词进行优先级排序。
+    它结合了传统TES分数、意图匹配度和Rufus可表面性因子。
+    ⚠️ 这是一个需要验证的假设，不是确定的事实。
+
+  formula: "PS = base_score × intent_fit × rufus_factor"
+
+# -----------------------------------------------------------------------------
+# Component Definitions
+# -----------------------------------------------------------------------------
+components:
+  # === Base Score (传统TES分数) ===
+  base_score:
+    description: "传统TES分数，基于搜索量和竞争度"
+    formula: "(月搜索量 × 购买率) / (标题密度 + 1)"
+    confidence: 0.85            # 有历史验证，置信度较高
+    source: "已验证的历史模型"
+
+    parameters:
+      monthly_search_volume:
+        source: "Helium10 / Jungle Scout"
+        weight: 1.0
+      purchase_rate:
+        source: "广告报表转化率"
+        weight: 1.0
+      title_density:
+        source: "竞品Listing分析"
+        weight: 1.0
+
+  # === Intent Fit (意图匹配度乘数) ===
+  intent_fit:
+    description: "产品与搜索意图的匹配程度"
+    confidence: 0.60            # 需要验证，置信度中等
+    source: "COSMO算法假设"
+
+    values:
+      exact:
+        multiplier: 2.0
+        description: "精确匹配：产品完全满足搜索意图"
+        example: "搜索'20x32 washable door mat'，产品是20x32可机洗门垫"
+      substitute:
+        multiplier: 1.2
+        description: "替代品：产品可以满足搜索意图但不是最佳选择"
+        example: "搜索'entry rug'，产品是门垫（功能相似）"
+      complement:
+        multiplier: 0.8
+        description: "互补品：产品与搜索意图相关但需要其他产品配合"
+        example: "搜索'mudroom organizer'，产品是门垫（场景相关）"
+      irrelevant:
+        multiplier: 0.5
+        description: "无关：产品与搜索意图弱相关"
+        example: "搜索'kitchen mat'，产品是门垫（不同使用场景）"
+
+    classification_rules:
+      - rule: "JTBD完全匹配 + 场景匹配 → exact"
+      - rule: "JTBD部分匹配 + 功能可替代 → substitute"
+      - rule: "场景匹配但JTBD不同 → complement"
+      - rule: "场景和JTBD都不匹配 → irrelevant"
+
+  # === Rufus Factor (Rufus可表面性因子) ===
+  rufus_factor:
+    description: "内容是否易于被Rufus对话代理引用"
+    confidence: 0.45            # 高度不确定，需要大量验证
+    source: "COSMO/Rufus假设"
+
+    values:
+      conversational_ready:
+        multiplier: 1.3
+        description: "内容包含FAQ式回答，自然语言表达"
+        signals:
+          - "包含具体规格（尺寸、材料、重量）"
+          - "包含使用场景描述"
+          - "包含对比点（vs竞品特性）"
+          - "句子结构自然，非关键词堆砌"
+      attribute_rich:
+        multiplier: 1.1
+        description: "内容属性丰富但表达较生硬"
+        signals:
+          - "包含关键属性"
+          - "缺少场景化描述"
+          - "表达较为机械"
+      standard:
+        multiplier: 1.0
+        description: "标准Listing，无明显优劣"
+        signals:
+          - "基本属性覆盖"
+          - "无明显Rufus优化"
+      keyword_stuffed:
+        multiplier: 0.7
+        description: "关键词堆砌，可能被COSMO降权"
+        signals:
+          - "同一关键词重复3次以上"
+          - "句子不通顺"
+          - "缺乏语义连贯性"
+
+# -----------------------------------------------------------------------------
+# Usage Rules (使用规则)
+# -----------------------------------------------------------------------------
+usage_rules:
+  trace_requirement:
+    rule: "每次使用 priority_score 做决策时必须写入 TRACE"
+    required_fields:
+      - "使用的 base_score 值"
+      - "使用的 intent_fit 分类"
+      - "使用的 rufus_factor 分类"
+      - "最终 PS 值"
+      - "决策依据"
+
+  verification_requirement:
+    rule: "设置验证窗口，验证假设是否成立"
+    default_window_days: 7
+    max_window_days: 14
+    success_metrics:
+      - metric: "转化率变化"
+        threshold: "> 0%"
+      - metric: "ACOS变化"
+        threshold: "< 目标值"
+      - metric: "曝光量变化"
+        threshold: "> -20%"
+
+  confidence_update:
+    rule: "验证后更新置信度"
+    on_success: "+0.10"
+    on_failure: "-0.15"
+    min_confidence: 0.05
+    max_confidence: 0.95
+
+  failure_handling:
+    rule: "失败假设处理"
+    failure_threshold: 0.30     # 失败率 > 30%
+    action: "触发参数调整"
+    adjustment_scope: ["intent_fit multipliers", "rufus_factor multipliers"]
+
+# -----------------------------------------------------------------------------
+# Tier Definitions (分层定义)
+# -----------------------------------------------------------------------------
+tiers:
+  semantic_winner:
+    threshold: 150
+    description: "核心推广词，优先投放"
+    action: "高出价，重点监控"
+  intent_aligned:
+    threshold: 50
+    description: "二级关键词，稳定投放"
+    action: "标准出价，定期优化"
+  broad_discovery:
+    threshold: 10
+    description: "发现测试词，探索投放"
+    action: "低出价，测试验证"
+  negative_candidate:
+    threshold: 0
+    description: "否定词候选，考虑排除"
+    action: "评估后否定或删除"
+
+# -----------------------------------------------------------------------------
+# Anti-Pattern Detection (反模式检测)
+# -----------------------------------------------------------------------------
+anti_patterns:
+  over_reliance:
+    description: "过度依赖 PS 分数做决策"
+    signal: "连续5次决策仅基于PS，无其他考量"
+    action: "提醒需要综合考虑其他因素"
+
+  cherry_picking:
+    description: "只在PS高时记录，低时忽略"
+    signal: "TRACE中PS分布异常偏高"
+    action: "审查决策过程"
+
+  confirmation_bias:
+    description: "只关注验证成功的假设"
+    signal: "失败假设被忽视或未记录"
+    action: "强制记录所有假设结果"
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  owner: "intent-analyst"
+  contributors: ["intent-ppc-architect", "semantic-content-architect"]
+  requires_trace: true
+  auto_execute_allowed: false   # PS决策不能自动执行
+  human_review_threshold: 100   # PS>100 建议人工确认

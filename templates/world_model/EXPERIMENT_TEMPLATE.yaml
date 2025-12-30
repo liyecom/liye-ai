@@ -1,0 +1,96 @@
+# =============================================================================
+# Experiment Registry Template v4.2 - Enhancement 5
+# =============================================================================
+# Purpose: 实验登记册，追踪假设验证窗口和到期提醒
+# Location: world_model/experiments/EXP-YYYYMMDD-XXX.yaml
+# =============================================================================
+
+experiment:
+  # === Identity ===
+  id: "EXP-YYYYMMDD-001"
+  status: "RUNNING"               # PLANNED | RUNNING | COMPLETED | CANCELLED
+
+  # === Hypothesis Reference ===
+  hypothesis_id: "H-001"
+  hypothesis_statement: "复制假设内容，便于快速查看"
+
+  # === Trace References ===
+  trace_ids:
+    - "TRACE-YYYYMMDD-001"        # 触发实验的决策 trace
+  verification_trace_id: null     # 验证结果的 trace
+
+  # === Tenant/Entity Scope ===
+  tenant:
+    store_id: "TIMO"
+    marketplace: "US"
+  entity:
+    asin: "B0XXXX"
+    intent_bucket_id: "IB-prevent-mud-tracking"
+
+  # === Time Window ===
+  window_days: 14
+  start_at: "YYYY-MM-DD"
+  due_at: "YYYY-MM-DD"            # 必须在此日期前完成验证
+  reminder_at: "YYYY-MM-DD"       # 到期前1天提醒
+
+  # === Success Criteria ===
+  success_criteria:
+    - metric: "acos"
+      operator: "<"
+      value: 0.42
+      baseline: 0.52              # 实验前基准值
+    - metric: "impressions_daily"
+      operator: ">"
+      value: 800
+      baseline: 1000
+
+  # === Baseline Snapshot ===
+  baseline_snapshot:
+    captured_at: "YYYY-MM-DDTHH:MM:SSZ"
+    metrics:
+      acos: 0.52
+      conversions: 12
+      impressions: 7000
+      clicks: 350
+      spend: 42.00
+
+  # === Outcome (验证后填充) ===
+  outcome:
+    verified_at: null
+    actual_metrics:
+      acos: null
+      conversions: null
+      impressions: null
+      clicks: null
+      spend: null
+    criteria_results:
+      - criterion: "acos < 0.42"
+        result: null              # PASS | FAIL
+      - criterion: "impressions > 800"
+        result: null
+
+  # === Decision (验证后填充) ===
+  decision: null                  # CONFIRM_HYPOTHESIS | REJECT_HYPOTHESIS | INCONCLUSIVE | EXTEND_WINDOW
+  decision_rationale: null
+  confidence_adjustment: null     # +0.10 / -0.15
+
+  # === Notes ===
+  notes: ""
+  related_experiments: []
+
+# =============================================================================
+# Experiment Status Transitions
+# =============================================================================
+# PLANNED → RUNNING: 实验开始执行
+# RUNNING → COMPLETED: 验证窗口结束，填充 outcome 和 decision
+# RUNNING → CANCELLED: 中途取消（需记录原因）
+# COMPLETED: 终态
+# =============================================================================
+
+# =============================================================================
+# Reminder Rules
+# =============================================================================
+# - 实验创建时自动设置 reminder_at = due_at - 1 day
+# - reminder_at 触发提醒：检查实验状态，催促验证
+# - due_at 过期未验证：自动标记 OVERDUE，升级处理
+# =============================================================================
