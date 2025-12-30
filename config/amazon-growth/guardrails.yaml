@@ -1,0 +1,216 @@
+# =============================================================================
+# Amazon Growth OS - Guardrails Configuration v4.2
+# =============================================================================
+# Purpose: 护栏是制度，不是建议
+# - 写入护栏：无 TRACE 不执行
+# - 幅度护栏：超限必须升级
+# - 假设护栏：未验证限次使用
+# =============================================================================
+
+version: "4.2"
+last_updated: "2025-12-30"
+
+# -----------------------------------------------------------------------------
+# 1. Write Guardrail (写入护栏)
+# Rule: 任何"建议→执行"的动作必须生成 TRACE
+# -----------------------------------------------------------------------------
+write_guardrail:
+  enabled: true
+  rule: "任何影响业务的变更必须有 TRACE"
+  exception: "read-only 查询不需要"
+
+  enforcement:
+    check_point: "Trace Scribe 前置检查"
+    on_missing_trace: BLOCK
+    message: "变更请求缺少TRACE，已拒绝执行"
+
+  remediation:
+    action: "请先通过 Trace Scribe 生成 TRACE"
+    auto_generate: false
+
+  violation_handling:
+    on_detect: "回滚 + 补录 + 告警"
+    notify: ["system-admin", "sprint-orchestrator"]
+
+# -----------------------------------------------------------------------------
+# 2. Amplitude Guardrails (幅度护栏)
+# Rule: 单次变更幅度限制
+# -----------------------------------------------------------------------------
+amplitude_guardrails:
+  enabled: true
+
+  bid_change:
+    single_change_max: 0.30     # ±30%
+    daily_total_max: 0.50       # ±50%
+    exceed_action: ESCALATE
+    escalate_to: "human_review"
+    rationale: "竞价波动过大可能导致预算失控"
+
+  budget_change:
+    single_change_max: 0.50     # ±50%
+    daily_total_max: 1.00       # ±100%
+    exceed_action: ESCALATE
+    escalate_to: "human_review"
+    rationale: "预算剧变可能影响广告连续性"
+
+  content_change:
+    title_change: ESCALATE      # 标题变更必须审批
+    bullets_change_max: 2       # 单次最多改2条
+    a_plus_change: ESCALATE     # A+内容必须审批
+    backend_keywords: PASS      # 后台关键词可自动
+    exceed_action: ESCALATE
+    rationale: "内容变更影响面广，需人工确认"
+
+# -----------------------------------------------------------------------------
+# 3. Batch Guardrails (批量护栏)
+# Rule: 单次决策影响范围限制
+# -----------------------------------------------------------------------------
+batch_guardrails:
+  enabled: true
+
+  limits:
+    keywords_per_decision: 20
+    intent_buckets_per_decision: 5
+    campaigns_per_decision: 3
+    asins_per_decision: 5
+
+  exceed_action: SPLIT_AND_QUEUE
+  split_strategy: "按意图桶分组"
+  queue_priority: "priority_score DESC"
+  rationale: "避免单次决策影响面过大"
+
+# -----------------------------------------------------------------------------
+# 4. Freeze Guardrails (冻结态护栏)
+# Rule: 冻结态意图桶默认不能改
+# -----------------------------------------------------------------------------
+freeze_guardrails:
+  enabled: true
+
+  frozen_bucket_change: BLOCK
+  unfreeze_requires:
+    - condition: "异常触发条件满足"
+    - condition: "人工确认"
+
+  unfreeze_triggers:
+    conversion_drop:
+      threshold: 0.30           # 周转化下降 > 30%
+      priority: critical
+    acos_spike:
+      threshold: 2.0            # ACOS > 目标值×2
+      priority: high
+    new_competitor:
+      condition: "新竞品进入前5"
+      priority: medium
+    competitor_price_drop:
+      threshold: 0.20           # 竞品价格下降 > 20%
+      priority: medium
+    negative_review_surge:
+      threshold: 3              # 24小时内3+条差评
+      time_window_hours: 24
+      priority: high
+
+  rationale: "冻结态意图桶已稳定，变更需有充分理由"
+
+# -----------------------------------------------------------------------------
+# 5. Hypothesis Guardrails (假设治理护栏)
+# Rule: 假设有生命周期和使用限制
+# -----------------------------------------------------------------------------
+hypothesis_guardrails:
+  enabled: true
+
+  # 生命周期状态
+  lifecycle:
+    NEW:
+      description: "新假设，未验证"
+      max_uses: 3
+      action_on_exceed: "必须进入TESTING"
+    TESTING:
+      description: "正在验证中"
+      max_uses: null            # 无限制
+      requirement: "必须设置验证窗口"
+    CONFIRMED:
+      description: "已验证成功"
+      max_uses: null            # 无限制
+      auto_execute_allowed: true
+    REJECTED:
+      description: "已验证失败"
+      max_uses: 0
+      action: BLOCK
+      message: "已验证失败的假设禁止复用"
+    DEPRECATED:
+      description: "已废弃"
+      max_uses: 0
+      action: BLOCK
+
+  # 置信度阈值
+  confidence_thresholds:
+    auto_execute: 0.80          # ≥80% 可自动执行
+    deprecate: 0.30             # <30% 自动废弃
+    warning: 0.50               # <50% 警告
+
+  # 置信度演化规则
+  confidence_evolution:
+    initial: 0.50
+    on_success: 0.10            # +0.10
+    on_failure: -0.15           # -0.15
+    max: 0.95
+    min: 0.05
+
+  # 验证窗口
+  verification_window:
+    default_days: 7
+    max_days: 30
+    min_days: 3
+
+  rationale: "假设必须经过验证才能成为信任的决策依据"
+
+# -----------------------------------------------------------------------------
+# 6. Emergency Guardrails (紧急护栏)
+# Rule: 紧急情况下的额外保护
+# -----------------------------------------------------------------------------
+emergency_guardrails:
+  enabled: true
+
+  circuit_breaker:
+    trigger: "1小时内超过10次ESCALATE"
+    action: "暂停所有自动执行，通知管理员"
+
+  daily_change_limit:
+    total_changes: 100
+    exceed_action: PAUSE
+    resume: "次日或人工解除"
+
+  rollback_threshold:
+    failed_executions: 3        # 连续3次执行失败
+    action: "回滚到上一稳定状态"
+
+# -----------------------------------------------------------------------------
+# 7. Guardrail Response Schema
+# -----------------------------------------------------------------------------
+response_schema:
+  status:
+    PASS: "通过，允许执行"
+    BLOCK: "阻止，拒绝执行"
+    ESCALATE: "升级，需人工审批"
+    SPLIT: "拆分，分批执行"
+    PAUSE: "暂停，等待恢复"
+
+  output:
+    status: enum
+    checks:
+      trace: PASS|BLOCK
+      amplitude: PASS|ESCALATE
+      batch: PASS|SPLIT
+      freeze: PASS|BLOCK
+      hypothesis: PASS|BLOCK
+    message: string
+    remediation: string|null
+    escalate_to: string|null
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  owner: "guardrail-governor"
+  modifiable_by: ["system-admin"]
+  agent_modification: BLOCK     # Agent不能修改护栏配置

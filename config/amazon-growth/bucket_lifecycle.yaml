@@ -1,0 +1,262 @@
+# =============================================================================
+# Amazon Growth OS - Intent Bucket Lifecycle Configuration v4.2
+# =============================================================================
+# Core Principle: 运营对象是意图桶，不是关键词
+# - 每个ASIN 8-20个意图桶
+# - 冻结的是意图桶，不是关键词
+# - 北极星：冻结率 > 50%，决策密度 < 10%
+# =============================================================================
+
+version: "4.2"
+last_updated: "2025-12-30"
+
+# -----------------------------------------------------------------------------
+# Intent Bucket Definition
+# -----------------------------------------------------------------------------
+intent_bucket_schema:
+  required_fields:
+    intent_id:
+      format: "IB-{job_to_be_done_slug}"
+      example: "IB-prevent-mud-tracking"
+    job_to_be_done:
+      type: string
+      description: "核心购买任务（客户要完成的工作）"
+      example: "防止泥土被带进家里"
+    scenes:
+      type: list
+      description: "使用场景"
+      example: ["玄关入口", "车库门口", "后院入口"]
+    constraints:
+      type: list
+      description: "客户约束条件"
+      example: ["尺寸20x32", "可机洗", "防滑"]
+    fit_type:
+      type: enum
+      values: ["exact", "substitute", "complement", "irrelevant"]
+      description: "产品与意图的匹配类型"
+    state:
+      type: enum
+      values: ["TEST", "GROW", "HARVEST", "FROZEN", "KILL"]
+      description: "意图桶当前状态"
+
+  optional_fields:
+    comparisons:
+      type: list
+      description: "竞品对比点"
+      example: ["vs 塑料地垫", "vs 橡胶门垫"]
+    proofs:
+      type: list
+      description: "证据（评论/Q&A引用）"
+      example: ["评论#123提到...", "Q&A#45验证..."]
+    keywords:
+      type: list
+      description: "归属的关键词"
+    priority_score:
+      type: float
+      description: "假设排序分"
+    priority_score_components:
+      type: map
+      fields: ["base_score", "intent_fit", "rufus_factor"]
+    confidence:
+      type: float
+      description: "分类置信度"
+
+# -----------------------------------------------------------------------------
+# State Machine Definition
+# -----------------------------------------------------------------------------
+state_machine:
+  states:
+    TEST:
+      icon: "🔴"
+      description: "测试态 - 验证意图假设是否成立"
+      entry_condition: "新创建的意图桶默认进入TEST"
+      max_duration_days: 14
+      actions_allowed:
+        - "调整竞价（±30%）"
+        - "添加/删除关键词"
+        - "更新意图分类"
+      monitoring:
+        - metric: "曝光量"
+          threshold: "> 1000/周"
+        - metric: "点击率"
+          threshold: "> 0.5%"
+        - metric: "转化"
+          threshold: "> 0"
+
+    GROW:
+      icon: "🟡"
+      description: "成长态 - 扩大流量和转化"
+      entry_condition: "TEST验证通过"
+      target_duration_days: 30
+      actions_allowed:
+        - "调整竞价（±30%）"
+        - "调整预算（±50%）"
+        - "优化内容"
+      monitoring:
+        - metric: "转化率"
+          threshold: "> 5%"
+        - metric: "ACOS"
+          threshold: "< 目标值×1.5"
+        - metric: "自然排名"
+          threshold: "稳步提升"
+
+    HARVEST:
+      icon: "🟢"
+      description: "收割态 - 稳定盈利"
+      entry_condition: "GROW稳定30天"
+      target_duration_days: 60
+      actions_allowed:
+        - "微调竞价（±20%）"
+        - "维护性优化"
+      monitoring:
+        - metric: "ACOS"
+          threshold: "< 目标值"
+        - metric: "转化率波动"
+          threshold: "< 15%"
+
+    FROZEN:
+      icon: "⚪"
+      description: "冻结态 - 稳定运行，无需干预"
+      entry_condition: "HARVEST持续稳定60天"
+      target: "北极星目标：50%+ 意图桶进入此状态"
+      actions_allowed: []       # 默认不允许任何操作
+      unfreeze_required: true
+      monitoring:
+        - metric: "周转化下降"
+          threshold: "< 30%"
+        - metric: "ACOS"
+          threshold: "< 目标值×2"
+
+    KILL:
+      icon: "⬛"
+      description: "淘汰态 - 停止投放"
+      entry_condition: "TEST失败 OR GROW无法成长"
+      actions_allowed:
+        - "归档记录"
+        - "提取失败教训"
+      final_state: true
+
+# -----------------------------------------------------------------------------
+# State Transitions
+# -----------------------------------------------------------------------------
+transitions:
+  TEST_to_GROW:
+    trigger: "验证通过"
+    conditions:
+      - "7-14天内有转化"
+      - "点击率 > 0.5%"
+      - "无明显流量质量问题"
+    requires_trace: true
+
+  TEST_to_KILL:
+    trigger: "验证失败"
+    conditions:
+      - "14天无转化"
+      - "或 100次点击无转化"
+      - "或 流量质量极差"
+    requires_trace: true
+
+  GROW_to_HARVEST:
+    trigger: "稳定达标"
+    conditions:
+      - "连续30天转化率波动 < 20%"
+      - "ACOS在目标值范围内"
+      - "自然排名稳定"
+    requires_trace: true
+
+  GROW_to_KILL:
+    trigger: "无法成长"
+    conditions:
+      - "30天后仍无法达到HARVEST标准"
+      - "或 ACOS持续超标"
+      - "或 投入产出比恶化"
+    requires_trace: true
+
+  HARVEST_to_FROZEN:
+    trigger: "持续稳定"
+    conditions:
+      all_of:
+        - "连续60天转化率波动 < 15%"
+        - "ACOS在目标值±20%范围内"
+        - "无竞品重大变化"
+        - "无季节性因素"
+    requires_trace: true
+
+  FROZEN_to_GROW:
+    trigger: "异常解冻"
+    conditions:
+      any_of:
+        - "周转化下降 > 30%"
+        - "ACOS > 目标值×2"
+        - "新竞品进入前5"
+        - "竞品价格下降 > 20%"
+        - "差评突增（24小时内3+条）"
+    requires: "人工确认"
+    requires_trace: true
+
+# -----------------------------------------------------------------------------
+# Target Distribution (北极星目标)
+# -----------------------------------------------------------------------------
+target_distribution:
+  TEST:
+    min: 0.05                   # 5%
+    max: 0.10                   # 10%
+    purpose: "新意图探索"
+  GROW:
+    min: 0.10                   # 10%
+    max: 0.15                   # 15%
+    purpose: "重点培养"
+  HARVEST:
+    min: 0.15                   # 15%
+    max: 0.20                   # 20%
+    purpose: "稳定收割"
+  FROZEN:
+    min: 0.50                   # 50%
+    max: 0.70                   # 70%
+    purpose: "核心目标：不需要人管"
+    north_star: true
+  KILL:
+    max: 0.05                   # < 5%
+    purpose: "已淘汰"
+
+# -----------------------------------------------------------------------------
+# North Star KPIs
+# -----------------------------------------------------------------------------
+north_star_kpis:
+  freeze_rate:
+    target: "> 50%"
+    description: "冻结态意图桶占比"
+    calculation: "FROZEN_buckets / total_buckets"
+    good: "> 60%"
+    warning: "40-50%"
+    critical: "< 40%"
+
+  decision_density:
+    target: "< 10%"
+    description: "本周决策数 / 总意图桶数"
+    calculation: "weekly_decisions / total_buckets"
+    good: "< 8%"
+    warning: "10-15%"
+    critical: "> 15%"
+
+# -----------------------------------------------------------------------------
+# ASIN Bucket Limits
+# -----------------------------------------------------------------------------
+bucket_limits:
+  per_asin:
+    min: 8
+    max: 20
+    recommended: 12
+  rationale: |
+    太少：无法覆盖多元化意图，错失流量
+    太多：决策密度过高，管理成本失控
+    8-20是经验值，需根据实际情况调整
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  owner: "intent-analyst"
+  state_owner: "guardrail-governor"
+  transition_tracker: "trace-scribe"
+  requires_trace: true
