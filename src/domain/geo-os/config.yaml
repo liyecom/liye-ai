@@ -146,5 +146,5 @@ tier_guard:
     T2:
       allow_default_run: false
       allow_rag: false
-      allow_export: false
+      allow_export: false             # T2 forbidden from export (use refinement pipeline)
       require_refinement_pipeline: true

@@ -65,6 +65,26 @@ sources:
       - career_guide
       - skill_report
 
+  # 卖家精灵博客文章 - Amazon 运营经验
+  sellersprite:
+    tier: T2                  # MANDATORY: Raw/Exploratory Source
+    name: SellerSprite Blog Articles
+    description: 卖家精灵博客抓取的 Amazon 运营文章（选品、广告、竞品分析）
+    path: ~/data/archives/sellersprite
+    priority: 5
+    enabled: true
+    source_type: scraped_blog         # 抓取的博客内容
+    processing_mode: markdown_only    # 只处理 markdown
+    content_types:
+      - product_selection    # 选品策略
+      - advertising          # 广告投放
+      - competitor_analysis  # 竞品分析
+      - listing_optimization # Listing 优化
+    estimated_size: 40KB
+    markdown_files: 11       # 已抓取 11 篇精选文章
+    scraped_from: https://www.sellersprite.com/cn/blog
+    scraped_date: 2025-12-26
+
 # === 路径模板 ===
 # 使用 {source} 占位符，运行时替换为实际数据源 ID
 paths:
