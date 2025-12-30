@@ -107,6 +107,28 @@ sources:
     scraped_from: https://www.junglescout.com/resources/articles/
     scraped_date: 2025-12-30
 
+  # Helium 10 博客 - Amazon PPC/SEO 权威内容
+  helium10:
+    tier: T2                  # MANDATORY: Raw/Exploratory Source
+    name: Helium 10 Blog Articles
+    description: Helium 10 博客抓取的 Amazon PPC/SEO 深度教程（英文权威内容）
+    path: ~/data/archives/helium10
+    priority: 7
+    enabled: true
+    source_type: scraped_blog
+    processing_mode: markdown_only
+    language: en
+    content_types:
+      - ppc_advertising      # PPC 广告
+      - keyword_research     # 关键词研究
+      - listing_optimization # Listing 优化
+      - tiktok_shop          # TikTok Shop
+      - seller_tools         # 卖家工具
+    estimated_size: 284KB
+    markdown_files: 42       # 已抓取 42 篇文章
+    scraped_from: https://www.helium10.com/blog/
+    scraped_date: 2025-12-30
+
 # === 路径模板 ===
 # 使用 {source} 占位符，运行时替换为实际数据源 ID
 paths:
