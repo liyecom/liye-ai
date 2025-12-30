@@ -2,10 +2,13 @@
 
 /**
  * LiYe AI CLI
- * Main entry point
+ * Main entry point for the LiYe OS Control Plane
  *
  * Usage:
  *   liye "任务描述"                    # 快捷方式：编译上下文
+ *   liye ask "question" [--broker]    # Quick ask with broker routing
+ *   liye mission new/run/ingest       # Mission pack management
+ *   liye broker list/check            # Broker management
  *   liye agent validate <agent-name>
  *   liye agent scaffold v5 --from v3
  *   liye skill list
@@ -58,6 +61,20 @@ async function main() {
   }
 
   switch (command) {
+    // Mission commands (Multi-Broker Architecture)
+    case 'mission':
+      await handleMission(subcommand, args.slice(2), REPO_ROOT);
+      break;
+    case 'ask':
+      // liye ask "question" [--broker codex|gemini]
+      const question = subcommand;
+      await handleAsk(question, args.slice(2), REPO_ROOT);
+      break;
+    case 'broker':
+      await handleBroker(subcommand, args.slice(2), REPO_ROOT);
+      break;
+
+    // Legacy commands
     case 'agent':
       await handleAgent(subcommand, target, args.slice(3));
       break;
@@ -75,7 +92,7 @@ async function main() {
     case 'version':
     case '--version':
     case '-v':
-      console.log('liye-ai v5.0.0');
+      console.log('liye-ai v5.1.0');
       break;
     default:
       // 不是已知命令，当作任务描述处理
@@ -116,26 +133,58 @@ async function handleTask(task) {
 
 function showHelp() {
   console.log(`
-${colors.bold}LiYe AI CLI v5.0${colors.reset}
+${colors.bold}LiYe AI CLI v5.1${colors.reset}
+${colors.cyan}Personal AI Infrastructure - Control Plane${colors.reset}
 
 ${colors.cyan}快捷用法:${colors.reset}
   liye "任务描述"             根据任务自动编译专家上下文
+  liye ask "问题"            快速提问 (默认 codex broker)
 
-${colors.cyan}示例:${colors.reset}
-  liye "帮我分析亚马逊关键词"
-  liye "帮我建个网站"
-  liye "帮我分析比特币行情"
+${colors.cyan}Mission Commands (Multi-Broker):${colors.reset}
+  liye mission new --slug <s> 创建任务包
+  liye mission run <dir>      运行任务
+  liye mission ingest <dir>   摄取任务产物
+  liye mission list           列出任务
+  liye mission stats          统计信息
 
-${colors.cyan}高级命令:${colors.reset}
+${colors.cyan}Broker Commands:${colors.reset}
+  liye broker list            列出所有 Broker
+  liye broker check           检查 Broker 可用性
+  liye broker routes          查看默认路由策略
+
+${colors.cyan}Agent & Skill:${colors.reset}
   liye agent list             列出所有智能体
   liye agent validate <name>  验证智能体配置
   liye skill list             列出所有技能
   liye report architecture    生成架构合规报告
 
+${colors.cyan}示例:${colors.reset}
+  liye ask "分析这段代码" --broker codex
+  liye mission new --slug analyze-keywords --broker gemini --project amazon
+  liye mission run 20251231-1200__amazon__analyze-keywords
+
 ${colors.cyan}帮助:${colors.reset}
   liye --help                 显示此帮助
   liye --version              显示版本号
 `);
+}
+
+// Mission commands (Multi-Broker Architecture)
+function handleMission(subcommand, args, repoRoot) {
+  const missionHandler = require('./commands/mission');
+  return missionHandler(subcommand, args, repoRoot);
+}
+
+// Ask command - quick shortcut
+function handleAsk(question, args, repoRoot) {
+  const askHandler = require('./commands/ask');
+  return askHandler(question, args, repoRoot);
+}
+
+// Broker commands
+function handleBroker(subcommand, args, repoRoot) {
+  const brokerHandler = require('./commands/broker');
+  return brokerHandler(subcommand, args, repoRoot);
 }
 
 // Agent commands
