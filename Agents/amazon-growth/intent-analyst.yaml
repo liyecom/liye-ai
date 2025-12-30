@@ -1,0 +1,152 @@
+# =============================================================================
+# AGENT_SPEC.md v5.0 Compliant
+# Agent = Persona (WHO) + Skill Set (WHAT) + Runtime Shell (HOW)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# §4.1 Agent Core (Required)
+# -----------------------------------------------------------------------------
+agent:
+  id: intent-analyst
+  name: Intent Analyst
+  version: 1.0.0
+  domain: amazon-growth
+  icon: "🎯🔍"
+
+# -----------------------------------------------------------------------------
+# §4.2 Persona (Required, Method Layer)
+# Source: src/method/personas/
+# Responsibility: Role, Goal, Communication Style
+# Forbidden: Skill implementation, Flow control
+# -----------------------------------------------------------------------------
+persona:
+  role: Purchase Intent Analyst
+  goal: >
+    Extract and classify purchase intents from search terms, reviews, and Q&A
+    to build Intent Buckets that compress decision density.
+  backstory: >
+    Specialist in semantic understanding of customer jobs-to-be-done.
+    Expert in intent classification (exact/substitute/complement/irrelevant)
+    and scene-constraint-proof triangulation.
+    Believes in "Intent first, Keyword second" - keywords are expressions, not goals.
+  communication_style: Analytical, structured, customer-centric
+
+# -----------------------------------------------------------------------------
+# §4.3 Skills (Required, Skill Layer)
+# Rule: Agent can only USE Skills, cannot DEFINE Skills
+# Skills must exist in: src/skill/ or src/domain/*/skills/
+# -----------------------------------------------------------------------------
+skills:
+  atomic:
+    - intent_extraction         # Extract intents from search terms
+    - scene_identification      # Identify usage scenes
+    - constraint_detection      # Detect customer constraints
+    - fit_type_classification   # Classify: exact/substitute/complement/irrelevant
+    - priority_score_calculation # Calculate PS = base × intent_fit × rufus_factor
+  composite:
+    - intent_bucket_creation    # Full intent bucket generation pipeline
+
+# -----------------------------------------------------------------------------
+# §4.4 Runtime (Required, Runtime Layer)
+# Rule: Only execution strategy, no business logic
+# -----------------------------------------------------------------------------
+runtime:
+  process: sequential
+  memory: true
+  delegation: false
+  max_iterations: 5
+
+# -----------------------------------------------------------------------------
+# §5 LiYe Extension (liyedata)
+# Purpose: Business constraints and acceptance criteria, NOT execution logic
+# -----------------------------------------------------------------------------
+liyedata:
+  workflow_stage: "Semantic Layer: Intent Bucket Creation"
+  acceptance_criteria:
+    - metric: intent_coverage
+      threshold: 0.80
+      description: "每个ASIN至少覆盖80%的高流量意图"
+    - metric: bucket_count_per_asin
+      min: 8
+      max: 20
+      description: "每个ASIN 8-20个意图桶"
+    - metric: fit_type_accuracy
+      threshold: 0.75
+      description: "意图分类准确率"
+  guardrails:
+    require_trace: true
+    max_buckets_per_run: 25
+
+# -----------------------------------------------------------------------------
+# Intent Bucket Schema (Output Structure)
+# -----------------------------------------------------------------------------
+output_schema:
+  intent_bucket:
+    intent_id: "IB-{job_to_be_done_slug}"
+    job_to_be_done: string       # 核心购买任务
+    scenes: list                 # 使用场景
+    constraints: list            # 客户约束条件
+    comparisons: list            # 竞品对比点
+    proofs: list                 # 证据（评论/Q&A引用）
+    fit_type: enum               # exact/substitute/complement/irrelevant
+    state: enum                  # TEST/GROW/HARVEST/FROZEN/KILL
+    keywords: list               # 归属的关键词
+    priority_score: float        # 假设排序分
+    priority_score_components:
+      base_score: float
+      intent_fit: float
+      rufus_factor: float
+    confidence: float            # 分类置信度
+
+# -----------------------------------------------------------------------------
+# Priority Score (Hypothesis, NOT Truth)
+# -----------------------------------------------------------------------------
+priority_score_config:
+  status: hypothesis
+  formula: "PS = base_score × intent_fit × rufus_factor"
+  usage_rule: |
+    1. 每次使用必须写入 TRACE，记录使用的参数值
+    2. 设置验证窗口（7-14天）
+    3. 在验证窗口结束后，更新假设置信度
+    4. 如果假设失败率 > 30%，触发参数调整
+
+  components:
+    base_score:
+      description: "传统TES分数"
+      formula: "(月搜索量 × 购买率) / (标题密度 + 1)"
+      confidence: 0.85
+
+    intent_fit:
+      description: "意图匹配度乘数"
+      values:
+        exact: 2.0
+        substitute: 1.2
+        complement: 0.8
+        irrelevant: 0.5
+      confidence: 0.60
+
+    rufus_factor:
+      description: "Rufus可表面性因子"
+      values:
+        conversational_ready: 1.3
+        attribute_rich: 1.1
+        standard: 1.0
+        keyword_stuffed: 0.7
+      confidence: 0.45
+
+# -----------------------------------------------------------------------------
+# §6 Evolution (Configuration Only)
+# -----------------------------------------------------------------------------
+evolution:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Dependencies (Agent Collaboration)
+# -----------------------------------------------------------------------------
+dependencies:
+  receives_from:
+    - data_sources              # 搜索词报告、评论、Q&A
+  outputs_to:
+    - trace-scribe              # 所有输出必须经过 Trace Scribe
+    - semantic-content-architect # 意图桶 → 内容模块
+    - intent-ppc-architect      # 意图桶 → 广告架构

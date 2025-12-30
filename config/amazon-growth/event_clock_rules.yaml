@@ -1,0 +1,231 @@
+# =============================================================================
+# Event Clock Rules v4.2 - Enhancement 6
+# =============================================================================
+# Purpose: 冻结态的"解冻事件"要强制写入 event_clock
+# Rule: FROZEN → UNFREEZE 必须生成 trace_type: decision + event_clock 事件
+# =============================================================================
+
+version: "4.2"
+last_updated: "2025-12-30"
+
+# -----------------------------------------------------------------------------
+# Event Types
+# -----------------------------------------------------------------------------
+event_types:
+  # === Intent Bucket State Changes ===
+  BUCKET_STATE_CHANGE:
+    description: "意图桶状态变更"
+    required_fields:
+      - event_id
+      - event_type
+      - timestamp
+      - tenant
+      - entity
+      - from_state
+      - to_state
+      - trigger
+      - trace_id
+
+  # === Freeze/Unfreeze Events (Critical) ===
+  BUCKET_FREEZE:
+    description: "意图桶进入冻结态"
+    parent: BUCKET_STATE_CHANGE
+    from_state: ["HARVEST"]
+    to_state: "FROZEN"
+    required_fields:
+      - freeze_reason
+      - freeze_criteria_met
+
+  BUCKET_UNFREEZE:
+    description: "意图桶解冻（从冻结态退出）"
+    parent: BUCKET_STATE_CHANGE
+    from_state: ["FROZEN"]
+    to_state: ["GROW", "TEST"]
+    critical: true                # 关键事件，必须强制写入
+    required_fields:
+      - unfreeze_trigger          # 什么触发了解冻
+      - human_confirmed           # 是否人工确认
+      - trace_id                  # 必须有对应的 decision trace
+
+  # === Content Version Events ===
+  CONTENT_VERSION_CHANGE:
+    description: "内容版本变更"
+    required_fields:
+      - event_id
+      - event_type
+      - timestamp
+      - tenant
+      - entity
+      - content_type             # title | bullets | a_plus | backend_keywords
+      - from_version
+      - to_version
+      - trace_id
+
+  # === Campaign Events ===
+  CAMPAIGN_STATE_CHANGE:
+    description: "广告活动状态变更"
+    required_fields:
+      - event_id
+      - event_type
+      - timestamp
+      - tenant
+      - campaign_id
+      - from_state
+      - to_state
+      - trace_id
+
+# -----------------------------------------------------------------------------
+# Freeze/Unfreeze Hard Rules - Enhancement 6
+# -----------------------------------------------------------------------------
+freeze_unfreeze_rules:
+  # === Freeze Entry ===
+  freeze_entry:
+    description: "进入冻结态规则"
+    required:
+      - trace_type: "decision"
+      - event_clock_entry: true
+    event_fields:
+      event_type: "BUCKET_FREEZE"
+      freeze_criteria_met:
+        - "conversion_volatility_60d < 15%"
+        - "acos_within_target_band"
+        - "no_major_competitor_change"
+        - "no_seasonality_risk"
+
+  # === Unfreeze Exit (Critical) ===
+  unfreeze_exit:
+    description: "解冻规则（硬规则）"
+    critical: true
+    required:
+      - trace_type: "decision"
+      - event_clock_entry: true
+      - human_confirmed: true     # 必须人工确认
+    validation:
+      - rule: "必须有 decision trace"
+        check: "trace_id is not null AND trace_id matches TRACE-*"
+      - rule: "必须有解冻触发原因"
+        check: "unfreeze_trigger is not null"
+      - rule: "必须有人工确认"
+        check: "human_confirmed == true"
+    event_fields:
+      event_type: "BUCKET_UNFREEZE"
+      unfreeze_trigger: null      # 必填：触发原因
+      human_confirmed: null       # 必填：人工确认
+      trace_id: null              # 必填：关联的 decision trace
+
+  # === Unfreeze Triggers (任一触发解冻) ===
+  unfreeze_triggers:
+    - trigger_id: "CONV_DROP"
+      description: "周转化下降 > 30%"
+      metric: "weekly_conversion_drop_pct"
+      threshold: 30
+      operator: ">"
+    - trigger_id: "ACOS_SPIKE"
+      description: "ACOS > 目标值×2"
+      metric: "acos_over_target_multiple"
+      threshold: 2
+      operator: ">="
+    - trigger_id: "NEW_COMPETITOR"
+      description: "新竞品进入前5"
+      metric: "new_competitor_top5"
+      threshold: true
+      operator: "=="
+    - trigger_id: "COMPETITOR_PRICE_DROP"
+      description: "竞品价格下降 > 20%"
+      metric: "competitor_price_drop_pct"
+      threshold: 20
+      operator: ">="
+    - trigger_id: "BAD_REVIEWS"
+      description: "差评突增（24小时内3+条）"
+      metric: "bad_reviews_24h"
+      threshold: 3
+      operator: ">="
+
+# -----------------------------------------------------------------------------
+# Event Schema
+# -----------------------------------------------------------------------------
+event_schema:
+  # Common fields for all events
+  common:
+    event_id:
+      format: "EVT-{YYYYMMDD}-{seq}"
+      example: "EVT-20250103-001"
+    event_type:
+      type: enum
+      values: ["BUCKET_STATE_CHANGE", "BUCKET_FREEZE", "BUCKET_UNFREEZE", "CONTENT_VERSION_CHANGE", "CAMPAIGN_STATE_CHANGE"]
+    timestamp:
+      type: timestamp
+      format: "ISO8601"
+    tenant:
+      type: object
+      fields: ["store_id", "marketplace"]
+    trace_id:
+      type: string
+      format: "TRACE-*"
+      description: "关联的 decision trace"
+
+  # Bucket state change specific
+  bucket_state_change:
+    entity:
+      type: object
+      fields: ["asin", "intent_bucket_id"]
+    from_state:
+      type: enum
+      values: ["TEST", "GROW", "HARVEST", "FROZEN", "KILL"]
+    to_state:
+      type: enum
+      values: ["TEST", "GROW", "HARVEST", "FROZEN", "KILL"]
+    trigger:
+      type: string
+      description: "状态变更的触发原因"
+
+# -----------------------------------------------------------------------------
+# Event Clock File Structure
+# -----------------------------------------------------------------------------
+file_structure:
+  path: "event_clock/{category}/{YYYY-MM}/EVT-{YYYYMMDD}-{seq}.yaml"
+  categories:
+    - intent_buckets              # 意图桶状态事件
+    - content_versions            # 内容版本事件
+    - campaigns                   # 广告活动事件
+
+# -----------------------------------------------------------------------------
+# Event Clock Template
+# -----------------------------------------------------------------------------
+event_template: |
+  event:
+    event_id: "EVT-YYYYMMDD-001"
+    event_type: "BUCKET_UNFREEZE"
+    timestamp: "YYYY-MM-DDTHH:MM:SSZ"
+
+    tenant:
+      store_id: "TIMO"
+      marketplace: "US"
+
+    entity:
+      asin: "B0XXXX"
+      intent_bucket_id: "IB-prevent-mud-tracking"
+
+    state_change:
+      from_state: "FROZEN"
+      to_state: "GROW"
+
+    unfreeze_details:
+      trigger: "CONV_DROP"
+      trigger_description: "周转化下降 > 30%"
+      actual_value: 35
+      threshold: 30
+      human_confirmed: true
+      confirmed_by: "liye"
+      confirmed_at: "YYYY-MM-DDTHH:MM:SSZ"
+
+    trace_id: "TRACE-YYYYMMDD-001"
+    notes: ""
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  owner: "trace-scribe"
+  enforced_by: "guardrail-governor"
+  critical_events: ["BUCKET_UNFREEZE"]
