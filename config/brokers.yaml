@@ -1,0 +1,101 @@
+# LiYe OS Broker Configuration
+# Configuration-driven routing for Multi-Broker Architecture
+# Version: 1.0
+
+version: 1
+
+# Global defaults (fallback when route-specific config is missing)
+defaults:
+  broker: codex
+  model: gpt-5.2-thinking
+  approval: semi-auto
+  sandbox: read-only
+  budget:
+    max_steps: 30
+    max_runtime_sec: 900
+    max_tokens: 100000
+
+# Route-specific configurations
+# Priority: CLI args > mission.yaml > routes > defaults > built-in
+routes:
+  # Text interaction, Q&A - replaces ChatGPT Web
+  ask:
+    broker: codex
+    model: gpt-5.2-thinking
+    approval: semi-auto
+    sandbox: read-only
+
+  # Engineering tasks - Claude Code is primary
+  build:
+    broker: claude
+    model: claude-sonnet-4-20250514
+    approval: semi-auto
+    sandbox: read-only
+
+  ship:
+    broker: claude
+    model: claude-sonnet-4-20250514
+    approval: semi-auto
+    sandbox: read-only
+
+  refactor:
+    broker: claude
+    model: claude-sonnet-4-20250514
+    approval: semi-auto
+    sandbox: read-only
+
+  # Cost-optimized batch processing
+  batch:
+    broker: gemini
+    model: gemini-2.5-pro
+    approval: semi-auto
+    sandbox: read-only
+
+  outline:
+    broker: gemini
+    model: gemini-2.5-pro
+    approval: semi-auto
+    sandbox: read-only
+
+  summarize:
+    broker: gemini
+    model: gemini-2.5-pro
+    approval: semi-auto
+    sandbox: read-only
+
+  # Cross-browser exploration - manual broker
+  research:
+    broker: antigravity
+    approval: manual
+    sandbox: none
+
+  browser:
+    broker: antigravity
+    approval: manual
+    sandbox: none
+
+# Broker-specific settings
+brokers:
+  codex:
+    binary: codex
+    # Model alias mapping for compatibility
+    # User-intent model -> actual CLI model
+    model_alias:
+      gpt-5.2-thinking: gpt-5.2
+      gpt-5.2-codex: gpt-5.2
+    default_args:
+      - "--approval-mode"
+      - "on-request"
+
+  gemini:
+    binary: gemini
+    fallback_binary: gemini-cli
+    model_alias: {}
+
+  claude:
+    binary: claude
+    model_alias: {}
+
+  antigravity:
+    type: manual
+    model_alias: {}
