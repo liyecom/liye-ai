@@ -73,6 +73,9 @@ async function main() {
     case 'broker':
       await handleBroker(subcommand, args.slice(2), REPO_ROOT);
       break;
+    case 'cost':
+      await handleCost(subcommand, args.slice(2), REPO_ROOT);
+      break;
 
     // Legacy commands
     case 'agent':
@@ -152,6 +155,11 @@ ${colors.cyan}Broker Commands:${colors.reset}
   liye broker check           检查 Broker 可用性
   liye broker routes          查看默认路由策略
 
+${colors.cyan}Cost Governance:${colors.reset}
+  liye cost report            成本治理报告 (默认 7 天)
+  liye cost report --days 30  指定天数
+  liye cost report --broker codex  过滤 Broker
+
 ${colors.cyan}Agent & Skill:${colors.reset}
   liye agent list             列出所有智能体
   liye agent validate <name>  验证智能体配置
@@ -185,6 +193,12 @@ function handleAsk(question, args, repoRoot) {
 function handleBroker(subcommand, args, repoRoot) {
   const brokerHandler = require('./commands/broker');
   return brokerHandler(subcommand, args, repoRoot);
+}
+
+// Cost commands
+function handleCost(subcommand, args, repoRoot) {
+  const costHandler = require('./commands/cost');
+  return costHandler(subcommand, args, repoRoot);
 }
 
 // Agent commands

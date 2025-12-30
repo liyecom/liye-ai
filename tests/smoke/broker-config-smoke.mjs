@@ -278,6 +278,96 @@ test('ErrorCode includes FORBIDDEN_ACTION', () => {
   assertEqual(types.ErrorCode.FORBIDDEN_ACTION, 'FORBIDDEN_ACTION');
 });
 
+// Test 12: Cost Report Module
+const costReport = await import(join(repoRoot, 'src/analytics/cost-report.js'));
+
+test('cost report module exports required functions', () => {
+  assertTrue(typeof costReport.generateCostReport === 'function');
+  assertTrue(typeof costReport.loadEvents === 'function');
+  assertTrue(typeof costReport.aggregateMetrics === 'function');
+  assertTrue(typeof costReport.generateRecommendations === 'function');
+});
+
+test('aggregateMetrics produces correct structure', () => {
+  const mockEvents = [
+    { type: 'end', broker: 'codex', route: 'ask', status: 'ok', runtime_sec: 10 },
+    { type: 'end', broker: 'codex', route: 'ask', status: 'needs_manual', runtime_sec: 0, error_code: 'UNKNOWN' },
+  ];
+  const metrics = costReport.aggregateMetrics(mockEvents);
+
+  assertEqual(metrics.total, 2);
+  assertEqual(metrics.byStatus.ok, 1);
+  assertEqual(metrics.byStatus.needs_manual, 1);
+  assertTrue('codex' in metrics.byBroker);
+  assertTrue('ask' in metrics.byRoute);
+});
+
+test('generateRecommendations returns array', () => {
+  const metrics = {
+    total: 10,
+    byStatus: { ok: 3, needs_manual: 7, fail: 0 },
+    byBroker: {},
+    byRoute: {},
+    byErrorCode: { UNKNOWN: 5 },
+    dangerousActionBlocks: 0,
+  };
+  const recommendations = costReport.generateRecommendations(metrics);
+
+  assertTrue(Array.isArray(recommendations));
+  assertTrue(recommendations.length > 0);
+  assertTrue(recommendations.length <= 3);
+});
+
+// Test 13: Auto-Summary Module
+const summary = await import(join(repoRoot, 'src/mission/summary.js'));
+
+test('summary module exports required functions', () => {
+  assertTrue(typeof summary.generateMissionSummary === 'function');
+  assertTrue(typeof summary.generateSummaryLines === 'function');
+  assertTrue(typeof summary.isSummaryHeader === 'function');
+});
+
+test('isSummaryHeader detects conclusion headers', () => {
+  assertTrue(summary.isSummaryHeader('## 结论'));
+  assertTrue(summary.isSummaryHeader('# Summary'));
+  assertTrue(summary.isSummaryHeader('### 建议'));
+  assertTrue(!summary.isSummaryHeader('## Background'));
+  assertTrue(!summary.isSummaryHeader('Not a header'));
+});
+
+test('generateSummaryLines respects max 10 lines', () => {
+  const content = `# Test
+## 结论
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+Line 7
+Line 8
+Line 9
+Line 10
+Line 11
+Line 12`;
+  const lines = summary.generateSummaryLines(content);
+  assertTrue(lines.length <= 10, 'Summary should have max 10 lines');
+});
+
+test('generateSummaryLines prioritizes conclusion sections', () => {
+  const content = `# Document
+Some intro text here.
+
+## 结论
+This is the conclusion.
+Very important point.
+
+## Other Section
+Not as important.`;
+  const lines = summary.generateSummaryLines(content);
+  assertTrue(lines.some(l => l.includes('conclusion') || l.includes('important')));
+});
+
 // Summary
 console.log('\n' + '=' .repeat(50));
 console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
