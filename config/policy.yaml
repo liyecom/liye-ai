@@ -1,0 +1,140 @@
+# LiYe OS Policy Constitution
+# Immutable principles + configurable parameters
+# Version: 1.0
+
+version: 1
+
+# ============================================================
+# APPROVAL POLICY
+# ============================================================
+approval:
+  # Default mode for all routes (can be overridden per-route)
+  mode_default: semi-auto
+
+  # Semi-auto approval semantics
+  semi_auto:
+    # Once approved within a mission, allow subsequent actions
+    # until the mission ends
+    allow_until_mission_end: true
+
+    # Grace period (optional): auto-approve for N seconds after last action
+    # Set to 0 to disable
+    grace_period_sec: 0
+
+    # Dangerous patterns that ALWAYS require re-approval
+    # Even if mission is already approved
+    reapprove_patterns:
+      - "rm -rf"
+      - "sudo"
+      - "chmod"
+      - "chown"
+      - "curl .*\\|.*sh"
+      - "wget .*\\|.*sh"
+      - "git push"
+      - "git push --force"
+      - "gh auth"
+      - "gh repo delete"
+      - "DROP TABLE"
+      - "DELETE FROM"
+      - "TRUNCATE"
+      - "> /dev/"
+      - "dd if="
+
+  # Manual approval: always requires explicit user action
+  manual:
+    prompt_before_each_action: true
+
+  # No approval: use with caution
+  none:
+    allowed_only_for_readonly: true
+
+# ============================================================
+# SANDBOX POLICY
+# ============================================================
+sandbox:
+  # Default sandbox mode
+  default: read-only
+
+  # Paths where write is always allowed (relative to mission dir)
+  allowlist_paths:
+    - "missions/**"
+    - "tmp/**"
+    - "outputs/**"
+    - "evidence/**"
+
+  # Paths that are NEVER writable (absolute)
+  denylist_paths:
+    - "/etc/**"
+    - "/usr/**"
+    - "/System/**"
+    - "~/.ssh/**"
+    - "~/.gnupg/**"
+    - "**/.env"
+    - "**/credentials.json"
+    - "**/secrets.yaml"
+
+  # Full-access mode restrictions
+  full_access:
+    requires_explicit_approval: true
+    log_all_writes: true
+
+# ============================================================
+# SAFETY CONSTITUTION (IMMUTABLE)
+# ============================================================
+safety:
+  # CONSTITUTIONAL PRINCIPLE: Never scrape/sync web chat history
+  # This protects user privacy and prevents platform ToS violations
+  forbid_web_history_scrape: true
+
+  # CONSTITUTIONAL PRINCIPLE: Never exfiltrate cookies/tokens
+  # This prevents credential theft and unauthorized access
+  forbid_cookie_token_exfiltration: true
+
+  # CONSTITUTIONAL PRINCIPLE: Audit trail is immutable
+  # events.jsonl is append-only, never modified
+  immutable_audit_trail: true
+
+  # CONSTITUTIONAL PRINCIPLE: Always have fallback
+  # If broker fails, must produce manual prompt
+  require_fallback_on_failure: true
+
+  # Rate limiting (per mission)
+  rate_limits:
+    max_api_calls_per_minute: 60
+    max_file_writes_per_minute: 100
+    max_commands_per_minute: 30
+
+# ============================================================
+# BUDGET GOVERNANCE
+# ============================================================
+budget:
+  # Default limits (can be overridden in mission.yaml)
+  defaults:
+    max_steps: 50
+    max_tokens: 100000
+    max_runtime_sec: 1800  # 30 minutes
+    max_cost_usd: 10.00
+
+  # Hard limits (cannot be exceeded even with override)
+  hard_limits:
+    max_steps: 500
+    max_tokens: 1000000
+    max_runtime_sec: 7200  # 2 hours
+    max_cost_usd: 100.00
+
+  # Warning thresholds (percentage of limit)
+  warning_threshold_pct: 80
+
+# ============================================================
+# ERROR CODES
+# ============================================================
+error_codes:
+  BROKER_NOT_INSTALLED: "Broker CLI not found in PATH"
+  AUTH_REQUIRED: "Broker requires authentication"
+  QUOTA_EXCEEDED: "API quota or rate limit exceeded"
+  BUDGET_EXCEEDED: "Mission budget limit reached"
+  APPROVAL_DENIED: "User denied approval"
+  SANDBOX_VIOLATION: "Action blocked by sandbox policy"
+  TIMEOUT: "Execution timeout"
+  NETWORK_ERROR: "Network connectivity issue"
+  UNKNOWN: "Unknown error"

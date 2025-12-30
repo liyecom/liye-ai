@@ -23,7 +23,7 @@ async function handleBroker(subcommand, args, repoRoot) {
     case 'check':
       return await brokerCheck();
     case 'routes':
-      return brokerRoutes();
+      return brokerRoutes(repoRoot);
     default:
       showBrokerHelp();
   }
@@ -69,21 +69,39 @@ async function brokerCheck() {
 
 /**
  * liye broker routes
+ * Now reads from config/brokers.yaml
  */
-function brokerRoutes() {
-  const { BROKER_ROUTING } = require('../../src/mission/types');
+function brokerRoutes(repoRoot) {
+  const { getAllRoutes, getDefaults } = require('../../src/config/load');
 
-  console.log(`\n${colors.cyan}🗺️  Default Broker Routes${colors.reset}\n`);
+  console.log(`\n${colors.cyan}🗺️  Broker Routes (from config/brokers.yaml)${colors.reset}\n`);
 
-  console.log(`${colors.dim}These are the default broker assignments for each command type:${colors.reset}\n`);
+  const routes = getAllRoutes(repoRoot);
+  const defaults = getDefaults(repoRoot);
 
-  const maxLen = Math.max(...Object.keys(BROKER_ROUTING).map(k => k.length));
+  console.log(`${colors.bold}Defaults:${colors.reset}`);
+  console.log(`  Broker:   ${defaults.broker}`);
+  console.log(`  Model:    ${defaults.model}`);
+  console.log(`  Approval: ${defaults.approval}`);
+  console.log(`  Sandbox:  ${defaults.sandbox}`);
+  console.log('');
 
-  for (const [command, broker] of Object.entries(BROKER_ROUTING)) {
-    console.log(`  ${command.padEnd(maxLen)}  →  ${colors.bold}${broker}${colors.reset}`);
+  console.log(`${colors.bold}Route-specific configurations:${colors.reset}\n`);
+
+  const routeNames = Object.keys(routes);
+  const maxLen = Math.max(...routeNames.map(k => k.length));
+
+  for (const [command, config] of Object.entries(routes)) {
+    const broker = config.broker || defaults.broker;
+    const model = config.model || defaults.model;
+    const approval = config.approval || defaults.approval;
+
+    console.log(`  ${colors.cyan}${command.padEnd(maxLen)}${colors.reset}  →  ${colors.bold}${broker}${colors.reset}`);
+    console.log(`  ${' '.repeat(maxLen)}     model: ${model}, approval: ${approval}`);
   }
 
-  console.log(`\n${colors.dim}Override with --broker <type> flag${colors.reset}\n`);
+  console.log(`\n${colors.dim}Override with --broker <type> --model <model> flags${colors.reset}`);
+  console.log(`${colors.dim}Config priority: CLI args > mission.yaml > routes > defaults${colors.reset}\n`);
 }
 
 /**
@@ -96,19 +114,26 @@ ${colors.bold}Broker Commands${colors.reset}
 ${colors.cyan}Usage:${colors.reset}
   liye broker list     List all available brokers
   liye broker check    Check broker availability
-  liye broker routes   Show default routing strategy
+  liye broker routes   Show routing config (from config/brokers.yaml)
 
 ${colors.cyan}Available Brokers:${colors.reset}
-  codex        OpenAI Codex CLI (gpt-4.1, gpt-5.2)
-  gemini       Google Gemini CLI (low-cost, high-frequency)
+  codex        OpenAI Codex CLI (gpt-5.2-thinking default)
+  gemini       Google Gemini CLI (cost-optimized)
   antigravity  Manual browser automation platform
   claude       Claude Code CLI (engineering tasks)
 
-${colors.cyan}Routing Strategy:${colors.reset}
-  ask/chat     → codex    (default text interaction)
-  build/ship   → claude   (engineering tasks)
-  batch/outline→ gemini   (cost-optimized)
-  research     → antigravity (browser exploration)
+${colors.cyan}Default Routing:${colors.reset}
+  ask          → codex + gpt-5.2-thinking (semi-auto)
+  build/ship   → claude (semi-auto)
+  batch/outline→ gemini (semi-auto)
+  research     → antigravity (manual)
+
+${colors.cyan}Configuration:${colors.reset}
+  config/brokers.yaml  - Routing & model config
+  config/policy.yaml   - Approval & sandbox policy
+
+${colors.cyan}Priority:${colors.reset}
+  CLI args > mission.yaml > routes > defaults
 `);
 }
 
