@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://liye-ai.com/schemas/runtime_agent.schema.json",
+  "title": "Runtime Agent Dehydration Schema v1.0",
+  "description": "Enforces BMAD dehydration: Runtime agents must be deterministic executors without design-time semantics",
+  "type": "object",
+  "required": ["agent"],
+  "properties": {
+    "agent": {
+      "type": "object",
+      "required": ["name", "type", "capabilities", "inputs", "outputs"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Agent identifier (kebab-case)"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["runtime"],
+          "description": "Must be 'runtime' for dehydrated agents"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "What this agent CAN DO (not WHO it is)"
+        },
+        "inputs": {
+          "type": "object",
+          "required": ["schema"],
+          "properties": {
+            "schema": {
+              "type": "string",
+              "description": "Input schema reference (e.g., task_spec_v1)"
+            }
+          },
+          "additionalProperties": true
+        },
+        "outputs": {
+          "type": "object",
+          "required": ["schema"],
+          "properties": {
+            "schema": {
+              "type": "string",
+              "description": "Output schema reference (e.g., execution_result_v1)"
+            }
+          },
+          "additionalProperties": true
+        },
+        "limits": {
+          "type": "object",
+          "description": "Operational constraints (optional)",
+          "additionalProperties": true
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other agents this agent depends on (optional)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+
+  "not": {
+    "anyOf": [
+      {
+        "description": "FORBIDDEN: role field (identity leakage)",
+        "properties": {
+          "agent": {
+            "properties": {
+              "role": {}
+            },
+            "required": ["role"]
+          }
+        }
+      },
+      {
+        "description": "FORBIDDEN: method field (method dependency)",
+        "properties": {
+          "agent": {
+            "properties": {
+              "method": {}
+            },
+            "required": ["method"]
+          }
+        }
+      },
+      {
+        "description": "FORBIDDEN: persona field (identity leakage)",
+        "properties": {
+          "agent": {
+            "properties": {
+              "persona": {}
+            },
+            "required": ["persona"]
+          }
+        }
+      },
+      {
+        "description": "FORBIDDEN: bmaddata field (metadata contamination)",
+        "properties": {
+          "agent": {
+            "properties": {
+              "bmaddata": {}
+            },
+            "required": ["bmaddata"]
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+# BMAD Semantic Blacklist for Runtime Layer
+# Any match in src/agents/ or src/runtime/ will FAIL CI
+# Lines starting with # are comments
+
+# Direct BMAD references
+BMAD
+bmad
+BMad
+
+# Role identity vocabulary (forbidden in runtime)
+meta-architecture
+meta architecture
+
+# Design-time reasoning semantics
+design reasoning
+planning phase
+architecture decision
+step-by-step reasoning
+design decision
+
+# Method dependency markers
+bmad-method
+bmaddata
+workflow_stage
+story_template
+
+# Design-time verbs (in context of agent definitions)
+# Note: These are checked with context, not as bare words
