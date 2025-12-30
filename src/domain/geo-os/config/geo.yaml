@@ -85,6 +85,28 @@ sources:
     scraped_from: https://www.sellersprite.com/cn/blog
     scraped_date: 2025-12-26
 
+  # Jungle Scout 博客 - Amazon 权威英文内容
+  junglescout:
+    tier: T2                  # MANDATORY: Raw/Exploratory Source
+    name: Jungle Scout Blog Articles
+    description: Jungle Scout 博客抓取的 Amazon 运营深度教程（英文权威内容）
+    path: ~/data/archives/junglescout
+    priority: 6
+    enabled: true
+    source_type: scraped_blog         # 抓取的博客内容
+    processing_mode: markdown_only
+    language: en                      # 英文内容
+    content_types:
+      - sales_strategy       # 销售策略
+      - pricing_strategy     # 定价策略
+      - competitor_analysis  # 竞品分析
+      - market_research      # 市场研究
+      - prime_day            # Prime Day 策略
+    estimated_size: 140KB
+    markdown_files: 13       # 已抓取 13 篇文章
+    scraped_from: https://www.junglescout.com/resources/articles/
+    scraped_date: 2025-12-30
+
 # === 路径模板 ===
 # 使用 {source} 占位符，运行时替换为实际数据源 ID
 paths:
