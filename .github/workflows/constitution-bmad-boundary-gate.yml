@@ -20,14 +20,11 @@ jobs:
           echo "=== Checking BMAD boundary ==="
 
           # Any BMAD references under Agents/ is forbidden
-          if git grep -n -i "bmad" -- "Agents" "agents" 2>/dev/null; then
-            echo "::error::BMAD references found under Agents/ or agents/. BMAD must stay in Roles/Context layer only."
-            exit 1
-          fi
-
-          # Prevent copying BMAD yaml into Agents directories
-          if git ls-files | grep -E '^(Agents|agents)/.*\.ya?ml | xargs -I{} bash -lc 'grep -qi "bmad" "{}" && echo "{}" && exit 10' ; then
-            echo "::error::BMAD-marked YAML found under Agents/ or agents/. Forbidden."
+          BMAD_REFS=$(git grep -n -i "bmad" -- "Agents/" 2>/dev/null || true)
+          if [ -n "$BMAD_REFS" ]; then
+            echo "::error::BMAD references found under Agents/:"
+            echo "$BMAD_REFS"
+            echo "BMAD must stay in Roles/Context layer only."
             exit 1
           fi
 
