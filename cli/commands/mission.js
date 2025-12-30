@@ -34,6 +34,10 @@ async function handleMission(subcommand, args, repoRoot) {
       return await missionStatus(args, repoRoot);
     case 'stats':
       return await missionStats(repoRoot);
+    case 'approve':
+      return await missionApprove(args, repoRoot);
+    case 'revoke':
+      return await missionRevoke(args, repoRoot);
     default:
       showMissionHelp();
   }
@@ -132,6 +136,7 @@ async function missionRun(args, repoRoot) {
  */
 async function missionIngest(args, repoRoot) {
   const { ingestMission, ingestAllMissions } = require('../../src/mission/ingest');
+  const { getMissionStatus } = require('../../src/mission/run');
 
   const missionDir = args[0];
 
@@ -146,10 +151,34 @@ async function missionIngest(args, repoRoot) {
         ? missionDir
         : path.join(repoRoot, 'data/missions', missionDir);
 
+      // Check for needs_manual status
+      const meta = getMissionStatus(fullMissionDir);
+      if (meta.status === 'needs_manual') {
+        const answerPath = path.join(fullMissionDir, 'outputs', 'answer.md');
+        const hasAnswer = fs.existsSync(answerPath) &&
+          fs.readFileSync(answerPath, 'utf8').trim().length > 50;
+
+        if (!hasAnswer) {
+          console.log(`${colors.yellow}⚠️  Mission requires manual completion${colors.reset}`);
+          console.log(`\n   Status: needs_manual`);
+          console.log(`   Missing: outputs/answer.md (with your response)`);
+          console.log(`\n   Steps:`);
+          console.log(`   1. Review: ${fullMissionDir}/outputs/MANUAL_PROMPT.md`);
+          console.log(`   2. Write your answer to: ${fullMissionDir}/outputs/answer.md`);
+          console.log(`   3. Run this command again to complete ingestion\n`);
+          return;
+        }
+      }
+
       const result = await ingestMission(fullMissionDir, { repoRoot });
       console.log(`${colors.green}✅ Ingested: ${result.missionId}${colors.reset}`);
       console.log(`   Outputs:  ${result.outputs.length} files`);
       console.log(`   Evidence: ${result.evidence.length} files`);
+
+      // If was needs_manual and now has answer, update status
+      if (meta.status === 'needs_manual') {
+        console.log(`\n${colors.green}✅ Manual completion detected - mission updated${colors.reset}`);
+      }
       console.log('');
     } else {
       console.log(`${colors.red}❌ Missing mission directory${colors.reset}`);
@@ -299,7 +328,7 @@ function showMissionHelp() {
   console.log(`
 ${colors.bold}Mission Commands${colors.reset}
 
-${colors.cyan}Usage:${colors.reset}
+${colors.cyan}Core Commands:${colors.reset}
   liye mission new --slug <slug> [options]    Create new mission pack
   liye mission run <missionDir> [options]     Run a mission
   liye mission ingest <missionDir>            Ingest mission artifacts
@@ -307,23 +336,32 @@ ${colors.cyan}Usage:${colors.reset}
   liye mission status <missionDir>            Show mission status
   liye mission stats                          Show statistics
 
+${colors.cyan}Approval Commands (semi-auto mode):${colors.reset}
+  liye mission approve <missionDir>           Grant approval for mission
+  liye mission revoke <missionDir>            Revoke approval
+
 ${colors.cyan}Options for 'new':${colors.reset}
   --broker <type>      Broker: codex, gemini, antigravity, claude (default: codex)
   --project <name>     Project name (default: default)
   --slug <slug>        Task slug (required)
   --objective <text>   Task objective
+  --model <model>      Model to use (default: gpt-5.2-thinking)
 
 ${colors.cyan}Options for 'run':${colors.reset}
   --model <model>      Override model
 
 ${colors.cyan}Options for 'list':${colors.reset}
   --broker <type>      Filter by broker
-  --status <status>    Filter by status
+  --status <status>    Filter by status (completed/failed/needs_manual/pending)
   --tag <tag>          Filter by tag
   --limit <n>          Limit results (default: 20)
 
+${colors.cyan}Status Icons:${colors.reset}
+  ✅ completed    📝 needs_manual    🔄 running    ❌ failed    ⏳ pending
+
 ${colors.cyan}Examples:${colors.reset}
   liye mission new --slug "analyze-keywords" --broker codex --project amazon
+  liye mission approve 20251231-1200__amazon__analyze-keywords
   liye mission run 20251231-1200__amazon__analyze-keywords
   liye mission ingest --all
 `);
@@ -357,6 +395,76 @@ function parseArgs(args, defaults = {}) {
 }
 
 /**
+ * liye mission approve
+ */
+async function missionApprove(args, repoRoot) {
+  const { grantApproval, getApprovalState, formatApprovalStatus } = require('../../src/config/approval');
+
+  const missionDir = args[0];
+  if (!missionDir) {
+    console.log(`${colors.red}❌ Missing mission directory${colors.reset}`);
+    console.log(`\nUsage: liye mission approve <missionDir>`);
+    process.exit(1);
+  }
+
+  const fullMissionDir = path.isAbsolute(missionDir)
+    ? missionDir
+    : path.join(repoRoot, 'data/missions', missionDir);
+
+  if (!fs.existsSync(fullMissionDir)) {
+    console.log(`${colors.red}❌ Mission not found: ${missionDir}${colors.reset}`);
+    process.exit(1);
+  }
+
+  console.log(`\n${colors.cyan}🔓 Approving Mission${colors.reset}\n`);
+
+  const result = grantApproval(fullMissionDir, 'user');
+
+  if (result.success) {
+    console.log(`${colors.green}✅ Approval granted${colors.reset}`);
+    console.log(`   Granted at: ${result.granted_at}`);
+    console.log(`   Scope: Same mission, until mission ends`);
+    console.log(`\n${colors.dim}Note: Dangerous actions (rm -rf, sudo, git push, etc.) will still require re-approval.${colors.reset}\n`);
+  } else {
+    console.log(`${colors.red}❌ Failed to grant approval: ${result.reason}${colors.reset}\n`);
+  }
+}
+
+/**
+ * liye mission revoke
+ */
+async function missionRevoke(args, repoRoot) {
+  const { revokeApproval, getApprovalState, formatApprovalStatus } = require('../../src/config/approval');
+
+  const missionDir = args[0];
+  if (!missionDir) {
+    console.log(`${colors.red}❌ Missing mission directory${colors.reset}`);
+    console.log(`\nUsage: liye mission revoke <missionDir>`);
+    process.exit(1);
+  }
+
+  const fullMissionDir = path.isAbsolute(missionDir)
+    ? missionDir
+    : path.join(repoRoot, 'data/missions', missionDir);
+
+  if (!fs.existsSync(fullMissionDir)) {
+    console.log(`${colors.red}❌ Mission not found: ${missionDir}${colors.reset}`);
+    process.exit(1);
+  }
+
+  console.log(`\n${colors.cyan}🔒 Revoking Approval${colors.reset}\n`);
+
+  const result = revokeApproval(fullMissionDir);
+
+  if (result.success) {
+    console.log(`${colors.green}✅ Approval revoked${colors.reset}`);
+    console.log(`   Mission will require re-approval for future actions.\n`);
+  } else {
+    console.log(`${colors.red}❌ Failed to revoke: ${result.reason}${colors.reset}\n`);
+  }
+}
+
+/**
  * Get status icon
  */
 function getStatusIcon(status) {
@@ -365,6 +473,7 @@ function getStatusIcon(status) {
     case 'running': return '🔄';
     case 'failed': return '❌';
     case 'cancelled': return '⏹️';
+    case 'needs_manual': return '📝';
     default: return '⏳';
   }
 }

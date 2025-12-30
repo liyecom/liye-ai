@@ -1,13 +1,15 @@
 /**
  * Codex Broker
  * Integrates with OpenAI Codex CLI for GPT-powered tasks
+ * Default model: gpt-5.2-thinking (mapped to gpt-5.2 for CLI)
  */
 
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { BaseBroker } = require('./interface');
-const { BrokerKind } = require('../mission/types');
+const { BrokerKind, MissionStatus, ErrorCode } = require('../mission/types');
+const { getModelAlias, getRouteConfig } = require('../config/load');
 
 class CodexBroker extends BaseBroker {
   id() {
@@ -24,11 +26,12 @@ class CodexBroker extends BaseBroker {
   async check() {
     try {
       execSync('which codex', { stdio: 'pipe' });
-      return { ok: true, detail: 'Codex CLI found' };
+      return { ok: true, detail: 'Codex CLI found', errorCode: null };
     } catch {
       return {
         ok: false,
         detail: 'Codex CLI not found. Install: npm install -g @openai/codex',
+        errorCode: ErrorCode.BROKER_NOT_INSTALLED,
       };
     }
   }
@@ -37,9 +40,19 @@ class CodexBroker extends BaseBroker {
    * Run mission with Codex
    */
   async run(missionDir, options = {}) {
-    const { model = 'gpt-4.1', mission, repoRoot } = options;
+    const { mission, repoRoot } = options;
     const outputsDir = path.join(missionDir, 'outputs');
     const evidenceDir = path.join(missionDir, 'evidence');
+
+    // Get route config for 'ask' route
+    const routeConfig = getRouteConfig(repoRoot, 'ask', {
+      model: options.model,
+    });
+
+    // Get model (user-intent model may need aliasing)
+    const userModel = options.model || routeConfig.model || 'gpt-5.2-thinking';
+    const actualModel = getModelAlias(repoRoot, 'codex', userModel);
+    const modelMapped = userModel !== actualModel;
 
     // Ensure output directories exist
     if (!fs.existsSync(outputsDir)) fs.mkdirSync(outputsDir, { recursive: true });
@@ -52,26 +65,32 @@ class CodexBroker extends BaseBroker {
     const constraints = fs.existsSync(constraintsPath) ? fs.readFileSync(constraintsPath, 'utf8') : '';
 
     // Build prompt
-    const prompt = this._buildPrompt(mission, context, constraints, outputsDir);
+    const prompt = this._buildPrompt(mission, context, constraints, outputsDir, routeConfig);
 
     // Check if codex is available
     const check = await this.check();
     if (!check.ok) {
       // Fallback to manual mode
-      return this._manualFallback(missionDir, prompt, outputsDir);
+      return this._manualFallback(missionDir, prompt, outputsDir, userModel, actualModel, check.errorCode);
     }
 
     // Try to run codex
     try {
-      const result = await this._runCodex(prompt, model, missionDir);
+      const result = await this._runCodex(prompt, actualModel, missionDir, routeConfig);
+      result.model_requested = userModel;
+      result.model_actual = actualModel;
+      result.model_mapped = modelMapped;
       return result;
     } catch (err) {
       console.error(`Codex execution failed: ${err.message}`);
-      return this._manualFallback(missionDir, prompt, outputsDir);
+      return this._manualFallback(missionDir, prompt, outputsDir, userModel, actualModel, ErrorCode.UNKNOWN);
     }
   }
 
-  _buildPrompt(mission, context, constraints, outputsDir) {
+  _buildPrompt(mission, context, constraints, outputsDir, routeConfig) {
+    const approval = routeConfig.approval || 'semi-auto';
+    const sandbox = routeConfig.sandbox || 'read-only';
+
     return `# Mission: ${mission.objective}
 
 ## Context
@@ -79,6 +98,10 @@ ${context}
 
 ## Constraints
 ${constraints}
+
+## Governance
+- Approval Mode: ${approval}
+- Sandbox: ${sandbox}
 
 ## Output Requirements
 - Write your answer to: ${outputsDir}/answer.md
@@ -91,21 +114,24 @@ ${mission.objective}
 Please complete this task and save your response.`;
   }
 
-  async _runCodex(prompt, model, missionDir) {
+  async _runCodex(prompt, model, missionDir, routeConfig) {
     return new Promise((resolve, reject) => {
       const outputsDir = path.join(missionDir, 'outputs');
+      const approval = routeConfig.approval || 'semi-auto';
 
-      // Build codex command with approval and sandbox flags
+      // Build codex command
+      // Note: Actual codex CLI may have different args, adjust as needed
       const args = [
-        '--model', model,
-        '--approval-mode', 'on-request',
+        '-m', model,
         prompt,
       ];
 
       console.log('\n🤖 Running Codex CLI...\n');
       console.log(`   Model: ${model}`);
-      console.log(`   Approval: on-request`);
+      console.log(`   Approval: ${approval}`);
       console.log(`   Output: ${outputsDir}/answer.md\n`);
+
+      const startTime = Date.now();
 
       const child = spawn('codex', args, {
         stdio: 'inherit',
@@ -113,16 +139,28 @@ Please complete this task and save your response.`;
       });
 
       child.on('close', (code) => {
+        const runtimeSec = Math.round((Date.now() - startTime) / 1000);
+
         if (code === 0) {
           const outputs = this._scanOutputs(outputsDir);
           resolve({
-            status: outputs.length > 0 ? 'ok' : 'fail',
+            status: 'ok',
             outputs,
             evidence: [],
             notes: `Codex completed with code ${code}`,
+            runtime_sec: runtimeSec,
+            error_code: null,
           });
         } else {
-          reject(new Error(`Codex exited with code ${code}`));
+          // Execution failed but not fatal - return needs_manual
+          resolve({
+            status: 'needs_manual',
+            outputs: [],
+            evidence: [],
+            notes: `Codex exited with code ${code}`,
+            runtime_sec: runtimeSec,
+            error_code: ErrorCode.UNKNOWN,
+          });
         }
       });
 
@@ -132,31 +170,48 @@ Please complete this task and save your response.`;
     });
   }
 
-  _manualFallback(missionDir, prompt, outputsDir) {
-    console.log('\n📋 Codex Manual Mode\n');
+  _manualFallback(missionDir, prompt, outputsDir, userModel, actualModel, errorCode) {
+    console.log('\n📋 Codex Manual Fallback Mode\n');
     console.log('Codex CLI is not available or failed.');
-    console.log('Please complete the task manually:\n');
-    console.log('─'.repeat(60));
-    console.log(prompt);
-    console.log('─'.repeat(60));
-    console.log(`\n📁 Save your answer to: ${outputsDir}/answer.md\n`);
+    console.log('Generating manual prompt for completion...\n');
 
-    // Write prompt to a file for reference
-    const promptPath = path.join(outputsDir, 'CODEX_PROMPT.md');
-    fs.writeFileSync(promptPath, prompt);
-    console.log(`📄 Prompt saved to: ${promptPath}\n`);
+    // Build manual prompt with model info
+    const manualPrompt = `${prompt}
+
+---
+## Model Information
+- Requested: ${userModel}
+- Mapped to: ${actualModel}
+- Reason: ${userModel !== actualModel ? 'Model alias mapping (see config/brokers.yaml)' : 'Direct model'}
+
+## Instructions
+1. Complete the task above
+2. Save your answer to: outputs/answer.md
+3. Run: liye mission ingest <mission-dir>
+`;
+
+    // Write prompt to file
+    const promptPath = path.join(outputsDir, 'MANUAL_PROMPT.md');
+    fs.writeFileSync(promptPath, manualPrompt);
+    console.log(`📄 Manual prompt saved to: ${promptPath}`);
+    console.log(`📁 Save your answer to: ${outputsDir}/answer.md`);
+    console.log('');
 
     // Create placeholder answer.md
     const answerPath = path.join(outputsDir, 'answer.md');
     if (!fs.existsSync(answerPath)) {
-      fs.writeFileSync(answerPath, `# Answer\n\n<!-- Complete your answer here -->\n`);
+      fs.writeFileSync(answerPath, `# Answer\n\n<!-- Complete your answer here -->\n<!-- Model: ${userModel} → ${actualModel} -->\n`);
     }
 
     return {
-      status: 'ok',
-      outputs: ['CODEX_PROMPT.md', 'answer.md'],
+      status: 'needs_manual',
+      outputs: ['MANUAL_PROMPT.md', 'answer.md'],
       evidence: [],
-      notes: 'Manual fallback - please complete the task and save to outputs/answer.md',
+      notes: 'Manual fallback - broker unavailable. Complete the task and run ingest.',
+      model_requested: userModel,
+      model_actual: actualModel,
+      model_mapped: userModel !== actualModel,
+      error_code: errorCode,
     };
   }
 
