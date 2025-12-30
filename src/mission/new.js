@@ -12,6 +12,7 @@ const {
   writeYaml,
   ensureDir,
 } = require('./utils');
+const { getRouteConfig } = require('../config/load');
 
 /**
  * Create a new mission pack
@@ -50,7 +51,7 @@ function createMission(options) {
     objective: objective || `Task: ${slug}`,
     done_definition: 'Deliverables in outputs/ directory',
     broker: broker,
-    model: model || getDefaultModel(broker),
+    model: model || getDefaultModel(broker, repoRoot),
     budget: { ...DEFAULT_CONFIG.budget },
     approval: DEFAULT_CONFIG.approval,
     sandbox: DEFAULT_CONFIG.sandbox,
@@ -103,21 +104,14 @@ ${project}
 }
 
 /**
- * Get default model for broker
+ * Get default model for broker (now config-driven)
+ * @param {string} broker - Broker type
+ * @param {string} repoRoot - Repository root for config lookup
  */
-function getDefaultModel(broker) {
-  switch (broker) {
-    case BrokerType.CODEX:
-      return 'gpt-4.1';
-    case BrokerType.GEMINI:
-      return 'gemini-2.5-pro';
-    case BrokerType.CLAUDE:
-      return 'claude-sonnet-4-20250514';
-    case BrokerType.ANTIGRAVITY:
-      return 'auto';
-    default:
-      return 'gpt-4.1';
-  }
+function getDefaultModel(broker, repoRoot) {
+  // Use config-driven defaults
+  const routeConfig = getRouteConfig(repoRoot, 'ask');
+  return routeConfig.model || 'gpt-5.2-thinking';
 }
 
 module.exports = { createMission, getDefaultModel };
