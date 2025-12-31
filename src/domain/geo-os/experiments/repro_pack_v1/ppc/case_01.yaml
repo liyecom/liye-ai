@@ -1,0 +1,36 @@
+# Repro Pack v1 - PPC Case 01
+# Locked baseline for regression testing
+
+domain: ppc
+case_id: case_01
+query: "ACoS 从 45% 降到 25% 的策略"
+
+baseline_score: 6
+t1_enabled_score: 10
+lift: 4
+
+criteria:
+  - D1_causal_explicitness
+  - D2_assumption_clarity
+  - D3_hallucination_risk
+  - D4_actionability
+
+dimensions_improved:
+  - D1: "Medium → High"
+  - D2: "Low → High"
+  - D4: "Medium → High"
+
+dimensions_unchanged:
+  - D3: "Low → Low"
+
+t1_units_used:
+  - t1_helium_10_HowYouSetUpYourAmazo_0
+  - t1_helium_10_HowYouSetUpYourAmazo_1
+  - t1_helium_10_HowYouSetUpYourAmazo_2
+  - t1_helium_10_HowYouSetUpYourAmazo_3
+
+verdict: POSITIVE_LIFT
+locked: true
+
+source_experiment: "experiments/reasoning_comparison/case_01_t1_enabled.md"
+verified_date: "2025-12-31"

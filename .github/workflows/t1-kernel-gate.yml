@@ -1,0 +1,97 @@
+name: T1 Kernel Non-Regression Gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/kernel/t1/**'
+      - 'src/domain/**/t1_candidates/**'
+
+jobs:
+  t1-kernel-protection:
+    name: Protect T1 Kernel Integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check T1 Kernel Freeze Status
+        run: |
+          set -euo pipefail
+          echo "=== T1 Kernel Non-Regression Gate ==="
+
+          # Rule 1: VERDICT_FREEZE.md must exist and be FROZEN
+          if [ ! -f "src/kernel/t1/VERDICT_FREEZE.md" ]; then
+            echo "::error::VERDICT_FREEZE.md is missing!"
+            exit 1
+          fi
+
+          if ! grep -q "Status: FROZEN" src/kernel/t1/VERDICT_FREEZE.md; then
+            echo "::error::T1 verdict must remain FROZEN"
+            exit 1
+          fi
+
+          echo "✅ Verdict freeze intact"
+
+      - name: Check T1 Cannot Be Disabled
+        run: |
+          set -euo pipefail
+
+          # Rule 2: Check for disabling patterns in changed files
+          CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+          for file in $CHANGES; do
+            if [[ "$file" == src/kernel/t1/* ]]; then
+              # Check for deletion of T1 files
+              if ! [ -f "$file" ]; then
+                echo "::error::T1 kernel files cannot be deleted: $file"
+                exit 1
+              fi
+
+              # Check for disabling patterns
+              if grep -q "status: DISABLED" "$file" 2>/dev/null; then
+                echo "::error::T1 cannot be disabled: $file"
+                exit 1
+              fi
+            fi
+          done
+
+          echo "✅ No T1 disabling detected"
+
+      - name: Check Always-On T1 Not Demoted
+        run: |
+          set -euo pipefail
+
+          # Rule 3: Always-on T1 cannot move to contextual/deferred
+          ALWAYS_ON_T1="T1_liquidity_illusion T1_correlation_regime_shift"
+
+          for t1 in $ALWAYS_ON_T1; do
+            if [ -f "src/kernel/t1/always_on/${t1}.md" ]; then
+              echo "✅ $t1 remains always-on"
+            else
+              # Check if it was moved
+              if [ -f "src/kernel/t1/contextual/${t1}.md" ] || [ -f "src/kernel/t1/deferred/${t1}.md" ]; then
+                echo "::error::Always-on T1 cannot be demoted: $t1"
+                exit 1
+              fi
+            fi
+          done
+
+          echo "✅ Always-on T1 classification preserved"
+
+      - name: Summary
+        if: success()
+        run: |
+          echo ""
+          echo "==========================================="
+          echo "T1 Kernel Non-Regression Gate: PASSED"
+          echo "==========================================="
+          echo ""
+          echo "Protected:"
+          echo "- Verdict freeze: INTACT"
+          echo "- T1 disabling: BLOCKED"
+          echo "- Always-on demotion: BLOCKED"
+          echo ""
+          echo "T1 is verified as cross-domain reasoning kernel."
+          echo "This conclusion cannot be rolled back."

@@ -1,0 +1,89 @@
+# Case 18: Visual-Intent Anchoring Validation
+# Bound Mechanism: listing_visual_intent_anchoring_01
+
+case_id: case_18
+domain: listing
+bound_mechanism: listing_visual_intent_anchoring_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "主图点击率优化"
+  context: |
+    产品：可调节手机支架
+    搜索词："adjustable phone stand for desk"
+    当前主图：产品斜 45° 角，无参照物，白色背景
+    CTR: 1.2%（类目平均 2.5%）
+    竞品主图多展示手机放置在支架上的场景
+  question: "主图 CTR 低的原因是什么？如何改进？"
+
+baseline:
+  response_pattern: |
+    通用建议："需要更好看的图片"
+    缺失：
+    - 未分析意图锚定
+    - 未识别具体问题
+    - 无改进框架
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Visual-Intent Anchoring 机制：
+
+    意图锚定分析：
+
+    搜索词意图解析："adjustable phone stand for desk"
+    - 核心意图：手机支架
+    - 属性意图：可调节
+    - 场景意图：桌面使用
+
+    当前主图问题：
+
+    1. EXPLICIT_MATCH 缺失
+       - 图中无手机 → 用户 0.5s 内无法确认"这是手机支架"
+       - CTR 损失: -20-30%
+
+    2. ATTRIBUTE_SIGNAL 缺失
+       - "adjustable" 属性未视觉传达
+       - 无多角度展示暗示可调节
+       - CTR 损失: -10-15%
+
+    3. USE_CASE_PREVIEW 缺失
+       - 无桌面环境暗示
+       - 用户无法预见使用场景
+       - CTR 损失: -5-10%
+
+    优化方案：
+
+    1. 核心改进（EXPLICIT_MATCH）
+       - 主图放置一部手机在支架上
+       - 手机屏幕亮起（增加真实感）
+       - 产品仍占画面 85%
+
+    2. 属性传达（ATTRIBUTE_SIGNAL）
+       - 展示支架处于某一调节角度
+       - 或使用小图标暗示多角度
+
+    3. 场景暗示（可选）
+       - 底部隐约桌面纹理
+       - 不要过度装饰
+
+    4. 技术规格：
+       - 白色/浅灰背景（Amazon 规范）
+       - 高亮度、无阴影
+       - 产品居中偏上
+
+    预期效果：CTR 1.2% → 2.0-2.5%（+65-100%）
+  mechanism_used:
+    - listing_visual_intent_anchoring_01
+  lift_dimensions:
+    causal_explicitness: "+2（意图-视觉映射）"
+    assumption_clarity: "+1（锚定层级）"
+    hallucination_risk: "-1（基于竞品对比）"
+    actionability: "+2（具体改图方案）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

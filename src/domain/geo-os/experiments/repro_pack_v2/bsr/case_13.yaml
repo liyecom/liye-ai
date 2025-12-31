@@ -1,0 +1,69 @@
+# Case 13: Conversion Rank Elasticity Validation
+# Bound Mechanism: bsr_conversion_elasticity_01
+
+case_id: case_13
+domain: bsr
+bound_mechanism: bsr_conversion_elasticity_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "转化率优化 ROI 评估"
+  context: |
+    两个产品考虑投入转化率优化：
+    - Product A: BSR #350, CVR 12%, 日流量 500
+    - Product B: BSR #8,000, CVR 8%, 日流量 100
+    预算有限，只能优先优化一个
+  question: "应该优先优化哪个产品的转化率？"
+
+baseline:
+  response_pattern: |
+    通用建议："优化转化率低的 Product B"
+    缺失：
+    - 未考虑位置对弹性的影响
+    - 未评估投入产出比
+    - 未考虑流量差异
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Conversion Rank Elasticity 机制：
+
+    弹性分析：
+
+    1. Product A（BSR #350）
+       - Zone: TOP_1000（101-1000）
+       - Elasticity: MEDIUM（1.0-1.5）
+       - 解读：转化率提升与 BSR 提升线性相关
+       - CVR +2% → BSR 预期提升 ~50-100 位
+
+    2. Product B（BSR #8,000）
+       - Zone: LONG_TAIL（>1000）
+       - Elasticity: LOW（0.5-1.0）
+       - 解读：需要较大 CVR 提升才能移动排名
+       - CVR +2% → BSR 预期提升仅 ~200-400 位
+
+    决策建议：优先 Product A
+
+    理由：
+    1. 弹性优势：A 在 TOP_1000 区间，CVR 投入 ROI 更高
+    2. 流量基数：A 有 500 流量，CVR 提升转化为更多绝对销量
+    3. 战略价值：A 接近 TOP_100，突破后弹性更高
+
+    Product B 策略：
+    - 先解决流量问题（从 100 提升到 300+）
+    - 流量上来后再优化转化率
+    - 当前阶段 CVR 优化 ROI 低
+  mechanism_used:
+    - bsr_conversion_elasticity_01
+  lift_dimensions:
+    causal_explicitness: "+2（弹性区间-ROI 映射）"
+    assumption_clarity: "+1（区间定义清晰）"
+    hallucination_risk: "-1（基于位置判断）"
+    actionability: "+2（明确优先级和替代策略）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

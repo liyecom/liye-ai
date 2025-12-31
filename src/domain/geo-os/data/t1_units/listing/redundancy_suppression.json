@@ -1,0 +1,93 @@
+{
+  "id": "listing_redundancy_suppression_01",
+  "domain": "listing",
+  "mechanism_type": "failure_mode",
+  "name": "Information Redundancy Suppression",
+  "description": "信息冗余抑制机制：识别并消除 Listing 中的重复信息，提升信息密度",
+
+  "trigger_conditions": [
+    "Listing 内容过长但转化率低",
+    "用户反馈'说了很多但不知道在说什么'",
+    "Title/Bullets/Description 信息重复"
+  ],
+
+  "failure_mode": {
+    "pattern": "信息冗余导致注意力稀释",
+    "symptom": "关键信息被淹没在重复内容中",
+    "root_cause": "编写时缺乏整体规划，各部分独立编写导致重复"
+  },
+
+  "causal_chain": "信息冗余 → 阅读疲劳 → 关键信息被跳过 → 说服力下降 → 转化率降低",
+
+  "mechanism_logic": {
+    "redundancy_types": [
+      {
+        "type": "CROSS_SECTION_REPEAT",
+        "description": "Title、Bullets、Description 说同样的话",
+        "detection": "cross_section_similarity > 0.7",
+        "solution": "每个区域承担不同信息层次"
+      },
+      {
+        "type": "INTRA_BULLET_REPEAT",
+        "description": "多个 Bullet 传达相同信息",
+        "detection": "bullet_pair_similarity > 0.6",
+        "solution": "合并或角色分化"
+      },
+      {
+        "type": "KEYWORD_STUFFING",
+        "description": "为 SEO 过度重复关键词",
+        "detection": "keyword_density > 3%",
+        "solution": "语义变体替代直接重复"
+      },
+      {
+        "type": "FILLER_CONTENT",
+        "description": "无信息量的通用描述",
+        "detection": "information_entropy < threshold",
+        "solution": "删除或替换为具体事实"
+      }
+    ],
+    "information_architecture": {
+      "title": "核心卖点 + 关键属性（高密度）",
+      "bullets": "5 个独立说服角色（见 bullet_role_differentiation）",
+      "description": "故事化展开 + 使用场景 + 补充细节",
+      "backend_keywords": "纯 SEO 覆盖（用户不可见）"
+    },
+    "suppression_actions": [
+      {
+        "action": "MERGE",
+        "condition": "两处信息相似但各有价值",
+        "result": "合并到更合适位置，删除另一处"
+      },
+      {
+        "action": "DELETE",
+        "condition": "纯粹的填充内容",
+        "result": "直接删除"
+      },
+      {
+        "action": "DIFFERENTIATE",
+        "condition": "需要从不同角度说明",
+        "result": "改写为不同视角"
+      }
+    ]
+  },
+
+  "expected_effect": "通过冗余抑制：信息密度提升 30-50% → 关键信息曝光率提高 → 转化率提升 5-10%",
+
+  "boundary_conditions": [
+    "某些重复是必要的强调（如安全警告）",
+    "不同用户群可能需要在不同位置看到相同信息",
+    "A+ Content 有独立的信息架构"
+  ],
+
+  "anti_patterns": [
+    "Title 的内容在 Bullet 1 完全重复",
+    "每个 Bullet 都以产品名开头",
+    "Description 只是 Bullets 的拼接"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#failure_mode",
+  "bound_cases": ["case_17"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

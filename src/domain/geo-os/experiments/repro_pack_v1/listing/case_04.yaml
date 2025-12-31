@@ -1,0 +1,40 @@
+# Repro Pack v1 - Listing Case 04
+# Locked baseline for regression testing
+
+domain: listing
+case_id: case_04
+query: "Bullet Points 如何优化以提升转化率"
+
+baseline_score: 5
+t1_enabled_score: 12
+lift: 7
+
+criteria:
+  - D1_semantic_coverage_gain
+  - D2_conversion_intent_match
+  - D3_info_load_efficiency
+  - D4_downstream_signal_sensitivity
+
+dimensions_improved:
+  - D1: "Low → High"
+  - D2: "Low → High"
+  - D3: "Medium → High"
+  - D4: "Low → High"
+
+t1_units_used:
+  - t1_listing_semantic_alignment_01
+  - t1_listing_title_tradeoff_01
+  - t1_listing_bullet_density_01
+  - t1_listing_image_text_consistency_01
+
+key_mechanisms:
+  - "Query-Bullet 语义对齐"
+  - "信息密度阈值 (≤3)"
+  - "下游信号传导"
+
+verdict: POSITIVE_LIFT
+locked: true
+
+criteria_version: "REASONING_LIFT_CRITERIA_LISTING.md"
+source_experiment: "experiments/reasoning_comparison/case_04_listing_t1_enabled.md"
+verified_date: "2025-12-31"

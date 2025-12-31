@@ -267,10 +267,32 @@ https://api.example.com/v1/data
 └─────────┘     └─────────┘     └─────────┘     └─────────┘
 ```
 
+### Standard Flow
 1. **CREATE**: `liye mission new --slug <s>`
 2. **RUN**: `liye mission run <dir>`
 3. **INGEST**: `liye mission ingest <dir>`
 4. **INDEX**: Automatically updated for search
+
+### Research Shortcut (Antigravity)
+
+For manual research tasks, use the simplified 2-step workflow:
+
+```bash
+# Step 1: Start research
+liye research "Analyze competitor pricing"
+# → Creates mission, copies prompt to clipboard, opens directory
+
+# Step 2: Complete and finish
+liye finish
+# → Paste your answer, auto-ingest
+```
+
+This is equivalent to:
+1. `liye mission new --broker antigravity --project research --slug <task>`
+2. `liye mission run <dir>`
+3. Manually paste prompt to Antigravity
+4. Save answer to `outputs/answer.md`
+5. `liye mission ingest <dir>`
 
 ## Best Practices
 

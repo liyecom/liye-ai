@@ -185,6 +185,38 @@ Evidence should be saved to `evidence/`:
 
 ## Usage Examples
 
+### Research Workflow (Antigravity Shortcut)
+
+The simplified 2-step workflow for manual research tasks:
+
+```bash
+# Step 1: Start research (creates mission, copies prompt to clipboard)
+liye research "Search Amazon for top keywords for B08XXX"
+
+# Step 2: After completing in Antigravity, paste your answer
+liye finish
+```
+
+**What happens:**
+1. `liye research` creates a mission with `broker=antigravity`
+2. Generates `ANTIGRAVITY_PROMPT.md` with full context
+3. Copies prompt to clipboard (macOS: pbcopy, Linux: xclip/xsel, Windows: clip)
+4. Opens mission directory in file manager
+5. Saves mission pointer for `liye finish`
+
+**Finishing:**
+1. `liye finish` reads the last mission (or specify with `--dir`)
+2. Prompts you to paste your answer (multiline, double-enter to finish)
+3. Writes to `outputs/answer.md`
+4. Runs ingest to generate summary and update index
+
+**Cross-Platform Support:**
+| Platform | Clipboard | File Manager |
+|----------|-----------|--------------|
+| macOS | pbcopy | Finder |
+| Linux | xclip/xsel | xdg-open |
+| Windows | clip | Explorer |
+
 ### Quick Ask
 
 ```bash

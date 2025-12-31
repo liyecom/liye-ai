@@ -1,0 +1,57 @@
+---
+trace_id: INV-TRACE-003
+case: case_02
+condition: baseline
+t1_loaded: false
+model: claude-opus-4-5-20251101
+timestamp: 2025-12-31T00:54:00Z
+---
+
+# Case 02: Portfolio Hidden Risk Exposure Diagnosis
+
+## Scenario
+
+A portfolio holds:
+- 40% US large-cap equities (S&P 500 ETF)
+- 30% Investment-grade corporate bonds
+- 20% Emerging market equities
+- 10% Gold
+
+The portfolio manager believes this is "well-diversified" based on historical correlation data from 2010-2019.
+
+## Task
+
+Diagnose hidden risk exposures in this portfolio.
+
+---
+
+## Agent Output (Baseline)
+
+### Hidden Risk Analysis
+
+**1. Correlation Risk**
+The 2010-2019 period was characterized by low volatility and steady growth. Correlations during this period may not reflect behavior during stress events.
+
+**2. EM Currency Exposure**
+The 20% EM allocation carries currency risk that may be correlated with risk-off moves in developed markets.
+
+**3. Credit Spread Risk**
+Investment-grade corporate bonds have credit spread exposure that could widen during equity selloffs.
+
+**4. Gold Hedge Uncertainty**
+10% gold allocation may not be sufficient to offset losses in the 90% risk-asset portion during severe drawdowns.
+
+**5. Liquidity Risk**
+EM equities and corporate bonds may have reduced liquidity during market stress.
+
+### Conclusion
+
+The portfolio has hidden risks primarily related to correlation assumptions that may not hold during market stress. The diversification benefit may be overstated based on the calm 2010-2019 period.
+
+---
+
+## Trace Metadata
+
+- Duration: N/A
+- Token count: ~200
+- Guardrail check: PASS
