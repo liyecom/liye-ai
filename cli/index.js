@@ -116,27 +116,22 @@ async function main() {
   }
 }
 
-// Task handler - 自然语言任务执行
+// Task handler - 上下文编译（不执行任务，任务由 Claude Code 执行）
 async function handleTask(task) {
   if (!task || task.trim() === '') {
     showHelp();
     return;
   }
 
-  // 检查是否请求上下文编译模式
-  if (task.includes('--context-only') || task.includes('--compile')) {
-    return handleContextCompile(task.replace(/--context-only|--compile/g, '').trim());
-  }
-
-  // 自然语言意图识别和路由
+  // 意图识别 + 上下文编译
   const { recognizeIntent } = require('../src/nlp/intent');
-  const { routeIntent } = require('../src/nlp/router');
+  const { compileContext } = require('../src/nlp/compiler');
 
   try {
     const intent = recognizeIntent(task);
-    await routeIntent(intent, REPO_ROOT);
+    await compileContext(intent, REPO_ROOT);
   } catch (err) {
-    log(`❌ 任务执行失败: ${err.message}`, 'red');
+    log(`❌ 上下文编译失败: ${err.message}`, 'red');
     process.exit(1);
   }
 }
@@ -168,26 +163,25 @@ async function handleContextCompile(task) {
 function showHelp() {
   console.log(`
 ${colors.bold}LiYe AI CLI v5.2${colors.reset}
-${colors.cyan}Personal AI Infrastructure - Claude Code 调度器${colors.reset}
+${colors.cyan}Personal AI Infrastructure - 开发工具${colors.reset}
 
-${colors.cyan}自然语言 (推荐):${colors.reset}
-  liye 分析ASIN：B08SVXGTRT              → Amazon Growth OS + Claude Code
-  liye 分析Google公司的财报               → Investment OS + Claude Code
-  liye 医疗研究分析                       → Medical OS + Claude Code
-  李烨 分析这个产品的竞争对手              中文别名
+${colors.cyan}上下文编译:${colors.reset}
+  liye 分析ASIN：B08SVXGTRT     编译 Amazon Growth OS 上下文
+  liye 分析Google公司的财报      编译 Investment OS 上下文
+  李烨 医疗研究分析              编译 Medical OS 上下文
 
 ${colors.cyan}工作流:${colors.reset}
-  1. liye <任务>        意图识别 → 选择 OS 系统
-  2. 构建上下文          加载 Agents/Skills/Knowledge
-  3. 调用 Claude Code    cc 使用 OS 上下文执行任务
+  1. liye <任务>           编译领域上下文 → .claude/.compiled/context.md
+  2. 在 Claude Code 中      执行任务（CC 读取上下文）
 
-${colors.cyan}支持的 OS 系统:${colors.reset}
-  Amazon Growth OS      电商运营、ASIN分析、关键词优化
-  Investment OS         财报分析、投资研究、估值
-  Medical OS            医疗研究、文献分析
+${colors.yellow}注意: liye CLI 只编译上下文，不执行任务。${colors.reset}
+${colors.yellow}任务执行应在 Claude Code 中完成。${colors.reset}
 
-${colors.cyan}经典命令:${colors.reset}
-  liye "任务" --context-only  仅编译上下文 (不调用 cc)
+${colors.cyan}开发命令:${colors.reset}
+  liye agent list           列出所有 Agents
+  liye agent validate <n>   验证 Agent 配置
+  liye skill list           列出所有 Skills
+  liye report architecture  架构合规报告
 
 ${colors.cyan}Research Workflow (Antigravity):${colors.reset}
   liye research "<任务>"     开始研究 (复制提示到剪贴板)
