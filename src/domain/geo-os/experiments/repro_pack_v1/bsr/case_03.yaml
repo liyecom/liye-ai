@@ -1,0 +1,42 @@
+# Repro Pack v1 - BSR Case 03
+# Locked baseline for regression testing
+
+domain: bsr_diagnosis
+case_id: case_03
+query: "BSR 从 Top 100 跌至 500+ 的根因分析"
+
+baseline_score: 5
+t1_enabled_score: 9
+lift: 4
+
+criteria:
+  - D1_causal_explicitness
+  - D2_assumption_clarity
+  - D3_hallucination_risk
+  - D4_actionability
+
+dimensions_improved:
+  - D1: "Medium → High"
+  - D2: "Low → High"
+  - D4: "Medium → High"
+
+dimensions_unchanged:
+  - D3: "Low → Low"
+
+t1_units_used:
+  - t1_reddit_r/f_Buyboxsuppressioniss_4
+  - t1_reddit_r/f_Buyboxsuppressioniss_6
+  - t1_reddit_r/f_Buyboxsuppressioniss_7
+  - t1_reddit_r/f_Buyboxsuppressioniss_8
+  - t1_reddit_r/f_FBAfraudatitsfinest_14
+
+key_mechanisms:
+  - "Buy Box 价格阈值抑制"
+  - "跨平台价格比较"
+  - "FBA 履约错误转嫁"
+
+verdict: POSITIVE_LIFT
+locked: true
+
+source_experiment: "experiments/reasoning_comparison/case_03_t1_enabled.md"
+verified_date: "2025-12-31"

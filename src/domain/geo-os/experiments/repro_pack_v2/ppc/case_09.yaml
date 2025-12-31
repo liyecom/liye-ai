@@ -1,0 +1,64 @@
+# Case 09: Negative Keyword Suppression Validation
+# Bound Mechanism: ppc_negative_keyword_suppression_01
+
+case_id: case_09
+domain: ppc
+bound_mechanism: ppc_negative_keyword_suppression_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "Search Term 负面词识别与处理"
+  context: |
+    Search Term Report 显示：
+    - "competitor brand X case": 25 clicks, 0 conversions, $50 spend
+    - "cheap phone stand": 40 clicks, 1 conversion, $32 spend, ACoS 320%
+    - "phone holder for desk": 15 clicks, 0 conversions, $12 spend
+    - "adjustable phone mount": 20 clicks, 3 conversions, $18 spend, ACoS 60%
+  question: "哪些词应该加为 Negative？用什么匹配类型？"
+
+baseline:
+  response_pattern: |
+    通用建议："把 ACoS 高的词都加 negative"
+    缺失：
+    - 未区分不同情况的处理方式
+    - 未指定匹配类型
+    - 未考虑竞品词的特殊性
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Negative Keyword Suppression 机制：
+
+    1. "competitor brand X case"
+       - Rule: irrelevant_intent（竞品品牌）
+       - Action: Exact Negative（-competitor brand X case）
+       - Rationale: 竞品词转化率极低，直接阻断
+
+    2. "cheap phone stand"
+       - Rule: extreme_acos（ACoS 320% >> Target）
+       - Action: Phrase Negative（-cheap）
+       - Rationale: "cheap" 前缀词普遍低转化
+
+    3. "phone holder for desk"
+       - Rule: zero_conversion（0 转化但样本小）
+       - Action: 暂不处理，观察至 30+ clicks
+       - Rationale: 15 clicks 可能是随机波动
+
+    4. "adjustable phone mount"
+       - Rule: N/A（有转化，ACoS 可接受范围）
+       - Action: 保留，可考虑提取为 Exact 独立投放
+       - Rationale: ACoS 60% 虽高于 Target 但有转化
+  mechanism_used:
+    - ppc_negative_keyword_suppression_01
+  lift_dimensions:
+    causal_explicitness: "+2（明确的规则-动作映射）"
+    assumption_clarity: "+1（阈值和例外清晰）"
+    hallucination_risk: "-1（基于实际数据）"
+    actionability: "+2（具体匹配类型）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

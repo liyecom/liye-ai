@@ -1,0 +1,69 @@
+{
+  "id": "bsr_conversion_elasticity_01",
+  "domain": "bsr",
+  "mechanism_type": "optimization_tradeoff",
+  "name": "Conversion Rank Elasticity",
+  "description": "转化率-排名弹性机制：转化率变化对 BSR 的边际影响随排名位置变化",
+
+  "trigger_conditions": [
+    "产品转化率发生变化",
+    "需要评估转化率优化的 BSR 收益",
+    "制定转化率目标时"
+  ],
+
+  "optimization_tradeoff": {
+    "tradeoff": "转化率投入 vs BSR 收益",
+    "elasticity_pattern": "转化率提升对 BSR 的边际贡献随排名下降而递减"
+  },
+
+  "causal_chain": "转化率提升 → 单位流量产出增加 → A9 算法奖励 → BSR 提升 → 但提升幅度取决于当前位置",
+
+  "mechanism_logic": {
+    "elasticity_formula": "bsr_delta = cvr_delta × elasticity_coefficient(current_rank)",
+    "elasticity_zones": [
+      {
+        "zone": "TOP_100",
+        "rank_range": "1-100",
+        "elasticity": "HIGH (1.5-2.0)",
+        "interpretation": "头部位置，转化率小幅提升带来显著排名变化"
+      },
+      {
+        "zone": "TOP_1000",
+        "rank_range": "101-1000",
+        "elasticity": "MEDIUM (1.0-1.5)",
+        "interpretation": "中部位置，转化率与排名线性相关"
+      },
+      {
+        "zone": "LONG_TAIL",
+        "rank_range": ">1000",
+        "elasticity": "LOW (0.5-1.0)",
+        "interpretation": "长尾位置，需要较大转化率提升才能移动排名"
+      }
+    ],
+    "optimization_priority": {
+      "TOP_100": "维持转化率，防止下滑",
+      "TOP_1000": "积极优化转化率，ROI 最高",
+      "LONG_TAIL": "先解决流量问题，再考虑转化"
+    }
+  },
+
+  "expected_effect": "理解弹性机制后：在 TOP_1000 区间集中资源优化转化率 → 最大化 BSR 提升 ROI",
+
+  "boundary_conditions": [
+    "流量不足时转化率优化效果有限",
+    "类目大小影响绝对排名含义",
+    "季节性因素会改变弹性系数"
+  ],
+
+  "anti_patterns": [
+    "在长尾位置过度优化转化率（应先解决流量）",
+    "在头部位置忽视转化率（容易被超越）",
+    "用绝对转化率比较不同类目"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#optimization_tradeoff",
+  "bound_cases": ["case_13"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

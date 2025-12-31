@@ -1,0 +1,103 @@
+# Case 19: Above-Fold Semantic Priority Validation
+# Bound Mechanism: listing_fold_semantic_priority_01
+
+case_id: case_19
+domain: listing
+bound_mechanism: listing_fold_semantic_priority_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "首屏内容优先级优化"
+  context: |
+    产品：便携式蓝牙音箱
+
+    当前 Listing：
+    - Title: "Brand XYZ Portable Speaker - Bluetooth 5.0 Wireless
+              Speaker with 360° Surround Sound and RGB Lights"
+    - Bullet 1: "Our company has been making speakers for over 20 years
+                 with a commitment to quality and customer satisfaction"
+    - Bullet 2: "360° surround sound technology fills any room with music"
+
+    跳出率: 65%（类目平均 45%）
+    用户停留时间: 8 秒（类目平均 15 秒）
+  question: "为什么用户快速离开？如何改善首屏内容？"
+
+baseline:
+  response_pattern: |
+    通用建议："Listing 需要更有吸引力"
+    缺失：
+    - 未分析首屏布局
+    - 未识别优先级问题
+    - 无移动端考虑
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Above-Fold Semantic Priority 机制：
+
+    首屏解剖（Desktop）：
+
+    可见区域：
+    - Title 前 80 字符: "Brand XYZ Portable Speaker - Bluetooth 5.0 Wireless Speaker with 360°..."
+    - Bullet 1: "Our company has been making speakers for over 20 years..."
+    - 主图、价格、评分
+
+    优先级问题诊断：
+
+    1. Title 前半段浪费
+       - 前 15 字符是品牌名（低优先级）
+       - 核心卖点"360° Surround Sound"被截断
+       - Priority 1 位置未传达差异化
+
+    2. Bullet 1 严重失误
+       - 唯一确保被阅读的说服文字
+       - 却在说公司历史（用户不关心）
+       - 核心功能"360° sound"放在 Bullet 2
+       - Priority 2 位置完全浪费
+
+    3. 移动端更严重
+       - Title 只显示 60 字符
+       - Bullet 1 部分可见
+       - 用户几乎看不到任何产品价值
+
+    优化方案：
+
+    1. Title 重排序（Priority 1）
+       原: "Brand XYZ Portable Speaker - Bluetooth 5.0..."
+       改: "360° Surround Sound Bluetooth Speaker - 24H Playtime,
+            IPX7 Waterproof | Brand XYZ"
+
+       前 60 字符: "360° Surround Sound Bluetooth Speaker - 24H Playtime, IPX7 Wa..."
+       ✓ 核心卖点前置
+
+    2. Bullet 1 重写（Priority 2）
+       原: "Our company has been making speakers..."
+       改: "360° IMMERSIVE AUDIO - Advanced drivers deliver rich bass and
+            crystal-clear sound that fills any room up to 1000 sq ft"
+
+       ✓ 最强价值主张前置
+
+    3. 首屏检查清单：
+       ✓ Title 前 60 字符包含核心卖点
+       ✓ Bullet 1 是最强说服点
+       ✓ 主图传达产品价值
+       ✓ 评分 4.0+
+
+    预期效果：
+    - 跳出率: 65% → 50%（-15%）
+    - 停留时间: 8s → 12s（+50%）
+    - CVR 提升 10-15%
+  mechanism_used:
+    - listing_fold_semantic_priority_01
+  lift_dimensions:
+    causal_explicitness: "+2（首屏-行为链）"
+    assumption_clarity: "+1（折叠线定义）"
+    hallucination_risk: "-1（基于实际布局）"
+    actionability: "+2（具体改写 + 检查清单）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

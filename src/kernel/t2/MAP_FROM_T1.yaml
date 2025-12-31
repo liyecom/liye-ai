@@ -1,0 +1,138 @@
+# =============================================================================
+# T1 → T2 Mapping Configuration
+# =============================================================================
+# Purpose: Translate T1 causal vulnerabilities into T2 danger state coordinates
+# Logic: "T1 tells you what can fail. T2 tells you where you are now."
+# =============================================================================
+
+mapping:
+  version: 1.0.0
+  source_kernel: T1_REASONING_KERNEL
+  target_kernel: T2_WORLD_STATE_KERNEL
+
+# -----------------------------------------------------------------------------
+# Mapping Rules
+# -----------------------------------------------------------------------------
+
+rules:
+  # T1_liquidity_illusion → liquidity_state
+  - from:
+      primitive: T1_liquidity_illusion
+      signal: liquidity_warning_active
+    to:
+      dimension: liquidity_state
+      assessment_logic: |
+        IF T1 fired liquidity warning:
+          Check current access to required resources
+          Map to scale: ABUNDANT → CRITICAL
+        ELSE:
+          Default to NORMAL (but never trust default)
+
+  # T1_correlation_regime_shift → correlation_state
+  - from:
+      primitive: T1_correlation_regime_shift
+      signal: correlation_stress_detected
+    to:
+      dimension: correlation_state
+      assessment_logic: |
+        IF T1 detected correlation stress:
+          Check current correlation stability
+          Map to scale: STABLE → BROKEN
+        ELSE:
+          Check for early warning signs
+
+  # T1_expectation_saturation → expectation_state
+  - from:
+      primitive: T1_expectation_saturation
+      signal: saturation_warning_active
+    to:
+      dimension: expectation_state
+      assessment_logic: |
+        IF T1 fired saturation warning:
+          Assess consensus crowding
+          Map to scale: DISTRIBUTED → OVERCROWDED
+        ELSE:
+          Check for convergence trends
+
+  # T1_reflexivity_loop → leverage_state
+  - from:
+      primitive: T1_reflexivity_loop
+      signal: leverage_warning_active
+    to:
+      dimension: leverage_state
+      assessment_logic: |
+        IF T1 fired leverage warning:
+          Assess amplification exposure
+          Map to scale: UNLEVERAGED → EXTREME
+        ELSE:
+          Check for hidden leverage
+
+  # Meta-state (no direct T1 source)
+  - from:
+      primitive: null
+      signal: aggregate_uncertainty
+    to:
+      dimension: uncertainty_state
+      assessment_logic: |
+        Aggregate uncertainty from:
+        - Number of T1 warnings active
+        - Confidence in state assessments
+        - Known unknowns inventory
+        Map to scale: LOW → REGIME_UNKNOWN
+
+# -----------------------------------------------------------------------------
+# Aggregation
+# -----------------------------------------------------------------------------
+
+aggregation:
+  method: independent
+  description: |
+    Each dimension is assessed independently.
+    There is no "overall danger score" because:
+    - Danger is multi-dimensional
+    - Collapsing to single number hides structure
+    - Decision-makers need to see the shape, not the sum
+
+# -----------------------------------------------------------------------------
+# Output Format
+# -----------------------------------------------------------------------------
+
+output:
+  format: structured
+  schema:
+    world_state:
+      liquidity: <SCALE_VALUE>
+      correlation: <SCALE_VALUE>
+      expectation: <SCALE_VALUE>
+      leverage: <SCALE_VALUE>
+      uncertainty: <SCALE_VALUE>
+    timestamp: <ISO_TIMESTAMP>
+    t1_warnings_active: [<LIST_OF_ACTIVE_T1s>]
+    confidence: <ASSESSMENT_CONFIDENCE>
+
+  example:
+    world_state:
+      liquidity: TIGHT
+      correlation: SHIFTING
+      expectation: CONVERGING
+      leverage: MODERATE
+      uncertainty: ELEVATED
+    timestamp: "2025-12-31T02:00:00Z"
+    t1_warnings_active:
+      - T1_liquidity_illusion
+      - T1_correlation_regime_shift
+    confidence: 0.72
+
+# -----------------------------------------------------------------------------
+# Constraints
+# -----------------------------------------------------------------------------
+
+constraints:
+  - "Mapping MUST be deterministic given same inputs"
+  - "Mapping MUST NOT introduce predictions"
+  - "Mapping MUST preserve T1 warnings in output"
+  - "Mapping MUST include confidence assessment"
+
+# =============================================================================
+# END OF MAPPING
+# =============================================================================

@@ -1,0 +1,80 @@
+# Case R02: Schema Compliance Verification
+# Tests: Output strictly matches defined schema
+
+case_id: case_r02
+type: schema_compliance
+created: 2025-12-31
+status: LOCKED
+
+description: |
+  Verifies that Runner outputs strictly comply with the output schema.
+  Tests both positive (valid output) and negative (invalid output) cases.
+
+test_config:
+  mechanism_id: bsr_velocity_acceleration_01
+  domain: bsr
+
+input_contract:
+  domain: bsr
+  t1_units_used:
+    - bsr_velocity_acceleration_01
+  case_id: case_r02
+  context_data:
+    current_bsr: 8500
+    daily_sales: 15
+    sales_7day: [10, 12, 14, 15, 16, 15, 15]
+  question: "What is the current velocity tier?"
+
+schema_requirements:
+  required_fields:
+    - mechanism_id
+    - domain
+    - trigger_match
+    - applicable_rules
+    - recommended_actions
+    - boundary_conditions_checked
+
+  forbidden_fields:
+    - confidence
+    - summary
+    - explanation
+    - reasoning
+    - analysis
+    - thoughts
+
+  field_types:
+    mechanism_id: string
+    domain: string
+    trigger_match: boolean
+    applicable_rules: array
+    recommended_actions: array
+    boundary_conditions_checked: array
+
+pass_criteria:
+  - All required fields present
+  - No forbidden fields present
+  - All field types match specification
+  - No extra undefined fields (strict mode)
+
+fail_triggers:
+  - Missing required field
+  - Forbidden field present
+  - Type mismatch
+  - Extra undefined field
+
+negative_test_cases:
+  - name: "forbidden_confidence"
+    inject: {"confidence": 0.85}
+    expected: FAIL
+
+  - name: "forbidden_summary"
+    inject: {"summary": "This keyword performs well"}
+    expected: FAIL
+
+  - name: "missing_trigger_match"
+    remove: ["trigger_match"]
+    expected: FAIL
+
+  - name: "extra_field"
+    inject: {"my_custom_field": "value"}
+    expected: FAIL

@@ -1,0 +1,242 @@
+name: Determinism Gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/runner/**'
+      - 'experiments/runner_validation/**'
+  push:
+    paths:
+      - 'src/runner/**'
+      - 'experiments/runner_validation/**'
+
+jobs:
+  config-freeze-check:
+    name: Configuration Freeze Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check runner_config.yaml modifications
+        id: config_check
+        run: |
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+
+          if echo "$CHANGED_FILES" | grep -q "src/runner/runner_config.yaml"; then
+            echo "⚠️ runner_config.yaml has been modified"
+            echo "config_changed=true" >> $GITHUB_OUTPUT
+
+            # Check for frozen value violations
+            python3 << 'EOF'
+          import yaml
+          import sys
+
+          with open('src/runner/runner_config.yaml') as f:
+              config = yaml.safe_load(f)
+
+          violations = []
+
+          # Check frozen LLM settings
+          if config['llm']['temperature'] != 0.0:
+              violations.append(f"temperature: {config['llm']['temperature']} (must be 0.0)")
+
+          if config['llm']['top_p'] != 1.0:
+              violations.append(f"top_p: {config['llm']['top_p']} (must be 1.0)")
+
+          # Check frozen execution settings
+          if config['execution']['retries'] != 0:
+              violations.append(f"retries: {config['execution']['retries']} (must be 0)")
+
+          if config['execution']['parallel']:
+              violations.append("parallel: true (must be false)")
+
+          # Check frozen determinism settings
+          if not config['determinism']['enforce_schema']:
+              violations.append("enforce_schema: false (must be true)")
+
+          if not config['determinism']['reject_free_text']:
+              violations.append("reject_free_text: false (must be true)")
+
+          if not config['determinism']['hash_outputs']:
+              violations.append("hash_outputs: false (must be true)")
+
+          if violations:
+              print("❌ FROZEN VALUE VIOLATIONS:")
+              for v in violations:
+                  print(f"  - {v}")
+              sys.exit(1)
+          else:
+              print("✅ All frozen values preserved")
+          EOF
+          else
+            echo "config_changed=false" >> $GITHUB_OUTPUT
+            echo "✅ runner_config.yaml not modified"
+          fi
+
+      - name: Require approval for config changes
+        if: steps.config_check.outputs.config_changed == 'true'
+        run: |
+          echo "❌ GATE BLOCKED: runner_config.yaml modification requires human approval"
+          echo ""
+          echo "To proceed:"
+          echo "1. Add justification comment to PR"
+          echo "2. Request review from code owner"
+          echo "3. Ensure all Runner Cases pass"
+          exit 1
+
+  schema-validation:
+    name: Schema Validation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Validate output schema enforcement
+        run: |
+          python3 << 'EOF'
+          import sys
+          sys.path.insert(0, '.')
+
+          from src.runner.execution_contract import OutputContract, OutputFieldType
+
+          # Verify forbidden fields are defined
+          forbidden = [k for k, v in OutputContract.SCHEMA.items()
+                      if v == OutputFieldType.FORBIDDEN]
+
+          required_forbidden = [
+              'confidence', 'summary', 'explanation',
+              'reasoning', 'analysis', 'thoughts'
+          ]
+
+          missing = set(required_forbidden) - set(forbidden)
+          if missing:
+              print(f"❌ Missing forbidden fields: {missing}")
+              sys.exit(1)
+
+          print(f"✅ Schema validation: {len(forbidden)} forbidden fields defined")
+          print(f"   Forbidden: {forbidden}")
+          EOF
+
+  runner-case-validation:
+    name: Runner Case Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Validate Runner Cases exist
+        run: |
+          CASE_COUNT=$(find experiments/runner_validation -name "case_r*.yaml" | wc -l)
+
+          if [ "$CASE_COUNT" -lt 3 ]; then
+            echo "❌ Insufficient Runner Cases: found $CASE_COUNT, need >= 3"
+            exit 1
+          fi
+
+          echo "✅ Found $CASE_COUNT Runner Validation Cases"
+
+      - name: Validate Case structure
+        run: |
+          python3 << 'EOF'
+          import yaml
+          import sys
+          from pathlib import Path
+
+          case_dir = Path('experiments/runner_validation')
+          errors = []
+
+          for case_file in case_dir.glob('case_r*.yaml'):
+              with open(case_file) as f:
+                  data = yaml.safe_load(f)
+
+              # Check required fields
+              required = ['case_id', 'type', 'status', 'input_contract']
+              for field in required:
+                  if field not in data:
+                      errors.append(f"{case_file.name}: missing '{field}'")
+
+              # Check status is LOCKED
+              if data.get('status') != 'LOCKED':
+                  errors.append(f"{case_file.name}: status must be LOCKED")
+
+              # Check input_contract structure
+              if 'input_contract' in data:
+                  ic = data['input_contract']
+                  ic_required = ['domain', 't1_units_used', 'case_id']
+                  for field in ic_required:
+                      if field not in ic:
+                          errors.append(f"{case_file.name}: input_contract missing '{field}'")
+
+          if errors:
+              print("❌ Case validation errors:")
+              for e in errors:
+                  print(f"  - {e}")
+              sys.exit(1)
+
+          print("✅ All Runner Cases validated")
+          EOF
+
+  determinism-gate-summary:
+    name: Gate Summary
+    runs-on: ubuntu-latest
+    needs: [config-freeze-check, schema-validation, runner-case-validation]
+    if: always()
+
+    steps:
+      - name: Check gate results
+        run: |
+          echo "================================"
+          echo "Determinism Gate Summary"
+          echo "================================"
+
+          if [ "${{ needs.config-freeze-check.result }}" != "success" ]; then
+            echo "❌ Config Freeze Check: FAIL"
+            GATE_PASS=false
+          else
+            echo "✅ Config Freeze Check: PASS"
+          fi
+
+          if [ "${{ needs.schema-validation.result }}" != "success" ]; then
+            echo "❌ Schema Validation: FAIL"
+            GATE_PASS=false
+          else
+            echo "✅ Schema Validation: PASS"
+          fi
+
+          if [ "${{ needs.runner-case-validation.result }}" != "success" ]; then
+            echo "❌ Runner Case Validation: FAIL"
+            GATE_PASS=false
+          else
+            echo "✅ Runner Case Validation: PASS"
+          fi
+
+          echo ""
+
+          if [ "$GATE_PASS" = "false" ]; then
+            echo "❌ DETERMINISM GATE: BLOCKED"
+            exit 1
+          else
+            echo "✅ DETERMINISM GATE: PASS"
+          fi

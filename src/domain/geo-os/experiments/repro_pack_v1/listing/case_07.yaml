@@ -1,0 +1,38 @@
+# Repro Pack v1 - Listing Case 07
+# New case for repro validation
+
+domain: listing
+case_id: case_07
+query: "标题长度优化：关键词召回 vs 可读性平衡"
+
+baseline_score: 5
+t1_enabled_score: 11
+lift: 6
+
+criteria:
+  - D1_semantic_coverage_gain
+  - D2_conversion_intent_match
+  - D3_info_load_efficiency
+  - D4_downstream_signal_sensitivity
+
+dimensions_improved:
+  - D1: "Low → High"
+  - D2: "Low → High"
+  - D3: "Medium → High"
+  - D4: "Low → Medium"
+
+t1_units_used:
+  - t1_listing_title_tradeoff_01
+  - t1_listing_semantic_alignment_01
+
+key_mechanisms:
+  - "标题压缩 vs 召回权衡"
+  - "前 80 字符核心转化词"
+  - "语义覆盖度量化"
+
+verdict: POSITIVE_LIFT
+locked: true
+
+criteria_version: "REASONING_LIFT_CRITERIA_LISTING.md"
+source_experiment: "derived_from_case_04"
+verified_date: "2025-12-31"

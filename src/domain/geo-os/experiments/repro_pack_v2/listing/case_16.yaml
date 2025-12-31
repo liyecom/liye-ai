@@ -1,0 +1,82 @@
+# Case 16: Bullet Role Differentiation Validation
+# Bound Mechanism: listing_bullet_role_differentiation_01
+
+case_id: case_16
+domain: listing
+bound_mechanism: listing_bullet_role_differentiation_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "Bullet Points 角色重叠诊断"
+  context: |
+    当前产品 Bullet Points（无线充电器）：
+    1. "Premium quality wireless charger made with high-grade materials"
+    2. "Durable construction with premium aluminum alloy body"
+    3. "Built with top-quality components for long-lasting use"
+    4. "Fast 15W charging compatible with iPhone and Android"
+    5. "30-day money back guarantee and 12-month warranty"
+    转化率低于类目平均 15%
+  question: "Bullets 有什么问题？如何优化？"
+
+baseline:
+  response_pattern: |
+    通用建议："内容需要更吸引人"
+    缺失：
+    - 未识别角色重叠
+    - 未提供结构化框架
+    - 无具体改写方向
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Bullet Role Differentiation 机制：
+
+    问题诊断：
+
+    角色重叠分析：
+    - Bullet 1: QUALITY_ASSURANCE（材质）
+    - Bullet 2: QUALITY_ASSURANCE（材质）← 重复！
+    - Bullet 3: QUALITY_ASSURANCE（材质）← 重复！
+    - Bullet 4: FUNCTIONAL_PROOF（功能）
+    - Bullet 5: TRUST_CTA（保障）
+
+    问题：3 条 Bullets 都在说材质，严重重叠
+    缺失角色：CORE_VALUE、CONVENIENCE_UX
+
+    优化方案（5 角色分化）：
+
+    1. CORE_VALUE（差异化卖点）
+       → "Fastest 15W Wireless Charging - Get 50% charge in just 30 minutes,
+          2X faster than standard 7.5W chargers"
+
+    2. FUNCTIONAL_PROOF（功能细节）
+       → "Universal Compatibility - Works with all Qi-enabled devices including
+          iPhone 15/14/13, Samsung Galaxy S24/S23, and AirPods Pro"
+
+    3. QUALITY_ASSURANCE（质量保证）
+       → "Premium Aluminum Alloy Build - Aircraft-grade materials with
+          10,000+ hour lifespan, FCC/CE certified for safety"
+
+    4. CONVENIENCE_UX（便利体验）
+       → "Case-Friendly Design - Charges through cases up to 6mm thick,
+          no need to remove your phone case"
+
+    5. TRUST_CTA（信任行动）
+       → "Risk-Free Purchase - 30-day full refund + 12-month warranty +
+          24/7 customer support"
+
+    预期效果：信息覆盖最大化 → CVR +8-15%
+  mechanism_used:
+    - listing_bullet_role_differentiation_01
+  lift_dimensions:
+    causal_explicitness: "+2（角色-重叠映射）"
+    assumption_clarity: "+1（5 角色框架）"
+    hallucination_risk: "-1（基于实际内容分析）"
+    actionability: "+3（完整改写方案）"
+  total_lift: "+5"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

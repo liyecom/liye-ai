@@ -1,0 +1,69 @@
+{
+  "id": "ppc_match_type_drift_control_01",
+  "domain": "ppc",
+  "mechanism_type": "platform_mechanism",
+  "name": "Match Type Intent Drift Control",
+  "description": "匹配类型意图漂移控制机制：防止 Broad/Phrase 匹配导致的搜索意图偏离",
+
+  "trigger_conditions": [
+    "使用 Broad 或 Phrase 匹配类型",
+    "Search Term Report 显示匹配词与原词语义差异大",
+    "匹配词 ACoS 显著高于投放词预期"
+  ],
+
+  "platform_mechanism": {
+    "behavior": "Amazon 的 Broad/Phrase 匹配会根据算法扩展到语义相关词",
+    "drift_pattern": "投放词 → 平台扩展 → 语义漂移 → 意图不匹配 → 转化下降",
+    "observable_signal": "Search Term 与投放关键词语义距离超过阈值"
+  },
+
+  "causal_chain": "Broad 匹配设置 → Amazon 算法扩展 → 匹配到边缘语义词 → 点击但意图不符 → 转化率下降",
+
+  "mechanism_logic": {
+    "drift_detection": {
+      "metric": "semantic_distance(search_term, target_keyword)",
+      "threshold": "distance > 0.6 indicates drift",
+      "action": "evaluate for negative or match type change"
+    },
+    "control_strategies": [
+      {
+        "strategy": "phrase_to_exact_graduation",
+        "condition": "特定 Phrase 词表现稳定",
+        "action": "提取高转化 exact 词单独投放",
+        "rationale": "锁定有效意图，排除漂移风险"
+      },
+      {
+        "strategy": "broad_to_phrase_tightening",
+        "condition": "Broad 匹配漂移严重",
+        "action": "收紧为 Phrase 或添加 negative",
+        "rationale": "保留核心语义，阻断边缘扩展"
+      },
+      {
+        "strategy": "intent_cluster_isolation",
+        "condition": "发现新的有效意图簇",
+        "action": "独立为新 Campaign 投放",
+        "rationale": "分离意图，精确控制"
+      }
+    ]
+  },
+
+  "expected_effect": "通过匹配类型控制：减少意图漂移 → 提高点击相关性 → 转化率提升 10-20%",
+
+  "boundary_conditions": [
+    "新品期需要 Broad 探索新词，不宜过早收紧",
+    "长尾词适合 Exact，核心词可保留 Phrase",
+    "高预算时可接受一定漂移以换取曝光"
+  ],
+
+  "anti_patterns": [
+    "全部使用 Broad（失控）",
+    "全部使用 Exact（限制曝光）",
+    "不分析 Search Term Report（盲目投放）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#platform_mechanism",
+  "bound_cases": ["case_10"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

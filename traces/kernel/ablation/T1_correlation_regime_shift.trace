@@ -1,0 +1,69 @@
+---
+ablation_id: ABL-002
+t1_candidate: T1_correlation_regime_shift
+mode: single
+domain: investment-os
+timestamp: 2025-12-31T01:17:00Z
+---
+
+# Single-T1 Ablation: T1_correlation_regime_shift
+
+## Cases Tested
+
+### Case 01: Event-driven Risk Assessment
+
+**With only T1_correlation_regime_shift loaded:**
+
+Limited contribution. This T1 is not directly applicable to single-stock earnings events. Agent does not connect correlation dynamics to the scenario.
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 2 | -3 |
+| Assumption Clarity | 2 | -2 |
+| Actionability | 2 | -2 |
+
+**Marginal contribution to Case 01**: 15%
+
+### Case 02: Portfolio Hidden Risk
+
+**With only T1_correlation_regime_shift loaded:**
+
+Strong contribution. This is the core mechanism for portfolio risk diagnosis. Agent clearly articulates that 2010-2019 correlations will not hold under stress. Quantifies the difference between calm and crisis correlations.
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 5 | 0 |
+| Assumption Clarity | 4 | -1 |
+| Actionability | 3 | -1 |
+
+**Marginal contribution to Case 02**: 75%
+
+### Case 03: Risk-On/Off Regime
+
+**With only T1_correlation_regime_shift loaded:**
+
+Moderate contribution. Identifies that correlation spike is a risk-off signal. But lacks the full regime transition framework.
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 4 | -1 |
+| Assumption Clarity | 3 | -1 |
+| Actionability | 3 | -2 |
+
+**Marginal contribution to Case 03**: 50%
+
+---
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Avg Marginal Contribution | **47%** |
+| Independence | MEDIUM |
+| Synergy with | T1_liquidity_illusion |
+| Cases where critical | 1/3 (Case 02) |
+
+## Recommendation
+
+**ALWAYS_ON** - Confirmed but borderline. Critical for portfolio/stress scenarios.
+Consider: Keep as Always-On due to synergy with T1_liquidity_illusion.
