@@ -7,6 +7,8 @@
  * Usage:
  *   liye "任务描述"                    # 快捷方式：编译上下文
  *   liye ask "question" [--broker]    # Quick ask with broker routing
+ *   liye research "<task>"            # Start research (antigravity shortcut)
+ *   liye finish [--dir]               # Complete research with answer
  *   liye mission new/run/ingest       # Mission pack management
  *   liye broker list/check            # Broker management
  *   liye agent validate <agent-name>
@@ -77,6 +79,15 @@ async function main() {
       await handleCost(subcommand, args.slice(2), REPO_ROOT);
       break;
 
+    // Research workflow (antigravity shortcut)
+    case 'research':
+      const researchTask = args.slice(1).join(' ');
+      await handleResearch(researchTask, args.slice(1), REPO_ROOT);
+      break;
+    case 'finish':
+      await handleFinish(args.slice(1), REPO_ROOT);
+      break;
+
     // Legacy commands
     case 'agent':
       await handleAgent(subcommand, target, args.slice(3));
@@ -95,7 +106,7 @@ async function main() {
     case 'version':
     case '--version':
     case '-v':
-      console.log('liye-ai v5.1.0');
+      console.log('liye-ai v5.2.0');
       break;
     default:
       // 不是已知命令，当作任务描述处理
@@ -105,13 +116,33 @@ async function main() {
   }
 }
 
-// Task handler - 调用 assembler 编译上下文
+// Task handler - 自然语言任务执行
 async function handleTask(task) {
   if (!task || task.trim() === '') {
     showHelp();
     return;
   }
 
+  // 检查是否请求上下文编译模式
+  if (task.includes('--context-only') || task.includes('--compile')) {
+    return handleContextCompile(task.replace(/--context-only|--compile/g, '').trim());
+  }
+
+  // 自然语言意图识别和路由
+  const { recognizeIntent } = require('../src/nlp/intent');
+  const { routeIntent } = require('../src/nlp/router');
+
+  try {
+    const intent = recognizeIntent(task);
+    await routeIntent(intent, REPO_ROOT);
+  } catch (err) {
+    log(`❌ 任务执行失败: ${err.message}`, 'red');
+    process.exit(1);
+  }
+}
+
+// 上下文编译模式 (原有行为)
+async function handleContextCompile(task) {
   const { execSync } = require('child_process');
   const assemblerPath = path.join(REPO_ROOT, '.claude/scripts/assembler.mjs');
 
@@ -136,12 +167,31 @@ async function handleTask(task) {
 
 function showHelp() {
   console.log(`
-${colors.bold}LiYe AI CLI v5.1${colors.reset}
-${colors.cyan}Personal AI Infrastructure - Control Plane${colors.reset}
+${colors.bold}LiYe AI CLI v5.2${colors.reset}
+${colors.cyan}Personal AI Infrastructure - Claude Code 调度器${colors.reset}
 
-${colors.cyan}快捷用法:${colors.reset}
-  liye "任务描述"             根据任务自动编译专家上下文
-  liye ask "问题"            快速提问 (默认 codex broker)
+${colors.cyan}自然语言 (推荐):${colors.reset}
+  liye 分析ASIN：B08SVXGTRT              → Amazon Growth OS + Claude Code
+  liye 分析Google公司的财报               → Investment OS + Claude Code
+  liye 医疗研究分析                       → Medical OS + Claude Code
+  李烨 分析这个产品的竞争对手              中文别名
+
+${colors.cyan}工作流:${colors.reset}
+  1. liye <任务>        意图识别 → 选择 OS 系统
+  2. 构建上下文          加载 Agents/Skills/Knowledge
+  3. 调用 Claude Code    cc 使用 OS 上下文执行任务
+
+${colors.cyan}支持的 OS 系统:${colors.reset}
+  Amazon Growth OS      电商运营、ASIN分析、关键词优化
+  Investment OS         财报分析、投资研究、估值
+  Medical OS            医疗研究、文献分析
+
+${colors.cyan}经典命令:${colors.reset}
+  liye "任务" --context-only  仅编译上下文 (不调用 cc)
+
+${colors.cyan}Research Workflow (Antigravity):${colors.reset}
+  liye research "<任务>"     开始研究 (复制提示到剪贴板)
+  liye finish [--dir <dir>]  完成研究 (粘贴结果)
 
 ${colors.cyan}Mission Commands (Multi-Broker):${colors.reset}
   liye mission new --slug <s> 创建任务包
@@ -199,6 +249,18 @@ function handleBroker(subcommand, args, repoRoot) {
 function handleCost(subcommand, args, repoRoot) {
   const costHandler = require('./commands/cost');
   return costHandler(subcommand, args, repoRoot);
+}
+
+// Research commands (antigravity shortcut)
+function handleResearch(task, args, repoRoot) {
+  const researchHandler = require('./commands/research');
+  return researchHandler(task, args, repoRoot);
+}
+
+// Finish research
+function handleFinish(args, repoRoot) {
+  const finishHandler = require('./commands/finish');
+  return finishHandler(args, repoRoot);
 }
 
 // Agent commands

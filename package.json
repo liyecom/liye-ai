@@ -1,12 +1,13 @@
 {
   "name": "liye-ai",
-  "version": "5.1.0",
-  "description": "LiYe AI - AI-driven personal operating system",
+  "version": "5.2.0",
+  "description": "LiYe AI - AI-driven personal operating system with natural language CLI",
   "main": "cli/index.js",
   "bin": {
     "liye": "./cli/index.js",
     "liye-ai": "./cli/index.js",
-    "liye-os": "./cli/index.js"
+    "liye-os": "./cli/index.js",
+    "李烨": "./cli/index.js"
   },
   "scripts": {
     "start": "node cli/index.js",
