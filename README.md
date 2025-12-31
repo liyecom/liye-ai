@@ -144,19 +144,27 @@ liye_os/
 
 ## 使用方式
 
-**自然语言交互**（推荐）：
+**在 Claude Code 中直接执行**（推荐）：
 
-```bash
-liye 分析ASIN：B08SVXGTRT              # → Amazon Growth OS + Claude Code
-liye 分析Google公司的财报               # → Investment OS + Claude Code
-liye 医疗研究分析                       # → Medical OS + Claude Code
-李烨 分析这个产品的竞争对手              # 中文别名支持
+在 Claude Code 会话中说：
+```
+分析ASIN：B08SVXGTRT
+分析Google公司的财报
+医疗研究分析
 ```
 
-**工作流**：
-1. `liye <任务>` → 意图识别 → 选择 OS 系统
-2. 构建上下文 → 加载 Agents/Skills/Knowledge
-3. 调用 Claude Code → cc 使用 OS 上下文执行任务
+Claude Code 会自动：
+1. 通过 CLAUDE.md 识别任务类型
+2. 加载对应的 Pack（operations.md / research.md）
+3. 读取相关的 Agents 和 Skills
+4. 执行任务
+
+**liye CLI（开发工具）**：
+```bash
+liye 分析ASIN：B08SVXGTRT     # 预编译上下文 → .claude/.compiled/context.md
+liye agent list               # 列出 Agents
+liye skill validate <name>    # 验证 Skill
+```
 
 **开发者命令**（高级）：
 
