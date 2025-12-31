@@ -2,7 +2,7 @@
 
 > **让盲目自信在结构上不可能发生。**
 
-[![Version](https://img.shields.io/badge/version-5.1.0-blue.svg)](https://github.com/liyecom/liye-ai)
+[![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)](https://github.com/liyecom/liye-ai)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 
@@ -147,13 +147,16 @@ liye_os/
 **自然语言交互**（推荐）：
 
 ```bash
-liye 分析这段代码的性能问题
-liye 分析ASIN：B08SVXGTRT
-liye 分析 indoor door mat 这个关键词
-liye 搜索亚马逊关键词趋势
+liye 分析ASIN：B08SVXGTRT              # → Amazon Growth OS + Claude Code
+liye 分析Google公司的财报               # → Investment OS + Claude Code
+liye 医疗研究分析                       # → Medical OS + Claude Code
+李烨 分析这个产品的竞争对手              # 中文别名支持
 ```
 
-系统自动识别意图 → 选择合适的 Agent → 路由到最优模型 → 返回结果
+**工作流**：
+1. `liye <任务>` → 意图识别 → 选择 OS 系统
+2. 构建上下文 → 加载 Agents/Skills/Knowledge
+3. 调用 Claude Code → cc 使用 OS 上下文执行任务
 
 **开发者命令**（高级）：
 
@@ -228,9 +231,9 @@ node .claude/scripts/guardrail.mjs # 架构合规检查
 
 | 版本 | 日期 | 重点 |
 |------|------|------|
+| 5.2.0 | 2025-12-31 | 自然语言 CLI + 意图识别 |
 | 5.1.0 | 2025-12-31 | World Model Stack (T2/T3) |
 | 5.0.0 | 2025-12-27 | Multi-Broker 架构 |
-| 4.0.0 | 2025-12-20 | Mission Pack 系统 |
 
 ---
 
