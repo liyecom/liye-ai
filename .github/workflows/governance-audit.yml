@@ -1,0 +1,181 @@
+name: Governance Audit (P1 Observability)
+
+on:
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit Governance Controls
+        id: audit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "=== Governance Audit Report ==="
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo ""
+
+          # Initialize audit report
+          REPORT_FILE="governance-audit-report.json"
+
+          cat > "$REPORT_FILE" << 'HEADER'
+          {
+            "audit_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "repo": "${{ github.repository }}",
+            "checks": {}
+          }
+          HEADER
+
+          # Fix JSON with actual timestamp
+          sed -i "s/\$(date -u +%Y-%m-%dT%H:%M:%SZ)/$(date -u +%Y-%m-%dT%H:%M:%SZ)/" "$REPORT_FILE"
+
+          AUDIT_PASS=true
+
+          # 1. Check CODEOWNERS exists
+          echo "### Check 1: CODEOWNERS ###"
+          if [ -f ".github/CODEOWNERS" ]; then
+            CODEOWNERS_STATUS="PASS"
+            CODEOWNERS_LINES=$(wc -l < .github/CODEOWNERS)
+            echo "✅ CODEOWNERS exists ($CODEOWNERS_LINES lines)"
+          else
+            CODEOWNERS_STATUS="FAIL"
+            CODEOWNERS_LINES=0
+            AUDIT_PASS=false
+            echo "❌ CODEOWNERS missing"
+          fi
+
+          # 2. Check required governance workflows exist
+          echo ""
+          echo "### Check 2: Governance Workflows ###"
+          REQUIRED_WORKFLOWS=(
+            "architecture-gate.yml"
+            "constitution-bmad-boundary-gate.yml"
+            "governance-file-change-gate.yml"
+            "layer-dependency-gate.yml"
+            "constitution-external-tools-gate.yml"
+          )
+
+          WORKFLOWS_FOUND=0
+          WORKFLOWS_MISSING=""
+
+          for wf in "${REQUIRED_WORKFLOWS[@]}"; do
+            if [ -f ".github/workflows/$wf" ]; then
+              echo "✅ $wf exists"
+              ((WORKFLOWS_FOUND++))
+            else
+              echo "❌ $wf MISSING"
+              WORKFLOWS_MISSING="$WORKFLOWS_MISSING $wf"
+              AUDIT_PASS=false
+            fi
+          done
+
+          WORKFLOWS_STATUS="$WORKFLOWS_FOUND/${#REQUIRED_WORKFLOWS[@]}"
+
+          # 3. Check CODEOWNERS coverage for governance paths
+          echo ""
+          echo "### Check 3: CODEOWNERS Coverage ###"
+          GOVERNANCE_PATHS=(
+            ".github/workflows/**"
+            ".github/CODEOWNERS"
+            "docs/governance/**"
+            "docs/architecture/**"
+            "CLAUDE.md"
+          )
+
+          COVERED_PATHS=0
+          UNCOVERED_PATHS=""
+
+          for gp in "${GOVERNANCE_PATHS[@]}"; do
+            if grep -q "$gp" .github/CODEOWNERS 2>/dev/null; then
+              echo "✅ $gp covered"
+              ((COVERED_PATHS++))
+            else
+              echo "⚠️  $gp NOT covered"
+              UNCOVERED_PATHS="$UNCOVERED_PATHS $gp"
+            fi
+          done
+
+          COVERAGE_STATUS="$COVERED_PATHS/${#GOVERNANCE_PATHS[@]}"
+
+          # 4. Check for governance team in CODEOWNERS
+          echo ""
+          echo "### Check 4: Governance Team ###"
+          if grep -q "@liyecom/governance-team" .github/CODEOWNERS 2>/dev/null; then
+            TEAM_STATUS="PASS"
+            echo "✅ @liyecom/governance-team referenced"
+          else
+            TEAM_STATUS="WARN"
+            echo "⚠️  @liyecom/governance-team not found (may use individual owners)"
+          fi
+
+          # Generate final JSON report
+          cat > "$REPORT_FILE" << EOF
+          {
+            "audit_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "repo": "${{ github.repository }}",
+            "overall_status": "$([ "$AUDIT_PASS" = true ] && echo "PASS" || echo "FAIL")",
+            "checks": {
+              "codeowners": {
+                "status": "$CODEOWNERS_STATUS",
+                "lines": $CODEOWNERS_LINES
+              },
+              "governance_workflows": {
+                "status": "$([ $WORKFLOWS_FOUND -eq ${#REQUIRED_WORKFLOWS[@]} ] && echo "PASS" || echo "FAIL")",
+                "found": $WORKFLOWS_FOUND,
+                "required": ${#REQUIRED_WORKFLOWS[@]},
+                "missing": [$(echo "$WORKFLOWS_MISSING" | sed 's/^ //;s/ /", "/g;s/^/"/;s/$/"/' | sed 's/^""$//')]
+              },
+              "codeowners_coverage": {
+                "status": "$([ $COVERED_PATHS -eq ${#GOVERNANCE_PATHS[@]} ] && echo "PASS" || echo "WARN")",
+                "covered": $COVERED_PATHS,
+                "total": ${#GOVERNANCE_PATHS[@]}
+              },
+              "governance_team": {
+                "status": "$TEAM_STATUS"
+              }
+            }
+          }
+          EOF
+
+          echo ""
+          echo "=== Audit Summary ==="
+          echo "Overall: $([ "$AUDIT_PASS" = true ] && echo "✅ PASS" || echo "❌ FAIL")"
+          echo "CODEOWNERS: $CODEOWNERS_STATUS"
+          echo "Workflows: $WORKFLOWS_STATUS"
+          echo "Coverage: $COVERAGE_STATUS"
+          echo ""
+
+          # Output for GitHub Actions
+          echo "audit_pass=$AUDIT_PASS" >> $GITHUB_OUTPUT
+
+          cat "$REPORT_FILE"
+
+      - name: Upload Audit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-audit-report
+          path: governance-audit-report.json
+          retention-days: 90
+
+      - name: Audit Status
+        if: steps.audit.outputs.audit_pass == 'false'
+        run: |
+          echo "::warning::Governance audit detected issues. Review the report."
