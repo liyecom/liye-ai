@@ -1,0 +1,104 @@
+name: Architecture Hardening Gate
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  architecture-verification:
+    name: Verify Architecture Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Run Architecture Verification
+        run: |
+          python tools/audit/verify_v6_1.py
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: Upload verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-verification-results
+          path: |
+            tools/audit/verify_v6_1.py
+          retention-days: 30
+
+  ssot-enforcement:
+    name: Enforce SSOT Rules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for forbidden agent paths
+        run: |
+          echo "Checking for SSOT violations..."
+
+          # Forbidden paths that should not exist
+          FORBIDDEN_PATHS=(
+            "src/domain/config/agents.yaml"
+            "src/domain/agents"
+            ".scaffold"
+          )
+
+          VIOLATIONS=0
+
+          for path in "${FORBIDDEN_PATHS[@]}"; do
+            if [ -e "$path" ]; then
+              echo "::error::SSOT VIOLATION: Forbidden path exists: $path"
+              VIOLATIONS=$((VIOLATIONS + 1))
+            fi
+          done
+
+          # Check for references in code
+          if grep -rn "config/agents.yaml" src/ tools/ tests/ 2>/dev/null | grep -v "verify_v6_1.py"; then
+            echo "::error::SSOT VIOLATION: Code references 'config/agents.yaml'"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "::error::Found $VIOLATIONS SSOT violations. Merge blocked."
+            exit 1
+          fi
+
+          echo "✅ No SSOT violations found"
+
+      - name: Verify Agent count
+        run: |
+          YAML_COUNT=$(find Agents/amazon-growth -name "*.yaml" 2>/dev/null | wc -l)
+          echo "Found $YAML_COUNT Agent YAML files in Agents/amazon-growth/"
+
+          if [ "$YAML_COUNT" -lt 10 ]; then
+            echo "::error::Expected at least 10 Agent YAML files, found $YAML_COUNT"
+            exit 1
+          fi
+
+          echo "✅ Agent count verified"
+
+      - name: Verify symlinks are documented
+        run: |
+          # Check if SYMLINKS.md exists
+          if [ ! -f "_meta/docs/SYMLINKS.md" ]; then
+            echo "::warning::SYMLINKS.md not found - symlinks may not be documented"
+          else
+            echo "✅ SYMLINKS.md exists"
+          fi
