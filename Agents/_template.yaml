@@ -8,7 +8,7 @@ agent:
   domain: core                    # core | amazon-growth | medical-research | geo-os
 
 # ============================================
-# Persona Layer (WHO) - from BMad Method
+# Identity Layer - Agent Persona
 # Defines the agent's identity and behavior
 # ============================================
 persona:
@@ -18,7 +18,7 @@ persona:
   communication_style: "How the agent communicates"
 
 # ============================================
-# Skills Layer (WHAT) - from Skill Forge
+# Capabilities Layer - Agent Skills
 # Defines capabilities the agent can use
 # ============================================
 skills:
@@ -29,7 +29,7 @@ skills:
     - composite_skill_1
 
 # ============================================
-# Runtime Layer (HOW) - from CrewAI
+# Execution Layer - Agent Runtime
 # Defines execution behavior
 # ============================================
 runtime:
