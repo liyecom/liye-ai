@@ -61,8 +61,3 @@ liyedata:
 # ============================================
 evolution:
   enabled: true
-  storage: .liye/evolution/{agent_id}/
-  learn_from:
-    - execution_logs
-    - user_feedback
-  retention_days: 90

@@ -58,35 +58,6 @@ tools:
 
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/listing-optimizer/
-
-  tracked_metrics:
-    - listing_cvr_improvement
-    - keyword_integration_score
-    - user_feedback_rating
-
-  proven_patterns:
-    - id: lo-001
-      name: "标题黄金公式"
-      structure: "Brand + Core Keyword + Key Feature + Size/Color + Benefit"
-      max_length: 200
-      success_rate: 0.89
-    - id: lo-002
-      name: "五点三层递进"
-      structure: "功能特性 → 用户利益 → 情感价值"
-      success_rate: 0.86
-    - id: lo-003
-      name: "关键词自然埋入"
-      density: "1-2%"
-      technique: "LSI变体 + 自然语境"
-      success_rate: 0.91
-
-  graduation_status:
-    标题结构: graduated
-    后台搜索词: graduated
-    五点描述: evolving
-    产品描述: manual
-
 dependencies:
   receives_from:
     - keyword-architect

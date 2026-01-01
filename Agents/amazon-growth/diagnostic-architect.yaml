@@ -80,7 +80,6 @@ liyedata:
 # -----------------------------------------------------------------------------
 evolution:
   enabled: true
-
 # -----------------------------------------------------------------------------
 # Dependencies (Agent Collaboration)
 # Note: This is for documentation, not execution control

@@ -56,24 +56,6 @@ tools:
 
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/execution-agent/
-
-  tracked_metrics:
-    - execution_success_rate
-    - rollback_frequency
-    - guardrail_hit_rate
-
-  proven_patterns:
-    - id: ex-001
-      name: "批量竞价调整"
-      max_batch_size: 50
-      success_rate: 0.96
-
-  graduation_status:
-    竞价调整: graduated
-    否定词添加: graduated
-    Listing更新: manual
-
 dependencies:
   receives_from:
     - ppc-strategist

@@ -85,14 +85,6 @@ tools:
 
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/sprint-orchestrator/
-
-  tracked_metrics:
-    - sprint_completion_rate
-    - pattern_discovery_count
-    - graduation_count
-    - cross_agent_learning_effectiveness
-
 dependencies:
   receives_from:
     - market-analyst
