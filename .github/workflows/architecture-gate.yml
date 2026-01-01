@@ -31,6 +31,8 @@ jobs:
           cat changed_files.txt
 
           AGENTS=$(grep -E '^Agents/.*\.ya?ml$' changed_files.txt || true)
+          AGENTS=$(echo "$AGENTS" | grep -v 'Agents/amazon-growth/' || true)
+          AGENTS=$(echo "$AGENTS" | grep -v '_template' || true)
           SKILLS=$(grep -E '^src/.*/skills/' changed_files.txt || true)
 
           echo "agents<<EOF" >> $GITHUB_OUTPUT
