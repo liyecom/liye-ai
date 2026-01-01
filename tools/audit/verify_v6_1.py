@@ -52,13 +52,71 @@ EXPECTED_SYMLINKS = {
     "scripts": {"target": "tools", "retire_by": "v6.3.0"},
 }
 
-# Current version for retirement countdown
-# Can be overridden by LIYE_OS_VERSION environment variable for testing
-DEFAULT_VERSION = "v6.1.1"
-CURRENT_VERSION = os.environ.get("LIYE_OS_VERSION", DEFAULT_VERSION)
+# Version SSOT configuration
+VERSION_FILE = REPO_ROOT / "config" / "version.txt"
+VERSION_ENV_VAR = "LIYE_OS_VERSION"
 
 # Maximum references to show in remediation list
 MAX_REFERENCES_SHOWN = 30
+
+# Version globals (initialized by load_current_version())
+CURRENT_VERSION = None
+VERSION_SOURCE = None
+
+
+def load_current_version() -> Tuple[str, str]:
+    """
+    Load current version from SSOT (config/version.txt) or env override.
+
+    Priority:
+    1. If LIYE_OS_VERSION env var is set and non-empty -> use it
+    2. Otherwise -> read from config/version.txt
+
+    Returns:
+        Tuple of (version, source) where source is:
+        - "env:LIYE_OS_VERSION" if from environment
+        - "file:config/version.txt" if from file
+
+    Raises:
+        SystemExit: If version file is missing/invalid and no env override
+    """
+    # Check for environment override first
+    env_version = os.environ.get(VERSION_ENV_VAR, "").strip()
+    if env_version:
+        # Validate format
+        if not re.match(r"^v\d+\.\d+\.\d+$", env_version):
+            print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_FORMAT_INVALID: "
+                  f"env {VERSION_ENV_VAR}='{env_version}' is not valid (expected vMAJOR.MINOR.PATCH)")
+            sys.exit(1)
+        return env_version, f"env:{VERSION_ENV_VAR}"
+
+    # Read from version file (SSOT)
+    if not VERSION_FILE.exists():
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_SOURCE_INVALID: "
+              f"config/version.txt missing")
+        print(f"  Expected at: {VERSION_FILE}")
+        print(f"  Create it with: echo 'v6.1.1' > config/version.txt")
+        sys.exit(1)
+
+    try:
+        version = VERSION_FILE.read_text().strip()
+    except Exception as e:
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_SOURCE_INVALID: "
+              f"Failed to read config/version.txt: {e}")
+        sys.exit(1)
+
+    # Validate format
+    if not version:
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_SOURCE_INVALID: "
+              f"config/version.txt is empty")
+        sys.exit(1)
+
+    if not re.match(r"^v\d+\.\d+\.\d+$", version):
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_FORMAT_INVALID: "
+              f"config/version.txt contains '{version}' (expected vMAJOR.MINOR.PATCH)")
+        sys.exit(1)
+
+    return version, "file:config/version.txt"
 
 
 class Colors:
@@ -385,7 +443,7 @@ def check_symlinks() -> Tuple[bool, Dict]:
     overdue_symlinks = []
 
     # Print retirement countdown
-    print_info(f"\n  {Colors.BOLD}Symlink Retirement Countdown (current: {CURRENT_VERSION}){Colors.RESET}")
+    print_info(f"\n  {Colors.BOLD}Symlink Retirement Countdown (current: {CURRENT_VERSION}, source: {VERSION_SOURCE}){Colors.RESET}")
     print(f"  {'─' * 55}")
     print(f"  {'Symlink':<15} {'Target':<25} {'Retire By':<10} {'Status'}")
     print(f"  {'─' * 55}")
@@ -469,7 +527,7 @@ def check_symlink_retirement_enforcement(overdue_symlinks: List[Dict]) -> Tuple[
     print_header("CHECK E: Symlink Retirement Enforcement")
 
     if not overdue_symlinks:
-        print_pass(f"No overdue symlinks (current: {CURRENT_VERSION})")
+        print_pass(f"No overdue symlinks (current: {CURRENT_VERSION}, source: {VERSION_SOURCE})")
         print_info(f"All {len(EXPECTED_SYMLINKS)} symlinks are within their retirement window")
         return True, {"overdue_count": 0}
 
@@ -542,9 +600,14 @@ def check_symlink_retirement_enforcement(overdue_symlinks: List[Dict]) -> Tuple[
 
 def main():
     """Run all verification checks."""
+    global CURRENT_VERSION, VERSION_SOURCE
+
+    # Load version from SSOT (or env override)
+    CURRENT_VERSION, VERSION_SOURCE = load_current_version()
+
     print(f"\n{Colors.BOLD}LiYe OS v6.1 Architecture Verification{Colors.RESET}")
     print(f"Repository: {REPO_ROOT}")
-    print(f"Version: {CURRENT_VERSION}" + (f" (override via LIYE_OS_VERSION)" if CURRENT_VERSION != DEFAULT_VERSION else ""))
+    print(f"Version: {CURRENT_VERSION} (source: {VERSION_SOURCE})")
     print(f"Time: {subprocess.run(['date'], capture_output=True, text=True).stdout.strip()}")
 
     all_passed = True
