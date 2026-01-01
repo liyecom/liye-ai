@@ -8,7 +8,7 @@ agent:
   domain: core                    # core | amazon-growth | medical-research | geo-os
 
 # ============================================
-# Identity Layer - Agent Persona
+# Persona Layer (WHO) - from BMad Method
 # Defines the agent's identity and behavior
 # ============================================
 persona:
@@ -18,7 +18,7 @@ persona:
   communication_style: "How the agent communicates"
 
 # ============================================
-# Capabilities Layer - Agent Skills
+# Skills Layer (WHAT) - from Skill Forge
 # Defines capabilities the agent can use
 # ============================================
 skills:
@@ -29,7 +29,7 @@ skills:
     - composite_skill_1
 
 # ============================================
-# Execution Layer - Agent Runtime
+# Runtime Layer (HOW) - from CrewAI
 # Defines execution behavior
 # ============================================
 runtime:
@@ -61,3 +61,8 @@ liyedata:
 # ============================================
 evolution:
   enabled: true
+  storage: .liye/evolution/{agent_id}/
+  learn_from:
+    - execution_logs
+    - user_feedback
+  retention_days: 90
