@@ -1,8 +1,8 @@
 # LiYe OS 架构宪法
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **生效日期**: 2025-12-22
-> **最后修订**: 2026-01-01 (v6.1.2-hotfix: Version SSOT for Governance)
+> **最后修订**: 2026-01-01 (v6.2.0: World Model Gate for Domain Execution)
 > **状态**: 生效中
 > **修订权限**: 需架构委员会（即你自己）正式评审
 
@@ -549,6 +549,67 @@ bash tools/audit/selftest_symlink_retire.sh
 
 ---
 
+### Amendment 2026-01-01-D: World Model Gate for Domain Execution
+
+**版本**: v1.5
+**生效日期**: 2026-01-01
+**关联条款**: 第 1 条（第一性原理）, 第 5 条（执行层规则）
+
+**内容**：
+
+1. **Domain 执行必须先通过 World Model Gate**
+   - 任何 domain（如 amazon-growth）的执行必须先生成 WorldModelResult
+   - WorldModelResult 必须包含 T1（失败模式）、T2（状态维度）、T3（动态模式）
+   - validate_world_model_result() 必须通过，否则阻断执行
+
+2. **World Model Trace/Artifact 是一级公民**
+   - 每次执行必须写入 trace JSON：`data/traces/world_model/<trace_id>.json`
+   - 每次执行必须写入 report MD：`Artifacts_Vault/reports/WORLD_MODEL_<trace_id>.md`
+   - trace_id 格式：`wm_YYYYMMDD_HHMMSS_<uuid8>`
+
+3. **禁止绕过 Gate**
+   - 代码中禁止出现以下旁路标记（tests/ 目录除外）：
+     - `skip_world_model`
+     - `bypass_gate`
+     - `WORLD_MODEL_DISABLED`
+   - CI 扫描强制执行，违规阻断合并
+
+4. **Dry-Run 模式必须存在**
+   - 每个 domain 入口必须支持 `--dry-run` 参数
+   - dry-run 只生成 World Model，不执行实际操作
+   - 用于预览和审计
+
+5. **"Not Telling You" 必须显式存在**
+   - WorldModelResult 必须包含 `not_telling_you` 列表（>= 2 条）
+   - 记录模型的盲点和限制
+   - 禁止删除或隐藏此字段
+
+**必填字段清单（MVP）**：
+- `version`: "v1"
+- `domain`: 域标识
+- `task`: 任务描述
+- `t1.failure_modes`: >= 3 条
+- `t1.not_telling_you`: >= 2 条
+- `t2.*`: 5 个维度（liquidity, correlation, expectation, leverage, uncertainty）
+- `t3.dynamics`: >= 1 个
+- `allowed_actions.allowed`: >= 3 条
+- `allowed_actions.not_allowed`: >= 3 条
+- `audit.trace_id`: 必填
+
+**验证方式**：
+```bash
+# v6.2 验证（包含 World Model Gate）
+python tools/audit/verify_v6_2.py
+
+# dry-run 模式
+python src/domain/amazon-growth/main.py --mode launch --product "Test" --dry-run
+```
+
+**参考文档**：
+- `docs/architecture/WORLD_MODEL_CONSTITUTION.md`
+
+---
+
 ## 签署
 
 本宪法由 LiYe OS 架构委员会于 2025-12-22 正式通过。
@@ -564,5 +625,5 @@ bash tools/audit/selftest_symlink_retire.sh
 
 ---
 
-*宪法版本: 1.4*
+*宪法版本: 1.5*
 *最后更新: 2026-01-01*

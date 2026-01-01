@@ -5,10 +5,22 @@
 
 ---
 
-## 新手执行路径（v6.1.1）
+## 新手执行路径（v6.2.0）
 
 > **架构**: Claude Code Native（无独立 CLI）
-> **版本**: v6.1.1 (2026-01-01)
+> **版本**: v6.2.0-dev (2026-01-01)
+
+### World Model Gate (v6.2.0)
+
+amazon-growth 执行前**必须**先通过 World Model Gate：
+```bash
+# Dry-run: 只生成 T1/T2/T3 分析，不执行操作
+python src/domain/amazon-growth/main.py --mode launch --product "Test" --dry-run
+
+# 验证 World Model Gate
+python tools/audit/verify_v6_2.py
+```
+详见：`docs/architecture/WORLD_MODEL_CONSTITUTION.md`
 
 ### 关键路径
 
@@ -107,6 +119,16 @@ cat _meta/docs/FILE_SYSTEM_GOVERNANCE.md
 2. **自动加载**：使用 Assembler 根据任务关键词自动拼接
 
 ## 核心原则（Guardrails）
+
+### 记忆检查（防遗忘）
+在涉及专业术语或做决策前，**先搜索历史**：
+```bash
+# 搜索相关记忆
+mem-search query="[话题]" project="liye_os"
+
+# 查看规范术语表
+Read knowledge/glossary/amazon-advertising.yaml
+```
 
 ### 性能边界
 - `CLAUDE.md` ≤ 10,000 chars（当前文件）
