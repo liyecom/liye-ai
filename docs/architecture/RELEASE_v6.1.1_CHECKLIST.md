@@ -105,6 +105,8 @@
 - [x] Agent Loader 断言: 14 agents, 唯一 ID, 必填字段
 - [x] Symlink 治理: 8 个 symlinks 全部登记
 - [x] Smoke Test: 入口模块可导入
+- [x] Symlink Retirement Enforcement: OVERDUE => exit 1
+- [x] Version SSOT: `config/version.txt` 作为 current_version 权威源
 
 **运行方式**:
 ```bash

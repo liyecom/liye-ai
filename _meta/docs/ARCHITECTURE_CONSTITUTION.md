@@ -1,8 +1,8 @@
 # LiYe OS 架构宪法
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **生效日期**: 2025-12-22
-> **最后修订**: 2026-01-01 (v6.1.1-hotfix: Symlink Retirement Enforcement)
+> **最后修订**: 2026-01-01 (v6.1.2-hotfix: Version SSOT for Governance)
 > **状态**: 生效中
 > **修订权限**: 需架构委员会（即你自己）正式评审
 
@@ -502,6 +502,53 @@ bash tools/audit/selftest_symlink_retire.sh
 
 ---
 
+### Amendment 2026-01-01-C: Version SSOT for Governance
+
+**版本**: v1.4
+**生效日期**: 2026-01-01
+**关联条款**: 第 4.1 条（SSOT 原则）
+
+**内容**：
+
+1. **current_version 必须来自 `config/version.txt`**
+   - 该文件是 LiYe OS 当前版本的唯一权威源（SSOT）
+   - 格式：`vMAJOR.MINOR.PATCH`（如 `v6.1.1`），无其他内容
+   - 禁止在脚本中硬编码版本号
+
+2. **verify 可允许环境变量覆盖，仅用于测试/自检**
+   - 环境变量：`LIYE_OS_VERSION`
+   - 当设置时，覆盖 `config/version.txt` 的值
+   - 仅用于 selftest 和 CI 测试场景
+
+3. **版本来源必须在输出中披露**
+   - verify 脚本的所有输出必须显示版本来源
+   - 格式：`source: file:config/version.txt` 或 `source: env:LIYE_OS_VERSION`
+   - 确保透明度和可审计性
+
+4. **版本文件缺失时必须立即失败**
+   - 如果 `config/version.txt` 不存在或格式无效，verify 必须 exit 1
+   - 不允许回退到默认值或硬编码值
+
+**SSOT 映射表更新**：
+
+| 资源类型 | SSOT 位置 | 禁止位置 |
+|----------|-----------|----------|
+| 系统版本 | `config/version.txt` | 脚本中的硬编码、其他配置文件 |
+
+**验证方式**：
+```bash
+# 正常运行（显示 source: file:config/version.txt）
+python tools/audit/verify_v6_1.py
+
+# 环境变量覆盖（显示 source: env:LIYE_OS_VERSION）
+LIYE_OS_VERSION=v6.3.0 python tools/audit/verify_v6_1.py
+
+# 自测脚本
+bash tools/audit/selftest_symlink_retire.sh
+```
+
+---
+
 ## 签署
 
 本宪法由 LiYe OS 架构委员会于 2025-12-22 正式通过。
@@ -517,5 +564,5 @@ bash tools/audit/selftest_symlink_retire.sh
 
 ---
 
-*宪法版本: 1.0*
-*最后更新: 2025-12-22*
+*宪法版本: 1.4*
+*最后更新: 2026-01-01*
