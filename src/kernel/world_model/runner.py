@@ -105,11 +105,37 @@ AMAZON_GROWTH_UNITS = {
 }
 
 
+MAX_TRACE_ID_RETRIES = 3
+
+
 def _generate_trace_id() -> str:
-    """Generate a unique trace ID."""
+    """Generate a unique trace ID component."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     short_uuid = str(uuid.uuid4())[:8]
     return f"wm_{timestamp}_{short_uuid}"
+
+
+def _generate_unique_trace_id() -> str:
+    """
+    Generate a trace ID with collision protection.
+
+    Checks if the trace file already exists and retries up to MAX_TRACE_ID_RETRIES times.
+    Raises RuntimeError if collision cannot be resolved.
+    """
+    TRACES_DIR.mkdir(parents=True, exist_ok=True)
+
+    for attempt in range(MAX_TRACE_ID_RETRIES):
+        trace_id = _generate_trace_id()
+        trace_path = TRACES_DIR / f"{trace_id}.json"
+
+        if not trace_path.exists():
+            return trace_id
+
+    # All retries exhausted, still collision
+    raise RuntimeError(
+        f"trace_id collision: could not generate unique ID after {MAX_TRACE_ID_RETRIES} attempts. "
+        f"Last attempted path: {trace_path}"
+    )
 
 
 def _build_world_model_result(
@@ -167,6 +193,13 @@ def _build_world_model_result(
         ],
     }
 
+    # Build units_selected (track which units were used)
+    units_selected = {
+        "t1": [u["id"] for u in units["t1"]],
+        "t2": list(units["t2"].keys()),
+        "t3": [d["type"] for d in units["t3"]],
+    }
+
     # Build audit
     inputs_summary = context.get("inputs_summary", f"Task: {task}")
     if isinstance(context.get("user_input"), str):
@@ -175,6 +208,7 @@ def _build_world_model_result(
     audit = {
         "inputs_summary": inputs_summary,
         "data_sources": context.get("data_sources", ["user_input", "world_model_units"]),
+        "units_selected": units_selected,
         "generated_at": now,
         "trace_id": trace_id,
     }
@@ -329,6 +363,12 @@ def _write_artifact(result: WorldModelResult, trace_id: str) -> Path:
         f"- **Generated At**: {result['audit']['generated_at']}",
         f"- **Trace ID**: `{result['audit']['trace_id']}`",
         f"",
+        f"### Units Selected",
+        f"",
+        f"- **T1**: {', '.join(result['audit']['units_selected']['t1'])}",
+        f"- **T2**: {', '.join(result['audit']['units_selected']['t2'])}",
+        f"- **T3**: {', '.join(result['audit']['units_selected']['t3'])}",
+        f"",
     ])
 
     with open(artifact_path, "w", encoding="utf-8") as f:
@@ -360,7 +400,7 @@ def run_world_model(
     if context is None:
         context = {}
 
-    trace_id = _generate_trace_id()
+    trace_id = _generate_unique_trace_id()
 
     # Build the result
     result = _build_world_model_result(domain, task, context, trace_id)
