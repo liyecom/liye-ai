@@ -41,7 +41,12 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import World Model Gate (v6.2.0)
-from src.kernel.world_model import run_world_model, ValidationError, WORLD_MODEL_REQUIRED
+from src.kernel.world_model import (
+    run_world_model,
+    ValidationError,
+    WorldModelInvalidError,
+    WORLD_MODEL_REQUIRED,
+)
 
 # Load environment variables
 load_dotenv()
@@ -429,16 +434,20 @@ def main():
         for error in e.errors:
             print(f"   - {error}")
         print("\nExecution blocked. Fix World Model issues before proceeding.")
-        raise WORLD_MODEL_REQUIRED("World Model validation failed") from e
+        raise WorldModelInvalidError.from_validation(e.errors) from e
+    except WorldModelInvalidError:
+        # Re-raise WorldModelInvalidError as-is
+        raise
     except Exception as e:
         print(f"❌ World Model Gate FAILED - {type(e).__name__}: {e}")
-        raise WORLD_MODEL_REQUIRED(f"World Model generation failed: {e}") from e
+        raise WorldModelInvalidError(f"World Model generation failed: {e}") from e
 
-    # Dry-run mode: Stop after World Model generation
+    # Dry-run mode: Stop after World Model generation (HARD RETURN)
     if args.dry_run:
-        print("🔍 DRY-RUN MODE: World Model generated, skipping actual execution")
-        print(f"\nReview the World Model report at: {artifact_path}")
-        return
+        print("🔍 DRY-RUN MODE: World Model generated successfully")
+        print(f"\n📄 Review the World Model report at: {artifact_path}")
+        print("✋ STOPPED BEFORE EXECUTION - Use without --dry-run to proceed")
+        sys.exit(0)  # Hard exit, never reach kickoff()
 
     # Execute
     result = crew.kickoff(inputs=inputs)
