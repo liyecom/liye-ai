@@ -27,6 +27,9 @@ from dotenv import load_dotenv
 from datetime import datetime
 import json
 
+# Import SSOT Agent Loader
+from agent_loader import load_agents_from_ssot
+
 # Add project root to path for MCP imports
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -269,9 +272,9 @@ def main():
     # Always prepare fallback tools
     fallback_tools = get_fallback_tools()
 
-    # Load Shared Agents Config
+    # Load Shared Agents Config from SSOT (Agents/amazon-growth/)
     config_dir = Path(__file__).parent / "config"
-    agents_config = load_config(str(config_dir / 'agents.yaml'))
+    agents_config = load_agents_from_ssot()  # SSOT: Agents/amazon-growth/*.yaml
 
     # --- MODE SELECTION ---
     if args.mode == 'launch':
