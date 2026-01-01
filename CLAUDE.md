@@ -3,6 +3,46 @@
 本文件是 **LiYe OS 的启动路由/最小常驻上下文**。不要把长 SOP、长协议、完整技能说明塞回这里。
 需要细节时按任务加载 `.claude/packs/`，或用装配器生成 `.claude/.compiled/context.md`。
 
+---
+
+## 新手执行路径（v6.1.1）
+
+> **架构**: Claude Code Native（无独立 CLI）
+> **版本**: v6.1.1 (2026-01-01)
+
+### 关键路径
+
+| 概念 | 位置 | 说明 |
+|------|------|------|
+| **Agent 定义** | `Agents/amazon-growth/` | SSOT（唯一权威）|
+| **领域入口** | `src/domain/amazon-growth/main.py` | 主入口 |
+| **Agent 加载器** | `src/domain/amazon-growth/agent_loader.py` | 动态加载 |
+| **执行轨迹** | `data/traces/` | 运行时产出 |
+| **产物归档** | `Artifacts_Vault/reports/` | 报告存放 |
+
+### 禁止使用的旧路径
+
+以下路径已**删除或废弃**，不要在新代码中使用：
+
+```
+❌ src/domain/src/           → 已删除（重复）
+❌ src/domain/agents/        → 已删除（重复）
+❌ config/agents.yaml        → 使用 agent_loader.py
+❌ src/domain/main.py        → 使用 amazon-growth/main.py
+```
+
+### 快速验证
+
+```bash
+# 验证架构合规
+python tools/audit/verify_v6_1.py
+
+# 测试 Agent 加载
+python src/domain/amazon-growth/agent_loader.py --dry-run
+```
+
+---
+
 ## Repo Root
 - Repo: `~/github/liye_os`
 - Claude 执行目录：以当前打开的 repo 为准（不要依赖 ~ 下的 CLAUDE.md）
