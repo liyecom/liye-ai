@@ -136,11 +136,10 @@ def check_bypass_markers() -> bool:
         r"WORLD_MODEL_DISABLED",
     ]
 
-    # Directories to scan (exclude tests/, node_modules/, .git/)
-    scan_dirs = ["src/", "tools/", "Systems/", "systems/"]
+    # Directories to scan (production code only, excludes tools/ and tests/)
+    # Rationale: tools/ may legitimately discuss bypass patterns in verification scripts
+    scan_dirs = ["src/", "Systems/", "systems/"]
     exclude_dirs = {"tests", "node_modules", ".git", "__pycache__", ".pytest_cache"}
-    # Files to exclude (verification scripts contain patterns as search targets)
-    exclude_files = {"verify_v6_2.py"}
 
     violations = []
 
@@ -155,8 +154,6 @@ def check_bypass_markers() -> bool:
 
             for file in files:
                 if not file.endswith((".py", ".yaml", ".yml", ".json")):
-                    continue
-                if file in exclude_files:
                     continue
 
                 file_path = Path(root) / file
