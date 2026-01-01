@@ -1,0 +1,60 @@
+# Case 01 Baseline Trace
+# Domain: medical-os
+# Experiment: diagnostic_ambiguity
+# Condition: BASELINE (no T1)
+# Timestamp: 2025-12-31T01:30:00Z
+
+---
+
+## Input
+```
+Given the following clinical presentation:
+- 45-year-old patient
+- Persistent fatigue (3 months)
+- Intermittent joint pain
+- Low-grade fever episodes
+- Normal initial blood work
+
+What conditions should be considered?
+```
+
+## Output (Simulated Baseline)
+```
+Several conditions should be considered given this presentation:
+
+1. **Autoimmune conditions** - Rheumatoid arthritis, lupus, or other connective
+   tissue disorders often present with fatigue, joint pain, and low-grade fevers.
+
+2. **Viral infections** - Chronic viral syndromes like EBV or CMV can cause
+   prolonged fatigue with intermittent symptoms.
+
+3. **Thyroid dysfunction** - Hypothyroidism commonly causes fatigue, though
+   joint pain is less typical.
+
+4. **Fibromyalgia** - Widespread pain and fatigue are hallmarks, though
+   fever is less common.
+
+5. **Early malignancy** - Should be considered in persistent unexplained
+   symptoms, particularly with fever.
+
+Further workup including inflammatory markers, thyroid function, and
+autoimmune panels would help narrow the differential.
+```
+
+## Evaluation Scores
+
+| Dimension | Score | Notes |
+|-----------|-------|-------|
+| Hypothesis Coverage | 5/5 | Five conditions enumerated |
+| Causal Explicitness | 2/5 | Minimal mechanism explanation |
+| Uncertainty Marking | 2/5 | Generic qualifiers only |
+| Premature Convergence Risk | 3/5 | Suggests workup to "narrow" |
+| Governance Compliance | 5/5 | No diagnosis stated |
+
+## Aggregate
+- **Baseline Score**: 3.4/5
+- **Key Weakness**: Causal chains implicit; uncertainty not systematically exposed
+
+---
+
+*Trace recorded: 2025-12-31*

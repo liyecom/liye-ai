@@ -1,0 +1,68 @@
+---
+ablation_id: ABL-001
+t1_candidate: T1_liquidity_illusion
+mode: single
+domain: investment-os
+timestamp: 2025-12-31T01:15:00Z
+---
+
+# Single-T1 Ablation: T1_liquidity_illusion
+
+## Cases Tested
+
+### Case 01: Event-driven Risk Assessment
+
+**With only T1_liquidity_illusion loaded:**
+
+The agent recognizes that apparent liquidity during pre-earnings calm will evaporate during the earnings release window. However, without expectation saturation mechanism, the agent does not identify the paradox of "high implied probability = low upside."
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 3 | -2 |
+| Assumption Clarity | 3 | -1 |
+| Actionability | 3 | -1 |
+
+**Marginal contribution to Case 01**: 40%
+
+### Case 02: Portfolio Hidden Risk
+
+**With only T1_liquidity_illusion loaded:**
+
+Strong contribution. The agent clearly articulates that IG corporate and EM equity liquidity assumptions are flawed. Identifies spread widening mechanism. However, misses correlation regime shift (needs T1_correlation_regime_shift for full picture).
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 4 | -1 |
+| Assumption Clarity | 4 | -1 |
+| Actionability | 4 | 0 |
+
+**Marginal contribution to Case 02**: 70%
+
+### Case 03: Risk-On/Off Regime
+
+**With only T1_liquidity_illusion loaded:**
+
+Identifies timing constraint for risk reduction. Articulates that "execute now while spreads are reasonable." However, lacks regime transition framework (needs T1_risk_on_off_regime).
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 4 | -1 |
+| Assumption Clarity | 3 | -1 |
+| Actionability | 4 | -1 |
+
+**Marginal contribution to Case 03**: 65%
+
+---
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Avg Marginal Contribution | **58%** |
+| Independence | HIGH |
+| Synergy with | T1_correlation_regime_shift |
+| Cases where critical | 2/3 |
+
+## Recommendation
+
+**ALWAYS_ON** - Confirmed. Core timing constraint mechanism.
