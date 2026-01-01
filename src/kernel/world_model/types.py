@@ -26,6 +26,29 @@ class ValidationError(Exception):
         super().__init__(f"World Model validation failed: {'; '.join(errors)}")
 
 
+class WorldModelInvalidError(Exception):
+    """
+    Raised when World Model Gate produces an invalid result.
+
+    This error indicates a serious structural problem that blocks execution.
+    Unlike ValidationError which lists specific field issues, this is the
+    canonical error to catch in domain entry points.
+    """
+
+    def __init__(self, message: str, errors: list[str] | None = None):
+        self.errors = errors or []
+        self.message = message
+        super().__init__(message)
+
+    @classmethod
+    def from_validation(cls, errors: list[str]) -> "WorldModelInvalidError":
+        """Create from validation error list."""
+        return cls(
+            f"World Model invalid: {len(errors)} validation error(s)",
+            errors=errors
+        )
+
+
 class T2Dimension(TypedDict):
     """A single T2 dimension (liquidity, correlation, etc.)"""
     level: Literal["low", "medium", "high"]

@@ -8,15 +8,18 @@ Every amazon-growth task must generate T1/T2/T3 analysis before proceeding.
 from .types import (
     WorldModelResult,
     ValidationError,
+    WorldModelInvalidError,
     validate_world_model_result,
     WORLD_MODEL_VERSION,
 )
-from .runner import run_world_model
+from .runner import run_world_model, WORLD_MODEL_REQUIRED
 
 __all__ = [
     "WorldModelResult",
     "ValidationError",
+    "WorldModelInvalidError",
     "validate_world_model_result",
     "run_world_model",
     "WORLD_MODEL_VERSION",
+    "WORLD_MODEL_REQUIRED",
 ]
