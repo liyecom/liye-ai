@@ -26,9 +26,15 @@ jobs:
         run: |
           pip install pyyaml
 
-      - name: Run Architecture Verification
+      - name: Run Architecture Verification (v6.1)
         run: |
           python tools/audit/verify_v6_1.py
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: Run World Model Gate Verification (v6.2)
+        run: |
+          python tools/audit/verify_v6_2.py
         env:
           PYTHONUNBUFFERED: "1"
 

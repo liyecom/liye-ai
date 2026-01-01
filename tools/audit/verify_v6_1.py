@@ -84,9 +84,9 @@ def load_current_version() -> Tuple[str, str]:
     env_version = os.environ.get(VERSION_ENV_VAR, "").strip()
     if env_version:
         # Validate format
-        if not re.match(r"^v\d+\.\d+\.\d+$", env_version):
+        if not re.match(r"^v\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?$", env_version):
             print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_FORMAT_INVALID: "
-                  f"env {VERSION_ENV_VAR}='{env_version}' is not valid (expected vMAJOR.MINOR.PATCH)")
+                  f"env {VERSION_ENV_VAR}='{env_version}' is not valid (expected vMAJOR.MINOR.PATCH[-prerelease])")
             sys.exit(1)
         return env_version, f"env:{VERSION_ENV_VAR}"
 
@@ -111,9 +111,9 @@ def load_current_version() -> Tuple[str, str]:
               f"config/version.txt is empty")
         sys.exit(1)
 
-    if not re.match(r"^v\d+\.\d+\.\d+$", version):
+    if not re.match(r"^v\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?$", version):
         print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_FORMAT_INVALID: "
-              f"config/version.txt contains '{version}' (expected vMAJOR.MINOR.PATCH)")
+              f"config/version.txt contains '{version}' (expected vMAJOR.MINOR.PATCH[-prerelease])")
         sys.exit(1)
 
     return version, "file:config/version.txt"
