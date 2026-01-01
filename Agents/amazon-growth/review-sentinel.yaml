@@ -47,35 +47,8 @@ tools:
   - name: KeepaReviewTool
     status: planned
 
-bmaddata:
-  workflow_stage: "Monitoring Layer"
-  story_template: "As Review Sentinel, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/review-sentinel/
-
-  tracked_metrics:
-    - theme_detection_accuracy
-    - alert_response_time
-    - insight_actionability
-
-  proven_patterns:
-    - id: rs-001
-      name: "差评主题分类"
-      categories:
-        - "尺寸问题"
-        - "质量问题"
-        - "清洁问题"
-        - "外观问题"
-        - "物流问题"
-      success_rate: 0.89
-
-  graduation_status:
-    差评告警: graduated
-    主题分类: graduated
-    情感分析: evolving
-
 dependencies:
   outputs_to:
     - diagnostic-architect

@@ -62,51 +62,8 @@ tools:
   - name: AmazonAdsAPITool
     status: planned
 
-bmaddata:
-  workflow_stage: "Optimize: Step 2 – PPC Strategy"
-  story_template: "As PPC Strategist, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/ppc-strategist/
-
-  tracked_metrics:
-    - acos_reduction_rate
-    - roi_improvement
-    - bid_accuracy
-
-  proven_patterns:
-    - id: ppc-001
-      name: "ACOS分层竞价"
-      logic:
-        - "ACOS < 15%: 提价10-20%"
-        - "ACOS 15-25%: 维持观察"
-        - "ACOS 25-35%: 降价10-15%"
-        - "ACOS > 35%: 降价20%+或暂停"
-      success_rate: 0.87
-    - id: ppc-002
-      name: "广告架构三层分离"
-      structure:
-        auto: "发现新词，低竞价"
-        broad: "词组匹配，中竞价"
-        exact: "精准转化，高竞价"
-      success_rate: 0.92
-
-  dynamic_thresholds:
-    target_acos:
-      initial: 0.25
-      current: 0.23
-      confidence: 0.85
-    max_bid:
-      initial: 2.00
-      current: 1.80
-      confidence: 0.88
-
-  graduation_status:
-    否定词收割: graduated
-    ACOS分层竞价: graduated
-    广告架构设计: manual
-
 dependencies:
   receives_from:
     - keyword-architect

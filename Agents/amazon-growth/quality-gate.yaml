@@ -41,34 +41,8 @@ tools:
     status: planned
     description: "检查禁用词、字符限制等"
 
-bmaddata:
-  workflow_stage: "Quality Assurance Layer"
-  story_template: "As Quality Gate, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/quality-gate/
-
-  tracked_metrics:
-    - false_positive_rate
-    - false_negative_rate
-    - review_latency
-
-  proven_patterns:
-    - id: qg-001
-      name: "Listing合规检查清单"
-      checks:
-        - "标题长度 ≤ 200字符"
-        - "无禁用词（warranty, guarantee, best seller）"
-        - "关键词密度 1-2%"
-        - "品牌名正确"
-      success_rate: 0.98
-
-  graduation_status:
-    格式检查: graduated
-    禁用词检测: graduated
-    风险评估: manual
-
 dependencies:
   receives_from:
     - listing-optimizer

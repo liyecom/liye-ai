@@ -61,42 +61,8 @@ tools:
     status: implemented
     path: tools/sellersprite_tool.py
 
-bmaddata:
-  workflow_stage: "Launch: Step 1 – Market Assessment"
-  story_template: "As Market Analyst, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
-  experience_log: .liye_evolution/agent_experiences/market-analyst/
-
-  tracked_metrics:
-    - insight_actionability
-    - prediction_accuracy
-    - time_to_insight
-
-  proven_patterns:
-    - id: mp-001
-      name: "80/20 SKU分析"
-      description: "识别贡献80%销售的20% SKU"
-      success_rate: 0.92
-      usage_count: 15
-    - id: mp-002
-      name: "竞品定价矩阵"
-      description: "价格×评分×销量三维定位"
-      success_rate: 0.88
-      usage_count: 12
-
-  graduation_status:
-    竞品价格监控: graduated
-    市场规模估算: evolving
-    差异化识别: manual
-
-  knowledge_contribution:
-    on_task_complete:
-      - extract: insights
-      - store_to: agent_experiences/market-analyst/
-      - format: structured_insight.json
-
 dependencies:
   outputs_to:
     - keyword-architect
