@@ -62,10 +62,6 @@ tools:
   - name: AmazonAdsAPITool
     status: planned
 
-bmaddata:
-  workflow_stage: "Optimize: Step 2 – PPC Strategy"
-  story_template: "As PPC Strategist, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
   experience_log: .liye_evolution/agent_experiences/ppc-strategist/

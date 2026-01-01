@@ -47,10 +47,6 @@ tools:
   - name: KeepaReviewTool
     status: planned
 
-bmaddata:
-  workflow_stage: "Monitoring Layer"
-  story_template: "As Review Sentinel, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
   experience_log: .liye_evolution/agent_experiences/review-sentinel/

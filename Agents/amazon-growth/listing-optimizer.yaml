@@ -56,10 +56,6 @@ tools:
   - name: QdrantKnowledgeTool
     status: implemented
 
-bmaddata:
-  workflow_stage: "Launch: Step 3 – Conversion Asset Creation"
-  story_template: "As Listing Optimizer, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
   experience_log: .liye_evolution/agent_experiences/listing-optimizer/

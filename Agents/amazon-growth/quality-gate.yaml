@@ -41,10 +41,6 @@ tools:
     status: planned
     description: "检查禁用词、字符限制等"
 
-bmaddata:
-  workflow_stage: "Quality Assurance Layer"
-  story_template: "As Quality Gate, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
   experience_log: .liye_evolution/agent_experiences/quality-gate/

@@ -54,10 +54,6 @@ tools:
     status: planned
     description: "回滚指定操作"
 
-bmaddata:
-  workflow_stage: "Execution Layer"
-  story_template: "As Execution Agent, I want to {action} so that {outcome}"
-
 evolution:
   enabled: true
   experience_log: .liye_evolution/agent_experiences/execution-agent/

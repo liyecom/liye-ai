@@ -3,7 +3,7 @@
 Agent definitions following the **Three-Part Formula**:
 
 ```
-Agent = Persona (WHO) + Skills (WHAT) + Runtime (HOW)
+Agent = Persona + Skills + Runtime
 ```
 
 ## Directory Structure
@@ -30,7 +30,7 @@ agent:
   version: 1.0.0
   domain: core | amazon-growth | medical-research | geo-os
 
-persona:           # WHO - from BMad Method
+persona:           # Agent Identity
   role: ...
   goal: ...
   backstory: ...
