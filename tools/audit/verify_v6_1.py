@@ -40,17 +40,20 @@ FORBIDDEN_AGENT_PATHS = [
     ".scaffold/",
 ]
 
-# Expected symlinks
+# Expected symlinks with retirement versions
 EXPECTED_SYMLINKS = {
-    "governance": "_meta/governance",
-    "schemas": "_meta/schemas",
-    "templates": "_meta/templates",
-    "stats": "data/stats",
-    "traces": "data/traces",
-    "adapters": "src/adapters",
-    "reports": "Artifacts_Vault/reports",
-    "scripts": "tools",
+    "governance": {"target": "_meta/governance", "retire_by": "v6.3.0"},
+    "schemas": {"target": "_meta/schemas", "retire_by": "v6.3.0"},
+    "templates": {"target": "_meta/templates", "retire_by": "v6.3.0"},
+    "stats": {"target": "data/stats", "retire_by": "v6.3.0"},
+    "traces": {"target": "data/traces", "retire_by": "v6.3.0"},
+    "adapters": {"target": "src/adapters", "retire_by": "v6.3.0"},
+    "reports": {"target": "Artifacts_Vault/reports", "retire_by": "v6.3.0"},
+    "scripts": {"target": "tools", "retire_by": "v6.3.0"},
 }
+
+# Current version for retirement countdown
+CURRENT_VERSION = "v6.1.1"
 
 
 class Colors:
@@ -88,6 +91,28 @@ def print_warn(msg: str):
 def print_info(msg: str):
     """Print an info message."""
     print(f"  {Colors.BLUE}[INFO]{Colors.RESET} {msg}")
+
+
+def parse_version(version: str) -> Tuple[int, int, int]:
+    """Parse version string like 'v6.1.1' into tuple (6, 1, 1)."""
+    match = re.match(r"v?(\d+)\.(\d+)\.(\d+)", version)
+    if match:
+        return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    return (0, 0, 0)
+
+
+def version_distance(current: str, target: str) -> int:
+    """
+    Calculate approximate version distance (in minor versions).
+    E.g., v6.1.1 -> v6.3.0 = 2 minor versions
+    """
+    curr = parse_version(current)
+    tgt = parse_version(target)
+
+    # Simple approximation: count minor version difference
+    if curr[0] != tgt[0]:
+        return (tgt[0] - curr[0]) * 10 + tgt[1]  # Major version = 10 minors
+    return tgt[1] - curr[1]
 
 
 def check_ssot_violations() -> Tuple[bool, List[str]]:
@@ -212,6 +237,8 @@ def check_symlinks() -> Tuple[bool, List[str]]:
     Check C: Symlink Governance
     - Enumerate top-level symlinks (should be 8)
     - Verify each symlink is documented in SYMLINKS.md
+    - Verify each symlink has retire_by version
+    - Print retirement countdown
     """
     print_header("CHECK C: Symlink Governance")
 
@@ -230,7 +257,8 @@ def check_symlinks() -> Tuple[bool, List[str]]:
 
     # Check each symlink matches expected
     issues = []
-    for name, expected_target in EXPECTED_SYMLINKS.items():
+    for name, config in EXPECTED_SYMLINKS.items():
+        expected_target = config["target"]
         if name not in found_symlinks:
             issues.append(f"Missing expected symlink: {name} -> {expected_target}")
         elif found_symlinks[name] != expected_target:
@@ -253,20 +281,54 @@ def check_symlinks() -> Tuple[bool, List[str]]:
             if name not in symlinks_content:
                 issues.append(f"Symlink '{name}' not documented in SYMLINKS.md")
 
+    # Check retire_by versions are defined
+    missing_retire_by = []
+    for name, config in EXPECTED_SYMLINKS.items():
+        if "retire_by" not in config or not config["retire_by"]:
+            missing_retire_by.append(name)
+
+    if missing_retire_by:
+        issues.append(f"Missing retire_by for symlinks: {missing_retire_by}")
+        print_fail(f"Missing retire_by version for: {missing_retire_by}")
+    else:
+        print_pass("All symlinks have retire_by version")
+
     if issues:
         for issue in issues:
-            if "Missing" in issue or "mismatch" in issue:
+            if "Missing expected" in issue or "mismatch" in issue:
                 print_fail(issue)
-            else:
+            elif "Missing retire_by" not in issue:  # Already printed
                 print_warn(issue)
 
-    # Print summary
+    # Print summary with retirement countdown
     print_info("Current symlinks:")
     for name, target in sorted(found_symlinks.items()):
         print(f"    {name} -> {target}")
 
+    # Print retirement countdown
+    print_info(f"\n  {Colors.BOLD}Symlink Retirement Countdown (current: {CURRENT_VERSION}){Colors.RESET}")
+    print(f"  {'─' * 55}")
+    print(f"  {'Symlink':<15} {'Target':<25} {'Retire By':<10} {'Status'}")
+    print(f"  {'─' * 55}")
+
+    for name, config in sorted(EXPECTED_SYMLINKS.items()):
+        target = config["target"]
+        retire_by = config.get("retire_by", "N/A")
+        distance = version_distance(CURRENT_VERSION, retire_by)
+
+        if distance <= 0:
+            status = f"{Colors.RED}⚠ OVERDUE{Colors.RESET}"
+        elif distance == 1:
+            status = f"{Colors.YELLOW}⏰ 1 minor version{Colors.RESET}"
+        else:
+            status = f"{Colors.GREEN}✓ {distance} minor versions{Colors.RESET}"
+
+        print(f"  {name:<15} {target:<25} {retire_by:<10} {status}")
+
+    print(f"  {'─' * 55}")
+
     # Don't fail if SYMLINKS.md doesn't exist yet (will be created in PHASE 4)
-    critical_issues = [i for i in issues if "Missing expected" in i or "mismatch" in i]
+    critical_issues = [i for i in issues if "Missing expected" in i or "mismatch" in i or "Missing retire_by" in i]
     return len(critical_issues) == 0, issues
 
 
