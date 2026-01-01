@@ -358,3 +358,5 @@ Apache License 2.0 — 详见 [LICENSE](LICENSE)
 **LiYe AI v3.1.0** | 2025
 
 *"让 AI 团队帮你干活，你只管拍板。"*
+
+<!-- ci-verify: bmad-boundary-scope 2026-01-01T14:52:19Z -->
