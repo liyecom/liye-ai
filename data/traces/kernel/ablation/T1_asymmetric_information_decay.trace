@@ -1,0 +1,69 @@
+---
+ablation_id: ABL-006
+t1_candidate: T1_asymmetric_information_decay
+mode: single
+domain: investment-os
+timestamp: 2025-12-31T01:25:00Z
+---
+
+# Single-T1 Ablation: T1_asymmetric_information_decay
+
+## Cases Tested
+
+### Case 01: Event-driven Risk Assessment
+
+**With only T1_asymmetric_information_decay loaded:**
+
+Moderate contribution. Identifies that negative surprise will be incorporated faster than positive. Adds nuance to the risk assessment. But not the primary mechanism.
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 3 | -2 |
+| Assumption Clarity | 3 | -1 |
+| Actionability | 3 | -1 |
+
+**Marginal contribution to Case 01**: 35%
+
+### Case 02: Portfolio Hidden Risk
+
+**With only T1_asymmetric_information_decay loaded:**
+
+Minimal contribution. Portfolio construction doesn't heavily feature information decay dynamics.
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 2 | -3 |
+| Assumption Clarity | 2 | -3 |
+| Actionability | 2 | -2 |
+
+**Marginal contribution to Case 02**: 10%
+
+### Case 03: Risk-On/Off Regime
+
+**With only T1_asymmetric_information_decay loaded:**
+
+Minimal contribution. Regime analysis doesn't strongly feature information decay.
+
+| Dimension | Score | vs Full-T1 |
+|-----------|-------|------------|
+| Causal Explicitness | 2 | -3 |
+| Assumption Clarity | 2 | -2 |
+| Actionability | 2 | -3 |
+
+**Marginal contribution to Case 03**: 15%
+
+---
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Avg Marginal Contribution | **20%** |
+| Independence | LOW |
+| Synergy with | T1_expectation_saturation |
+| Cases where critical | 0/3 |
+
+## Recommendation
+
+**DEFERRED** - Confirmed. Needs more case types to validate.
+May be valuable in news-driven scenarios, but current test cases don't demonstrate clear value.
