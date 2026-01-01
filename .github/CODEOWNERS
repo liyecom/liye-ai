@@ -1,0 +1,8 @@
+# AI Agent Governance - CODEOWNERS
+# Protected governance files require governance-team approval
+
+.github/workflows/**   @liyecom/governance-team
+.github/CODEOWNERS     @liyecom/governance-team
+docs/governance/**     @liyecom/governance-team
+docs/architecture/**   @liyecom/governance-team
+CLAUDE.md              @liyecom/governance-team
