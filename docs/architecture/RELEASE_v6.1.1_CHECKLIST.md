@@ -105,6 +105,8 @@
 - [x] Agent Loader 断言: 14 agents, 唯一 ID, 必填字段
 - [x] Symlink 治理: 8 个 symlinks 全部登记
 - [x] Smoke Test: 入口模块可导入
+- [x] Symlink Retirement Enforcement: OVERDUE => exit 1
+- [x] Version SSOT: `config/version.txt` 作为 current_version 权威源
 
 **运行方式**:
 ```bash
@@ -137,3 +139,25 @@ python tools/audit/verify_v6_1.py
 | 日期 | 阶段 | 变更 |
 |------|------|------|
 | 2026-01-01 | PHASE 0 | 创建分支，记录基线快照 |
+| 2026-01-01 | HOTFIX | Symlink 退役强制执行 (branch: `hotfix/v6.1.1-symlink-retire-enforcement`, base: `ba4e168`) |
+
+---
+
+## Hotfix: Symlink Retirement Enforcement
+
+**分支**: `hotfix/v6.1.1-symlink-retire-enforcement`
+**基线 SHA**: `ba4e168`
+
+### 变更内容
+
+1. **verify_v6_1.py 强制 FAIL 逻辑**
+   - 当 `current_version >= retire_by` 时，verify 必须 exit 1
+   - 输出强制整改清单（删除 symlink + 迁移动作 + 受影响引用）
+
+2. **selftest 脚本**
+   - `tools/audit/selftest_symlink_retire.sh`
+   - 验证语义版本比较与 FAIL 行为
+
+3. **宪法修订**
+   - `ARCHITECTURE_CONSTITUTION.md` v1.3
+   - 新增条款：Symlink Retirement Enforcement + Rollback Policy Hardening

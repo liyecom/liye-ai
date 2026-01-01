@@ -52,8 +52,71 @@ EXPECTED_SYMLINKS = {
     "scripts": {"target": "tools", "retire_by": "v6.3.0"},
 }
 
-# Current version for retirement countdown
-CURRENT_VERSION = "v6.1.1"
+# Version SSOT configuration
+VERSION_FILE = REPO_ROOT / "config" / "version.txt"
+VERSION_ENV_VAR = "LIYE_OS_VERSION"
+
+# Maximum references to show in remediation list
+MAX_REFERENCES_SHOWN = 30
+
+# Version globals (initialized by load_current_version())
+CURRENT_VERSION = None
+VERSION_SOURCE = None
+
+
+def load_current_version() -> Tuple[str, str]:
+    """
+    Load current version from SSOT (config/version.txt) or env override.
+
+    Priority:
+    1. If LIYE_OS_VERSION env var is set and non-empty -> use it
+    2. Otherwise -> read from config/version.txt
+
+    Returns:
+        Tuple of (version, source) where source is:
+        - "env:LIYE_OS_VERSION" if from environment
+        - "file:config/version.txt" if from file
+
+    Raises:
+        SystemExit: If version file is missing/invalid and no env override
+    """
+    # Check for environment override first
+    env_version = os.environ.get(VERSION_ENV_VAR, "").strip()
+    if env_version:
+        # Validate format
+        if not re.match(r"^v\d+\.\d+\.\d+$", env_version):
+            print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_FORMAT_INVALID: "
+                  f"env {VERSION_ENV_VAR}='{env_version}' is not valid (expected vMAJOR.MINOR.PATCH)")
+            sys.exit(1)
+        return env_version, f"env:{VERSION_ENV_VAR}"
+
+    # Read from version file (SSOT)
+    if not VERSION_FILE.exists():
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_SOURCE_INVALID: "
+              f"config/version.txt missing")
+        print(f"  Expected at: {VERSION_FILE}")
+        print(f"  Create it with: echo 'v6.1.1' > config/version.txt")
+        sys.exit(1)
+
+    try:
+        version = VERSION_FILE.read_text().strip()
+    except Exception as e:
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_SOURCE_INVALID: "
+              f"Failed to read config/version.txt: {e}")
+        sys.exit(1)
+
+    # Validate format
+    if not version:
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_SOURCE_INVALID: "
+              f"config/version.txt is empty")
+        sys.exit(1)
+
+    if not re.match(r"^v\d+\.\d+\.\d+$", version):
+        print(f"{Colors.RED}[ERROR]{Colors.RESET} VERSION_FORMAT_INVALID: "
+              f"config/version.txt contains '{version}' (expected vMAJOR.MINOR.PATCH)")
+        sys.exit(1)
+
+    return version, "file:config/version.txt"
 
 
 class Colors:
@@ -101,18 +164,88 @@ def parse_version(version: str) -> Tuple[int, int, int]:
     return (0, 0, 0)
 
 
+def compare_versions(v1: str, v2: str) -> int:
+    """
+    Compare two semantic versions.
+    Returns: -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
+
+    Handles cases like v6.10.0 > v6.3.0 correctly (not string comparison).
+    """
+    p1 = parse_version(v1)
+    p2 = parse_version(v2)
+
+    for i in range(3):
+        if p1[i] < p2[i]:
+            return -1
+        elif p1[i] > p2[i]:
+            return 1
+    return 0
+
+
+def is_version_overdue(current: str, retire_by: str) -> bool:
+    """Check if current version >= retire_by (overdue)."""
+    return compare_versions(current, retire_by) >= 0
+
+
 def version_distance(current: str, target: str) -> int:
     """
     Calculate approximate version distance (in minor versions).
     E.g., v6.1.1 -> v6.3.0 = 2 minor versions
+    Returns negative if current >= target (overdue).
     """
     curr = parse_version(current)
     tgt = parse_version(target)
 
-    # Simple approximation: count minor version difference
+    # If major versions differ
     if curr[0] != tgt[0]:
-        return (tgt[0] - curr[0]) * 10 + tgt[1]  # Major version = 10 minors
+        return (tgt[0] - curr[0]) * 10 + (tgt[1] - curr[1])
+
+    # Same major, compare minor
     return tgt[1] - curr[1]
+
+
+def find_symlink_references(symlink_name: str, max_results: int = MAX_REFERENCES_SHOWN) -> List[str]:
+    """
+    Find code references to a symlink path.
+    Returns list of file:line references.
+    """
+    references = []
+    scan_dirs = ["src/", "tools/", "Systems/", "tests/", "systems/", ".claude/"]
+
+    # Search patterns: direct path references
+    patterns = [
+        f"/{symlink_name}/",
+        f'"{symlink_name}/',
+        f"'{symlink_name}/",
+        f"from {symlink_name}",
+        f"import {symlink_name}",
+    ]
+
+    for pattern in patterns:
+        for scan_dir in scan_dirs:
+            full_scan_path = REPO_ROOT / scan_dir
+            if not full_scan_path.exists():
+                continue
+
+            try:
+                result = subprocess.run(
+                    ["grep", "-rn", pattern, str(full_scan_path)],
+                    capture_output=True,
+                    text=True,
+                    cwd=REPO_ROOT
+                )
+                if result.stdout.strip():
+                    for line in result.stdout.strip().split("\n"):
+                        # Skip verify script itself
+                        if "verify_v6_1.py" not in line and "selftest" not in line:
+                            # Format as relative path
+                            rel_line = line.replace(str(REPO_ROOT) + "/", "")
+                            if rel_line not in references:
+                                references.append(rel_line)
+            except Exception:
+                pass
+
+    return references[:max_results]
 
 
 def check_ssot_violations() -> Tuple[bool, List[str]]:
@@ -232,13 +365,14 @@ def check_agent_loader() -> Tuple[bool, Dict]:
             sys.path.remove(str(AGENT_LOADER_PATH.parent))
 
 
-def check_symlinks() -> Tuple[bool, List[str]]:
+def check_symlinks() -> Tuple[bool, Dict]:
     """
     Check C: Symlink Governance
     - Enumerate top-level symlinks (should be 8)
     - Verify each symlink is documented in SYMLINKS.md
     - Verify each symlink has retire_by version
     - Print retirement countdown
+    - Track overdue symlinks for enforcement
     """
     print_header("CHECK C: Symlink Governance")
 
@@ -305,8 +439,11 @@ def check_symlinks() -> Tuple[bool, List[str]]:
     for name, target in sorted(found_symlinks.items()):
         print(f"    {name} -> {target}")
 
+    # Track overdue symlinks
+    overdue_symlinks = []
+
     # Print retirement countdown
-    print_info(f"\n  {Colors.BOLD}Symlink Retirement Countdown (current: {CURRENT_VERSION}){Colors.RESET}")
+    print_info(f"\n  {Colors.BOLD}Symlink Retirement Countdown (current: {CURRENT_VERSION}, source: {VERSION_SOURCE}){Colors.RESET}")
     print(f"  {'─' * 55}")
     print(f"  {'Symlink':<15} {'Target':<25} {'Retire By':<10} {'Status'}")
     print(f"  {'─' * 55}")
@@ -316,8 +453,9 @@ def check_symlinks() -> Tuple[bool, List[str]]:
         retire_by = config.get("retire_by", "N/A")
         distance = version_distance(CURRENT_VERSION, retire_by)
 
-        if distance <= 0:
+        if is_version_overdue(CURRENT_VERSION, retire_by):
             status = f"{Colors.RED}⚠ OVERDUE{Colors.RESET}"
+            overdue_symlinks.append({"name": name, "target": target, "retire_by": retire_by})
         elif distance == 1:
             status = f"{Colors.YELLOW}⏰ 1 minor version{Colors.RESET}"
         else:
@@ -329,7 +467,12 @@ def check_symlinks() -> Tuple[bool, List[str]]:
 
     # Don't fail if SYMLINKS.md doesn't exist yet (will be created in PHASE 4)
     critical_issues = [i for i in issues if "Missing expected" in i or "mismatch" in i or "Missing retire_by" in i]
-    return len(critical_issues) == 0, issues
+
+    return len(critical_issues) == 0, {
+        "issues": issues,
+        "overdue_symlinks": overdue_symlinks,
+        "found_symlinks": found_symlinks
+    }
 
 
 def check_smoke_test() -> Tuple[bool, str]:
@@ -375,10 +518,96 @@ def check_smoke_test() -> Tuple[bool, str]:
             sys.path.remove(str(amazon_growth_path))
 
 
+def check_symlink_retirement_enforcement(overdue_symlinks: List[Dict]) -> Tuple[bool, Dict]:
+    """
+    Check E: Symlink Retirement Enforcement
+    - If any symlink is OVERDUE (current_version >= retire_by), FAIL
+    - Output remediation checklist with actionable steps
+    """
+    print_header("CHECK E: Symlink Retirement Enforcement")
+
+    if not overdue_symlinks:
+        print_pass(f"No overdue symlinks (current: {CURRENT_VERSION}, source: {VERSION_SOURCE})")
+        print_info(f"All {len(EXPECTED_SYMLINKS)} symlinks are within their retirement window")
+        return True, {"overdue_count": 0}
+
+    # FAIL: Overdue symlinks found
+    print_fail(f"Found {len(overdue_symlinks)} OVERDUE symlinks!")
+    print(f"\n  {Colors.RED}{Colors.BOLD}{'═' * 60}{Colors.RESET}")
+    print(f"  {Colors.RED}{Colors.BOLD}SYMLINK RETIREMENT ENFORCEMENT FAILURE{Colors.RESET}")
+    print(f"  {Colors.RED}{Colors.BOLD}{'═' * 60}{Colors.RESET}")
+    print(f"\n  Current version: {CURRENT_VERSION}")
+    print(f"  Overdue symlinks: {len(overdue_symlinks)}")
+
+    # Build remediation checklist
+    remediation = []
+
+    for sym in overdue_symlinks:
+        name = sym["name"]
+        target = sym["target"]
+        retire_by = sym["retire_by"]
+
+        print(f"\n  {Colors.RED}━━━ {name} ━━━{Colors.RESET}")
+        print(f"  Retire By: {retire_by} (OVERDUE since current = {CURRENT_VERSION})")
+        print(f"  Target: {target}")
+
+        # Find affected references
+        refs = find_symlink_references(name)
+        ref_count = len(refs)
+
+        action = {
+            "symlink": name,
+            "target": target,
+            "retire_by": retire_by,
+            "action": f"Delete symlink '{name}' and migrate all references to '{target}'",
+            "affected_files": ref_count,
+            "references": refs
+        }
+        remediation.append(action)
+
+        print(f"\n  {Colors.BOLD}Required Actions:{Colors.RESET}")
+        print(f"    1. Delete symlink: rm {name}")
+        print(f"    2. Update all references: {name}/ → {target}/")
+
+        if refs:
+            print(f"\n  {Colors.BOLD}Affected References ({ref_count} found, max {MAX_REFERENCES_SHOWN} shown):{Colors.RESET}")
+            for ref in refs:
+                print(f"    • {ref[:100]}{'...' if len(ref) > 100 else ''}")
+        else:
+            print(f"\n  {Colors.GREEN}No code references found (symlink may be safe to delete){Colors.RESET}")
+
+    # Print summary remediation commands
+    print(f"\n  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
+    print(f"  {Colors.BOLD}REMEDIATION COMMANDS:{Colors.RESET}")
+    print(f"  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
+
+    for sym in overdue_symlinks:
+        name = sym["name"]
+        target = sym["target"]
+        print(f"\n  # Remove symlink: {name}")
+        print(f"  rm {name}")
+        print(f"  # Then update all imports/paths from '{name}/' to '{target}/'")
+
+    print(f"\n  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
+    print(f"  After remediation, run: python tools/audit/verify_v6_1.py")
+    print(f"  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
+
+    return False, {
+        "overdue_count": len(overdue_symlinks),
+        "remediation": remediation
+    }
+
+
 def main():
     """Run all verification checks."""
+    global CURRENT_VERSION, VERSION_SOURCE
+
+    # Load version from SSOT (or env override)
+    CURRENT_VERSION, VERSION_SOURCE = load_current_version()
+
     print(f"\n{Colors.BOLD}LiYe OS v6.1 Architecture Verification{Colors.RESET}")
     print(f"Repository: {REPO_ROOT}")
+    print(f"Version: {CURRENT_VERSION} (source: {VERSION_SOURCE})")
     print(f"Time: {subprocess.run(['date'], capture_output=True, text=True).stdout.strip()}")
 
     all_passed = True
@@ -402,6 +631,16 @@ def main():
     # Check D: Smoke Test
     passed, details = check_smoke_test()
     results["smoke_test"] = {"passed": passed, "details": details}
+    all_passed = all_passed and passed
+
+    # Check E: Symlink Retirement Enforcement (uses overdue data from Check C)
+    symlinks_details = results["symlinks"]["details"]
+    overdue_symlinks = []
+    if isinstance(symlinks_details, dict):
+        overdue_symlinks = symlinks_details.get("overdue_symlinks", [])
+
+    passed, details = check_symlink_retirement_enforcement(overdue_symlinks)
+    results["symlink_retirement"] = {"passed": passed, "details": details}
     all_passed = all_passed and passed
 
     # Summary

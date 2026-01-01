@@ -1,8 +1,8 @@
 # LiYe OS 架构宪法
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **生效日期**: 2025-12-22
-> **最后修订**: 2026-01-01 (v6.1.1 硬化)
+> **最后修订**: 2026-01-01 (v6.1.2-hotfix: Version SSOT for Governance)
 > **状态**: 生效中
 > **修订权限**: 需架构委员会（即你自己）正式评审
 
@@ -428,6 +428,127 @@ Systems/{system-name}/
 
 ---
 
+## 修订记录（Amendments）
+
+### Amendment 2026-01-01-A: Symlink Retirement Enforcement
+
+**版本**: v1.3
+**生效日期**: 2026-01-01
+**关联条款**: 第 4.2 条
+
+**内容**：
+
+1. **Symlink 必须包含 retire_by 版本**
+   - 每个 symlink 在 `EXPECTED_SYMLINKS` 配置中必须声明 `retire_by` 字段
+   - 格式：`vMAJOR.MINOR.PATCH`（如 `v6.3.0`）
+
+2. **verify_v6_1.py 强制执行退役检查**
+   - 当 `current_version >= retire_by` 时，验证脚本必须返回 exit code 1（FAIL）
+   - CI 将因此阻止合并到主线
+
+3. **OVERDUE 时的强制整改清单**
+   - 验证脚本必须输出：
+     - 需删除的 symlink 名称与目标路径
+     - 建议的迁移动作（旧路径 → 新路径）
+     - 受影响的代码引用（file:line，最多 30 条）
+
+4. **Symlink 是临时兼容层**
+   - OVERDUE 的 symlinks 是被禁止的
+   - 必须在退役版本前完成迁移
+
+**验证方式**：
+```bash
+# 正常运行（应 PASS）
+python tools/audit/verify_v6_1.py
+
+# 测试 OVERDUE 行为（应 FAIL）
+LIYE_OS_VERSION=v6.3.0 python tools/audit/verify_v6_1.py
+
+# 自测脚本
+bash tools/audit/selftest_symlink_retire.sh
+```
+
+---
+
+### Amendment 2026-01-01-B: Rollback Policy Hardening
+
+**版本**: v1.3
+**生效日期**: 2026-01-01
+**关联条款**: 新增
+
+**内容**：
+
+1. **推荐的回滚方式是 tag/SHA checkout**
+   - 确保可复现性和可追溯性
+   - 格式：`git checkout v6.1.0` 或 `git checkout <sha>`
+
+2. **紧急回滚使用 git revert**
+   - 保留完整历史记录
+   - 适用于已推送到远程的分支
+   - 格式：`git revert HEAD~N..HEAD --no-commit`
+
+3. **回滚后必须运行验证脚本**
+   - 确认治理合规性
+   - 命令：`python tools/audit/verify_v6_1.py`
+
+4. **回滚操作必须记录**
+   - 创建 issue 说明回滚原因
+   - 记录影响范围和恢复时间
+
+**理由**：
+- `git checkout <branch>` 不够严谨，分支可能已变更
+- Tag/SHA 提供精确的版本锁定
+- Git revert 保留历史，便于审计
+
+---
+
+### Amendment 2026-01-01-C: Version SSOT for Governance
+
+**版本**: v1.4
+**生效日期**: 2026-01-01
+**关联条款**: 第 4.1 条（SSOT 原则）
+
+**内容**：
+
+1. **current_version 必须来自 `config/version.txt`**
+   - 该文件是 LiYe OS 当前版本的唯一权威源（SSOT）
+   - 格式：`vMAJOR.MINOR.PATCH`（如 `v6.1.1`），无其他内容
+   - 禁止在脚本中硬编码版本号
+
+2. **verify 可允许环境变量覆盖，仅用于测试/自检**
+   - 环境变量：`LIYE_OS_VERSION`
+   - 当设置时，覆盖 `config/version.txt` 的值
+   - 仅用于 selftest 和 CI 测试场景
+
+3. **版本来源必须在输出中披露**
+   - verify 脚本的所有输出必须显示版本来源
+   - 格式：`source: file:config/version.txt` 或 `source: env:LIYE_OS_VERSION`
+   - 确保透明度和可审计性
+
+4. **版本文件缺失时必须立即失败**
+   - 如果 `config/version.txt` 不存在或格式无效，verify 必须 exit 1
+   - 不允许回退到默认值或硬编码值
+
+**SSOT 映射表更新**：
+
+| 资源类型 | SSOT 位置 | 禁止位置 |
+|----------|-----------|----------|
+| 系统版本 | `config/version.txt` | 脚本中的硬编码、其他配置文件 |
+
+**验证方式**：
+```bash
+# 正常运行（显示 source: file:config/version.txt）
+python tools/audit/verify_v6_1.py
+
+# 环境变量覆盖（显示 source: env:LIYE_OS_VERSION）
+LIYE_OS_VERSION=v6.3.0 python tools/audit/verify_v6_1.py
+
+# 自测脚本
+bash tools/audit/selftest_symlink_retire.sh
+```
+
+---
+
 ## 签署
 
 本宪法由 LiYe OS 架构委员会于 2025-12-22 正式通过。
@@ -443,5 +564,5 @@ Systems/{system-name}/
 
 ---
 
-*宪法版本: 1.0*
-*最后更新: 2025-12-22*
+*宪法版本: 1.4*
+*最后更新: 2026-01-01*
