@@ -1,0 +1,109 @@
+name: PR Rate Limiter (P1 Rhythm Control)
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  rate-check:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+
+    steps:
+      - name: Check PR Rate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          echo "=== PR Rate Limiter ==="
+          echo "PR Author: $PR_AUTHOR"
+          echo "PR Number: #$PR_NUMBER"
+          echo ""
+
+          # Check if author is a bot
+          IS_BOT="${{ github.event.pull_request.user.type }}"
+          echo "Author Type: $IS_BOT"
+
+          # Define thresholds
+          BOT_HOURLY_LIMIT=5
+          BOT_DAILY_LIMIT=20
+          HUMAN_HOURLY_LIMIT=10
+          HUMAN_DAILY_LIMIT=50
+
+          # Get recent PRs from this author in the last hour
+          HOUR_AGO=$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-1H +%Y-%m-%dT%H:%M:%SZ)
+          DAY_AGO=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-1d +%Y-%m-%dT%H:%M:%SZ)
+
+          echo ""
+          echo "Checking PRs since: $HOUR_AGO (hourly)"
+          echo "Checking PRs since: $DAY_AGO (daily)"
+
+          # Count PRs from this author in the last hour
+          HOURLY_PRS=$(gh pr list \
+            --repo ${{ github.repository }} \
+            --author "$PR_AUTHOR" \
+            --state all \
+            --json createdAt \
+            --jq "[.[] | select(.createdAt >= \"$HOUR_AGO\")] | length")
+
+          # Count PRs from this author in the last day
+          DAILY_PRS=$(gh pr list \
+            --repo ${{ github.repository }} \
+            --author "$PR_AUTHOR" \
+            --state all \
+            --json createdAt \
+            --jq "[.[] | select(.createdAt >= \"$DAY_AGO\")] | length")
+
+          echo ""
+          echo "=== Rate Statistics ==="
+          echo "PRs in last hour: $HOURLY_PRS"
+          echo "PRs in last day: $DAILY_PRS"
+
+          # Determine limits based on author type
+          if [ "$IS_BOT" = "Bot" ]; then
+            HOURLY_LIMIT=$BOT_HOURLY_LIMIT
+            DAILY_LIMIT=$BOT_DAILY_LIMIT
+            AUTHOR_TYPE="Bot"
+          else
+            HOURLY_LIMIT=$HUMAN_HOURLY_LIMIT
+            DAILY_LIMIT=$HUMAN_DAILY_LIMIT
+            AUTHOR_TYPE="Human"
+          fi
+
+          echo ""
+          echo "=== Limits ($AUTHOR_TYPE) ==="
+          echo "Hourly limit: $HOURLY_LIMIT"
+          echo "Daily limit: $DAILY_LIMIT"
+
+          # Check thresholds (warning only, not blocking per P1)
+          RATE_STATUS="OK"
+
+          if [ "$HOURLY_PRS" -ge "$HOURLY_LIMIT" ]; then
+            RATE_STATUS="HOURLY_EXCEEDED"
+            echo ""
+            echo "::warning::$AUTHOR_TYPE author $PR_AUTHOR has opened $HOURLY_PRS PRs in the last hour (limit: $HOURLY_LIMIT)"
+          fi
+
+          if [ "$DAILY_PRS" -ge "$DAILY_LIMIT" ]; then
+            RATE_STATUS="DAILY_EXCEEDED"
+            echo ""
+            echo "::warning::$AUTHOR_TYPE author $PR_AUTHOR has opened $DAILY_PRS PRs in the last day (limit: $DAILY_LIMIT)"
+          fi
+
+          # Output summary
+          echo ""
+          echo "=== Rate Check Summary ==="
+          echo "Status: $RATE_STATUS"
+          echo "Author: $PR_AUTHOR ($AUTHOR_TYPE)"
+          echo "Hourly: $HOURLY_PRS / $HOURLY_LIMIT"
+          echo "Daily: $DAILY_PRS / $DAILY_LIMIT"
+
+          # Note: P1 is observation-only, no blocking
+          echo ""
+          echo "Note: This is an observability gate (P1). No PRs are blocked."
+          echo "Rate limiting enforcement will be implemented in P3."
