@@ -124,11 +124,43 @@ ALL CHECKS PASSED
 
 ## 回滚
 
-如需回滚：
+### 推荐方式（版本标签）
 
 ```bash
+# 方式 1: 使用版本标签（推荐）
+git checkout v6.1.0
+
+# 方式 2: 使用特定 commit SHA
+git checkout 8935aaf  # v6.0.0 最后一个 commit
+```
+
+### 回滚到开发分支（仅开发环境）
+
+```bash
+# 仅用于开发环境调试，不推荐生产使用
 git checkout feat/amazon-growth-os-v4.2-governance
 ```
+
+### 紧急回滚（保留历史）
+
+```bash
+# 使用 revert 保留完整历史记录（推荐用于已推送的分支）
+git revert HEAD~11..HEAD --no-commit
+git commit -m "revert: rollback v6.1.1 hardening changes"
+
+# 或者单独 revert 特定 commit
+git revert <commit-sha>
+```
+
+### 回滚验证
+
+```bash
+# 回滚后必须验证
+python tools/audit/verify_v6_1.py  # 应该会失败（因为回滚了）
+python src/domain/amazon-growth/main.py --help  # 确认基础功能正常
+```
+
+**注意**：回滚操作应记录在 issue 中，说明回滚原因和影响范围。
 
 ---
 
