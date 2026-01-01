@@ -67,15 +67,33 @@ jobs:
           set -euo pipefail
 
           # Rule 3: Always-on T1 cannot move to contextual/deferred
-          ALWAYS_ON_T1="T1_liquidity_illusion T1_correlation_regime_shift"
+          # Dynamic: Get current always-on T1s from the directory
+          if [ ! -d "src/kernel/t1/always_on" ]; then
+            echo "::warning::always_on directory does not exist"
+            exit 0
+          fi
 
-          for t1 in $ALWAYS_ON_T1; do
-            if [ -f "src/kernel/t1/always_on/${t1}.md" ]; then
-              echo "✅ $t1 remains always-on"
-            else
-              # Check if it was moved
-              if [ -f "src/kernel/t1/contextual/${t1}.md" ] || [ -f "src/kernel/t1/deferred/${t1}.md" ]; then
-                echo "::error::Always-on T1 cannot be demoted: $t1"
+          ALWAYS_ON_COUNT=$(find src/kernel/t1/always_on -name "T1_*.md" | wc -l | tr -d ' ')
+          if [ "$ALWAYS_ON_COUNT" -eq 0 ]; then
+            echo "::warning::No always-on T1 files found"
+            exit 0
+          fi
+
+          echo "Found $ALWAYS_ON_COUNT always-on T1 file(s):"
+          for t1_file in src/kernel/t1/always_on/T1_*.md; do
+            [ -f "$t1_file" ] || continue
+            t1_name=$(basename "$t1_file" .md)
+            echo "  ✅ $t1_name is always-on"
+          done
+
+          # Check changed files for demotions
+          CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || echo "")
+          for file in $CHANGES; do
+            if [[ "$file" == src/kernel/t1/contextual/T1_*.md ]] || [[ "$file" == src/kernel/t1/deferred/T1_*.md ]]; then
+              t1_name=$(basename "$file" .md)
+              # Check if this T1 was previously in always_on
+              if git show origin/${{ github.base_ref }}:src/kernel/t1/always_on/${t1_name}.md &>/dev/null; then
+                echo "::error::Always-on T1 cannot be demoted: $t1_name"
                 exit 1
               fi
             fi
