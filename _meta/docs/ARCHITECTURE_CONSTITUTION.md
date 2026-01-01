@@ -1,8 +1,9 @@
 # LiYe OS 架构宪法
 
-> **版本**: 1.0
+> **版本**: 1.2
 > **生效日期**: 2025-12-22
-> **状态**: 已冻结
+> **最后修订**: 2026-01-01 (v6.1.1 硬化)
+> **状态**: 生效中
 > **修订权限**: 需架构委员会（即你自己）正式评审
 
 ---
@@ -60,33 +61,108 @@ LiYe OS 的架构基于一个核心洞察：
 ```
 LiYe_OS/
 │
-├── _meta/                    # 系统元信息
+├── _meta/                    # 系统元信息（整合 governance/schemas/templates）
 │   ├── templates/            # 各类模板
-│   │   ├── skill_template/
-│   │   ├── agent_template/
-│   │   ├── crew_template/
-│   │   └── system_template/
+│   ├── governance/           # 治理规则
+│   ├── schemas/              # 数据结构定义
 │   └── docs/                 # 架构文档
-│       └── ARCHITECTURE_CONSTITUTION.md
 │
 ├── Skills/                   # 方法论（给人看）
-│
 ├── Glossaries/               # 术语表
-│
-├── Agents/                   # 智能体定义（原子）
-│
+├── Agents/                   # 智能体定义（原子）【SSOT】
 ├── Crews/                    # 团队定义（组合）
-│
 ├── Systems/                  # 可部署系统（一等公民）
+│
+├── src/                      # 源代码（运行时实现）
+│   ├── domain/               # 领域层（amazon-growth, geo-os 等）
+│   ├── runtime/              # 运行时层（MCP, executor）
+│   ├── kernel/               # 内核层（T1/T2/T3 World Model）
+│   ├── brokers/              # LLM 调度器
+│   └── adapters/             # 外部适配器
+│
+├── data/                     # 运行时数据
+│   ├── stats/                # 统计数据
+│   ├── traces/               # 执行轨迹
+│   └── missions/             # 任务记录
+│
+├── tools/                    # 开发工具（整合 scripts）
+│   ├── notion-sync/          # Notion 同步
+│   ├── converters/           # 格式转换
+│   └── web-publisher/        # 网站发布
+│
+├── tests/                    # 测试套件
+├── docs/                     # 用户文档
+├── examples/                 # 示例
 │
 ├── Extensions/               # 能力扩展
 │   ├── claude-skills/        # Claude Code Skills
 │   └── mcp-servers/          # MCP 服务器
 │
-├── Artifacts_Vault/          # 成果库
+├── .claude/                  # Claude Code 集成
+│   ├── packs/                # 按需加载上下文
+│   └── scripts/              # 工具脚本
 │
+├── Artifacts_Vault/          # 成果库（整合 reports）
 └── Projects_Engine/          # 项目引擎
 ```
+
+### 第 4.1 条：SSOT（单一真相源）原则
+
+**定义**：每种资源类型在系统中只能有一个权威定义位置。
+
+**SSOT 映射表**：
+
+| 资源类型 | SSOT 位置 | 禁止位置 |
+|----------|-----------|----------|
+| Agent 定义 | `Agents/` | `src/domain/*/agents/`, `config/agents.yaml` |
+| Crew 定义 | `Crews/` | `src/domain/*/crews/` |
+| 方法论 | `Skills/` | 散落的 `.md` 文件 |
+| 架构文档 | `_meta/docs/` | 其他位置的架构说明 |
+
+**运行时加载规则**：
+- `src/domain/*/main.py` 必须从 SSOT 位置加载资源
+- 使用 `agent_loader.py` 从 `Agents/` 动态加载
+- 禁止在 `config/` 中维护 Agent 副本
+
+**违规处理**：发现 SSOT 违规时，立即删除非权威副本。
+
+### 第 4.2 条：Symlink 治理
+
+**定义**：Symlinks 是**临时兼容层**，用于平滑迁移，不是永久架构。
+
+**核心规则**：
+1. **禁止新增**：新增 symlink 必须通过 RFC 审批
+2. **必须退役**：每个 symlink 必须指定退役版本（通常 3 个次版本内）
+3. **新代码禁用**：新代码禁止使用 symlink 路径，必须使用真实路径
+
+**登记要求**：
+- 所有 symlinks 必须在 `_meta/docs/SYMLINKS.md` 中登记
+- 未登记的 symlink 视为违规，必须删除或补登
+
+**当前 symlinks**（v6.1.1）：
+| Symlink | 目标 | 退役版本 |
+|---------|------|----------|
+| governance | _meta/governance | v6.3.0 |
+| schemas | _meta/schemas | v6.3.0 |
+| templates | _meta/templates | v6.3.0 |
+| stats | data/stats | v6.3.0 |
+| traces | data/traces | v6.3.0 |
+| adapters | src/adapters | v6.3.0 |
+| reports | Artifacts_Vault/reports | v6.3.0 |
+| scripts | tools | v6.3.0 |
+
+### 第 4.3 条：生成产物治理
+
+**定义**：Generated artifacts 是运行时产生的文件，不应入库。
+
+**规则**：
+1. `.claude/.compiled/` 目录不入库（已在 .gitignore）
+2. `data/traces/` 中的运行时轨迹不入库（按需）
+3. `Artifacts_Vault/reports/` 中的自动生成报告不入库（按需）
+
+**例外**：
+- 手动创建的配置文件可入库
+- 版本发布的快照可入库
 
 ### 第 5 条：层级职责
 
