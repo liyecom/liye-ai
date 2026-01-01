@@ -1,9 +1,10 @@
 # Symlink Governance Document
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **创建日期**: 2026-01-01
 > **状态**: 生效中
 > **目的**: 记录所有 symlinks 及其退役计划
+> **宪法条款**: 第 4.2 条 + Amendment 2026-01-01-A
 
 ---
 
@@ -13,6 +14,10 @@
 2. **禁止新增 symlinks**，除非通过 RFC 审批
 3. **每个 symlink 必须有退役版本**
 4. **新代码禁止使用 symlink 路径**
+5. **OVERDUE symlinks 被 CI 阻止**（见 Amendment 2026-01-01-A）
+
+> **强制执行**：当 `current_version >= retire_by` 时，`verify_v6_1.py` 会返回 exit 1，CI 将阻止合并。
+> 参见：[ARCHITECTURE_CONSTITUTION.md](./ARCHITECTURE_CONSTITUTION.md#amendment-2026-01-01-a-symlink-retirement-enforcement)
 
 ---
 

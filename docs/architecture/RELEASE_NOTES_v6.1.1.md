@@ -3,6 +3,7 @@
 > **发布日期**: 2026-01-01
 > **类型**: 硬化版本（Hardening Release）
 > **分支**: `release/v6.1.1-hardening`
+> **Hotfix**: `hotfix/v6.1.1-symlink-retire-enforcement`
 
 ---
 
@@ -164,12 +165,51 @@ python src/domain/amazon-growth/main.py --help  # 确认基础功能正常
 
 ---
 
+## Hotfix: Symlink Retirement Enforcement
+
+**分支**: `hotfix/v6.1.1-symlink-retire-enforcement`
+**基线 SHA**: `ba4e168`
+
+### 新增功能
+
+| 功能 | 说明 |
+|------|------|
+| **OVERDUE 强制失败** | 当 `current_version >= retire_by` 时，verify 返回 exit 1 |
+| **整改清单输出** | 列出需删除的 symlinks、迁移动作、受影响代码引用 |
+| **语义版本比较** | 正确处理 v6.10.0 > v6.3.0（非字符串比较） |
+| **版本覆盖** | 支持 `LIYE_OS_VERSION` 环境变量用于测试 |
+| **自测脚本** | `tools/audit/selftest_symlink_retire.sh` |
+
+### 宪法修订
+
+`ARCHITECTURE_CONSTITUTION.md` 更新到 v1.3：
+
+| 修订编号 | 内容 |
+|----------|------|
+| Amendment 2026-01-01-A | Symlink Retirement Enforcement（强制执行） |
+| Amendment 2026-01-01-B | Rollback Policy Hardening（回滚策略） |
+
+### 验证方式
+
+```bash
+# 正常运行（应 PASS）
+python tools/audit/verify_v6_1.py
+
+# 测试 OVERDUE 行为（应 FAIL）
+LIYE_OS_VERSION=v6.3.0 python tools/audit/verify_v6_1.py
+
+# 自测脚本（4 个测试场景）
+bash tools/audit/selftest_symlink_retire.sh
+```
+
+---
+
 ## 下一步
 
 | 版本 | 计划 |
 |------|------|
 | v6.2.0 | 下一个功能版本 |
-| v6.3.0 | 删除所有兼容 symlinks |
+| v6.3.0 | 删除所有兼容 symlinks（verify 将强制 FAIL 如果未迁移） |
 
 ---
 

@@ -1,8 +1,8 @@
 # LiYe OS 架构宪法
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **生效日期**: 2025-12-22
-> **最后修订**: 2026-01-01 (v6.1.1 硬化)
+> **最后修订**: 2026-01-01 (v6.1.1-hotfix: Symlink Retirement Enforcement)
 > **状态**: 生效中
 > **修订权限**: 需架构委员会（即你自己）正式评审
 
@@ -425,6 +425,80 @@ Systems/{system-name}/
 3. ❌ **禁止**将完整 System 放在 Skills 或 Agents 下
 4. ❌ **禁止**使用 `Knowledge/` 作为 Skills 的父目录（除非第 12 条条件满足）
 5. ❌ **禁止**混用术语（Agent ≠ Crew ≠ System）
+
+---
+
+## 修订记录（Amendments）
+
+### Amendment 2026-01-01-A: Symlink Retirement Enforcement
+
+**版本**: v1.3
+**生效日期**: 2026-01-01
+**关联条款**: 第 4.2 条
+
+**内容**：
+
+1. **Symlink 必须包含 retire_by 版本**
+   - 每个 symlink 在 `EXPECTED_SYMLINKS` 配置中必须声明 `retire_by` 字段
+   - 格式：`vMAJOR.MINOR.PATCH`（如 `v6.3.0`）
+
+2. **verify_v6_1.py 强制执行退役检查**
+   - 当 `current_version >= retire_by` 时，验证脚本必须返回 exit code 1（FAIL）
+   - CI 将因此阻止合并到主线
+
+3. **OVERDUE 时的强制整改清单**
+   - 验证脚本必须输出：
+     - 需删除的 symlink 名称与目标路径
+     - 建议的迁移动作（旧路径 → 新路径）
+     - 受影响的代码引用（file:line，最多 30 条）
+
+4. **Symlink 是临时兼容层**
+   - OVERDUE 的 symlinks 是被禁止的
+   - 必须在退役版本前完成迁移
+
+**验证方式**：
+```bash
+# 正常运行（应 PASS）
+python tools/audit/verify_v6_1.py
+
+# 测试 OVERDUE 行为（应 FAIL）
+LIYE_OS_VERSION=v6.3.0 python tools/audit/verify_v6_1.py
+
+# 自测脚本
+bash tools/audit/selftest_symlink_retire.sh
+```
+
+---
+
+### Amendment 2026-01-01-B: Rollback Policy Hardening
+
+**版本**: v1.3
+**生效日期**: 2026-01-01
+**关联条款**: 新增
+
+**内容**：
+
+1. **推荐的回滚方式是 tag/SHA checkout**
+   - 确保可复现性和可追溯性
+   - 格式：`git checkout v6.1.0` 或 `git checkout <sha>`
+
+2. **紧急回滚使用 git revert**
+   - 保留完整历史记录
+   - 适用于已推送到远程的分支
+   - 格式：`git revert HEAD~N..HEAD --no-commit`
+
+3. **回滚后必须运行验证脚本**
+   - 确认治理合规性
+   - 命令：`python tools/audit/verify_v6_1.py`
+
+4. **回滚操作必须记录**
+   - 创建 issue 说明回滚原因
+   - 记录影响范围和恢复时间
+
+**理由**：
+- `git checkout <branch>` 不够严谨，分支可能已变更
+- Tag/SHA 提供精确的版本锁定
+- Git revert 保留历史，便于审计
 
 ---
 
