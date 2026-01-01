@@ -161,3 +161,26 @@ python tools/audit/verify_v6_1.py
 3. **宪法修订**
    - `ARCHITECTURE_CONSTITUTION.md` v1.3
    - 新增条款：Symlink Retirement Enforcement + Rollback Policy Hardening
+
+---
+
+## Hotfix: Version SSOT (v6.1.2)
+
+**分支**: `hotfix/v6.1.2-version-ssot`
+**基线 SHA**: `ba4e168`
+**发布**: v6.1.2 (tagged)
+
+### 变更内容
+
+1. **Version SSOT 实现**
+   - `config/version.txt` 作为版本唯一权威源
+   - `verify_v6_1.py` 从文件读取 `current_version`
+   - 支持 `LIYE_OS_VERSION` 环境变量覆盖（仅测试用）
+
+2. **版本来源披露**
+   - 所有输出显示版本来源：`source: file:config/version.txt`
+   - 环境变量覆盖时：`source: env:LIYE_OS_VERSION`
+
+3. **宪法修订**
+   - `ARCHITECTURE_CONSTITUTION.md` v1.4
+   - 新增条款：Amendment 2026-01-01-C (Version SSOT for Governance)
