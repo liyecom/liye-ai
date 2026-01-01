@@ -1,56 +1,46 @@
 name: Constitution - BMad Boundary Gate
 
-on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  on:
+    pull_request:
+      branches: [main]
+    push:
+      branches: [main]
 
-jobs:
-  bmad-boundary:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  jobs:
+    bmad-boundary:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
 
-      - name: Fail if BMAD leaks into Agents runtime layer
-        run: |
-          set -euo pipefail
+        - name: Fail if BMAD leaks into Agents runtime layer
+          run: |
+            set -euo pipefail
+            echo "=== Checking BMAD boundary (scoped) ==="
 
-          echo "=== Checking BMAD boundary (scoped) ==="
+            git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
 
-          # 1. 获取本 PR 变更文件
-          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
+            AGENTS_CHANGED=$(grep -E '^Agents/.*\.ya?ml$' changed_files.txt || true)
 
-          # 2. 仅关注本 PR 变更的 Agents YAML
-          AGENTS_CHANGED=$(grep -E '^Agents/.*\.ya?ml$' changed_files.txt || true)
+            if [ -z "$AGENTS_CHANGED" ]; then
+              echo "No agent changes in this PR. Skip BMAD boundary check."
+              exit 0
+            fi
 
-          if [ -z "$AGENTS_CHANGED" ]; then
-           echo "No agent changes in this PR. Skip BMAD boundary check."
-           exit 0
-          fi
+            AGENTS_CHANGED=$(echo "$AGENTS_CHANGED" | grep -v '^Agents/amazon-growth/' | grep -v '_template' || true)
 
-         # 3. 排除 legacy / template（与 architecture-gate 对齐）
-           AGENTS_CHANGED=$(
-           echo "$AGENTS_CHANGED" |
-             grep -v '^Agents/amazon-growth/' |
-             grep -v '_template' || true
-          )
+            if [ -z "$AGENTS_CHANGED" ]; then
+              echo "Only legacy/template agents affected. Skip BMAD boundary check."
+              exit 0
+            fi
 
+            echo "$AGENTS_CHANGED" | while read -r file; do
+              echo "Scanning $file"
+              if grep -nE 'bmaddata|BMAD' "$file"; then
+                echo "::error::BMAD reference found in $file"
+                exit 1
+              fi
+            done
 
-          if [ -z "$AGENTS_CHANGED" ]; then
-            echo "Only legacy/template agents affected. Skip BMAD boundary check."
-            exit 0
-          fi
-
-          # 4. 对实际变更的 Agents 执行 BMAD 边界检查
-          echo "$AGENTS_CHANGED" | while read -r file; do
-          echo "Scanning $file"
-          if grep -nE 'bmaddata|BMAD' "$file"; then
-          echo "::error::BMAD reference found in $file"
-          exit 1
-          fi
-          done
-
-          echo "BMAD boundary check passed (scoped, no regression)."
+            echo "BMAD boundary check passed (scoped, no regression)."
