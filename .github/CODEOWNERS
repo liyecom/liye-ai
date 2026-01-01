@@ -1,6 +1,7 @@
 # AI Agent Governance - CODEOWNERS
 # Protected governance files require governance-team approval
 
+.github/workflows/architecture-gate.yml   @liyecom
 .github/workflows/**   @liyecom/governance-team
 .github/CODEOWNERS     @liyecom/governance-team
 docs/governance/**     @liyecom/governance-team
