@@ -27,8 +27,11 @@ jobs:
             exit 1
           fi
 
-          if ! grep -q "Status: FROZEN" src/kernel/t1/VERDICT_FREEZE.md; then
+          # Match both plain and markdown-formatted Status: FROZEN
+          # Handles: "Status: FROZEN" or "**Status**: FROZEN" or "**Status:** FROZEN"
+          if ! grep -qE "(Status|^\*\*Status\*?\*?):?\s*FROZEN" src/kernel/t1/VERDICT_FREEZE.md; then
             echo "::error::T1 verdict must remain FROZEN"
+            echo "::error::Expected 'Status: FROZEN' or '**Status**: FROZEN' in VERDICT_FREEZE.md"
             exit 1
           fi
 
