@@ -1,0 +1,279 @@
+name: Exposure Guard
+
+on:
+  pull_request:
+    paths:
+      - '**/*.py'
+      - '**/*.md'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+  push:
+    paths:
+      - '**/*.py'
+      - '**/*.md'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '**/*.json'
+
+jobs:
+  productization-language-guard:
+    name: Productization Language Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for forbidden productization language
+        run: |
+          echo "================================"
+          echo "Exposure Guard - Language Check"
+          echo "================================"
+          echo ""
+
+          # Define forbidden patterns
+          FORBIDDEN_PATTERNS=(
+            "public.*api"
+            "saas"
+            "auto-execute"
+            "auto.execute"
+            "guaranteed.*lift"
+            "guaranteed.*effect"
+            "guarantee.*result"
+            "效果保证"
+            "保证效果"
+            "自动执行"
+            "公开.*api"
+            "定价"
+            "pricing"
+            "subscription"
+            "订阅"
+            "monetize"
+            "monetization"
+            "变现"
+          )
+
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD)
+
+          VIOLATIONS_FOUND=false
+
+          for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+            echo "Checking for: $pattern"
+
+            for file in $CHANGED_FILES; do
+              if [ -f "$file" ]; then
+                MATCHES=$(grep -i -n "$pattern" "$file" 2>/dev/null || true)
+                if [ -n "$MATCHES" ]; then
+                  echo ""
+                  echo "❌ VIOLATION in $file:"
+                  echo "$MATCHES"
+                  echo ""
+                  VIOLATIONS_FOUND=true
+                fi
+              fi
+            done
+          done
+
+          echo ""
+          echo "================================"
+
+          if [ "$VIOLATIONS_FOUND" = true ]; then
+            echo "❌ EXPOSURE GUARD: BLOCKED"
+            echo ""
+            echo "Productization language detected."
+            echo "Current Exposure Level: E0 (Internal Only)"
+            echo ""
+            echo "To proceed:"
+            echo "1. Remove forbidden language"
+            echo "2. Ensure no productization implications"
+            echo "3. Request review if intentional"
+            exit 1
+          else
+            echo "✅ EXPOSURE GUARD: PASS"
+            echo "No productization language detected."
+          fi
+
+  api-endpoint-guard:
+    name: API Endpoint Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for API endpoint creation
+        run: |
+          echo "================================"
+          echo "Exposure Guard - API Check"
+          echo "================================"
+          echo ""
+
+          # Check for common API framework patterns
+          API_PATTERNS=(
+            "@app.route"
+            "@router"
+            "FastAPI"
+            "flask"
+            "express"
+            "endpoint"
+            "rest_framework"
+            "api_view"
+            "swagger"
+            "openapi"
+          )
+
+          VIOLATIONS_FOUND=false
+
+          for pattern in "${API_PATTERNS[@]}"; do
+            MATCHES=$(grep -r -i -l "$pattern" --include="*.py" --include="*.js" --include="*.ts" . 2>/dev/null || true)
+            if [ -n "$MATCHES" ]; then
+              echo "⚠️ Potential API code found for: $pattern"
+              echo "$MATCHES"
+              echo ""
+
+              # Check if it's in allowed directories
+              for file in $MATCHES; do
+                if [[ ! "$file" =~ ^./tests/ ]] && [[ ! "$file" =~ ^./examples/ ]]; then
+                  echo "❌ API code in non-test directory: $file"
+                  VIOLATIONS_FOUND=true
+                fi
+              done
+            fi
+          done
+
+          echo ""
+          echo "================================"
+
+          if [ "$VIOLATIONS_FOUND" = true ]; then
+            echo "❌ API GUARD: BLOCKED"
+            echo ""
+            echo "API endpoint code detected outside test directories."
+            echo "Current Exposure Level: E0 (Internal Only)"
+            echo "API creation is prohibited until Productization Gate opens."
+            exit 1
+          else
+            echo "✅ API GUARD: PASS"
+          fi
+
+  effect-guarantee-guard:
+    name: Effect Guarantee Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for effect guarantee language
+        run: |
+          echo "================================"
+          echo "Exposure Guard - Guarantee Check"
+          echo "================================"
+          echo ""
+
+          # Effect guarantee patterns (dangerous claims)
+          GUARANTEE_PATTERNS=(
+            "will improve"
+            "will increase"
+            "will boost"
+            "guaranteed to"
+            "proven to"
+            "ensures"
+            "一定会"
+            "肯定能"
+            "保证提升"
+            "必定"
+            "100%"
+          )
+
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD)
+
+          WARNINGS_FOUND=false
+
+          for pattern in "${GUARANTEE_PATTERNS[@]}"; do
+            for file in $CHANGED_FILES; do
+              if [ -f "$file" ]; then
+                MATCHES=$(grep -i -n "$pattern" "$file" 2>/dev/null || true)
+                if [ -n "$MATCHES" ]; then
+                  echo "⚠️ Potential guarantee language in $file:"
+                  echo "$MATCHES"
+                  echo ""
+                  WARNINGS_FOUND=true
+                fi
+              fi
+            done
+          done
+
+          echo ""
+          echo "================================"
+
+          if [ "$WARNINGS_FOUND" = true ]; then
+            echo "⚠️ GUARANTEE GUARD: WARNING"
+            echo ""
+            echo "Effect guarantee language detected."
+            echo "Please review to ensure no unintended promises."
+            echo ""
+            echo "Allowed contexts:"
+            echo "- Technical guarantees (e.g., 'hash will match')"
+            echo "- Test assertions"
+            echo ""
+            echo "Prohibited contexts:"
+            echo "- Business effect claims"
+            echo "- User-facing promises"
+            # Warning only, don't fail
+          else
+            echo "✅ GUARANTEE GUARD: PASS"
+          fi
+
+  exposure-guard-summary:
+    name: Guard Summary
+    runs-on: ubuntu-latest
+    needs: [productization-language-guard, api-endpoint-guard, effect-guarantee-guard]
+    if: always()
+
+    steps:
+      - name: Summarize guard results
+        run: |
+          echo "================================"
+          echo "Exposure Guard Summary"
+          echo "================================"
+          echo ""
+          echo "Current Exposure Level: E0 (Internal Only)"
+          echo ""
+
+          GATE_PASS=true
+
+          if [ "${{ needs.productization-language-guard.result }}" != "success" ]; then
+            echo "❌ Productization Language Guard: FAIL"
+            GATE_PASS=false
+          else
+            echo "✅ Productization Language Guard: PASS"
+          fi
+
+          if [ "${{ needs.api-endpoint-guard.result }}" != "success" ]; then
+            echo "❌ API Endpoint Guard: FAIL"
+            GATE_PASS=false
+          else
+            echo "✅ API Endpoint Guard: PASS"
+          fi
+
+          if [ "${{ needs.effect-guarantee-guard.result }}" != "success" ]; then
+            echo "⚠️ Effect Guarantee Guard: WARNING (review needed)"
+          else
+            echo "✅ Effect Guarantee Guard: PASS"
+          fi
+
+          echo ""
+          echo "================================"
+
+          if [ "$GATE_PASS" = "false" ]; then
+            echo "❌ EXPOSURE GUARD: BLOCKED"
+            echo ""
+            echo "System is in E0 (Internal Only) mode."
+            echo "Productization language and API creation are prohibited."
+            exit 1
+          else
+            echo "✅ EXPOSURE GUARD: PASS"
+          fi

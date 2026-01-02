@@ -1,0 +1,81 @@
+# Case 14: Review Momentum Threshold Validation
+# Bound Mechanism: bsr_review_momentum_threshold_01
+
+case_id: case_14
+domain: bsr
+bound_mechanism: bsr_review_momentum_threshold_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "评论对 BSR 影响评估"
+  context: |
+    产品评论状态：
+    - 总评论数: 12 条
+    - 评分: 4.2
+    - 近 30 天新增: 2 条
+    - 近期趋势: 上周 0 条新评论
+    BSR 近期从 #3,000 下滑到 #4,500
+  question: "评论是否是 BSR 下滑的原因？应该如何应对？"
+
+baseline:
+  response_pattern: |
+    通用建议："需要更多好评来提升排名"
+    缺失：
+    - 未评估评论是否达到影响阈值
+    - 未计算评论动量
+    - 未区分评论 vs 其他因素
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Review Momentum Threshold 机制：
+
+    阈值检查：
+
+    1. minimum_review_count
+       - 当前: 12 条 < 阈值 15 条
+       - 状态: ❌ 未激活评论权重因子
+       - 影响: 评论对 BSR 的正向作用有限
+
+    2. rating_floor
+       - 当前: 4.2 ≥ 阈值 3.8
+       - 状态: ✅ 无转化惩罚
+       - 影响: 评分本身不是问题
+
+    3. recent_review_velocity
+       - 当前: 2条/30天 = 0.5条/周 < 阈值 3条/周
+       - 状态: ❌ 评论新鲜度信号弱
+       - 影响: 算法可能识别为热度下降
+
+    动量计算：
+    - momentum = (2/12) × 1.0 = 0.17
+    - Level: STABLE→DECAYING 边界
+    - 评论确实是 BSR 下滑的贡献因素之一
+
+    应对策略：
+
+    1. 短期（突破 15 条阈值）
+       - 目标：3 周内新增 5+ 条评论
+       - 方法：Vine 计划、Request Review 按钮
+
+    2. 中期（维持动量）
+       - 目标：稳定 3+ 条/周
+       - 方法：优化包装卡、售后跟进
+
+    3. 注意事项：
+       - 避免评论集中在短期（异常检测风险）
+       - 保持评分 4.0+ 优先于数量
+  mechanism_used:
+    - bsr_review_momentum_threshold_01
+  lift_dimensions:
+    causal_explicitness: "+2（阈值-效应映射）"
+    assumption_clarity: "+1（三重阈值检查）"
+    hallucination_risk: "-1（基于具体数据）"
+    actionability: "+2（分阶段目标）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

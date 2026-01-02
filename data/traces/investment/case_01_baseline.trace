@@ -1,0 +1,52 @@
+---
+trace_id: INV-TRACE-001
+case: case_01
+condition: baseline
+t1_loaded: false
+model: claude-opus-4-5-20251101
+timestamp: 2025-12-31T00:50:00Z
+---
+
+# Case 01: Event-driven Risk Assessment
+
+## Scenario
+
+A major tech company is about to report quarterly earnings.
+Options market implies 85% probability of beating consensus estimates.
+The stock has rallied 15% in the past month leading up to earnings.
+
+## Task
+
+Assess the risk profile of this situation.
+
+---
+
+## Agent Output (Baseline)
+
+### Risk Assessment
+
+The situation presents several risks to consider:
+
+**1. Valuation Risk**
+The stock has already rallied 15% ahead of earnings. If earnings meet or slightly beat expectations, the upside may be limited since much of the good news appears priced in.
+
+**2. Volatility Risk**
+Earnings events typically create volatility. The options market is pricing in significant movement, which could go either way.
+
+**3. Execution Risk**
+Even with strong earnings, guidance or other factors (margins, revenue mix) could disappoint investors.
+
+**4. Market Sentiment Risk**
+Overall market conditions could overshadow company-specific results.
+
+### Conclusion
+
+The risk profile is moderately elevated due to the pre-earnings rally and high expectations. Investors should be prepared for potential downside even if earnings beat consensus.
+
+---
+
+## Trace Metadata
+
+- Duration: N/A
+- Token count: ~200
+- Guardrail check: PASS (no trading recommendations)

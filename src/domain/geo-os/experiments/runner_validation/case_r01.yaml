@@ -1,0 +1,72 @@
+# Case R01: Reproducibility Verification
+# Tests: Same input → Same output (hash identical)
+
+case_id: case_r01
+type: reproducibility
+created: 2025-12-31
+status: LOCKED
+
+description: |
+  Verifies that the Deterministic Runner produces bit-identical
+  outputs when given the same input multiple times.
+
+test_config:
+  runs: 5
+  mechanism_id: ppc_bid_strategy_escalation_01
+  domain: ppc
+
+input_contract:
+  domain: ppc
+  t1_units_used:
+    - ppc_bid_strategy_escalation_01
+  case_id: case_r01
+  context_data:
+    keyword: "wireless charger"
+    acos: 0.12
+    target_acos: 0.25
+    clicks: 150
+  question: "What bid adjustment tier applies to this keyword?"
+
+expected_behavior:
+  all_hashes_identical: true
+  validation_result: PASS
+  no_free_text: true
+
+pass_criteria:
+  - All 5 runs produce identical output_hash
+  - All validation reports show PASS
+  - No free text patterns detected
+  - JSON schema fully compliant
+
+fail_triggers:
+  - Any hash differs from others
+  - Validation FAIL on any run
+  - Free text detected in any output
+  - Schema violation
+
+verification_script: |
+  from src.runner import create_runner, InputContract
+  import json
+
+  runner = create_runner()
+
+  # Load mechanism
+  with open('data/t1_units/ppc/bid_strategy_escalation.json') as f:
+      mechanism = json.load(f)
+
+  input_contract = InputContract(
+      domain="ppc",
+      t1_units_used=["ppc_bid_strategy_escalation_01"],
+      case_id="case_r01",
+      context_data={
+          "keyword": "wireless charger",
+          "acos": 0.12,
+          "target_acos": 0.25,
+          "clicks": 150
+      },
+      question="What bid adjustment tier applies to this keyword?"
+  )
+
+  # Run reproducibility check
+  is_reproducible = runner.verify_reproducibility(mechanism, input_contract, runs=5)
+  assert is_reproducible, "Reproducibility check failed"

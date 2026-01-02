@@ -1,0 +1,177 @@
+# =============================================================================
+# World Model Pipeline Configuration
+# =============================================================================
+# Purpose: Orchestrate T1 → T2 → T3 reasoning flow
+# Mode: reasoning_only (no prediction, no recommendation, no optimization)
+# =============================================================================
+
+pipeline:
+  name: WORLD_MODEL_PIPELINE
+  version: 1.0.0
+  status: ACTIVE
+  mode: reasoning_only
+
+  description: |
+    Three-layer cognitive infrastructure:
+    - T1: What will fail under stress
+    - T2: What is true now
+    - T3: How states evolve under pressure
+
+  purpose: |
+    Make blind confidence structurally impossible.
+    Not by telling people what to do,
+    but by ensuring they cannot ignore what the world actually is.
+
+# -----------------------------------------------------------------------------
+# Layer Configuration
+# -----------------------------------------------------------------------------
+
+layers:
+  - name: T1_REASONING_KERNEL
+    path: src/kernel/t1
+    version: "2.0.0"
+    role: causal_skeleton
+    question: "Where will the world fail under stress?"
+    outputs:
+      - causal_chains
+      - false_confidence_warnings
+      - regime_detection
+
+  - name: T2_WORLD_STATE_KERNEL
+    path: src/kernel/t2
+    version: "1.0.0"
+    role: state_abstraction
+    question: "What dangerous state is the world in now?"
+    depends_on: T1_REASONING_KERNEL
+    outputs:
+      - liquidity_state
+      - correlation_state
+      - expectation_state
+      - leverage_state
+      - uncertainty_state
+
+  - name: T3_WORLD_DYNAMICS_KERNEL
+    path: src/kernel/t3
+    version: "1.0.0"
+    role: dynamics_model
+    question: "How might this state evolve under pressure?"
+    depends_on: T2_WORLD_STATE_KERNEL
+    outputs:
+      - acceleration
+      - amplification
+      - phase_transition
+
+# -----------------------------------------------------------------------------
+# Execution Flow
+# -----------------------------------------------------------------------------
+
+execution:
+  order: sequential
+  steps:
+    - step: 1
+      kernel: T1_REASONING_KERNEL
+      action: "Expose causal vulnerabilities"
+      output_to: T2_input
+
+    - step: 2
+      kernel: T2_WORLD_STATE_KERNEL
+      action: "Map vulnerabilities to current danger state"
+      input_from: T1_output
+      output_to: T3_input
+
+    - step: 3
+      kernel: T3_WORLD_DYNAMICS_KERNEL
+      action: "Describe state evolution form"
+      input_from: T2_output
+      output_to: final_output
+
+# -----------------------------------------------------------------------------
+# Output Structure
+# -----------------------------------------------------------------------------
+
+output:
+  format: world_model_trace
+  sections:
+    - name: causal_skeleton
+      source: T1
+      content: "What can fail under stress"
+
+    - name: current_world_state
+      source: T2
+      content: "5-dimensional danger coordinates"
+
+    - name: state_evolution_form
+      source: T3
+      content: "How states are changing (form only)"
+
+    - name: explicit_limitations
+      source: T3
+      content: "What this does NOT tell you"
+      required: true
+
+# -----------------------------------------------------------------------------
+# Budget
+# -----------------------------------------------------------------------------
+
+budget:
+  t1: 200
+  t2: 300
+  t3: 400
+  total: 900
+  percentage: 50
+  compliant: true
+
+# -----------------------------------------------------------------------------
+# Governance
+# -----------------------------------------------------------------------------
+
+governance:
+  mode: reasoning_only
+
+  invariants:
+    - "No prediction"
+    - "No recommendation"
+    - "No optimization target"
+
+  forbidden_outputs:
+    - "The probability is..."
+    - "You should..."
+    - "The optimal action is..."
+    - "This will lead to..."
+    - "Expect..."
+
+  required_outputs:
+    - "What this does NOT tell you: ..."
+
+  gates:
+    - name: world-model-boundary-gate
+      scope: pipeline_output
+      rule: "state/dynamics only, no decision language"
+      severity: BLOCK
+
+    - name: world-model-limitation-gate
+      scope: pipeline_output
+      rule: "must include explicit limitations"
+      severity: WARN
+
+  violations:
+    action: BLOCK
+    logging: traces/world_model/violations.log
+
+# -----------------------------------------------------------------------------
+# Telemetry
+# -----------------------------------------------------------------------------
+
+telemetry:
+  enabled: true
+  output: traces/world_model/pipeline_log.jsonl
+  metrics:
+    - layer_latency
+    - total_latency
+    - token_usage_per_layer
+    - governance_checks_passed
+    - governance_violations
+
+# =============================================================================
+# END OF PIPELINE
+# =============================================================================

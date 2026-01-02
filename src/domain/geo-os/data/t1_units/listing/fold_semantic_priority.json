@@ -1,0 +1,93 @@
+{
+  "id": "listing_fold_semantic_priority_01",
+  "domain": "listing",
+  "mechanism_type": "platform_mechanism",
+  "name": "Above-Fold Semantic Priority",
+  "description": "首屏语义优先机制：首屏可见内容的语义优先级决定用户停留与转化",
+
+  "trigger_conditions": [
+    "Listing 页面跳出率高",
+    "用户停留时间短",
+    "首屏内容布局优化"
+  ],
+
+  "platform_mechanism": {
+    "behavior": "Amazon Listing 页面首屏面积有限，用户只有 3-5 秒决定是否继续",
+    "platform_constraint": "首屏固定展示：主图 + Title + 价格 + 评分 + Bullet 1-2",
+    "user_pattern": "60%+ 用户不滚动页面即离开"
+  },
+
+  "causal_chain": "用户点击进入 → 3-5s 首屏扫视 → 首屏语义匹配搜索意图 → 决定滚动/购买/离开",
+
+  "mechanism_logic": {
+    "fold_anatomy": {
+      "desktop": {
+        "visible": ["主图", "Title（前 80 字符）", "价格", "评分/评论数", "Bullet 1-2"],
+        "partially_visible": ["Bullet 3", "购买按钮"],
+        "below_fold": ["Bullet 4-5", "Description", "A+ Content"]
+      },
+      "mobile": {
+        "visible": ["主图", "Title（前 60 字符）", "价格", "评分"],
+        "partially_visible": ["Bullet 1"],
+        "below_fold": ["Bullet 2-5", "Description", "A+ Content"]
+      }
+    },
+    "semantic_priority_rules": [
+      {
+        "priority": 1,
+        "element": "Title 前半段",
+        "content_requirement": "核心产品名 + 第一差异化卖点",
+        "rationale": "唯一确保被阅读的文字"
+      },
+      {
+        "priority": 2,
+        "element": "Bullet 1",
+        "content_requirement": "最强价值主张",
+        "rationale": "首屏可见的唯一/主要说服文字"
+      },
+      {
+        "priority": 3,
+        "element": "主图",
+        "content_requirement": "视觉锚定搜索意图",
+        "rationale": "见 visual_intent_anchoring 机制"
+      },
+      {
+        "priority": 4,
+        "element": "价格呈现",
+        "content_requirement": "价格锚定（如原价/折扣）",
+        "rationale": "影响价值感知"
+      }
+    ],
+    "fold_optimization_checklist": [
+      "Title 前 60 字符是否包含核心卖点？",
+      "Bullet 1 是否是最强说服点？",
+      "主图是否立即传达产品价值？",
+      "评分是否达到可信阈值（4.0+）？"
+    ],
+    "below_fold_strategy": {
+      "purpose": "深度说服已有兴趣的用户",
+      "content": "补充细节、使用场景、信任元素",
+      "priority": "低于首屏，但影响最终转化"
+    }
+  },
+
+  "expected_effect": "通过首屏优先级优化：关键信息在 3-5s 内传达 → 跳出率降低 10-20% → 转化率提升",
+
+  "boundary_conditions": [
+    "移动端首屏面积更小，需要更激进的优先级",
+    "高客单价产品用户愿意滚动阅读",
+    "回头客可能直接跳过首屏"
+  ],
+
+  "anti_patterns": [
+    "核心卖点放在 Bullet 4-5（低可见度）",
+    "Title 前半段是品牌名/通用词（浪费黄金位置）",
+    "依赖 A+ Content 做首次说服（多数用户看不到）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#platform_mechanism",
+  "bound_cases": ["case_19"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

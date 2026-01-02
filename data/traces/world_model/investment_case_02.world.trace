@@ -1,0 +1,192 @@
+# =============================================================================
+# World Model Trace: Investment Case 02
+# =============================================================================
+# Pipeline: WORLD_MODEL_PIPELINE v1.0.0
+# Domain: investment-os
+# Case: case_02_t1_enabled
+# Generated: 2025-12-31T02:30:00Z
+# =============================================================================
+
+trace:
+  id: WM-INV-002
+  pipeline: WORLD_MODEL_PIPELINE
+  domain: investment-os
+  case: case_02_t1_enabled
+  timestamp: "2025-12-31T02:30:00Z"
+
+# =============================================================================
+# Section 1: Causal Skeleton (T1)
+# =============================================================================
+
+causal_skeleton:
+  kernel: T1_REASONING_KERNEL
+  version: 2.0.0
+
+  warnings_active:
+    - T1_liquidity_illusion
+    - T1_expectation_saturation
+
+  causal_chains:
+    - id: chain_01
+      mechanism: "Earnings beat expectation → price already priced in → limited upside"
+      vulnerability: "Expectation saturation makes positive surprise unremarkable"
+      hidden_assumption: "Market has not already discounted the beat"
+
+    - id: chain_02
+      mechanism: "Position crowding → exit liquidity constrained → amplified moves"
+      vulnerability: "Liquidity illusion - exit capacity assumes normal conditions"
+      hidden_assumption: "I can exit when I want at prices I expect"
+
+  false_confidence_warnings:
+    - claim: "Earnings beat means stock goes up"
+      warning: "Saturated expectation may have already captured upside"
+
+    - claim: "I can adjust position if wrong"
+      warning: "Liquidity may evaporate precisely when adjustment is needed"
+
+  token_cost: 200
+
+# =============================================================================
+# Section 2: Current World State (T2)
+# =============================================================================
+
+current_world_state:
+  kernel: T2_WORLD_STATE_KERNEL
+  version: 1.0.0
+
+  danger_coordinates:
+    liquidity:
+      value: TIGHT
+      evidence:
+        - "T1_liquidity_illusion warning active"
+        - "Position crowding detected in sector"
+      question: "Can I access what I need right now?"
+
+    correlation:
+      value: STABLE
+      evidence:
+        - "No T1_correlation_regime_shift warning"
+        - "Cross-asset relationships holding"
+      question: "Are my assumed correlations still holding?"
+
+    expectation:
+      value: SATURATED
+      evidence:
+        - "T1_expectation_saturation warning active"
+        - "Consensus earnings estimate at 95th percentile"
+      question: "How crowded is the consensus view?"
+
+    leverage:
+      value: MODERATE
+      evidence:
+        - "No T1_reflexivity_loop warning"
+        - "Margin usage at average levels"
+      question: "How much will moves be amplified?"
+
+    uncertainty:
+      value: ELEVATED
+      evidence:
+        - "2 T1 warnings active"
+        - "Post-earnings regime unclear"
+      question: "How confident can I be about any assessment?"
+
+  t1_warnings_active:
+    - T1_liquidity_illusion
+    - T1_expectation_saturation
+
+  confidence: 0.7
+
+  token_cost: 300
+
+# =============================================================================
+# Section 3: State Evolution Form (T3)
+# =============================================================================
+
+state_evolution_form:
+  kernel: T3_WORLD_DYNAMICS_KERNEL
+  version: 1.0.0
+
+  observed_dynamics:
+    acceleration:
+      status: NOT_DETECTED
+      evidence:
+        - "State changes at normal frequency"
+      form_description: "Rate of state change appears stable"
+
+    amplification:
+      status: UNCERTAIN
+      evidence:
+        - "Expectation saturation may amplify surprise response"
+        - "Leverage moderate, but crowding elevates sensitivity"
+      form_description: "Potential for disproportionate response exists but is not confirmed"
+
+    phase_transition:
+      status: UNCERTAIN
+      evidence:
+        - "Expectation at SATURATED boundary"
+        - "Liquidity at TIGHT, approaching CRITICAL"
+      form_description: "System may be near a phase boundary in expectation and liquidity dimensions"
+
+  pattern_description: |
+    The current state shows ELEVATED uncertainty with SATURATED expectations
+    and TIGHT liquidity. Acceleration is not detected. Amplification potential
+    is uncertain. The system may be near phase boundaries in expectation and
+    liquidity dimensions.
+
+    This describes current form, not future trajectory.
+
+  token_cost: 400
+
+# =============================================================================
+# Section 4: Explicit Limitations (MANDATORY)
+# =============================================================================
+
+what_this_does_not_tell_you:
+  - "Whether earnings will beat, meet, or miss expectations"
+  - "What the stock price will do after earnings"
+  - "The probability of any specific outcome"
+  - "Whether you should hold, sell, or buy"
+  - "When or if liquidity conditions will change"
+  - "How long current dynamics will persist"
+
+# =============================================================================
+# Governance Check
+# =============================================================================
+
+governance:
+  pipeline: WORLD_MODEL_PIPELINE
+  mode: reasoning_only
+
+  checks:
+    - gate: world-model-boundary-gate
+      status: PASS
+      note: "No prediction, recommendation, or optimization language detected"
+
+    - gate: world-model-limitation-gate
+      status: PASS
+      note: "Explicit limitations section present with 6 items"
+
+  contains_prediction: false
+  contains_recommendation: false
+  contains_optimization: false
+
+# =============================================================================
+# Summary
+# =============================================================================
+
+summary:
+  total_token_cost: 900
+  layers_executed: 3
+  governance_status: PASS
+  trace_purpose: |
+    This trace describes:
+    1. What can fail under stress (T1)
+    2. What dangerous state the world is in now (T2)
+    3. How that state might be evolving (T3)
+
+    It does NOT tell you what to do.
+    It ensures you cannot ignore what the world actually is.
+
+# =============================================================================
+# END OF TRACE
+# =============================================================================

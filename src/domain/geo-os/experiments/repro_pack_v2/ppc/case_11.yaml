@@ -1,0 +1,71 @@
+# Case 11: Budget Saturation Detection Validation
+# Bound Mechanism: ppc_budget_saturation_detection_01
+
+case_id: case_11
+domain: ppc
+bound_mechanism: ppc_budget_saturation_detection_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "Campaign 预算饱和诊断"
+  context: |
+    Campaign 数据：
+    - Daily Budget: $100
+    - 平均消耗时间: 14:00 耗尽
+    - Lost Impression Share (Budget): 35%
+    - ACoS: 18%（Target: 25%）
+    - 早间消耗速度是下午的 2.5x
+  question: "预算是否成为增长瓶颈？应该如何调整？"
+
+baseline:
+  response_pattern: |
+    通用建议："增加预算"
+    缺失：
+    - 未量化饱和程度
+    - 未考虑 ACoS 效率
+    - 未提供具体调整幅度
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Budget Saturation Detection 机制：
+
+    饱和度评估：
+    - saturation_score = 35%（Lost Impression Budget）
+    - Level: CONSTRAINED→SATURATED 边界（>30%）
+    - Early Depletion: 14:00 < 18:00 → HIGH severity
+    - Spend Velocity Spike: 2.5x → LOW severity
+
+    综合判断：预算是显著瓶颈
+
+    响应策略（ACoS 18% < Target 25%）：
+
+    1. budget_increase（首选）
+       - 当前效率良好（ACoS < Target）
+       - 建议：增加日预算 30-50%（$130-$150）
+       - 预期：捕获更多高效流量
+
+    2. dayparting_optimization（辅助）
+       - 早间消耗过快可能竞争激烈
+       - 设置 bid adjustment：
+         - 06:00-12:00: -10%（降低早间竞价）
+         - 18:00-23:00: +15%（保护晚间高转化时段）
+
+    3. 监控指标：
+       - 预算消耗时间延长至 20:00+
+       - Lost Impression Share 降至 <20%
+       - 保持 ACoS < Target
+  mechanism_used:
+    - ppc_budget_saturation_detection_01
+  lift_dimensions:
+    causal_explicitness: "+2（饱和度量化诊断）"
+    assumption_clarity: "+1（阈值和策略条件）"
+    hallucination_risk: "-1（基于实际指标）"
+    actionability: "+2（具体预算和时段调整）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

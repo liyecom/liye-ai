@@ -1,0 +1,28 @@
+{
+  "run_id": "ffe7d0fecea85caf",
+  "started_at": "2025-12-30T19:19:42.500Z",
+  "finished_at": "2025-12-30T19:19:42.610Z",
+  "status": "needs_manual",
+  "broker": "codex",
+  "model": "gpt-5.2-thinking",
+  "route": "ask",
+  "approval_mode": "semi-auto",
+  "sandbox_mode": "read-only",
+  "attempt_count": 1,
+  "environment": {
+    "node_version": "v23.11.0",
+    "platform": "darwin",
+    "cwd": "/Users/liye/github/liye_os"
+  },
+  "approval": {
+    "mode": "semi-auto"
+  },
+  "outputs": [],
+  "evidence": [],
+  "notes": "Codex exited with code 1",
+  "runtime_sec": 0,
+  "error_code": "UNKNOWN",
+  "model_requested": "gpt-5.2-thinking",
+  "model_actual": "gpt-5.2",
+  "model_mapped": true
+}

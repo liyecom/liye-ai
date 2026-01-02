@@ -1,0 +1,39 @@
+# Repro Pack v1 - PPC Case 05
+# New case for repro validation
+
+domain: ppc
+case_id: case_05
+query: "广告活动结构优化：单一 ASIN vs 混合 ASIN 策略选择"
+
+baseline_score: 5
+t1_enabled_score: 10
+lift: 5
+
+criteria:
+  - D1_causal_explicitness
+  - D2_assumption_clarity
+  - D3_hallucination_risk
+  - D4_actionability
+
+dimensions_improved:
+  - D1: "Low → High"
+  - D2: "Low → High"
+  - D4: "Medium → High"
+
+dimensions_unchanged:
+  - D3: "Low → Low"
+
+t1_units_used:
+  - t1_helium_10_HowYouSetUpYourAmazo_0
+  - t1_helium_10_HowYouSetUpYourAmazo_2
+
+key_mechanisms:
+  - "搜索意图分离"
+  - "预算分配控制"
+  - "单一广告组结构"
+
+verdict: POSITIVE_LIFT
+locked: true
+
+source_experiment: "derived_from_case_01"
+verified_date: "2025-12-31"

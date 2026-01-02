@@ -1,0 +1,69 @@
+{
+  "id": "ppc_bid_strategy_escalation_01",
+  "domain": "ppc",
+  "mechanism_type": "causal_chain",
+  "name": "Bid Strategy Escalation Logic",
+  "description": "竞价策略阶梯升级机制：根据关键词表现数据决定竞价调整方向和幅度",
+
+  "trigger_conditions": [
+    "关键词累计点击 ≥ 20 次",
+    "ACoS 数据可计算（有转化记录）"
+  ],
+
+  "causal_chain": "关键词点击数据积累 → ACoS 可计算 → 与目标 ACoS 比较 → 决定调价方向 → 执行分档调价",
+
+  "mechanism_logic": {
+    "escalation_tiers": [
+      {
+        "tier": "aggressive_increase",
+        "condition": "ACoS < Target_ACoS * 0.5",
+        "action": "bid += 30%",
+        "rationale": "利润空间充足，抢占更多流量"
+      },
+      {
+        "tier": "moderate_increase",
+        "condition": "Target_ACoS * 0.5 ≤ ACoS < Target_ACoS * 0.8",
+        "action": "bid += 15%",
+        "rationale": "有优化空间，适度扩展"
+      },
+      {
+        "tier": "maintain",
+        "condition": "Target_ACoS * 0.8 ≤ ACoS ≤ Target_ACoS * 1.2",
+        "action": "bid unchanged",
+        "rationale": "表现在目标区间，维持稳定"
+      },
+      {
+        "tier": "moderate_decrease",
+        "condition": "Target_ACoS * 1.2 < ACoS ≤ Target_ACoS * 1.5",
+        "action": "bid -= 15%",
+        "rationale": "效率下降，控制成本"
+      },
+      {
+        "tier": "aggressive_decrease",
+        "condition": "ACoS > Target_ACoS * 1.5",
+        "action": "bid -= 30% or pause",
+        "rationale": "严重亏损，止损优先"
+      }
+    ]
+  },
+
+  "expected_effect": "通过分档调价机制实现：高效词获得更多预算，低效词自动收缩，整体 ACoS 趋向目标值",
+
+  "boundary_conditions": [
+    "需要足够数据（≥20 clicks）才能可靠判断",
+    "新品期关键词可能需要更宽松的阈值",
+    "季节性产品需要根据时期调整目标 ACoS"
+  ],
+
+  "anti_patterns": [
+    "每日频繁调价（数据不稳定）",
+    "无视点击数量直接判断（样本不足）",
+    "统一调价比例（忽略表现差异）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#threshold_rule",
+  "bound_cases": ["case_08"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

@@ -1,25 +1,12 @@
 {
   "name": "liye-ai",
-  "version": "5.0.0",
-  "description": "LiYe AI - AI-driven personal operating system",
-  "main": "cli/index.js",
-  "bin": {
-    "liye": "./cli/index.js",
-    "liye-ai": "./cli/index.js",
-    "liye-os": "./cli/index.js"
-  },
-  "scripts": {
-    "start": "node cli/index.js",
-    "agent:validate": "node cli/index.js agent validate",
-    "agent:list": "node cli/index.js agent list",
-    "skill:list": "node cli/index.js skill list"
-  },
+  "version": "6.0.0",
+  "description": "LiYe AI - AI-native personal operating system for Claude Code",
   "keywords": [
     "ai",
     "agent",
-    "automation",
-    "crewai",
-    "skill-forge"
+    "claude-code",
+    "personal-os"
   ],
   "author": "LiYe AI",
   "license": "Apache-2.0",

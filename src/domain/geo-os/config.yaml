@@ -148,3 +148,52 @@ tier_guard:
       allow_rag: false
       allow_export: false             # T2 forbidden from export (use refinement pipeline)
       require_refinement_pipeline: true
+
+# ----------------------------------------
+# T2 → T1 Refinement Pipeline
+# ----------------------------------------
+refinement:
+  # Constitutional reference (MANDATORY)
+  constitutional_reference: docs/architecture/T1_CANONICAL_DEFINITION.md
+
+  # Pipeline stages
+  stages:
+    - id: candidate_extraction
+      description: Extract T1 candidates from T2 raw content
+
+    - id: truth_delta_gate
+      description: Validate truth_delta field
+      module: refinement/truth_delta_gate.py
+      gate: TRUTH_DELTA_GATE
+
+    - id: t1_promotion
+      description: Promote validated units to T1
+
+  # Gates (execution-time enforcement)
+  gates:
+    TRUTH_DELTA_GATE:
+      module: refinement/truth_delta_gate.py
+      class: TruthDeltaGate
+      required_field: truth_delta
+      validation_rules:
+        - not_empty
+        - not_vague
+        - not_boilerplate
+        - has_mechanism_or_causality
+      on_failure: reject  # NO fallback
+      auto_fill: false    # NO auto-fill
+
+  # Rejection policy
+  rejection_policy:
+    action: retain_in_t2
+    log: true
+    log_path: ~/github/liye_os/_meta/logs/geo-os/refinement_rejections.log
+
+  # T2 Raw input paths
+  t2_raw_paths:
+    template: ~/data/T2_raw/{source}
+    sources:
+      - sellersprite
+      - junglescout
+      - helium10
+      - reddit_fba

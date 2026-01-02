@@ -1,0 +1,39 @@
+# Repro Pack v1 - BSR Case 06
+# New case for repro validation
+
+domain: bsr_diagnosis
+case_id: case_06
+query: "Buy Box 消失但价格未变，诊断隐性抑制因素"
+
+baseline_score: 5
+t1_enabled_score: 9
+lift: 4
+
+criteria:
+  - D1_causal_explicitness
+  - D2_assumption_clarity
+  - D3_hallucination_risk
+  - D4_actionability
+
+dimensions_improved:
+  - D1: "Medium → High"
+  - D2: "Low → High"
+  - D4: "Low → High"
+
+dimensions_unchanged:
+  - D3: "Low → Low"
+
+t1_units_used:
+  - t1_reddit_r/f_Buyboxsuppressioniss_4
+  - t1_reddit_r/f_Buyboxsuppressioniss_8
+
+key_mechanisms:
+  - "跨平台价格监控"
+  - "隐性抑制信号"
+  - "类目阈值判断"
+
+verdict: POSITIVE_LIFT
+locked: true
+
+source_experiment: "derived_from_case_03"
+verified_date: "2025-12-31"

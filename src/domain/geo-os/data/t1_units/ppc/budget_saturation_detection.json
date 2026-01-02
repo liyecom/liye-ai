@@ -1,0 +1,97 @@
+{
+  "id": "ppc_budget_saturation_detection_01",
+  "domain": "ppc",
+  "mechanism_type": "threshold_rule",
+  "name": "Budget Saturation Detection",
+  "description": "预算饱和检测机制：识别预算是否成为广告表现的瓶颈",
+
+  "trigger_conditions": [
+    "Campaign 经常在一天结束前耗尽预算",
+    "广告在高流量时段无展示",
+    "预算消耗速度不均匀（早期快速消耗）"
+  ],
+
+  "threshold_rules": [
+    {
+      "rule": "early_depletion",
+      "condition": "budget_depleted_hour < 18:00",
+      "severity": "HIGH",
+      "implication": "错过晚间高转化时段"
+    },
+    {
+      "rule": "impression_share_loss",
+      "condition": "lost_impression_share_budget > 20%",
+      "severity": "MEDIUM",
+      "implication": "预算限制曝光机会"
+    },
+    {
+      "rule": "spend_velocity_spike",
+      "condition": "morning_spend_rate > 2x afternoon_rate",
+      "severity": "LOW",
+      "implication": "预算分配不均，可能错过后段机会"
+    }
+  ],
+
+  "causal_chain": "预算不足 → 广告提前下线 → 错过流量高峰 → 日销量受限 → Rank 增长受阻",
+
+  "mechanism_logic": {
+    "detection_formula": "saturation_score = (lost_impression_budget / total_impression_lost) × 100",
+    "saturation_levels": [
+      {
+        "level": "SATURATED",
+        "condition": "saturation_score > 50%",
+        "action": "increase budget or reduce bid"
+      },
+      {
+        "level": "CONSTRAINED",
+        "condition": "30% < saturation_score ≤ 50%",
+        "action": "monitor closely, prepare to adjust"
+      },
+      {
+        "level": "HEALTHY",
+        "condition": "saturation_score ≤ 30%",
+        "action": "no action needed"
+      }
+    ],
+    "response_strategies": [
+      {
+        "strategy": "budget_increase",
+        "condition": "ACoS < Target AND saturated",
+        "action": "increase daily budget 20-50%",
+        "rationale": "高效投放，值得扩展"
+      },
+      {
+        "strategy": "bid_reduction",
+        "condition": "ACoS > Target AND saturated",
+        "action": "reduce bids 10-20%",
+        "rationale": "用更低成本获取同等预算下更多点击"
+      },
+      {
+        "strategy": "dayparting",
+        "condition": "特定时段表现更好",
+        "action": "设置分时竞价调整",
+        "rationale": "集中预算于高转化时段"
+      }
+    ]
+  },
+
+  "expected_effect": "通过饱和检测：及时发现预算瓶颈 → 合理分配资源 → 避免因预算限制错失销售",
+
+  "boundary_conditions": [
+    "新品期可接受较高预算消耗以快速积累数据",
+    "周末/节假日流量模式不同，需单独评估",
+    "多 Campaign 共享预算时需整体评估"
+  ],
+
+  "anti_patterns": [
+    "设置过低日预算（无法测试真实潜力）",
+    "设置过高日预算但不监控（浪费）",
+    "忽视时段数据（不做 dayparting 优化）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#threshold_rule",
+  "bound_cases": ["case_11"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

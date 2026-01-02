@@ -1,0 +1,205 @@
+# =============================================================================
+# T1 Contextual Plugin Trigger Map
+# =============================================================================
+# Version: 2.0.0
+# Purpose: Define when contextual T1 plugins should activate
+# Policy: Plugins only load when trigger conditions are met
+# =============================================================================
+
+triggers:
+  # ---------------------------------------------------------------------------
+  # stress_detected → T1_correlation_regime_shift
+  # ---------------------------------------------------------------------------
+  stress_detected:
+    plugin: T1_correlation_regime_shift
+    description: "Correlations break under stress - activate when stress markers present"
+
+    signals:
+      # Domain-agnostic stress indicators
+      volatility_spike:
+        description: "Sudden increase in volatility"
+        threshold: "> 2 standard deviations from 30-day mean"
+
+      correlation_breakdown:
+        description: "Previously stable correlations diverging"
+        threshold: "correlation delta > 0.3 within 5 periods"
+
+      liquidity_contraction:
+        description: "Bid-ask spreads widening, depth thinning"
+        threshold: "spread > 2x normal"
+
+      # Domain-specific stress signals
+      domain_signals:
+        amazon-growth-os:
+          - keyword_volatility_spike
+          - competitor_aggressive_entry
+          - category_disruption
+
+        investment-os:
+          - vix_above_25
+          - credit_spreads_widening
+          - flight_to_safety_detected
+
+        medical-os:
+          - diagnostic_ambiguity_high
+          - treatment_resistance_detected
+          - multi_system_involvement
+
+    priority: HIGH
+    token_budget: 200
+
+  # ---------------------------------------------------------------------------
+  # regime_ambiguity → T1_risk_on_off_regime
+  # ---------------------------------------------------------------------------
+  regime_ambiguity:
+    plugin: T1_risk_on_off_regime
+    description: "Market/environment in unclear regime - risk-on or risk-off?"
+
+    signals:
+      conflicting_indicators:
+        description: "Leading indicators disagreeing"
+        threshold: "> 3 conflicting signals"
+
+      regime_transition:
+        description: "Possible shift between regimes"
+        threshold: "regime probability between 0.3 and 0.7"
+
+      domain_signals:
+        amazon-growth-os:
+          - algorithm_update_suspected
+          - seasonal_transition
+          - category_policy_change
+
+        investment-os:
+          - vix_range: [18, 28]  # Ambiguous zone
+          - fed_policy_uncertainty
+          - sector_rotation_unclear
+
+        medical-os:
+          - differential_diagnosis_equipoise
+          - treatment_response_unpredictable
+
+    priority: MEDIUM
+    token_budget: 200
+
+  # ---------------------------------------------------------------------------
+  # high_implied_probability → T1_expectation_saturation
+  # ---------------------------------------------------------------------------
+  high_implied_probability:
+    plugin: T1_expectation_saturation
+    description: "Market pricing in high probability of specific outcome"
+
+    signals:
+      implied_probability_high:
+        description: "Consensus expects specific outcome"
+        threshold: "implied probability > 0.70"
+
+      crowded_positioning:
+        description: "Most participants on same side"
+        threshold: "positioning skew > 70%"
+
+      narrative_dominance:
+        description: "Single narrative explaining everything"
+        threshold: "narrative concentration > 0.8"
+
+      domain_signals:
+        amazon-growth-os:
+          - seasonal_expectation: "expected sales lift > 2x baseline"
+          - launch_hype: "projected conversion > historical 90th percentile"
+
+        investment-os:
+          - earnings_beat_expected: "> 0.70"
+          - fed_move_priced_in: "> 0.85"
+          - merger_completion_expected: "> 0.80"
+
+        medical-os:
+          - treatment_success_assumed: "> 0.75"
+          - diagnosis_certainty_claimed: "> 0.85"
+
+    priority: HIGH
+    token_budget: 200
+
+  # ---------------------------------------------------------------------------
+  # leverage_detected → T1_reflexivity_loop
+  # ---------------------------------------------------------------------------
+  leverage_detected:
+    plugin: T1_reflexivity_loop
+    description: "Leverage creates feedback loops that amplify moves"
+
+    signals:
+      leverage_ratio:
+        description: "Debt/equity or similar leverage metric"
+        threshold: "> 2.0"
+
+      feedback_suspected:
+        description: "Price/value affecting fundamentals"
+        threshold: "correlation(price_change, fundamental_change) > 0.6"
+
+      margin_sensitivity:
+        description: "Small moves trigger large responses"
+        threshold: "margin call distance < 10%"
+
+      domain_signals:
+        amazon-growth-os:
+          - ppc_bid_war: "competitive bidding exceeds profit margin"
+          - inventory_leverage: "committed inventory > 3 months sales"
+
+        investment-os:
+          - margin_debt_elevated
+          - options_gamma_concentrated
+          - carry_trade_crowded
+
+        medical-os:
+          - intervention_cascade_risk
+          - polypharmacy_interaction
+
+    priority: MEDIUM
+    token_budget: 200
+
+# =============================================================================
+# Trigger Evaluation Rules
+# =============================================================================
+
+evaluation:
+  mode: any_match
+  description: "Plugin activates if ANY signal in its trigger set fires"
+
+  priority_order:
+    - stress_detected        # Check first - stress changes everything
+    - high_implied_probability
+    - regime_ambiguity
+    - leverage_detected
+
+  max_concurrent_plugins: 2
+  budget_enforcement: strict
+
+  logging:
+    enabled: true
+    output: traces/kernel/trigger_log.jsonl
+    fields:
+      - timestamp
+      - trigger_name
+      - plugin_activated
+      - signals_fired
+      - domain_context
+
+# =============================================================================
+# Fallback Behavior
+# =============================================================================
+
+fallback:
+  no_trigger_detected:
+    action: "Run always-on only (T1_liquidity_illusion)"
+    rationale: "Minimal skeleton sufficient for routine reasoning"
+
+  multiple_triggers:
+    action: "Activate highest priority, queue second if budget allows"
+    rationale: "Avoid token budget overflow"
+
+  trigger_conflict:
+    action: "Prefer domain-specific signal over generic"
+    rationale: "Domain context provides higher signal quality"
+
+# =============================================================================
+# END OF TRIGGERS
+# =============================================================================

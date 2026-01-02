@@ -1,0 +1,207 @@
+# =============================================================================
+# Audit Regression Gate
+# =============================================================================
+# Purpose: Ensure multi-domain governance (D2/D3) regressions are caught on PR/Push
+#
+# This workflow runs the audit verification scripts that validate:
+# - D1: Geo-SEO domain detection and glossary validation
+# - D2: Multi-domain boundary enforcement (conflict policy)
+# - D3: Ambiguity mode triggering (conf_diff < 0.10)
+#
+# Any failure blocks the PR merge.
+# =============================================================================
+
+name: Audit Regression Gate
+
+on:
+  pull_request:
+    branches: [main, release/*]
+    paths:
+      - 'knowledge/glossary/**'
+      - '.claude/config/domain-mapping.yaml'
+      - '.claude/scripts/memory_*.mjs'
+      - 'tools/audit/**'
+      - 'docs/architecture/DOMAIN_CONFLICT_POLICY.md'
+      - 'docs/architecture/MEMORY_*.md'
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_all:
+        description: 'Run all audit scripts regardless of path changes'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-regression:
+    name: Multi-Domain Governance Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff operations
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create artifact directories
+        run: |
+          mkdir -p artifacts/audit-logs
+          mkdir -p artifacts/reports
+          mkdir -p artifacts/diffs
+
+      - name: Make audit scripts executable
+        run: chmod +x tools/audit/*.sh
+
+      # =========================================================================
+      # D1: Geo-SEO Domain Verification
+      # =========================================================================
+      - name: 'D1: Geo-SEO Domain Verification'
+        id: d1
+        continue-on-error: true
+        run: |
+          echo "=== D1: Geo-SEO Domain Verification ===" | tee artifacts/audit-logs/d1-geo-seo.log
+          bash tools/audit/verify_geo_seo_domain.sh 2>&1 | tee -a artifacts/audit-logs/d1-geo-seo.log
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      # =========================================================================
+      # D2: Multi-Domain Boundary Verification
+      # =========================================================================
+      - name: 'D2: Multi-Domain Boundary Verification'
+        id: d2
+        continue-on-error: true
+        run: |
+          echo "=== D2: Multi-Domain Boundary Verification ===" | tee artifacts/audit-logs/d2-boundary.log
+          bash tools/audit/verify_multidomain_boundary.sh 2>&1 | tee -a artifacts/audit-logs/d2-boundary.log
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      # =========================================================================
+      # D3: Ambiguity Mode Verification
+      # =========================================================================
+      - name: 'D3: Ambiguity Mode Verification'
+        id: d3
+        continue-on-error: true
+        run: |
+          echo "=== D3: Ambiguity Mode Verification ===" | tee artifacts/audit-logs/d3-ambiguity.log
+          bash tools/audit/verify_multidomain_ambiguity.sh 2>&1 | tee -a artifacts/audit-logs/d3-ambiguity.log
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      # =========================================================================
+      # Collect Artifacts
+      # =========================================================================
+      - name: Collect reports
+        if: always()
+        run: |
+          # Copy any generated reports
+          cp docs/reports/*.md artifacts/reports/ 2>/dev/null || true
+
+          # Copy memory diffs if they exist
+          cp memory/diff/*.md artifacts/diffs/ 2>/dev/null || true
+
+          # List collected artifacts
+          echo "=== Collected Artifacts ==="
+          find artifacts -type f -name "*.md" -o -name "*.log" | sort
+
+      - name: Upload audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-logs
+          path: artifacts/audit-logs/
+          retention-days: 14
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-reports
+          path: artifacts/reports/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload memory diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-diffs
+          path: artifacts/diffs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # =========================================================================
+      # Summary and Gate Decision
+      # =========================================================================
+      - name: Audit Regression Summary
+        if: always()
+        run: |
+          echo ""
+          echo "============================================================================="
+          echo "                    AUDIT REGRESSION GATE SUMMARY"
+          echo "============================================================================="
+          echo ""
+
+          D1_STATUS="PASS"
+          D2_STATUS="PASS"
+          D3_STATUS="PASS"
+          GATE_PASS=true
+
+          # Check D1 result
+          if [ -f artifacts/audit-logs/d1-geo-seo.log ]; then
+            if grep -q "FAIL\|✗" artifacts/audit-logs/d1-geo-seo.log; then
+              D1_STATUS="FAIL"
+              GATE_PASS=false
+            fi
+          fi
+
+          # Check D2 result
+          if [ -f artifacts/audit-logs/d2-boundary.log ]; then
+            if grep -q "FAIL\|✗" artifacts/audit-logs/d2-boundary.log; then
+              D2_STATUS="FAIL"
+              GATE_PASS=false
+            fi
+          fi
+
+          # Check D3 result
+          if [ -f artifacts/audit-logs/d3-ambiguity.log ]; then
+            if grep -q "FAIL\|✗" artifacts/audit-logs/d3-ambiguity.log; then
+              D3_STATUS="FAIL"
+              GATE_PASS=false
+            fi
+          fi
+
+          echo "| Test | Description | Status |"
+          echo "|------|-------------|--------|"
+          echo "| D1 | Geo-SEO Domain Verification | $D1_STATUS |"
+          echo "| D2 | Multi-Domain Boundary | $D2_STATUS |"
+          echo "| D3 | Ambiguity Mode | $D3_STATUS |"
+          echo ""
+
+          if [ "$GATE_PASS" = true ]; then
+            echo "✅ AUDIT REGRESSION GATE: PASS"
+            echo ""
+            echo "All multi-domain governance checks passed."
+          else
+            echo "❌ AUDIT REGRESSION GATE: FAIL"
+            echo ""
+            echo "One or more audit checks failed. Review the logs above."
+            echo ""
+            echo "Local reproduction:"
+            echo "  bash tools/audit/verify_geo_seo_domain.sh"
+            echo "  bash tools/audit/verify_multidomain_boundary.sh"
+            echo "  bash tools/audit/verify_multidomain_ambiguity.sh"
+            echo ""
+            exit 1
+          fi
+
+          echo "============================================================================="

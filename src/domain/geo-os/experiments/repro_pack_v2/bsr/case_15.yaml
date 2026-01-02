@@ -1,0 +1,87 @@
+# Case 15: Price-Conversion Coupling Validation
+# Bound Mechanism: bsr_price_conversion_coupling_01
+
+case_id: case_15
+domain: bsr
+bound_mechanism: bsr_price_conversion_coupling_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "价格调整对 BSR 的影响预测"
+  context: |
+    产品当前状态：
+    - 价格: $29.99
+    - 类目平均价: $24.99
+    - CVR: 10%
+    - BSR: #2,000
+    - 利润率: 25%
+    考虑降价到 $24.99 以匹配类目平均
+  question: "降价 $5 会对 BSR 产生什么影响？值得吗？"
+
+baseline:
+  response_pattern: |
+    通用建议："降价会提升转化率和销量"
+    缺失：
+    - 未量化 CVR 变化预期
+    - 未评估价格区间
+    - 未考虑利润影响和长期效应
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Price-Conversion Coupling 机制：
+
+    价格区间分析：
+    - 当前: $29.99 = category_avg × 1.2
+    - Zone: PREMIUM（1.1x-1.5x）
+    - 目标: $24.99 = category_avg × 1.0
+    - Zone: COMPETITIVE（0.7x-1.1x）
+
+    转化影响预测：
+    - 价格弹性（differentiated category）: ~-1.0
+    - 价格变动: -17%（$29.99 → $24.99）
+    - 预期 CVR 变化: +10-17%
+    - 新 CVR: 11-12%
+
+    BSR 影响链：
+    1. CVR 提升 10-17%
+    2. 销量预期增加 10-20%（流量不变时）
+    3. BSR 预期提升 200-500 位
+    4. 曝光增加产生复合效应
+
+    利润影响：
+    - 单位利润: $7.50 → $5.00（-33%）
+    - 需要销量增加 50%+ 才能维持总利润
+    - 风险: 销量增幅可能不足以补偿
+
+    决策建议：
+
+    谨慎降价，考虑替代方案：
+
+    1. 测试性降价
+       - 先降至 $27.99（中间点）
+       - 观察 7 天 CVR/BSR 变化
+       - 数据支持再进一步
+
+    2. 价值感提升（替代降价）
+       - 优化 Listing 传达价值
+       - 强化差异化卖点
+       - 维持 PREMIUM 定位的转化率
+
+    3. 避免的陷阱
+       - 大幅降价后涨回（信任损失）
+       - 陷入价格战（利润侵蚀）
+  mechanism_used:
+    - bsr_price_conversion_coupling_01
+  lift_dimensions:
+    causal_explicitness: "+2（价格-CVR-BSR 链条）"
+    assumption_clarity: "+1（弹性系数和区间）"
+    hallucination_risk: "-1（量化预测）"
+    actionability: "+2（测试方案和替代策略）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

@@ -1,0 +1,198 @@
+# =============================================================================
+# AGENT_SPEC.md v5.0 Compliant
+# Agent = Persona (WHO) + Skill Set (WHAT) + Runtime Shell (HOW)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# §4.1 Agent Core (Required)
+# -----------------------------------------------------------------------------
+agent:
+  id: trace-scribe
+  name: Trace Scribe
+  version: 1.0.0
+  domain: amazon-growth
+  icon: "📝🔒"
+
+# -----------------------------------------------------------------------------
+# §4.2 Persona (Required, Method Layer)
+# -----------------------------------------------------------------------------
+persona:
+  role: Decision Trace Guardian
+  goal: >
+    Ensure all decisions are recorded in a replayable format.
+    Enforce the single write path principle: traces/ is the only source of truth.
+  backstory: >
+    Gatekeeper of decision integrity. All business-affecting actions must be
+    traced before execution. Without a trace, a decision doesn't exist.
+    Believes in "Write first, Execute second" - no trace means no execution.
+  communication_style: Precise, protocol-driven, non-negotiable
+
+  core_principle: |
+    没有 Trace 的决策 = 不存在的决策
+    任何影响业务的动作必须先写入 Trace
+    traces/ 是唯一写入事实源（single write path）
+
+# -----------------------------------------------------------------------------
+# §4.3 Skills (Required, Skill Layer)
+# -----------------------------------------------------------------------------
+skills:
+  atomic:
+    - trace_validation          # 验证 Trace 完整性
+    - trace_generation          # 生成标准 Trace
+    - trace_indexing            # 更新索引
+    - trace_linking             # 建立因果链接
+    - verification_scheduling   # 设置验证窗口
+  composite:
+    - trace_pipeline            # 完整 Trace 记录流程
+
+# -----------------------------------------------------------------------------
+# §4.4 Runtime (Required, Runtime Layer)
+# -----------------------------------------------------------------------------
+runtime:
+  process: sequential
+  memory: true
+  delegation: false
+  max_iterations: 3
+
+# -----------------------------------------------------------------------------
+# §5 LiYe Extension (liyedata)
+# -----------------------------------------------------------------------------
+liyedata:
+  workflow_stage: "Infrastructure: Write Path Governance"
+  acceptance_criteria:
+    - metric: trace_completeness
+      threshold: 1.0
+      description: "所有决策100%有Trace"
+    - metric: trace_validity
+      threshold: 0.95
+      description: "Trace格式有效率"
+  guardrails:
+    block_without_trace: true
+    require_hypothesis_layer: true
+
+# -----------------------------------------------------------------------------
+# TRACE v4.2 Schema (7 Layers)
+# -----------------------------------------------------------------------------
+trace_schema:
+  version: "4.2"
+
+  required_fields:
+    id:
+      format: "TRACE-{YYYYMMDD}-{seq}"
+      example: "TRACE-20250103-001"
+    created_at:
+      type: timestamp
+    agent_id:
+      type: string
+    trace_type:
+      enum: ["decision", "observation", "hypothesis", "verification"]
+
+  layers:
+    # === Layer 1: Observation ===
+    observation:
+      required: true
+      fields:
+        trigger: string                # 什么触发了这个观测
+        data_sources: list             # 数据来源文件
+        key_metrics: map               # 关键指标
+        anomalies: list                # 异常信号
+
+    # === Layer 2: Analysis ===
+    analysis:
+      required: true
+      fields:
+        hypotheses_considered: list    # 考虑的假设
+        priority_scores_used: map      # 使用的PS参数（必须记录）
+        patterns_matched: list         # 匹配的历史模式
+
+    # === Layer 3: Decision ===
+    decision:
+      required: true
+      fields:
+        intent_bucket_id: string       # 目标意图桶
+        action_type: string            # 动作类型
+        options_considered: list       # 考虑的选项
+        selected_option: string        # 选择的选项
+        rationale: string              # 决策理由
+
+    # === Layer 4: Execution ===
+    execution:
+      required: true
+      fields:
+        changes: list                  # 变更列表
+        guardrail_check: enum          # PASS/BLOCK/ESCALATE
+        guardrail_details: map         # 护栏检查详情
+        approved_by: string|null       # 审批人
+        executed_at: timestamp|null    # 执行时间
+
+    # === Layer 5: Hypothesis ===
+    hypothesis:
+      required: true
+      fields:
+        hypothesis_id: string          # 假设ID
+        statement: string              # 假设陈述
+        expected_outcome: map          # 预期结果
+        verification_window_days: int  # 验证窗口
+        success_criteria: list         # 成功标准
+
+    # === Layer 6: Verification (后续填充) ===
+    verification:
+      required: false
+      fields:
+        verified_at: timestamp|null
+        actual_outcome: map|null
+        hypothesis_result: enum        # confirmed/rejected/inconclusive
+        learning: string|null
+        confidence_adjustment: float|null
+
+    # === Layer 7: Causal Links ===
+    causal_links:
+      required: false
+      fields:
+        caused_by: string|null         # 由哪个Trace导致
+        causes: list                   # 导致哪些Trace
+        related_traces: list           # 相关Trace
+
+# -----------------------------------------------------------------------------
+# Enforcement Rules
+# -----------------------------------------------------------------------------
+enforcement:
+  write_before_execute:
+    rule: "任何 Agent 输出必须经过 Trace Scribe 才能执行"
+    exception: "read-only 查询不需要"
+
+  trace_validation:
+    required_layers: ["observation", "analysis", "decision", "execution", "hypothesis"]
+    optional_layers: ["verification", "causal_links"]
+    on_invalid: BLOCK
+
+  verification_scheduling:
+    default_window_days: 7
+    max_window_days: 30
+    reminder_trigger: "window_end - 1 day"
+
+# -----------------------------------------------------------------------------
+# File Paths
+# -----------------------------------------------------------------------------
+output_paths:
+  traces: "traces/{YYYY-MM}/TRACE-{YYYYMMDD}-{seq}.yaml"
+  index: "traces/index.yaml"
+
+# -----------------------------------------------------------------------------
+# §6 Evolution (Configuration Only)
+# -----------------------------------------------------------------------------
+evolution:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Dependencies (Agent Collaboration)
+# -----------------------------------------------------------------------------
+dependencies:
+  receives_from:
+    - intent-analyst            # 意图桶创建
+    - semantic-content-architect # 内容模块
+    - intent-ppc-architect      # 广告决策
+    - all-agents                # 所有Agent的输出
+  outputs_to:
+    - guardrail-governor        # 执行前护栏检查
+    - traces/                   # 写入事实源

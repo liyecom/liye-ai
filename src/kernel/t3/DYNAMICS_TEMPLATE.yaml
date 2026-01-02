@@ -1,0 +1,158 @@
+# =============================================================================
+# T3 Dynamics Output Template
+# =============================================================================
+# Policy: NO OUTCOME, NO PROBABILITY, NO ADVICE
+# This template enforces form-only dynamics description
+# =============================================================================
+
+template:
+  version: 1.0.0
+  policy: "Describe the shape of change, not its destination"
+
+# -----------------------------------------------------------------------------
+# Required Sections
+# -----------------------------------------------------------------------------
+
+sections:
+  # Section 1: Current State (from T2)
+  current_state:
+    source: T2_WORLD_STATE_KERNEL
+    required: true
+    format:
+      liquidity: <SCALE>
+      correlation: <SCALE>
+      expectation: <SCALE>
+      leverage: <SCALE>
+      uncertainty: <SCALE>
+
+  # Section 2: Observed Dynamics
+  observed_dynamics:
+    required: true
+    primitives:
+      acceleration:
+        status: DETECTED | NOT_DETECTED | UNCERTAIN
+        evidence: <OBSERVATIONS_ONLY>
+        form_description: |
+          "The rate of change in [dimension] appears to be [increasing/stable]"
+          NOT: "This means X will happen"
+
+      amplification:
+        status: DETECTED | NOT_DETECTED | UNCERTAIN
+        evidence: <OBSERVATIONS_ONLY>
+        form_description: |
+          "Responses to inputs appear [proportionate/disproportionate]"
+          NOT: "This will lead to Y"
+
+      phase_transition:
+        status: DETECTED | NOT_DETECTED | UNCERTAIN
+        evidence: <OBSERVATIONS_ONLY>
+        form_description: |
+          "The system appears [stable/near a threshold]"
+          NOT: "The system will transition to Z"
+
+  # Section 3: Pattern Description (FORM ONLY)
+  pattern_description:
+    required: true
+    constraints:
+      - "Use present tense only ('is', 'appears', not 'will')"
+      - "Describe observable form, not inferred trajectory"
+      - "No comparative predictions ('faster than expected')"
+    example: |
+      The current state shows TIGHT liquidity with SHIFTING correlations.
+      Acceleration is detected in correlation changes.
+      Amplification is not currently detected.
+      The system appears near a phase boundary in liquidity.
+
+  # Section 4: Explicit Limitations (MANDATORY)
+  what_this_does_not_tell_you:
+    required: true
+    min_items: 2
+    format:
+      - "<Specific limitation 1>"
+      - "<Specific limitation 2>"
+    example:
+      - "This does not predict whether liquidity will recover or deteriorate further"
+      - "This does not estimate the probability of phase transition"
+      - "This does not recommend any action"
+
+# -----------------------------------------------------------------------------
+# Forbidden Patterns
+# -----------------------------------------------------------------------------
+
+forbidden_patterns:
+  prediction_language:
+    - "will"
+    - "is going to"
+    - "likely to"
+    - "expected to"
+    - "probably"
+
+  probability_language:
+    - "% chance"
+    - "probability of"
+    - "odds are"
+    - "likely"
+    - "unlikely"
+
+  recommendation_language:
+    - "should"
+    - "recommend"
+    - "consider"
+    - "best course"
+    - "optimal"
+
+  outcome_language:
+    - "will result in"
+    - "will lead to"
+    - "the outcome will be"
+    - "this means that"
+    - "therefore you should"
+
+# -----------------------------------------------------------------------------
+# Valid Output Example
+# -----------------------------------------------------------------------------
+
+example_output:
+  current_state:
+    liquidity: TIGHT
+    correlation: SHIFTING
+    expectation: CONVERGING
+    leverage: MODERATE
+    uncertainty: ELEVATED
+
+  observed_dynamics:
+    acceleration:
+      status: DETECTED
+      evidence:
+        - "Correlation changes are occurring at increasing frequency"
+        - "Liquidity tightening has accelerated over past 3 periods"
+      form_description: "Rate of state change is increasing in liquidity and correlation dimensions"
+
+    amplification:
+      status: NOT_DETECTED
+      evidence:
+        - "Response magnitudes appear proportionate to inputs"
+      form_description: "No disproportionate responses currently observed"
+
+    phase_transition:
+      status: UNCERTAIN
+      evidence:
+        - "Liquidity near CRITICAL threshold"
+        - "Historical pattern unclear"
+      form_description: "System may be near liquidity phase boundary, but insufficient evidence to confirm"
+
+  pattern_description: |
+    The current state configuration shows elevated stress across multiple dimensions.
+    Acceleration is observed in liquidity and correlation changes.
+    The system appears potentially near a liquidity phase boundary.
+    This describes current form, not future trajectory.
+
+  what_this_does_not_tell_you:
+    - "Whether the phase transition will occur"
+    - "What the post-transition state would look like"
+    - "How long current dynamics will persist"
+    - "What actions, if any, should be taken"
+
+# =============================================================================
+# END OF TEMPLATE
+# =============================================================================
