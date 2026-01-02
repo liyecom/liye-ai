@@ -1,0 +1,694 @@
+domain: geo-os
+contract_version: v1.0
+
+decisions:
+
+  # =============================================================================
+  # Visibility & Exposure Decisions
+  # =============================================================================
+
+  VISIBILITY_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Business is not appearing in relevant local searches
+    what_it_means: >
+      The business listing is receiving fewer impressions in local search
+      results than expected for its category and location, indicating
+      potential optimization or authority issues.
+    typical_actions:
+      - improve listing completeness
+      - build local citations
+      - optimize category selection
+    evidence_fields:
+      - impressions
+      - category_benchmark
+      - visibility_score
+
+  VISIBILITY_DECLINING:
+    version: v1.0
+    severity: warning
+    meaning: Search visibility has decreased over time
+    what_it_means: >
+      The business is appearing in fewer searches compared to the previous
+      period, suggesting competitive pressure or algorithm changes affecting
+      local ranking factors.
+    typical_actions:
+      - audit recent listing changes
+      - check for new competitors
+      - review ranking factors
+    evidence_fields:
+      - current_impressions
+      - previous_impressions
+      - trend_percentage
+
+  MAP_PACK_EXCLUDED:
+    version: v1.0
+    severity: critical
+    meaning: Business is not appearing in the local map pack
+    what_it_means: >
+      The listing is not showing in the top 3 map pack results for key
+      local queries, significantly reducing visibility and click potential.
+    typical_actions:
+      - verify listing eligibility
+      - improve local relevance signals
+      - build proximity relevance
+    evidence_fields:
+      - target_keywords
+      - current_position
+      - map_pack_competitors
+
+  KNOWLEDGE_PANEL_MISSING:
+    version: v1.0
+    severity: warning
+    meaning: Business lacks a knowledge panel in search results
+    what_it_means: >
+      The business does not have a branded knowledge panel appearing for
+      direct searches, reducing credibility and visibility for brand queries.
+    typical_actions:
+      - claim and verify listing
+      - build consistent citations
+      - add structured data
+    evidence_fields:
+      - brand_query
+      - panel_status
+      - entity_recognition
+
+  # =============================================================================
+  # Ranking & Position Decisions
+  # =============================================================================
+
+  RANKING_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Local search ranking is below target position
+    what_it_means: >
+      The business ranks lower than desired for key local search queries,
+      reducing organic traffic and requiring improved local SEO factors.
+    typical_actions:
+      - optimize Google Business Profile
+      - improve website local signals
+      - build local backlinks
+    evidence_fields:
+      - keyword
+      - current_rank
+      - target_rank
+
+  RANKING_DECLINING:
+    version: v1.0
+    severity: warning
+    meaning: Search ranking position has dropped
+    what_it_means: >
+      The business has lost ranking positions for monitored keywords,
+      indicating competitive pressure or degraded local signals.
+    typical_actions:
+      - analyze ranking factor changes
+      - review competitor improvements
+      - strengthen local signals
+    evidence_fields:
+      - keyword
+      - current_rank
+      - previous_rank
+      - rank_change
+
+  LOCAL_PACK_RANK_DROP:
+    version: v1.0
+    severity: critical
+    meaning: Position in local pack has decreased
+    what_it_means: >
+      The business has dropped from a higher position in the local 3-pack,
+      reducing click-through rate and local traffic significantly.
+    typical_actions:
+      - improve listing engagement
+      - increase review activity
+      - optimize for proximity
+    evidence_fields:
+      - previous_position
+      - current_position
+      - keyword
+
+  # =============================================================================
+  # Local Relevance Decisions
+  # =============================================================================
+
+  LOCAL_RELEVANCE_WEAK:
+    version: v1.0
+    severity: warning
+    meaning: Business signals weak relevance for local queries
+    what_it_means: >
+      The listing lacks strong signals connecting the business to its
+      service area and local search intent.
+    typical_actions:
+      - add location-specific content
+      - build local citations
+      - optimize service area
+    evidence_fields:
+      - relevance_score
+      - location_signals
+      - local_content
+
+  CATEGORY_MISMATCH:
+    version: v1.0
+    severity: warning
+    meaning: Business category does not match search intent
+    what_it_means: >
+      The selected categories do not align well with the queries the
+      business wants to rank for, limiting search relevance.
+    typical_actions:
+      - review primary category
+      - add relevant secondary categories
+      - align with competitor categories
+    evidence_fields:
+      - current_categories
+      - suggested_categories
+      - competitor_categories
+
+  PRIMARY_CATEGORY_SUBOPTIMAL:
+    version: v1.0
+    severity: warning
+    meaning: Primary category is not the best choice
+    what_it_means: >
+      A more relevant primary category exists that would better match
+      the business's core services and target searches.
+    typical_actions:
+      - research category options
+      - analyze top competitors
+      - update primary category
+    evidence_fields:
+      - current_primary
+      - recommended_primary
+      - category_search_volume
+
+  # =============================================================================
+  # Content Completeness Decisions
+  # =============================================================================
+
+  PROFILE_INCOMPLETE:
+    version: v1.0
+    severity: warning
+    meaning: Business profile is missing key information
+    what_it_means: >
+      The Google Business Profile lacks essential information fields
+      that affect ranking and user trust.
+    typical_actions:
+      - complete all profile sections
+      - add missing attributes
+      - verify information accuracy
+    evidence_fields:
+      - completeness_score
+      - missing_fields
+      - profile_checklist
+
+  DESCRIPTION_MISSING:
+    version: v1.0
+    severity: warning
+    meaning: Business description is not set
+    what_it_means: >
+      The listing lacks a business description, missing an opportunity
+      to communicate services and include relevant keywords.
+    typical_actions:
+      - write compelling description
+      - include key services
+      - add location keywords
+    evidence_fields:
+      - description_status
+      - character_count
+
+  HOURS_OUTDATED:
+    version: v1.0
+    severity: warning
+    meaning: Business hours may be incorrect
+    what_it_means: >
+      The listed business hours have not been updated recently and may
+      no longer reflect actual operating hours.
+    typical_actions:
+      - verify current hours
+      - update special hours
+      - set holiday hours
+    evidence_fields:
+      - last_hours_update
+      - current_hours
+      - discrepancy_detected
+
+  PHOTOS_INSUFFICIENT:
+    version: v1.0
+    severity: warning
+    meaning: Listing has too few photos
+    what_it_means: >
+      The business profile has fewer photos than competitors, reducing
+      engagement and trust signals.
+    typical_actions:
+      - add exterior photos
+      - upload interior photos
+      - include team photos
+    evidence_fields:
+      - photo_count
+      - competitor_avg_photos
+      - photo_categories
+
+  POSTS_STALE:
+    version: v1.0
+    severity: info
+    meaning: No recent Google Posts activity
+    what_it_means: >
+      The business has not published Google Posts recently, missing
+      engagement opportunities and freshness signals.
+    typical_actions:
+      - create promotional post
+      - share business updates
+      - post regularly
+    evidence_fields:
+      - last_post_date
+      - days_since_post
+      - post_count
+
+  # =============================================================================
+  # Entity Consistency Decisions
+  # =============================================================================
+
+  NAP_INCONSISTENT:
+    version: v1.0
+    severity: critical
+    meaning: Name, Address, Phone inconsistent across web
+    what_it_means: >
+      The business's core information varies across different citations
+      and directories, confusing search engines and users.
+    typical_actions:
+      - audit all citations
+      - correct inconsistencies
+      - establish NAP standard
+    evidence_fields:
+      - inconsistency_count
+      - affected_sources
+      - variation_types
+
+  DUPLICATE_LISTING_DETECTED:
+    version: v1.0
+    severity: critical
+    meaning: Multiple listings exist for same business
+    what_it_means: >
+      Duplicate Google Business Profiles exist for the same location,
+      splitting ranking signals and confusing users.
+    typical_actions:
+      - identify duplicate listings
+      - merge or remove duplicates
+      - report duplicates to Google
+    evidence_fields:
+      - duplicate_count
+      - duplicate_urls
+      - ownership_status
+
+  CITATION_INCONSISTENCY:
+    version: v1.0
+    severity: warning
+    meaning: Business citations have conflicting information
+    what_it_means: >
+      Directory listings and citations show different information,
+      weakening local trust signals.
+    typical_actions:
+      - audit citation sources
+      - update incorrect listings
+      - build consistent citations
+    evidence_fields:
+      - citation_count
+      - inconsistent_citations
+      - consistency_score
+
+  SCHEMA_MARKUP_MISSING:
+    version: v1.0
+    severity: warning
+    meaning: Website lacks local business structured data
+    what_it_means: >
+      The business website does not have LocalBusiness schema markup,
+      missing opportunities for enhanced search display.
+    typical_actions:
+      - add LocalBusiness schema
+      - include organization schema
+      - validate structured data
+    evidence_fields:
+      - schema_status
+      - recommended_schemas
+      - website_url
+
+  # =============================================================================
+  # Reviews & Reputation Decisions
+  # =============================================================================
+
+  REVIEW_COUNT_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Business has fewer reviews than competitors
+    what_it_means: >
+      The review count is below category average, reducing trust signals
+      and local ranking potential.
+    typical_actions:
+      - implement review request process
+      - follow up with customers
+      - make reviewing easy
+    evidence_fields:
+      - review_count
+      - competitor_avg_count
+      - category_benchmark
+
+  REVIEW_RATING_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Average star rating is below threshold
+    what_it_means: >
+      The overall star rating is lower than competitors, potentially
+      deterring customers and affecting rankings.
+    typical_actions:
+      - address negative feedback
+      - improve service quality
+      - encourage happy customers to review
+    evidence_fields:
+      - current_rating
+      - competitor_avg_rating
+      - rating_threshold
+
+  NEGATIVE_REVIEW_SPIKE:
+    version: v1.0
+    severity: critical
+    meaning: Sudden increase in negative reviews detected
+    what_it_means: >
+      An unusual number of low-rating reviews have appeared recently,
+      indicating a service issue or potential attack.
+    typical_actions:
+      - investigate root cause
+      - respond to reviews promptly
+      - address service issues
+    evidence_fields:
+      - recent_negative_count
+      - baseline_negative_rate
+      - spike_percentage
+
+  REVIEW_RESPONSE_RATE_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Business is not responding to reviews
+    what_it_means: >
+      A low percentage of reviews receive owner responses, missing
+      engagement opportunities and trust signals.
+    typical_actions:
+      - respond to all reviews
+      - create response templates
+      - prioritize negative reviews
+    evidence_fields:
+      - response_rate
+      - unresponded_count
+      - avg_response_time
+
+  # =============================================================================
+  # Proximity & Geography Decisions
+  # =============================================================================
+
+  PROXIMITY_DISADVANTAGE:
+    version: v1.0
+    severity: info
+    meaning: Business is far from searcher concentration
+    what_it_means: >
+      The physical location is distant from high-density search areas,
+      creating a natural ranking disadvantage for nearby searches.
+    typical_actions:
+      - optimize for wider service area
+      - target specific neighborhoods
+      - consider additional locations
+    evidence_fields:
+      - distance_to_center
+      - competitor_proximity
+      - search_density_map
+
+  SERVICE_RADIUS_UNDEFINED:
+    version: v1.0
+    severity: warning
+    meaning: Service area is not properly configured
+    what_it_means: >
+      The listing does not clearly define its service area, limiting
+      appearance in relevant nearby searches.
+    typical_actions:
+      - define service areas
+      - set delivery radius
+      - specify served locations
+    evidence_fields:
+      - service_area_status
+      - coverage_type
+      - defined_areas
+
+  LOCATION_PIN_INACCURATE:
+    version: v1.0
+    severity: critical
+    meaning: Map pin location is incorrect
+    what_it_means: >
+      The Google Maps pin does not match the actual business location,
+      causing navigation issues and trust problems.
+    typical_actions:
+      - correct pin location
+      - verify address format
+      - submit location correction
+    evidence_fields:
+      - pin_coordinates
+      - actual_coordinates
+      - distance_error
+
+  # =============================================================================
+  # Competitive Density Decisions
+  # =============================================================================
+
+  MARKET_SATURATION_HIGH:
+    version: v1.0
+    severity: info
+    meaning: High competitor density in target area
+    what_it_means: >
+      Many competitors are vying for the same local searches, requiring
+      stronger differentiation and optimization.
+    typical_actions:
+      - identify unique value proposition
+      - focus on niche keywords
+      - improve all ranking factors
+    evidence_fields:
+      - competitor_count
+      - market_density_score
+      - category
+
+  COMPETITOR_DOMINANCE:
+    version: v1.0
+    severity: warning
+    meaning: A competitor dominates local rankings
+    what_it_means: >
+      One or more competitors consistently outrank for key searches,
+      capturing majority of local traffic.
+    typical_actions:
+      - analyze competitor strategy
+      - identify ranking gaps
+      - develop catch-up plan
+    evidence_fields:
+      - dominant_competitor
+      - their_positions
+      - our_positions
+
+  SHARE_OF_VOICE_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Business captures small portion of local searches
+    what_it_means: >
+      The business appears in a small percentage of relevant local
+      searches compared to total market opportunity.
+    typical_actions:
+      - expand keyword targeting
+      - improve ranking positions
+      - increase content coverage
+    evidence_fields:
+      - share_of_voice
+      - total_opportunity
+      - competitor_shares
+
+  # =============================================================================
+  # Spam & Risk Signals Decisions
+  # =============================================================================
+
+  SPAM_SIGNAL_DETECTED:
+    version: v1.0
+    severity: critical
+    meaning: Listing shows potential spam indicators
+    what_it_means: >
+      The listing exhibits characteristics that could be flagged as spam
+      by Google's algorithms, risking penalties.
+    typical_actions:
+      - remove keyword stuffing
+      - verify business legitimacy
+      - clean up listing
+    evidence_fields:
+      - spam_indicators
+      - risk_score
+      - flagged_elements
+
+  SUSPENSION_RISK:
+    version: v1.0
+    severity: critical
+    meaning: Listing at risk of suspension
+    what_it_means: >
+      The business profile shows patterns that could lead to suspension,
+      requiring immediate corrective action.
+    typical_actions:
+      - review guidelines compliance
+      - remove violations
+      - verify all information
+    evidence_fields:
+      - risk_factors
+      - violation_types
+      - suspension_likelihood
+
+  KEYWORD_STUFFING_DETECTED:
+    version: v1.0
+    severity: warning
+    meaning: Business name contains excessive keywords
+    what_it_means: >
+      The business name includes added keywords beyond the legal name,
+      violating Google guidelines and risking suspension.
+    typical_actions:
+      - revert to legal business name
+      - remove added keywords
+      - use proper categories instead
+    evidence_fields:
+      - current_name
+      - legal_name
+      - added_keywords
+
+  # =============================================================================
+  # Growth Opportunity Decisions
+  # =============================================================================
+
+  NEW_KEYWORD_OPPORTUNITY:
+    version: v1.0
+    severity: info
+    meaning: Untapped keyword potential identified
+    what_it_means: >
+      Relevant local keywords exist where the business could rank
+      but currently has no visibility.
+    typical_actions:
+      - create targeted content
+      - optimize for new keywords
+      - expand service descriptions
+    evidence_fields:
+      - opportunity_keywords
+      - search_volume
+      - competition_level
+
+  CITATION_BUILDING_OPPORTUNITY:
+    version: v1.0
+    severity: info
+    meaning: Valuable citation sources not yet claimed
+    what_it_means: >
+      High-authority directories and citation sources exist where the
+      business is not yet listed.
+    typical_actions:
+      - identify missing citations
+      - claim directory listings
+      - ensure NAP consistency
+    evidence_fields:
+      - missing_citations
+      - priority_sources
+      - potential_authority
+
+  # =============================================================================
+  # Data Quality Decisions
+  # =============================================================================
+
+  DATA_INCOMPLETE:
+    version: v1.0
+    severity: info
+    meaning: Required analysis data is missing
+    what_it_means: >
+      One or more data points needed for accurate decision-making
+      are unavailable, limiting analysis reliability.
+    typical_actions:
+      - verify data source access
+      - check API connectivity
+      - review data freshness
+    evidence_fields:
+      - missing_fields
+      - data_source
+      - last_update
+
+  DATA_STALE:
+    version: v1.0
+    severity: warning
+    meaning: Data has not been refreshed recently
+    what_it_means: >
+      The data used for analysis is older than acceptable thresholds,
+      potentially reflecting outdated conditions.
+    typical_actions:
+      - refresh data sources
+      - check sync status
+      - verify data pipeline
+    evidence_fields:
+      - data_age_days
+      - freshness_threshold
+      - last_sync
+
+  SOURCE_DISCREPANCY:
+    version: v1.0
+    severity: warning
+    meaning: Different data sources show conflicting information
+    what_it_means: >
+      Multiple data sources report different values for the same metric,
+      indicating sync issues or data quality problems.
+    typical_actions:
+      - identify authoritative source
+      - investigate discrepancy
+      - reconcile data
+    evidence_fields:
+      - conflicting_sources
+      - value_differences
+      - reconciliation_needed
+
+  # =============================================================================
+  # System Confidence Decisions
+  # =============================================================================
+
+  SIGNAL_CONFIDENCE_LOW:
+    version: v1.0
+    severity: info
+    meaning: Input signals have low reliability
+    what_it_means: >
+      The data used to generate decisions has lower than normal
+      confidence, potentially affecting decision accuracy.
+    typical_actions:
+      - gather additional data
+      - verify signal sources
+      - apply human review
+    evidence_fields:
+      - confidence_score
+      - low_confidence_signals
+      - threshold
+
+  DECISION_CONFIDENCE_LOW:
+    version: v1.0
+    severity: info
+    meaning: Decision generated with below-threshold confidence
+    what_it_means: >
+      The system produced a decision but supporting evidence is weaker
+      than normal, warranting human review.
+    typical_actions:
+      - review evidence manually
+      - gather additional data
+      - defer action if uncertain
+    evidence_fields:
+      - confidence_score
+      - confidence_threshold
+      - limiting_factors
+
+  MANUAL_REVIEW_REQUIRED:
+    version: v1.0
+    severity: warning
+    meaning: Human review is needed before action
+    what_it_means: >
+      The situation is too complex or ambiguous for automated decision,
+      requiring human judgment.
+    typical_actions:
+      - review all evidence
+      - consult with expert
+      - make informed decision
+    evidence_fields:
+      - review_reason
+      - evidence_summary
+      - recommended_reviewers
