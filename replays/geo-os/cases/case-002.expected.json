@@ -1,0 +1,40 @@
+{
+  "decisions": [
+    {
+      "decision_id": "REVIEW_RATING_TOO_LOW",
+      "domain": "geo-os",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "REVIEW_COUNT_TOO_LOW",
+      "domain": "geo-os",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "REVIEW_RESPONSE_RATE_LOW",
+      "domain": "geo-os",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "PROFILE_INCOMPLETE",
+      "domain": "geo-os",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "CITATION_INCONSISTENCY",
+      "domain": "geo-os",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "POSTS_STALE",
+      "domain": "geo-os",
+      "severity": "info",
+      "version": "v1.0"
+    }
+  ]
+}

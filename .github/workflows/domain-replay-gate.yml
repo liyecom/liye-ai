@@ -24,6 +24,12 @@ jobs:
 
       - name: Run Amazon Growth OS Replay Tests
         run: |
-          echo "🔁 Running Domain Replay Regression Tests"
+          echo "🔁 Running Amazon Growth OS Replay Tests"
           echo ""
           node scripts/replay_runner.js replays/amazon-growth/cases
+
+      - name: Run GEO OS Replay Tests
+        run: |
+          echo "🔁 Running GEO OS Replay Tests"
+          echo ""
+          node tools/geo_os_replay_runner.js replays/geo-os/cases
