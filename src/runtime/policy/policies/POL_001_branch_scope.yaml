@@ -1,0 +1,13 @@
+# POL_001: Branch Scope Protection
+#
+# Purpose: Prevent direct actions on protected branches.
+# Protected branches (like main) must only be modified through PR workflow.
+
+id: POL_001_branch_scope
+name: Branch Scope Protection
+description: Deny direct actions on protected branch 'refs/heads/main'
+severity: deny
+
+conditions:
+  action_type_prefix: "git."
+  target_equals: "refs/heads/main"

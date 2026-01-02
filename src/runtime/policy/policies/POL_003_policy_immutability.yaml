@@ -1,0 +1,13 @@
+# POL_003: Policy Immutability
+#
+# Purpose: Prevent modification of the policy engine itself.
+# The runtime policy layer is self-protecting.
+
+id: POL_003_policy_immutability
+name: Policy Layer Immutability
+description: Deny modification of src/runtime/policy/ (self-protecting)
+severity: deny
+
+conditions:
+  action_type: "file.write"
+  target_contains: "src/runtime/policy"
