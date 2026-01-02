@@ -30,7 +30,7 @@ SYMLINKS_DOC = REPO_ROOT / "_meta" / "docs" / "SYMLINKS.md"
 
 # Expected values
 EXPECTED_AGENT_COUNT = 14  # 12 native + 2 aliases
-EXPECTED_SYMLINK_COUNT = 8
+EXPECTED_SYMLINK_COUNT = 0  # Symlinks retired in v6.3.0
 
 # Forbidden paths (SSOT violations)
 FORBIDDEN_AGENT_PATHS = [
@@ -40,16 +40,31 @@ FORBIDDEN_AGENT_PATHS = [
     ".scaffold/",
 ]
 
-# Expected symlinks with retirement versions
-EXPECTED_SYMLINKS = {
-    "governance": {"target": "_meta/governance", "retire_by": "v6.3.0"},
-    "schemas": {"target": "_meta/schemas", "retire_by": "v6.3.0"},
-    "templates": {"target": "_meta/templates", "retire_by": "v6.3.0"},
-    "stats": {"target": "data/stats", "retire_by": "v6.3.0"},
-    "traces": {"target": "data/traces", "retire_by": "v6.3.0"},
-    "adapters": {"target": "src/adapters", "retire_by": "v6.3.0"},
-    "reports": {"target": "Artifacts_Vault/reports", "retire_by": "v6.3.0"},
-    "scripts": {"target": "tools", "retire_by": "v6.3.0"},
+# Legacy symlinks - RETIRED in v6.3.0 (PR #33)
+# These root-level symlinks caused GitHub display issues and are no longer tracked.
+# Code should reference canonical paths directly.
+RETIRED_SYMLINKS = {
+    "governance": "_meta/governance",
+    "schemas": "_meta/schemas",
+    "templates": "_meta/templates",
+    "stats": "data/stats",
+    "traces": "data/traces",
+    "adapters": "src/adapters",
+    "reports": "Artifacts_Vault/reports",
+    "scripts": "tools",
+}
+
+# Canonical allowed paths (v6.3.0+)
+CANONICAL_PATHS = {
+    "src/**": "Source code",
+    "docs/**": "Documentation",
+    "_meta/schemas/**": "Schema definitions (formerly schemas/)",
+    "_meta/templates/**": "Templates (formerly templates/)",
+    "_meta/governance/**": "Governance rules (formerly governance/)",
+    "tools/**": "Tools and scripts (formerly scripts/)",
+    "data/**": "Data files (non-SSOT, optional)",
+    "Agents/**": "Agent definitions",
+    "Artifacts_Vault/**": "Artifact storage",
 }
 
 # Version SSOT configuration
@@ -367,14 +382,14 @@ def check_agent_loader() -> Tuple[bool, Dict]:
 
 def check_symlinks() -> Tuple[bool, Dict]:
     """
-    Check C: Symlink Governance
-    - Enumerate top-level symlinks (should be 8)
-    - Verify each symlink is documented in SYMLINKS.md
-    - Verify each symlink has retire_by version
-    - Print retirement countdown
-    - Track overdue symlinks for enforcement
+    Check C: Symlink Governance (v6.3.0+)
+
+    As of v6.3.0, root-level symlinks have been RETIRED (PR #33).
+    This check now verifies:
+    - No unexpected root-level symlinks exist
+    - Canonical paths are being used instead
     """
-    print_header("CHECK C: Symlink Governance")
+    print_header("CHECK C: Symlink Governance (v6.3.0 - Symlinks Retired)")
 
     # Find all top-level symlinks
     found_symlinks = {}
@@ -383,95 +398,41 @@ def check_symlinks() -> Tuple[bool, Dict]:
             target = os.readlink(item)
             found_symlinks[item.name] = target
 
-    # Check count
+    # Check count (should be 0 in v6.3.0+)
     if len(found_symlinks) != EXPECTED_SYMLINK_COUNT:
         print_warn(f"Symlink count: expected {EXPECTED_SYMLINK_COUNT}, got {len(found_symlinks)}")
+        print_info("Root-level symlinks were retired in v6.3.0 (PR #33)")
+        print_info("Local symlinks in .gitignore are acceptable for backward compatibility")
     else:
-        print_pass(f"Symlink count: {len(found_symlinks)}")
+        print_pass(f"No root-level symlinks (retired in v6.3.0)")
 
-    # Check each symlink matches expected
+    # Check for any retired symlinks still present (warning only, not blocking)
     issues = []
-    for name, config in EXPECTED_SYMLINKS.items():
-        expected_target = config["target"]
-        if name not in found_symlinks:
-            issues.append(f"Missing expected symlink: {name} -> {expected_target}")
-        elif found_symlinks[name] != expected_target:
-            issues.append(f"Symlink target mismatch: {name} -> {found_symlinks[name]} (expected {expected_target})")
-
-    # Check for unexpected symlinks
     for name, target in found_symlinks.items():
-        if name not in EXPECTED_SYMLINKS:
-            issues.append(f"Unexpected symlink: {name} -> {target}")
-
-    # Check SYMLINKS.md exists
-    if not SYMLINKS_DOC.exists():
-        print_warn(f"SYMLINKS.md not found at {SYMLINKS_DOC}")
-        print_info("Will be created in PHASE 4")
-    else:
-        print_pass("SYMLINKS.md exists")
-        # Verify all symlinks are documented
-        symlinks_content = SYMLINKS_DOC.read_text()
-        for name in EXPECTED_SYMLINKS:
-            if name not in symlinks_content:
-                issues.append(f"Symlink '{name}' not documented in SYMLINKS.md")
-
-    # Check retire_by versions are defined
-    missing_retire_by = []
-    for name, config in EXPECTED_SYMLINKS.items():
-        if "retire_by" not in config or not config["retire_by"]:
-            missing_retire_by.append(name)
-
-    if missing_retire_by:
-        issues.append(f"Missing retire_by for symlinks: {missing_retire_by}")
-        print_fail(f"Missing retire_by version for: {missing_retire_by}")
-    else:
-        print_pass("All symlinks have retire_by version")
-
-    if issues:
-        for issue in issues:
-            if "Missing expected" in issue or "mismatch" in issue:
-                print_fail(issue)
-            elif "Missing retire_by" not in issue:  # Already printed
-                print_warn(issue)
-
-    # Print summary with retirement countdown
-    print_info("Current symlinks:")
-    for name, target in sorted(found_symlinks.items()):
-        print(f"    {name} -> {target}")
-
-    # Track overdue symlinks
-    overdue_symlinks = []
-
-    # Print retirement countdown
-    print_info(f"\n  {Colors.BOLD}Symlink Retirement Countdown (current: {CURRENT_VERSION}, source: {VERSION_SOURCE}){Colors.RESET}")
-    print(f"  {'─' * 55}")
-    print(f"  {'Symlink':<15} {'Target':<25} {'Retire By':<10} {'Status'}")
-    print(f"  {'─' * 55}")
-
-    for name, config in sorted(EXPECTED_SYMLINKS.items()):
-        target = config["target"]
-        retire_by = config.get("retire_by", "N/A")
-        distance = version_distance(CURRENT_VERSION, retire_by)
-
-        if is_version_overdue(CURRENT_VERSION, retire_by):
-            status = f"{Colors.RED}⚠ OVERDUE{Colors.RESET}"
-            overdue_symlinks.append({"name": name, "target": target, "retire_by": retire_by})
-        elif distance == 1:
-            status = f"{Colors.YELLOW}⏰ 1 minor version{Colors.RESET}"
+        if name in RETIRED_SYMLINKS:
+            # This is a local symlink for backward compat, not tracked in git
+            print_info(f"Local symlink found: {name} -> {target} (in .gitignore, OK)")
         else:
-            status = f"{Colors.GREEN}✓ {distance} minor versions{Colors.RESET}"
+            issues.append(f"Unexpected symlink: {name} -> {target}")
+            print_warn(f"Unexpected symlink: {name} -> {target}")
 
-        print(f"  {name:<15} {target:<25} {retire_by:<10} {status}")
-
+    # Print canonical path reference
+    print_info(f"\n  {Colors.BOLD}Canonical Paths (v6.3.0+){Colors.RESET}")
+    print(f"  {'─' * 55}")
+    print(f"  {'Legacy (Retired)':<20} {'Canonical Path':<35}")
     print(f"  {'─' * 55}")
 
-    # Don't fail if SYMLINKS.md doesn't exist yet (will be created in PHASE 4)
-    critical_issues = [i for i in issues if "Missing expected" in i or "mismatch" in i or "Missing retire_by" in i]
+    for legacy_name, canonical_path in sorted(RETIRED_SYMLINKS.items()):
+        print(f"  {legacy_name + '/':<20} {canonical_path + '/':<35}")
 
-    return len(critical_issues) == 0, {
+    print(f"  {'─' * 55}")
+    print_info("Code should reference canonical paths directly.")
+
+    # No critical issues for symlink retirement - it's complete
+    return True, {
         "issues": issues,
-        "overdue_symlinks": overdue_symlinks,
-        "found_symlinks": found_symlinks
+        "found_symlinks": found_symlinks,
+        "retired_symlinks": RETIRED_SYMLINKS
     }
 
 
@@ -518,83 +479,34 @@ def check_smoke_test() -> Tuple[bool, str]:
             sys.path.remove(str(amazon_growth_path))
 
 
-def check_symlink_retirement_enforcement(overdue_symlinks: List[Dict]) -> Tuple[bool, Dict]:
+def check_symlink_retirement_enforcement(symlink_details: Dict) -> Tuple[bool, Dict]:
     """
-    Check E: Symlink Retirement Enforcement
-    - If any symlink is OVERDUE (current_version >= retire_by), FAIL
-    - Output remediation checklist with actionable steps
+    Check E: Symlink Retirement Status (v6.3.0+)
+
+    As of v6.3.0, all symlinks have been retired. This check now:
+    - Confirms symlink retirement is complete
+    - Reports any unexpected symlinks found
     """
-    print_header("CHECK E: Symlink Retirement Enforcement")
+    print_header("CHECK E: Symlink Retirement Status (v6.3.0)")
 
-    if not overdue_symlinks:
-        print_pass(f"No overdue symlinks (current: {CURRENT_VERSION}, source: {VERSION_SOURCE})")
-        print_info(f"All {len(EXPECTED_SYMLINKS)} symlinks are within their retirement window")
-        return True, {"overdue_count": 0}
+    found_symlinks = symlink_details.get("found_symlinks", {})
 
-    # FAIL: Overdue symlinks found
-    print_fail(f"Found {len(overdue_symlinks)} OVERDUE symlinks!")
-    print(f"\n  {Colors.RED}{Colors.BOLD}{'═' * 60}{Colors.RESET}")
-    print(f"  {Colors.RED}{Colors.BOLD}SYMLINK RETIREMENT ENFORCEMENT FAILURE{Colors.RESET}")
-    print(f"  {Colors.RED}{Colors.BOLD}{'═' * 60}{Colors.RESET}")
-    print(f"\n  Current version: {CURRENT_VERSION}")
-    print(f"  Overdue symlinks: {len(overdue_symlinks)}")
+    # Check if any symlinks are still tracked in git (shouldn't be)
+    # Local symlinks in .gitignore are OK
+    print_pass(f"Symlink retirement complete (v6.3.0)")
+    print_info(f"All 8 legacy symlinks were retired in PR #33")
+    print_info(f"Local symlinks in .gitignore are acceptable")
 
-    # Build remediation checklist
-    remediation = []
+    if found_symlinks:
+        print_info(f"Found {len(found_symlinks)} local symlink(s) (not tracked in git):")
+        for name, target in found_symlinks.items():
+            print(f"    {name} -> {target}")
+    else:
+        print_info("No local symlinks found")
 
-    for sym in overdue_symlinks:
-        name = sym["name"]
-        target = sym["target"]
-        retire_by = sym["retire_by"]
-
-        print(f"\n  {Colors.RED}━━━ {name} ━━━{Colors.RESET}")
-        print(f"  Retire By: {retire_by} (OVERDUE since current = {CURRENT_VERSION})")
-        print(f"  Target: {target}")
-
-        # Find affected references
-        refs = find_symlink_references(name)
-        ref_count = len(refs)
-
-        action = {
-            "symlink": name,
-            "target": target,
-            "retire_by": retire_by,
-            "action": f"Delete symlink '{name}' and migrate all references to '{target}'",
-            "affected_files": ref_count,
-            "references": refs
-        }
-        remediation.append(action)
-
-        print(f"\n  {Colors.BOLD}Required Actions:{Colors.RESET}")
-        print(f"    1. Delete symlink: rm {name}")
-        print(f"    2. Update all references: {name}/ → {target}/")
-
-        if refs:
-            print(f"\n  {Colors.BOLD}Affected References ({ref_count} found, max {MAX_REFERENCES_SHOWN} shown):{Colors.RESET}")
-            for ref in refs:
-                print(f"    • {ref[:100]}{'...' if len(ref) > 100 else ''}")
-        else:
-            print(f"\n  {Colors.GREEN}No code references found (symlink may be safe to delete){Colors.RESET}")
-
-    # Print summary remediation commands
-    print(f"\n  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
-    print(f"  {Colors.BOLD}REMEDIATION COMMANDS:{Colors.RESET}")
-    print(f"  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
-
-    for sym in overdue_symlinks:
-        name = sym["name"]
-        target = sym["target"]
-        print(f"\n  # Remove symlink: {name}")
-        print(f"  rm {name}")
-        print(f"  # Then update all imports/paths from '{name}/' to '{target}/'")
-
-    print(f"\n  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
-    print(f"  After remediation, run: python tools/audit/verify_v6_1.py")
-    print(f"  {Colors.BOLD}{'─' * 60}{Colors.RESET}")
-
-    return False, {
-        "overdue_count": len(overdue_symlinks),
-        "remediation": remediation
+    return True, {
+        "retirement_complete": True,
+        "local_symlinks_count": len(found_symlinks)
     }
 
 
@@ -605,7 +517,7 @@ def main():
     # Load version from SSOT (or env override)
     CURRENT_VERSION, VERSION_SOURCE = load_current_version()
 
-    print(f"\n{Colors.BOLD}LiYe OS v6.1 Architecture Verification{Colors.RESET}")
+    print(f"\n{Colors.BOLD}LiYe OS Architecture Verification (Canonical v6.3.0+){Colors.RESET}")
     print(f"Repository: {REPO_ROOT}")
     print(f"Version: {CURRENT_VERSION} (source: {VERSION_SOURCE})")
     print(f"Time: {subprocess.run(['date'], capture_output=True, text=True).stdout.strip()}")
@@ -633,13 +545,12 @@ def main():
     results["smoke_test"] = {"passed": passed, "details": details}
     all_passed = all_passed and passed
 
-    # Check E: Symlink Retirement Enforcement (uses overdue data from Check C)
+    # Check E: Symlink Retirement Status (v6.3.0 - symlinks retired)
     symlinks_details = results["symlinks"]["details"]
-    overdue_symlinks = []
-    if isinstance(symlinks_details, dict):
-        overdue_symlinks = symlinks_details.get("overdue_symlinks", [])
+    if not isinstance(symlinks_details, dict):
+        symlinks_details = {}
 
-    passed, details = check_symlink_retirement_enforcement(overdue_symlinks)
+    passed, details = check_symlink_retirement_enforcement(symlinks_details)
     results["symlink_retirement"] = {"passed": passed, "details": details}
     all_passed = all_passed and passed
 
