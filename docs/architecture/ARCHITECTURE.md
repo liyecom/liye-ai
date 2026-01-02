@@ -195,6 +195,70 @@ Any modification to this constitution requires:
 
 ## 10. Related Documents
 
+### Core / Governance
+
+- [LIYE_OS_CORE_STABLE_SPEC.md](./LIYE_OS_CORE_STABLE_SPEC.md) - Core stable kernel specification (v1.0)
+- [CORE_STATUS.md](./CORE_STATUS.md) - Core stability status indicator
+
+```mermaid
+flowchart TB
+  %% =========================
+  %% LiYe OS Core (STABLE) — Architecture Overview
+  %% =========================
+
+  subgraph T["Truth Layer (Semantic Truth Engine)"]
+    DM["Domain Routing<br/>domain-mapping.yaml + scoring"]
+    GL["Glossary SSOT<br/>knowledge/glossary/*.yaml"]
+    AB["Ambiguity Policy<br/>D2/D3"]
+    MB["Memory Brief Assembly<br/>memory_brief.md"]
+    DM --> MB
+    GL --> MB
+    AB --> MB
+  end
+
+  subgraph E["Execution Layer (Domain-Scoped Track)"]
+    TR["Track<br/>tracks/&lt;track_id&gt;/"]
+    SPEC["spec.md<br/>(Decision Contract)"]
+    PLAN["plan.md<br/>(Editable Plan)"]
+    WF["workflow.yaml<br/>(Verifications)"]
+    ST["state.yaml<br/>(Domain Binding)"]
+    TR --> SPEC
+    TR --> PLAN
+    TR --> WF
+    TR --> ST
+  end
+
+  subgraph G["Governance Layer (Contract Enforcement)"]
+    CP["checkpoint.yaml<br/>(Freeze List)"]
+    UF["unfreeze/*.yaml<br/>(Add-only Override)"]
+    CI["CI Gate<br/>verify_checkpoint_freeze.sh"]
+    CP --> CI
+    UF --> CI
+  end
+
+  subgraph X["Experience & Reuse (Non-Authoritative)"]
+    EXP["experience.yaml<br/>(Lessons + human confidence)"]
+    IDX["experience_index/*.yaml<br/>(Metadata only)"]
+    HINT["newTrack Hint<br/>(Visibility only)"]
+    TPL["Templates<br/>generate_template_from_experience.js"]
+    IDX --> HINT
+    EXP --> TPL
+  end
+
+  %% Core Couplings (Allowed)
+  MB --> TR
+
+  %% Governance Freeze Scope (Hard Contract)
+  SPEC -. "frozen by checkpoint" .-> CP
+  GL -. "frozen by checkpoint" .-> CP
+
+  %% Explicit Non-Authority (No direct injection)
+  EXP -. "no auto-inject" .-> MB
+  IDX -. "no routing/scoring" .-> DM
+```
+
+### Specifications
+
 - [NAMING.md](./NAMING.md) - Naming conventions
 - [AGENT_SPEC.md](./AGENT_SPEC.md) - Agent YAML specification
 - [WORKFLOW_DSL.md](./WORKFLOW_DSL.md) - Workflow DSL specification
