@@ -20,7 +20,7 @@
     },
     "domain": {
       "type": "string",
-      "enum": ["amazon-growth"],
+      "enum": ["amazon-growth", "geo-os"],
       "description": "Domain namespace"
     },
     "severity": {

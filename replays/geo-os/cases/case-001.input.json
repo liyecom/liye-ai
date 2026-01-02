@@ -1,0 +1,26 @@
+{
+  "business_id": "geo-test-001",
+  "metrics": {
+    "impressions": 4000,
+    "category_avg_impressions": 10000,
+    "local_pack_position": 5,
+    "total_rating_score": 200,
+    "review_count": 50,
+    "responded_reviews": 30,
+    "filled_fields": 9,
+    "total_fields": 10,
+    "consistent_citations": 45,
+    "total_citations": 50,
+    "days_since_post": 20
+  },
+  "thresholds": {
+    "min_visibility_score": 0.6,
+    "max_local_pack_rank": 3,
+    "min_review_rating": 4.0,
+    "min_review_count": 50,
+    "min_response_rate": 0.5,
+    "min_profile_completeness": 0.9,
+    "min_citation_consistency": 0.85,
+    "max_days_since_post": 30
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "decisions": [
+    {
+      "decision_id": "VISIBILITY_TOO_LOW",
+      "domain": "geo-os",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "LOCAL_PACK_RANK_DROP",
+      "domain": "geo-os",
+      "severity": "critical",
+      "version": "v1.0"
+    }
+  ]
+}
