@@ -1,0 +1,14 @@
+# POL_005: Rate Guard
+#
+# Purpose: Prevent action storms by rate limiting.
+# Actions exceeding the rate threshold are denied.
+
+id: POL_005_rate_guard
+name: Action Rate Guard
+description: Deny actions exceeding rate threshold (anti-storm protection)
+severity: deny
+
+conditions:
+  metadata_gt:
+    key: "rate_per_minute"
+    threshold: 60

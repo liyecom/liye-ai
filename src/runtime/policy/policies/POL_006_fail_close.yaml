@@ -1,0 +1,21 @@
+# POL_006: Fail-Close
+#
+# Purpose: Ensure the system denies actions when in error state.
+# This is the safety net - if evaluation fails, deny.
+#
+# Note: This policy is handled specially by the engine.
+# It is triggered when any exception occurs during evaluation.
+# The conditions here define a marker that only matches when
+# the engine explicitly flags an action for fail-close.
+
+id: POL_006_fail_close
+name: Fail-Close Safety Net
+description: Deny all actions when policy evaluation encounters errors
+severity: deny
+
+conditions:
+  # This policy only matches actions explicitly marked for fail-close.
+  # The engine sets this flag when an exception occurs.
+  metadata_value:
+    key: "_fail_close_trigger"
+    value: true
