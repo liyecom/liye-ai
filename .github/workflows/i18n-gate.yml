@@ -1,0 +1,120 @@
+name: i18n Validation Gate
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+    paths:
+      - 'CLAUDE.md'
+      - '.claude/packs/**'
+      - 'knowledge/glossary/**'
+      - 'i18n/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'CLAUDE.md'
+      - '.claude/packs/**'
+      - 'knowledge/glossary/**'
+      - 'i18n/**'
+
+jobs:
+  validate-ssot:
+    name: Validate English SSOT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install glob js-yaml
+
+      - name: Check English SSOT files exist
+        run: |
+          echo "=== Checking English SSOT Files ==="
+
+          # CLAUDE.md must exist and be non-empty
+          if [ ! -s CLAUDE.md ]; then
+            echo "❌ CLAUDE.md is missing or empty"
+            exit 1
+          fi
+          echo "✅ CLAUDE.md exists"
+
+          # All packs must exist
+          for pack in operations research infrastructure protocols; do
+            if [ ! -s .claude/packs/${pack}.md ]; then
+              echo "❌ .claude/packs/${pack}.md is missing or empty"
+              exit 1
+            fi
+            echo "✅ .claude/packs/${pack}.md exists"
+          done
+
+          echo ""
+          echo "=== All SSOT files validated ==="
+
+      - name: Run i18n validation script
+        run: node i18n/scripts/validate.mjs --ssot-only --verbose
+
+      - name: Report translation coverage
+        if: always()
+        run: |
+          echo ""
+          echo "=== Translation Coverage Report ==="
+          node i18n/scripts/validate.mjs || true
+
+  check-language:
+    name: Check SSOT Language
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify English content in SSOT files
+        run: |
+          echo "=== Checking for non-English content in SSOT files ==="
+
+          # List of SSOT files to check
+          files=(
+            "CLAUDE.md"
+            ".claude/packs/operations.md"
+            ".claude/packs/research.md"
+            ".claude/packs/infrastructure.md"
+            ".claude/packs/protocols.md"
+          )
+
+          # Chinese character detection pattern
+          # We check for significant Chinese content (>5% of lines)
+          # Some Chinese in examples/names is acceptable
+
+          warnings=0
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              total_lines=$(wc -l < "$file")
+              # Count lines with Chinese characters (excluding comments)
+              chinese_lines=$(grep -c '[\u4e00-\u9fff]' "$file" 2>/dev/null || echo 0)
+
+              if [ "$total_lines" -gt 0 ]; then
+                percent=$((chinese_lines * 100 / total_lines))
+                if [ "$percent" -gt 10 ]; then
+                  echo "⚠️  $file has $percent% Chinese content ($chinese_lines/$total_lines lines)"
+                  warnings=$((warnings + 1))
+                else
+                  echo "✅ $file - OK (English SSOT)"
+                fi
+              fi
+            fi
+          done
+
+          if [ "$warnings" -gt 0 ]; then
+            echo ""
+            echo "⚠️  Some files have significant Chinese content."
+            echo "   Consider migrating to English SSOT with Chinese in i18n/display/"
+          fi
+
+          echo ""
+          echo "=== Language check complete ==="

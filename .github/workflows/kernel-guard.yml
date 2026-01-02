@@ -1,0 +1,67 @@
+name: Kernel Guard (CLAUDE.md Protection)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [main]
+    paths:
+      - 'CLAUDE.md'
+
+jobs:
+  kernel-guard:
+    name: Kernel Modification Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect CLAUDE.md changes
+        id: detect
+        run: |
+          echo "=== Kernel Guard: Checking CLAUDE.md ==="
+
+          git fetch origin ${{ github.base_ref }}
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "^CLAUDE\.md$"; then
+            echo "kernel_changed=true" >> $GITHUB_OUTPUT
+            echo "⚠️  CLAUDE.md (Kernel) modification detected"
+          else
+            echo "kernel_changed=false" >> $GITHUB_OUTPUT
+            echo "✅ CLAUDE.md not modified in this PR"
+          fi
+
+      - name: Enforce Kernel Change Policy
+        if: steps.detect.outputs.kernel_changed == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels) }}
+        run: |
+          echo "=== Enforcing Kernel Change Policy ==="
+          echo ""
+          echo "PR Title: $PR_TITLE"
+          echo ""
+
+          # Check 1: Title prefix
+          if echo "$PR_TITLE" | grep -Eiq "^(governance|kernel):"; then
+            echo "✅ PR title indicates governance/kernel change intent"
+            exit 0
+          fi
+
+          # Check 2: Label
+          if echo "$PR_LABELS" | grep -q '"name": *"kernel-change"'; then
+            echo "✅ PR has 'kernel-change' label"
+            exit 0
+          fi
+
+          echo ""
+          echo "::error::❌ CLAUDE.md modification detected without explicit Kernel change intent."
+          echo "::error::"
+          echo "::error::CLAUDE.md is the Kernel of LiYe OS - protected by Governance Gate."
+          echo "::error::"
+          echo "::error::To modify CLAUDE.md, you MUST:"
+          echo "::error::  Option 1: Prefix PR title with 'governance:' or 'kernel:'"
+          echo "::error::  Option 2: Add label 'kernel-change' to this PR"
+          echo "::error::"
+          echo "::error::This ensures all Kernel changes are intentional and reviewed."
+          exit 1
