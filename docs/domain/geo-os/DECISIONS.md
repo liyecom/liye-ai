@@ -1,0 +1,183 @@
+# GEO OS — Decision Inventory
+
+> Purpose:
+> This document defines the complete decision surface of GEO OS.
+> Each decision represents a machine-verdict that can be replayed, audited,
+> and governed. Decisions are language-neutral and versioned.
+>
+> Rules:
+> - Decision IDs are immutable once merged
+> - No natural language conclusions
+> - No analysis or reasoning text
+> - Enumeration only
+
+---
+
+## 1. Visibility & Exposure Decisions
+
+- VISIBILITY_TOO_LOW
+- VISIBILITY_DECLINING
+- IMPRESSIONS_BELOW_THRESHOLD
+- SEARCH_APPEARANCE_MISSING
+- MAP_PACK_EXCLUDED
+- FEATURED_SNIPPET_LOST
+- KNOWLEDGE_PANEL_MISSING
+
+---
+
+## 2. Ranking & Position Decisions
+
+- RANKING_TOO_LOW
+- RANKING_DECLINING
+- RANKING_VOLATILE
+- LOCAL_PACK_RANK_DROP
+- ORGANIC_RANK_BELOW_TARGET
+- KEYWORD_RANK_STAGNANT
+- SERP_FEATURE_LOST
+
+---
+
+## 3. Local Relevance Decisions
+
+- LOCAL_RELEVANCE_WEAK
+- SERVICE_AREA_MISMATCH
+- CATEGORY_MISMATCH
+- PRIMARY_CATEGORY_SUBOPTIMAL
+- SECONDARY_CATEGORY_MISSING
+- LOCAL_KEYWORD_COVERAGE_LOW
+- GEO_MODIFIER_MISSING
+
+---
+
+## 4. Content Completeness Decisions
+
+- PROFILE_INCOMPLETE
+- DESCRIPTION_MISSING
+- DESCRIPTION_TOO_SHORT
+- HOURS_MISSING
+- HOURS_OUTDATED
+- ATTRIBUTES_INCOMPLETE
+- PHOTOS_INSUFFICIENT
+- POSTS_STALE
+- QUESTIONS_UNANSWERED
+
+---
+
+## 5. Entity Consistency Decisions
+
+- NAP_INCONSISTENT
+- NAME_MISMATCH
+- ADDRESS_MISMATCH
+- PHONE_MISMATCH
+- WEBSITE_MISMATCH
+- DUPLICATE_LISTING_DETECTED
+- CITATION_INCONSISTENCY
+- SCHEMA_MARKUP_MISSING
+- SCHEMA_MARKUP_INVALID
+
+---
+
+## 6. Reviews & Reputation Decisions
+
+- REVIEW_COUNT_TOO_LOW
+- REVIEW_RATING_TOO_LOW
+- REVIEW_RATING_DECLINING
+- NEGATIVE_REVIEW_SPIKE
+- REVIEW_VELOCITY_TOO_LOW
+- REVIEW_RESPONSE_RATE_LOW
+- REVIEW_RESPONSE_DELAYED
+- FAKE_REVIEW_RISK
+
+---
+
+## 7. Proximity & Geography Decisions
+
+- PROXIMITY_DISADVANTAGE
+- SERVICE_RADIUS_UNDEFINED
+- GEO_TARGETING_MISMATCH
+- LOCATION_PIN_INACCURATE
+- COVERAGE_AREA_GAP
+- MULTI_LOCATION_CONFLICT
+
+---
+
+## 8. Competitive Density Decisions
+
+- MARKET_SATURATION_HIGH
+- COMPETITOR_DOMINANCE
+- COMPETITOR_REVIEW_ADVANTAGE
+- COMPETITOR_CONTENT_SUPERIOR
+- NICHE_OPPORTUNITY_DETECTED
+- SHARE_OF_VOICE_LOW
+
+---
+
+## 9. Spam & Risk Signals Decisions
+
+- SPAM_SIGNAL_DETECTED
+- POLICY_VIOLATION_RISK
+- SUSPENSION_RISK
+- LISTING_SUPPRESSED
+- GUIDELINE_VIOLATION
+- KEYWORD_STUFFING_DETECTED
+- LINK_SCHEME_RISK
+
+---
+
+## 10. Growth Opportunity Decisions
+
+- SCALING_OPPORTUNITY
+- NEW_KEYWORD_OPPORTUNITY
+- NEW_LOCATION_OPPORTUNITY
+- SERVICE_EXPANSION_OPPORTUNITY
+- CONTENT_GAP_OPPORTUNITY
+- CITATION_BUILDING_OPPORTUNITY
+- BACKLINK_OPPORTUNITY
+
+---
+
+## 11. Data Quality Decisions
+
+- DATA_INCOMPLETE
+- DATA_STALE
+- DATA_ANOMALY_DETECTED
+- METRIC_DEFINITION_MISMATCH
+- SOURCE_DISCREPANCY
+- CRAWL_ERROR_DETECTED
+- API_DATA_UNAVAILABLE
+
+---
+
+## 12. System Confidence Decisions
+
+- SIGNAL_CONFIDENCE_LOW
+- DECISION_CONFIDENCE_LOW
+- MANUAL_REVIEW_REQUIRED
+- INSUFFICIENT_DATA
+- MODEL_UNCERTAINTY_HIGH
+
+---
+
+## 13. Decision Lifecycle Notes
+
+- All decisions are:
+  - Language-neutral
+  - Versioned
+  - Replayable
+  - Contract-bound
+
+- Any change to:
+  - Decision ID
+  - Category assignment
+  - Semantic meaning
+
+  requires a new Architecture Decision Record (ADR).
+
+---
+
+## 14. Status
+
+- Phase: 5.1
+- Domain: GEO OS
+- State: Draft → Pending Freeze
+- Next Step: Decision Schema & Contract Definition (Phase 5.2)
