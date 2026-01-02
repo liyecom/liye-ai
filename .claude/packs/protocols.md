@@ -1,150 +1,150 @@
-# Context Pack: Protocols（协作/交付协议）
+# Context Pack: Protocols (Collaboration/Delivery Protocols)
 
-**加载条件：** 涉及"多人/多模型/多智能体协同"、交付标准、质量门禁、复盘流程时加载。
+**Loading Conditions:** Load when tasks involve "multi-person/multi-model/multi-agent collaboration", delivery standards, quality gates, or retrospective processes.
 
-## 协作分工原则
+## Collaboration Principles
 
-### Claude 的角色定位
+### Claude's Role Positioning
 
-**擅长：**
-- 编排和调度（orchestration）
-- 文件系统操作（读写、重组、重构）
-- 质量门禁（检查、验证、确保一致性）
-- 集成落地（把方案变成可执行代码）
-- 上下文管理（加载相关 Packs、Skill 文档）
+**Strengths:**
+- Orchestration and scheduling
+- File system operations (read/write, reorganize, refactor)
+- Quality gates (check, validate, ensure consistency)
+- Integration and implementation (turn plans into executable code)
+- Context management (load relevant Packs, Skill documents)
 
-**不擅长（应委托）：**
-- 大批量重复性任务（如处理 100+ 个文件）
-- 超大上下文摘要（如一次性读取 50 篇论文）
-- 实时数据抓取（应使用 API 或爬虫工具）
+**Not suited for (should delegate):**
+- Large batch repetitive tasks (e.g., processing 100+ files)
+- Super-large context summaries (e.g., reading 50 papers at once)
+- Real-time data scraping (should use APIs or crawler tools)
 
-### 多模型协作分工
+### Multi-Model Collaboration Division
 
-| 模型 | 定位 | 典型任务 | 调用方式 |
-|-----|------|---------|---------|
-| **Claude Sonnet** | 编排者 | Crew 设计、质量门禁、文件操作 | 主控 |
-| **Claude Opus** | 深度思考 | 复杂策略设计、架构决策 | Claude 调用（关键决策点）|
-| **Gemini 2.0 Flash** | 大上下文 | 50+ 文献摘要、大规模数据分析 | Claude 委托（批量任务）|
-| **GPT-4** | 工具调用 | API 调用、结构化输出 | Claude 委托（精确格式）|
-| **Gemini 2.0 Flash Thinking** | 复杂推理 | 多步骤逻辑链、数学证明 | 特殊任务 |
+| Model | Position | Typical Tasks | Invocation Method |
+|-------|----------|---------------|-------------------|
+| **Claude Sonnet** | Orchestrator | Crew design, quality gates, file operations | Primary control |
+| **Claude Opus** | Deep thinking | Complex strategy design, architecture decisions | Claude invokes (key decision points) |
+| **Gemini 2.0 Flash** | Large context | 50+ literature summaries, large-scale data analysis | Claude delegates (batch tasks) |
+| **GPT-4** | Tool calling | API calls, structured output | Claude delegates (precise format) |
+| **Gemini 2.0 Flash Thinking** | Complex reasoning | Multi-step logic chains, mathematical proofs | Special tasks |
 
-**协作流程示例：**
+**Collaboration Flow Example:**
 
 ```
-用户：分析 Amazon Q4 广告数据并生成优化方案
+User: Analyze Amazon Q4 advertising data and generate optimization plan
 
 Claude (Sonnet):
-  1. 理解需求 → 拆解任务
-  2. 加载 .claude/packs/operations.md
-  3. 设计 Crew：DataCollector → Analyzer → Strategist → Reporter
-  4. 委托 Gemini：批量处理 100+ 个广告组的数据
-  5. 调用 Opus：设计优化策略（关键决策）
-  6. 自己执行：生成报告、归档到 Artifacts_Vault
-  7. 质检：验证数据完整性、格式正确性
-  8. 交付：向用户展示结果 + 归档路径
+  1. Understand requirements → Break down tasks
+  2. Load .claude/packs/operations.md
+  3. Design Crew: DataCollector → Analyzer → Strategist → Reporter
+  4. Delegate to Gemini: Batch process 100+ ad groups' data
+  5. Invoke Opus: Design optimization strategy (key decision)
+  6. Self-execute: Generate report, archive to Artifacts_Vault
+  7. Quality check: Verify data completeness, format correctness
+  8. Deliver: Show results to user + archive path
 ```
 
-## 输出契约（最重要）
+## Output Contracts (Most Important)
 
-### 交付物标准
+### Deliverable Standards
 
-**每次交付必须包含 5 个要素：**
+**Every delivery must include 5 elements:**
 
-1. **目标（Objective）**
+1. **Objective**
    ```
-   什么任务？为什么做？成功的定义是什么？
-   ```
-
-2. **输入（Input）**
-   ```
-   数据源、配置文件、依赖文件的路径
+   What task? Why? What is the definition of success?
    ```
 
-3. **步骤（Steps）**
+2. **Input**
    ```
-   详细的执行过程（可复现）
-   ```
-
-4. **产出（Output）**
-   ```
-   最终文件的路径、格式、大小
+   Data sources, config files, dependency file paths
    ```
 
-5. **风险/回滚（Risk & Rollback）**
+3. **Steps**
    ```
-   可能的问题、如何回滚、备份位置
+   Detailed execution process (reproducible)
    ```
 
-### 交付物示例
+4. **Output**
+   ```
+   Final file path, format, size
+   ```
+
+5. **Risk & Rollback**
+   ```
+   Potential issues, how to rollback, backup location
+   ```
+
+### Deliverable Example
 
 ```markdown
 # Amazon Listing Optimization Report
 
 ## Objective
-优化 Timo Canada ASIN B0XXX 的 Listing，目标提升 CTR 10%，CVR 5%
+Optimize Timo Canada ASIN B0XXX Listing, target: improve CTR 10%, CVR 5%
 
 ## Input
-- 数据源：`Systems/amazon-growth-os/data/inputs/campaign_report_20240115.csv`
-- 配置：`Systems/amazon-growth-os/config/optimization.yaml`
-- 参考：`Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/listing_template.md`
+- Data source: `Systems/amazon-growth-os/data/inputs/campaign_report_20240115.csv`
+- Config: `Systems/amazon-growth-os/config/optimization.yaml`
+- Reference: `Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/listing_template.md`
 
 ## Steps
-1. 数据加载：读取广告报表（2024-01-01 至 2024-01-15）
-2. 关键词分析：提取 CTR Top 10 和 CVR Top 10
-3. 竞品对标：分析前 3 名竞品的 Listing
-4. 生成建议：标题、5点、A+ 内容优化
-5. 归档产出：保存到 Artifacts_Vault
+1. Data loading: Read ad report (2024-01-01 to 2024-01-15)
+2. Keyword analysis: Extract CTR Top 10 and CVR Top 10
+3. Competitor benchmarking: Analyze top 3 competitors' Listings
+4. Generate recommendations: Title, bullets, A+ content optimization
+5. Archive output: Save to Artifacts_Vault
 
 ## Output
-- 报告：`Artifacts_Vault/by_project/timo_canada_q4/listing_optimization_20240120.md`
-- 数据附件：`Artifacts_Vault/by_project/timo_canada_q4/data/keyword_analysis.csv`
+- Report: `Artifacts_Vault/by_project/timo_canada_q4/listing_optimization_20240120.md`
+- Data attachment: `Artifacts_Vault/by_project/timo_canada_q4/data/keyword_analysis.csv`
 
 ## Risk & Rollback
-- 风险：优化后可能影响现有排名（建议 A/B 测试）
-- 回滚：保留原 Listing 截图于 `Artifacts_Vault/.../backup/`
-- 备份：原始数据已备份到 `~/data/amazon_reports/backup_20240120/`
+- Risk: Optimization may affect existing rankings (recommend A/B testing)
+- Rollback: Original Listing screenshot saved at `Artifacts_Vault/.../backup/`
+- Backup: Raw data backed up to `~/data/amazon_reports/backup_20240120/`
 ```
 
-### 禁止模式
+### Prohibited Patterns
 
-**❌ 不允许：只给结论不落地**
+**❌ Not allowed: Giving conclusions without implementation**
 ```
-用户：优化这个 Listing
-Claude：我建议你优化标题，增加关键词密度...
+User: Optimize this Listing
+Claude: I suggest you optimize the title, increase keyword density...
 
-问题：没有具体建议、没有文件输出、无法追溯
-```
-
-**✅ 正确方式：**
-```
-用户：优化这个 Listing
-Claude：
-  1. 已读取当前 Listing（Tools/Read）
-  2. 已分析关键词（TES 框架）
-  3. 已生成优化方案（Tools/Write → Artifacts_Vault/...）
-  4. 请查看：[文件路径]
+Problem: No specific suggestions, no file output, not traceable
 ```
 
-## 质量门禁
+**✅ Correct approach:**
+```
+User: Optimize this Listing
+Claude:
+  1. Read current Listing (Tools/Read)
+  2. Analyzed keywords (TES framework)
+  3. Generated optimization plan (Tools/Write → Artifacts_Vault/...)
+  4. Please see: [file path]
+```
 
-### 提交前检查清单
+## Quality Gates
+
+### Pre-commit Checklist
 
 ```bash
-# 自动检查（pre-commit hook）
+# Automatic check (pre-commit hook)
 node .claude/scripts/guardrail.mjs
 
-# 手动检查清单
+# Manual checklist
 - [ ] CLAUDE.md ≤ 10,000 chars
-- [ ] 每个 Pack ≤ 15,000 chars
-- [ ] .env 文件已在 .gitignore
-- [ ] 数据文件已移出 repo（或在 .gitignore）
-- [ ] Artifacts 有完整元数据（日期、来源、输入输出）
-- [ ] 提交信息遵循 Conventional Commits
+- [ ] Each Pack ≤ 15,000 chars
+- [ ] .env files in .gitignore
+- [ ] Data files moved out of repo (or in .gitignore)
+- [ ] Artifacts have complete metadata (date, source, input/output)
+- [ ] Commit messages follow Conventional Commits
 ```
 
-### 代码质量标准
+### Code Quality Standards
 
-**Python（Amazon Growth OS）：**
+**Python (Amazon Growth OS):**
 ```bash
 # Linting
 black src/
@@ -157,7 +157,7 @@ mypy src/
 pytest tests/
 ```
 
-**JavaScript（Notion Sync）：**
+**JavaScript (Notion Sync):**
 ```bash
 # Linting
 eslint tools/notion-sync/
@@ -166,193 +166,195 @@ eslint tools/notion-sync/
 npm test
 ```
 
-### 文档完整性
+### Documentation Completeness
 
-**每个 Skill 必须有：**
-- [ ] `README.md`（快速开始）
-- [ ] `skill_definition.md`（核心定义）
-- [ ] `methods.md`（方法论详解）
-- [ ] `templates/`（至少 1 个模板）
+**Every Skill must have:**
+- [ ] `README.md` (quickstart)
+- [ ] `skill_definition.md` (core definition)
+- [ ] `methods.md` (methodology details)
+- [ ] `templates/` (at least 1 template)
 
-**每个 System 必须有：**
-- [ ] `README.md`（安装和使用）
-- [ ] `.env.example`（环境变量模板）
-- [ ] `requirements.txt` 或 `package.json`（依赖）
+**Every System must have:**
+- [ ] `README.md` (installation and usage)
+- [ ] `.env.example` (environment variable template)
+- [ ] `requirements.txt` or `package.json` (dependencies)
 
-## 复盘流程（Evolution Loop）
+## Retrospective Process (Evolution Loop)
 
-### 触发条件
+### Trigger Conditions
 
-**必须复盘：**
-- 项目完成（交付）
-- 重大失败（ACOS 超标 >20%、系统错误导致数据丢失等）
-- 新方法验证（A/B 测试结果）
+**Must retrospect:**
+- Project completed (delivered)
+- Major failure (ACoS >20% over target, system error causing data loss, etc.)
+- New method validation (A/B test results)
 
-**可选复盘：**
-- 每月定期（月度回顾）
-- 用户反馈（建议/抱怨）
+**Optional retrospect:**
+- Monthly regular (monthly review)
+- User feedback (suggestions/complaints)
 
-### 复盘模板
+### Retrospective Template
 
 ```markdown
-# 复盘报告：[项目名称]
+# Retrospective Report: [Project Name]
 
-## 基本信息
-- 项目：Timo Canada Q4 Launch
-- 时间：2024-01-01 至 2024-01-20
-- 目标：新品破冰，达到日销 50 单
-- 实际：日销 45 单（90% 达成）
+## Basic Info
+- Project: Timo Canada Q4 Launch
+- Duration: 2024-01-01 to 2024-01-20
+- Goal: New product breakout, reach 50 daily sales
+- Actual: 45 daily sales (90% achieved)
 
-## 成功要素（Keep）
-1. 关键词策略：TES 框架有效，测试期快速筛选出高转化词
-2. 广告结构：自动+手动组合，覆盖面广
-3. 数据看板：实时监控，快速响应
+## Success Factors (Keep)
+1. Keyword strategy: TES framework effective, quickly filtered high-converting words in test phase
+2. Ad structure: Auto + manual combination, broad coverage
+3. Data dashboard: Real-time monitoring, quick response
 
-## 失败教训（Problem）
-1. 库存管理：第 10 天断货 2 天，损失销售
-2. 竞品监控：未及时发现竞品降价，被抢走流量
-3. Listing 优化：A+ 内容上线晚了 1 周
+## Failure Lessons (Problem)
+1. Inventory management: Stockout for 2 days on day 10, lost sales
+2. Competitor monitoring: Didn't notice competitor price drop in time, lost traffic
+3. Listing optimization: A+ content went live 1 week late
 
-## 改进方案（Try）
-1. 库存预警：设置安全库存阈值（14 天销量）
-2. 竞品爬虫：每日自动抓取前 5 名竞品价格
-3. Listing SOP：Launch 前 7 天必须完成所有内容
+## Improvement Plans (Try)
+1. Inventory alert: Set safety stock threshold (14 days of sales)
+2. Competitor crawler: Daily auto-fetch top 5 competitors' prices
+3. Listing SOP: Must complete all content 7 days before launch
 
-## 知识沉淀（Archive）
-- 方法更新：`Skills/.../methods.md` 增加"库存管理最佳实践"
-- 模板更新：`Skills/.../templates/launch_checklist.md` 增加库存检查项
-- 案例归档：`Artifacts_Vault/by_project/timo_canada_q4/retrospective.md`
+## Knowledge Archive
+- Method update: `Skills/.../methods.md` add "Inventory Management Best Practices"
+- Template update: `Skills/.../templates/launch_checklist.md` add inventory check items
+- Case archive: `Artifacts_Vault/by_project/timo_canada_q4/retrospective.md`
 ```
 
-### 知识沉淀流程
+### Knowledge Archival Process
 
 ```
-1. Artifacts（交付物）
+1. Artifacts (Deliverables)
    ↓
-2. Retrospective（复盘）
+2. Retrospective
    ↓
-3. Insights（洞察提炼）
+3. Insights (Extract insights)
    ↓
-4. Methods Update（方法更新）
+4. Methods Update
    ↓
-5. Template Enrichment（模板丰富）
+5. Template Enrichment
    ↓
-6. Knowledge Graph（知识图谱）
+6. Knowledge Graph
 ```
 
-**具体操作：**
+**Specific Operations:**
 
 ```bash
-# 1. 归档 Artifacts
+# 1. Archive Artifacts
 mv reports/listing_optimization_20240120.md Artifacts_Vault/by_project/timo_canada_q4/
 
-# 2. 撰写复盘
+# 2. Write retrospective
 vim Artifacts_Vault/by_project/timo_canada_q4/retrospective.md
 
-# 3. 更新 Methods
+# 3. Update Methods
 vim Skills/02_Operation_Intelligence/amazon-keyword-analysis/methods.md
-# 增加："库存管理最佳实践"章节
+# Add: "Inventory Management Best Practices" section
 
-# 4. 更新 Templates
+# 4. Update Templates
 vim Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/launch_checklist.md
-# 增加：库存预警设置步骤
+# Add: Inventory alert setup steps
 
-# 5. 提交变更
+# 5. Commit changes
 git add -A
 git commit -m "feat(amazon-keyword): add inventory management best practices from Timo Q4 project"
 ```
 
-## 协作协议（多人场景）
+## Collaboration Protocols (Multi-person Scenarios)
 
-### 角色定义
+### Role Definitions
 
-| 角色 | 职责 | 权限 |
-|-----|------|------|
-| **Architect** | 架构设计、技术决策 | 修改 _meta/, .claude/, 核心文档 |
-| **Operator** | 执行运营任务、数据分析 | 修改 Systems/, Projects_Engine/ |
-| **Researcher** | 研究分析、知识沉淀 | 修改 Skills/, Artifacts_Vault/ |
-| **Reviewer** | 质量审查、合并 PR | 审批所有变更 |
+| Role | Responsibilities | Permissions |
+|------|-----------------|-------------|
+| **Architect** | Architecture design, technical decisions | Modify _meta/, .claude/, core documents |
+| **Operator** | Execute operations tasks, data analysis | Modify Systems/, Projects_Engine/ |
+| **Researcher** | Research analysis, knowledge archival | Modify Skills/, Artifacts_Vault/ |
+| **Reviewer** | Quality review, merge PRs | Approve all changes |
 
-### 分支策略
+### Branch Strategy
 
 ```
-main              # 主分支（稳定版本）
-├── develop       # 开发分支
+main              # Main branch (stable version)
+├── develop       # Development branch
 │   ├── feature/amazon-bid-optimizer
 │   ├── feature/notion-sync-v2
 │   └── fix/keyword-analysis-bug
-└── hotfix/       # 紧急修复
+└── hotfix/       # Emergency fixes
 ```
 
-### Pull Request 检查清单
+### Pull Request Checklist
 
 ```markdown
 ## PR Title
 feat(notion-sync): add bidirectional sync with conflict resolution
 
 ## Description
-添加双向同步功能，支持冲突检测和解决策略（ask/local-wins/notion-wins）
+Add bidirectional sync feature, supports conflict detection and resolution strategies (ask/local-wins/notion-wins)
 
 ## Changes
-- [ ] 新增 `scripts/sync.js`
-- [ ] 更新 `README.md` 文档
-- [ ] 添加单元测试
-- [ ] 通过 Guardrail 检查
+- [ ] Added `scripts/sync.js`
+- [ ] Updated `README.md` documentation
+- [ ] Added unit tests
+- [ ] Passed Guardrail checks
 
 ## Testing
-- [x] 本地测试通过
-- [x] 与真实 Notion 数据库测试通过
-- [ ] 多人协作场景测试（待验证）
+- [x] Local testing passed
+- [x] Tested with real Notion database
+- [ ] Multi-person collaboration scenario testing (pending)
 
 ## Checklist
-- [x] 代码遵循命名规范
-- [x] 无敏感数据（.env 已 gitignore）
-- [x] 文档已更新
-- [x] Guardrail 检查通过
+- [x] Code follows naming conventions
+- [x] No sensitive data (.env gitignored)
+- [x] Documentation updated
+- [x] Guardrail check passed
 ```
 
-## 紧急响应
+## Emergency Response
 
-### 问题分级
+### Issue Severity Levels
 
-| 级别 | 定义 | 响应时间 | 示例 |
-|-----|------|---------|------|
-| **P0** | 系统崩溃、数据丢失 | 1 小时内 | 数据库损坏、API 密钥泄漏 |
-| **P1** | 核心功能不可用 | 4 小时内 | Notion 同步失败、广告系统停止 |
-| **P2** | 功能受损但可 workaround | 1 天内 | 部分数据缺失、性能下降 |
-| **P3** | 小问题、优化需求 | 1 周内 | UI 优化、文档错误 |
+| Level | Definition | Response Time | Example |
+|-------|------------|---------------|---------|
+| **P0** | System crash, data loss | Within 1 hour | Database corruption, API key leak |
+| **P1** | Core function unavailable | Within 4 hours | Notion sync failed, ad system stopped |
+| **P2** | Function impaired but workaround exists | Within 1 day | Partial data missing, performance degradation |
+| **P3** | Minor issues, optimization needs | Within 1 week | UI optimization, documentation errors |
 
-### 回滚策略
+### Rollback Strategy
 
-**Git 回滚：**
+**Git Rollback:**
 ```bash
-# 查看最近提交
+# View recent commits
 git log --oneline -10
 
-# 回滚到指定提交
+# Rollback to specific commit
 git reset --hard <commit-hash>
 
-# 如果已推送，需要强制推送（谨慎！）
+# If already pushed, need force push (caution!)
 git push origin --force
 ```
 
-**数据回滚：**
+**Data Rollback:**
 ```bash
-# 从备份恢复
+# Restore from backup
 cp ~/data/amazon_reports/backup_20240120/*.csv Systems/amazon-growth-os/data/inputs/
 
-# 从 Notion 重新同步
+# Re-sync from Notion
 cd tools/notion-sync
 npm run pull -- --force
 ```
 
-**配置回滚：**
+**Config Rollback:**
 ```bash
-# 恢复 .env（从 .env.example）
+# Restore .env (from .env.example)
 cp tools/notion-sync/.env.example tools/notion-sync/.env
-vim tools/notion-sync/.env  # 重新配置
+vim tools/notion-sync/.env  # Reconfigure
 ```
 
 ---
 
 **Char Count:** ~8,500 / 15,000 ✅
+
+<!-- i18n: Chinese display version at i18n/display/zh-CN/packs/protocols.md -->

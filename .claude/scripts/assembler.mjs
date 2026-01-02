@@ -5,16 +5,113 @@
  *
  * v2.0: 新增远程技能按需加载（Direct Fetch 架构）
  * v3.0: 新增远程角色模板按需加载（Roles 层）
+ * v4.0: 新增 Memory as a Product (MaaP) 集成 - 会话启动自动加载领域术语表
+ * v5.0: 新增 i18n Locale 注入 - 用户可通过 --locale 控制输出语言
  *
  * 鸣谢:
  * - ComposioHQ/awesome-claude-skills 提供技能基础
  * - VoltAgent/awesome-claude-code-subagents 提供角色模板
  */
 
+/**
+ * Output Language Policy (Phase 3 i18n):
+ *
+ * - Reasoning, decision, and policy interpretation use English SSOT only.
+ * - Output language follows user_locale when feasible.
+ * - If translation is ambiguous, prefer correctness over fluency.
+ * - System context is ALWAYS loaded in English (SYSTEM_LOCALE = "en-US").
+ * - User locale only affects output language preference, NOT system behavior.
+ */
+
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execSync } from "node:child_process";
+import yaml from "yaml";
+
+// ============================================================
+// i18n Configuration (Phase 3)
+// ============================================================
+
+/**
+ * ARCHITECTURE RED LINE:
+ * System locale is ALWAYS English. This is non-negotiable.
+ * Never use userLocale for loading kernel/packs/glossary.
+ */
+const SYSTEM_LOCALE = "en-US";
+
+/**
+ * Get user's preferred locale for output language
+ * Priority (high to low):
+ * 1. CLI argument --locale
+ * 2. User config file ~/.claude-locale
+ * 3. Environment variable CLAUDE_LOCALE
+ * 4. i18n/config.yaml default_locale
+ */
+function getUserLocale() {
+  // 1. CLI argument --locale
+  const idx = process.argv.indexOf("--locale");
+  if (idx !== -1 && process.argv[idx + 1]) {
+    return process.argv[idx + 1];
+  }
+
+  // 2. User config file ~/.claude-locale
+  const userCfgPath = path.join(os.homedir(), ".claude-locale");
+  if (fs.existsSync(userCfgPath)) {
+    try {
+      const content = fs.readFileSync(userCfgPath, "utf8");
+      const cfg = yaml.parse(content);
+      if (cfg?.locale) return cfg.locale;
+    } catch (e) {
+      // Ignore parse errors, continue to next priority
+    }
+  }
+
+  // 3. Environment variable
+  if (process.env.CLAUDE_LOCALE) {
+    return process.env.CLAUDE_LOCALE;
+  }
+
+  // 4. i18n/config.yaml default_locale
+  try {
+    const i18nCfgPath = "i18n/config.yaml";
+    if (fs.existsSync(i18nCfgPath)) {
+      const content = fs.readFileSync(i18nCfgPath, "utf8");
+      const cfg = yaml.parse(content);
+      if (cfg?.settings?.default_locale) {
+        return cfg.settings.default_locale;
+      }
+    }
+  } catch (e) {
+    // Fallback to zh-CN if config not readable
+  }
+
+  return "zh-CN";
+}
+
+/**
+ * Generate i18n metadata header for compiled context
+ * This header is for Claude's reference only and does NOT affect reasoning
+ */
+function generateI18nHeader(userLocale) {
+  const localeName = userLocale === "zh-CN" ? "Chinese (Simplified)" :
+                     userLocale === "en-US" ? "English (US)" :
+                     userLocale;
+
+  return `<!-- i18n-metadata -->
+<!-- system_locale: ${SYSTEM_LOCALE} -->
+<!-- user_locale: ${userLocale} -->
+
+SYSTEM NOTE:
+- System semantics, policies, and contracts are defined in English (SSOT).
+- The user prefers responses in ${localeName} (${userLocale}).
+- Do NOT reinterpret rules based on language.
+- Output language should follow user preference when possible.
+
+---
+
+`;
+}
 
 // ============================================================
 // 远程技能配置（来自 liyecom/skill-packs Fork）
@@ -672,10 +769,13 @@ const task = taskIdx >= 0 ? (argv[taskIdx + 1] || "").trim() : "";
 const FORCE_REFRESH = argv.includes('--refresh');
 
 if (!task) {
-  console.error("Usage: node assembler.mjs --task \"your task description\" [--refresh]");
+  console.error("Usage: node assembler.mjs --task \"your task description\" [options]");
   console.error("Example: node assembler.mjs --task \"优化 Amazon Listing\"");
   console.error("Options:");
-  console.error("  --refresh  Force refresh all cached skills/roles");
+  console.error("  --refresh        Force refresh all cached skills/roles");
+  console.error("  --locale <code>  Set output language (e.g., zh-CN, en-US)");
+  console.error("");
+  console.error("Locale priority: --locale > ~/.claude-locale > CLAUDE_LOCALE env > config default");
   process.exit(1);
 }
 
@@ -735,10 +835,14 @@ const remoteRoles = matchRemoteRoles(task);
 // 匹配 BMad Agents（作为 Role Prompts，不是 Runtime Agents）
 const bmadAgents = matchBmadAgents(task);
 
+// Get user locale for output language preference
+const userLocale = getUserLocale();
+
 console.log(`📋 Task: ${task}`);
 if (FORCE_REFRESH) {
   console.log(`🔄 Refresh mode: forcing cache refresh`);
 }
+console.log(`🌍 Locale: system=${SYSTEM_LOCALE}, user=${userLocale}`);
 console.log(`📦 Selected Packs: ${selected.join(", ")}`);
 if (remoteSkills.length > 0) {
   console.log(`🌐 Remote Skills: ${remoteSkills.length} matched`);
@@ -751,14 +855,50 @@ if (bmadAgents.length > 0) {
 }
 console.log();
 
-// 拼接上下文
-let out = `# Compiled Context for LiYe OS\n\n`;
+// 拼接上下文 (i18n header + content)
+const i18nHeader = generateI18nHeader(userLocale);
+
+let out = i18nHeader;
+out += `# Compiled Context for LiYe OS\n\n`;
 out += `> Generated: ${new Date().toISOString()}\n`;
-out += `> Task: ${task}\n\n`;
+out += `> Task: ${task}\n`;
+out += `> System Locale: ${SYSTEM_LOCALE} (SSOT)\n`;
+out += `> User Locale: ${userLocale} (output preference)\n\n`;
 out += `---\n\n`;
 
 out += `## Kernel (CLAUDE.md)\n\n`;
 out += `${kernel}\n\n`;
+out += `---\n\n`;
+
+// =========================
+// Memory as a Product (MaaP) — Session Bootstrap + Injection
+// - best-effort: must never break compilation
+// - generates: .claude/.compiled/memory_brief.md
+// - injects right after Kernel, before Packs/Skills/Roles
+// =========================
+let memoryBrief = "";
+const memoryBriefPath = ".claude/.compiled/memory_brief.md";
+try {
+  // Run bootstrap using the current task as routing signal
+  execSync(`node .claude/scripts/memory_bootstrap.mjs ${JSON.stringify(task)}`, {
+    stdio: "ignore"
+  });
+  if (fs.existsSync(memoryBriefPath)) {
+    memoryBrief = fs.readFileSync(memoryBriefPath, "utf8");
+  }
+} catch (e) {
+  // graceful degradation: proceed without memory brief
+  memoryBrief = "";
+}
+
+out += `## Memory Brief (MaaP)\n\n`;
+if (memoryBrief && memoryBrief.trim().length > 0) {
+  // Avoid double top-level title inside compiled context
+  const cleaned = memoryBrief.replace(/^#\s+Session Memory Brief\s*\n?/m, "");
+  out += `${cleaned}\n\n`;
+} else {
+  out += `> ⚠️ Memory brief not available (bootstrap failed or SSOT missing). Continue, but DO NOT guess definitions/metrics/decisions; propose SSOT patch.\n\n`;
+}
 out += `---\n\n`;
 
 for (const id of selected) {
