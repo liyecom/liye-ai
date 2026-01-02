@@ -1,0 +1,177 @@
+# Amazon Growth OS — Decision Inventory
+
+> Purpose:
+> This document defines the complete decision surface of Amazon Growth OS.
+> Each decision represents a machine-verdict that can be replayed, audited,
+> and governed. Decisions are language-neutral and versioned.
+>
+> Rules:
+> - Decision IDs are immutable once merged
+> - No natural language conclusions
+> - No analysis or reasoning text
+> - Enumeration only
+
+---
+
+## 1. Listing Quality Decisions
+
+- LISTING_INCOMPLETE
+- LISTING_TITLE_WEAK
+- LISTING_BULLET_WEAK
+- LISTING_DESCRIPTION_WEAK
+- LISTING_IMAGE_WEAK
+- LISTING_IMAGE_NON_COMPLIANT
+- LISTING_KEYWORD_MISMATCH
+- LISTING_BACKEND_KEYWORDS_MISSING
+- LISTING_A_PLUS_MISSING
+- LISTING_A_PLUS_UNDERUTILIZED
+
+---
+
+## 2. Traffic & Exposure Decisions
+
+- IMPRESSIONS_TOO_LOW
+- IMPRESSIONS_DECLINING
+- IMPRESSIONS_VOLATILE
+- CLICK_THROUGH_RATE_TOO_LOW
+- TRAFFIC_SOURCE_OVERCONCENTRATED
+- ORGANIC_TRAFFIC_TOO_LOW
+- PAID_TRAFFIC_OVERDEPENDENT
+
+---
+
+## 3. Conversion & CVR Decisions
+
+- CONVERSION_RATE_TOO_LOW
+- CONVERSION_RATE_DECLINING
+- PRICE_NOT_COMPETITIVE
+- OFFER_NOT_COMPETITIVE
+- BUY_BOX_LOSS
+- REVIEW_COUNT_TOO_LOW
+- REVIEW_RATING_TOO_LOW
+- NEGATIVE_REVIEW_SPIKE
+
+---
+
+## 4. Advertising Efficiency Decisions
+
+- ACOS_TOO_HIGH
+- ACOS_TOO_LOW
+- TACOS_TOO_HIGH
+- TACOS_TOO_LOW
+- ROAS_TOO_LOW
+- PPC_SPEND_OVERUTILIZED
+- PPC_SPEND_UNDERUTILIZED
+- KEYWORD_MATCH_TYPE_MISMATCH
+- SEARCH_TERM_WASTE
+- BUDGET_CAPPED
+
+---
+
+## 5. Keyword & Search Decisions
+
+- KEYWORD_COVERAGE_INSUFFICIENT
+- HIGH_IMPRESSION_NO_CLICK
+- HIGH_CLICK_NO_CONVERSION
+- SEARCH_TERM_NOT_INDEXED
+- SEARCH_TERM_LOW_RELEVANCE
+- RANKING_DECLINING
+- RANKING_OPPORTUNITY
+
+---
+
+## 6. Inventory & Supply Chain Decisions
+
+- STOCKOUT_RISK
+- STOCKOUT_IMMINENT
+- OVERSTOCK_RISK
+- INVENTORY_TURNOVER_TOO_SLOW
+- INVENTORY_TURNOVER_TOO_FAST
+- RESTOCK_LEAD_TIME_TOO_LONG
+- STORAGE_FEE_RISK
+
+---
+
+## 7. Pricing & Promotion Decisions
+
+- PRICE_TOO_HIGH
+- PRICE_TOO_LOW
+- DISCOUNT_MISCONFIGURED
+- PROMOTION_NOT_EFFECTIVE
+- PROMOTION_OVERUSED
+- COUPON_NOT_UTILIZED
+- DEAL_ELIGIBLE_NOT_USED
+
+---
+
+## 8. Account & Policy Risk Decisions
+
+- ACCOUNT_HEALTH_AT_RISK
+- POLICY_VIOLATION_WARNING
+- SUPPRESSION_RISK
+- LISTING_SUSPENDED
+- CATEGORY_RESTRICTION_RISK
+
+---
+
+## 9. Competitive Landscape Decisions
+
+- COMPETITOR_PRICE_UNDERCUT
+- COMPETITOR_REVIEW_ADVANTAGE
+- COMPETITOR_LISTING_SUPERIOR
+- MARKET_SATURATION_HIGH
+- NICHE_OPPORTUNITY_DETECTED
+
+---
+
+## 10. Growth Opportunity Decisions
+
+- SCALING_OPPORTUNITY
+- NEW_KEYWORD_OPPORTUNITY
+- NEW_MARKETPLACE_OPPORTUNITY
+- PRODUCT_EXPANSION_OPPORTUNITY
+- BRAND_BUILDING_OPPORTUNITY
+
+---
+
+## 11. Data Quality & Observability Decisions
+
+- DATA_INCOMPLETE
+- DATA_STALE
+- DATA_ANOMALY_DETECTED
+- METRIC_DEFINITION_MISMATCH
+- ATTRIBUTION_UNCLEAR
+
+---
+
+## 12. System Confidence Decisions
+
+- SIGNAL_CONFIDENCE_LOW
+- DECISION_CONFIDENCE_LOW
+- MANUAL_REVIEW_REQUIRED
+
+---
+
+## 13. Decision Lifecycle Notes
+
+- All decisions are:
+  - Language-neutral
+  - Versioned
+  - Replayable
+  - Contract-bound
+
+- Any change to:
+  - Decision ID
+  - Category assignment
+  - Semantic meaning
+
+  requires a new Architecture Decision Record (ADR).
+
+---
+
+## 14. Status
+
+- Phase: 5.1
+- Domain: Amazon Growth OS
+- State: Draft → Pending Freeze
+- Next Step: Decision Schema & Contract Definition (Phase 5.2)
