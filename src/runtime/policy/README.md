@@ -191,8 +191,53 @@ Decision(
 | POL_005 | Retry after rate window resets |
 | POL_006 | Action denied due to system safety fallback |
 
+## Policy → Planner Contract (Frozen Boundary)
+
+The Runtime Policy Layer defines a minimal contract for downstream Planner/Agent consumption. This contract is append-only and backward compatible.
+
+**Three Immutable Principles**:
+
+1. **"Runtime Policy does not plan, execute, or retry."**
+2. **"Planner must treat DENY + severity=hard as a mandatory replan signal."**
+3. **"This contract is append-only and backward compatible."**
+
+**DecisionContract Schema**:
+
+```json
+{
+  "result": "ALLOW" | "DENY",
+  "reason": "string",
+  "suggestion": "string | null",
+  "alternative": "object | null",
+  "severity": "hard" | "soft"
+}
+```
+
+**Severity Semantics**:
+
+| Severity | When | Planner Behavior |
+|----------|------|------------------|
+| `hard` | All DENY | MUST replan or abort |
+| `soft` | All ALLOW | MAY optimize (optional) |
+
+**Contract JSON Example (DENY)**:
+
+```json
+{
+  "result": "DENY",
+  "reason": "POL_001_branch_scope: Deny direct push to main",
+  "suggestion": "Create a feature/* branch and open a PR",
+  "alternative": {
+    "target_pattern": "refs/heads/feature/*"
+  },
+  "severity": "hard"
+}
+```
+
+See [POLICY_PLANNER_CONTRACT.md](../../../docs/architecture/POLICY_PLANNER_CONTRACT.md) for the full contract specification.
+
 ---
 
-**Version**: 0.2.0 (Replan Hint)
-**Phase**: P3.1 Runtime Policy
+**Version**: 0.3.0 (Contract Boundary)
+**Phase**: P3.2 Runtime Policy
 **Status**: Implemented

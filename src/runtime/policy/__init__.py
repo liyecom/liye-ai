@@ -10,7 +10,7 @@ Architecture:
 Non-bypassable. Fail-Close. Auditable.
 """
 
-from .models import Action, Policy, Decision
+from .models import Action, Policy, Decision, ContractSeverity
 from .engine import PolicyEngine
 from .registry import PolicyRegistry
 from .evaluator import PolicyEvaluator
@@ -21,6 +21,7 @@ __all__ = [
     "Action",
     "Policy",
     "Decision",
+    "ContractSeverity",
     "PolicyEngine",
     "PolicyRegistry",
     "PolicyEvaluator",
@@ -29,4 +30,4 @@ __all__ = [
     "DecisionLogger",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
