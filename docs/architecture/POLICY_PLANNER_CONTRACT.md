@@ -149,11 +149,22 @@ This document defines the minimal contract between the Runtime Policy Engine and
 - Replan logic will respect severity
 - Contract may be extended (append-only)
 
+## P3 Freeze Declaration
+
+> **Runtime Policy Engine (P3) is frozen.**
+> No new rules, exceptions, or semantic changes are allowed.
+> All future evolution must occur via P4+ governance layers.
+
+### Violation Rule
+
+Any change that alters decision semantics, verdict types, or suggestion logic constitutes a violation of the P3 freeze.
+
 ## Changelog
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-02 | Initial contract definition (frozen) |
+| 1.0.1 | 2026-01-02 | Added P3 freeze declaration |
 
 ---
 
