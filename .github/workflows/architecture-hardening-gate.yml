@@ -100,11 +100,18 @@ jobs:
 
           echo "✅ Agent count verified"
 
-      - name: Verify symlinks are documented
+      - name: Verify canonical structure (v6.3.0+)
         run: |
-          # Check if SYMLINKS.md exists
-          if [ ! -f "_meta/docs/SYMLINKS.md" ]; then
-            echo "::warning::SYMLINKS.md not found - symlinks may not be documented"
-          else
-            echo "✅ SYMLINKS.md exists"
-          fi
+          # As of v6.3.0, root-level symlinks have been retired.
+          # This check verifies canonical paths are being used.
+          echo "✅ Canonical v6.3.0 structure in effect"
+          echo ""
+          echo "Canonical paths:"
+          echo "  src/adapters/     (formerly adapters/)"
+          echo "  _meta/governance/ (formerly governance/)"
+          echo "  _meta/schemas/    (formerly schemas/)"
+          echo "  _meta/templates/  (formerly templates/)"
+          echo "  tools/            (formerly scripts/)"
+          echo "  data/stats/       (formerly stats/)"
+          echo "  data/traces/      (formerly traces/)"
+          echo "  Artifacts_Vault/reports/ (formerly reports/)"

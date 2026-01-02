@@ -1,13 +1,77 @@
+# =============================================================================
+# Domain Replay Gate - Regression Testing for Domain Runtime Changes
+# =============================================================================
+# Purpose: Run replay/regression tests ONLY when domain runtime code changes
+#
+# Scope: This gate MUST only run when domain runtime code changes:
+#   - src/**
+#   - schemas/**
+#   - replays/**
+#   - domain-specific logic files
+#
+# This gate MUST NOT block PRs that are:
+#   - docs-only
+#   - governance-only
+#   - repository structure normalization
+#   - CI/gate refactors
+#
+# Note: Replay is not required for structural or governance normalization PRs.
+# =============================================================================
+
 name: Domain Replay Gate
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      # Domain runtime code
+      - 'src/**'
+      - 'schemas/**'
+      - 'replays/**'
+      # Domain-specific configs
+      - 'config/amazon-growth/**'
+      - 'config/geo-os/**'
+      # Agent definitions that affect runtime
+      - 'Agents/**'
+      # Replay runner scripts
+      - 'tools/replay_runner.js'
+      - 'tools/geo_os_replay_runner.js'
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'schemas/**'
+      - 'replays/**'
+      - 'config/amazon-growth/**'
+      - 'config/geo-os/**'
+      - 'Agents/**'
+      - 'tools/replay_runner.js'
+      - 'tools/geo_os_replay_runner.js'
 
 jobs:
+  # Check if replay tests should run
+  check-scope:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Check if runtime changes
+        id: check
+        run: |
+          # Always run for push to main
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "✅ Push to main - running replay tests"
+            exit 0
+          fi
+
+          # For PRs, path filters already handle this
+          echo "should_run=true" >> $GITHUB_OUTPUT
+          echo "✅ Path filter matched - running replay tests"
+
   replay-regression:
+    needs: check-scope
+    if: needs.check-scope.outputs.should_run == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +90,8 @@ jobs:
         run: |
           echo "🔁 Running Amazon Growth OS Replay Tests"
           echo ""
-          node scripts/replay_runner.js replays/amazon-growth/cases
+          # Use canonical path (scripts/ symlink retired in v6.3.0)
+          node tools/replay_runner.js replays/amazon-growth/cases
 
       - name: Run GEO OS Replay Tests
         run: |
