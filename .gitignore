@@ -252,3 +252,17 @@ websites/
 */websites/
 .Systems_backup*
 !*.env.example
+
+# ============================================
+# Legacy Symlinks (local only, removed from git tracking v6.3.0)
+# ============================================
+# These symlinks existed for backward compatibility but caused
+# GitHub display issues. Keep locally for convenience, not in repo.
+/adapters
+/governance
+/reports
+/schemas
+/scripts
+/stats
+/templates
+/traces
