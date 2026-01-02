@@ -1,0 +1,86 @@
+# =============================================================================
+# Glossary i18n Schema Definition
+# =============================================================================
+# Purpose: Define the authoritative structure for all glossary files
+# Status: Schema only - not referenced by runtime in Phase 2
+# =============================================================================
+
+schema_version: 1
+
+rules:
+  # English is the Single Source of Truth
+  ssot_locale: en-US
+
+  # Supported translation locales
+  translation_locales:
+    - zh-CN
+
+requirements:
+  # Required fields for every concept
+  - concept_id: required      # Language-neutral identifier (e.g., AMZ_ACOS)
+  - version: required         # Semantic version (e.g., v1.0)
+  - definition: required      # English SSOT definition (authoritative)
+
+  # Optional but recommended fields
+  - name: recommended         # Display name in English
+  - formula: optional         # Formula if applicable
+  - examples: optional        # Usage examples (English)
+  - pitfalls: optional        # Common mistakes (English)
+  - aliases: optional         # Per-locale aliases for matching
+  - i18n: optional           # Translation block for display
+
+constraints:
+  # Structural constraints
+  - concept_id must be language-neutral (uppercase with underscores)
+  - definition at root level must be English (SSOT)
+  - Chinese definition must only exist in i18n.zh-CN.definition
+  - aliases may exist per locale (aliases.en-US, aliases.zh-CN)
+
+  # Validation rules
+  - No Chinese characters in root-level definition
+  - No Chinese characters in root-level formula
+  - No Chinese characters in root-level name
+  - Chinese content only allowed in: i18n.zh-CN.*, aliases.zh-CN
+
+# =============================================================================
+# Standard Concept Structure (Template)
+# =============================================================================
+# concepts:
+#   - concept_id: DOMAIN_TERM
+#     version: v1.0
+#     name: Term Name
+#
+#     # English SSOT (authoritative for reasoning)
+#     definition: English definition text
+#     formula: English formula (if applicable)
+#
+#     # Display translations (for UI/output only)
+#     i18n:
+#       zh-CN:
+#         definition: Chinese translation
+#         formula: Chinese formula translation
+#
+#     # Aliases for matching (both locales can trigger)
+#     aliases:
+#       en-US:
+#         - English Alias 1
+#         - English Alias 2
+#       zh-CN:
+#         - Chinese Alias 1
+#         - Chinese Alias 2
+#
+#     # Additional metadata
+#     examples:
+#       - Example usage in English
+#     pitfalls:
+#       - Common mistake in English
+#     relations:
+#       - type: related_to
+#         target: OTHER_CONCEPT_ID
+
+# =============================================================================
+# Validation Command
+# =============================================================================
+# Run: node i18n/scripts/validate.mjs --verbose
+# Check: grep -P "[\x{4e00}-\x{9fff}]" knowledge/glossary/*.yaml
+#        (Chinese should only appear in i18n.zh-CN and aliases.zh-CN sections)

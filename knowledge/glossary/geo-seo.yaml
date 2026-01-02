@@ -1,0 +1,1182 @@
+# =============================================================================
+# Geo-SEO / Local SEO Glossary (MaaP Schema v1.0 + i18n SSOT)
+# =============================================================================
+# Source: Google Business Profile docs + Whitespark/BrightLocal industry standards
+# Last Updated: 2026-01-02
+# Status: CANONICAL (English SSOT)
+# i18n: English SSOT | Chinese display in i18n.zh-CN blocks
+# =============================================================================
+
+file_version: 2
+domain: geo-seo
+
+concepts:
+  # === Core Entities & Configuration ===
+
+  - concept_id: gbp
+    version: v1.1
+    domain: geo-seo
+    name: GBP
+
+    # English SSOT (authoritative)
+    definition: Google's official local business management platform for managing business presence in Google Search and Maps
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 谷歌官方的本地商家管理平台，用于管理商家在 Google 搜索和地图中的展示信息
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Google Business Profile
+        - business profile
+      zh-CN:
+        - 谷歌商家资料
+        - 商家资料
+
+    examples:
+      - "Business updates opening hours, photos, and service info through GBP dashboard"
+      - "GBP is the core asset for local SEO"
+    pitfalls:
+      - "GBP was renamed from GMB in 2021; they are the same product"
+      - "GBP verification status directly affects Local Pack ranking"
+      - "Unverified GBP cannot reply to reviews or publish posts"
+    relations:
+      - type: replaced
+        target: gmb
+    updated_at: "2026-01-02"
+
+  - concept_id: gmb
+    version: v1.1
+    domain: geo-seo
+    name: GMB
+
+    # English SSOT (authoritative)
+    definition: Former name of Google Business Profile (2014-2021), now deprecated
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: Google Business Profile 的旧称（2014-2021），现已停用
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Google My Business
+      zh-CN:
+        - 谷歌我的商家
+
+    examples:
+      - "GMB in historical documents refers to current GBP"
+    pitfalls:
+      - "GMB is historical name; new docs should use GBP"
+      - "Some legacy tools still use GMB API naming"
+    relations:
+      - type: replaced_by
+        target: gbp
+    updated_at: "2026-01-02"
+
+  - concept_id: nap
+    version: v1.1
+    domain: geo-seo
+    name: NAP
+
+    # English SSOT (authoritative)
+    definition: Business Name, Address, Phone - the core signals for search engines to verify business identity
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家的名称、地址、电话三要素，是本地搜索引擎验证商家身份的核心信号
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Name Address Phone
+        - NAP info
+      zh-CN:
+        - 名称地址电话
+        - NAP 信息
+
+    examples:
+      - "NAP: Acme Corp, 123 Main St, (555) 123-4567"
+      - "NAP consistency check: compare info across GBP, website, Yelp, etc."
+    pitfalls:
+      - "NAP inconsistency severely damages local ranking"
+      - "Address format (Suite vs Ste, Street vs St) must be unified"
+      - "Phone number should use local area code, avoid 800 numbers"
+    relations:
+      - type: related_to
+        target: nap_consistency
+    updated_at: "2026-01-02"
+
+  - concept_id: nap_consistency
+    version: v1.1
+    domain: geo-seo
+    name: NAP Consistency
+
+    # English SSOT (authoritative)
+    definition: Degree of uniformity of business NAP information across all platforms (GBP, website, directories, social media)
+    formula: Consistent platforms / Total platforms * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家 NAP 信息在全网各平台（GBP、官网、目录、社交媒体）的统一程度
+        formula: 一致平台数 ÷ 总平台数 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - NAP uniformity
+        - info consistency
+      zh-CN:
+        - NAP 一致性
+        - 信息一致性
+
+    examples:
+      - "8 of 10 platforms have consistent NAP → NAP Consistency = 80%"
+    pitfalls:
+      - "NAP Consistency below 80% affects local ranking"
+      - "Even minor differences (Street vs St) count as inconsistent"
+    relations:
+      - type: related_to
+        target: nap
+    updated_at: "2026-01-02"
+
+  - concept_id: primary_category
+    version: v1.1
+    domain: geo-seo
+    name: Primary Category
+
+    # English SSOT (authoritative)
+    definition: Core business category set in GBP that directly affects which search terms the business appears for
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: GBP 中设置的核心业务类别，直接影响商家在哪些搜索词下出现
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - main category
+        - preferred category
+      zh-CN:
+        - 主类目
+        - 首选类目
+
+    examples:
+      - "Restaurant's Primary Category should be 'Restaurant' not 'Food'"
+    pitfalls:
+      - "Primary Category has the biggest impact on ranking; choose precisely"
+      - "Don't choose overly broad categories"
+      - "Use competitor analysis to determine best category"
+    relations:
+      - type: related_to
+        target: secondary_categories
+    updated_at: "2026-01-02"
+
+  - concept_id: secondary_categories
+    version: v1.1
+    domain: geo-seo
+    name: Secondary Categories
+
+    # English SSOT (authoritative)
+    definition: Supplementary business categories set in GBP to expand search coverage
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: GBP 中设置的补充业务类别，扩展商家的搜索覆盖范围
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - additional categories
+      zh-CN:
+        - 次级类目
+        - 附加类目
+
+    examples:
+      - "Restaurant's Secondary Categories: 'Italian Restaurant', 'Pizza Restaurant'"
+    pitfalls:
+      - "Maximum 9 Secondary Categories allowed"
+      - "Only add truly relevant categories; avoid over-optimization"
+    relations:
+      - type: related_to
+        target: primary_category
+    updated_at: "2026-01-02"
+
+  - concept_id: service_areas
+    version: v1.1
+    domain: geo-seo
+    name: Service Areas
+
+    # English SSOT (authoritative)
+    definition: Geographic service coverage areas defined in GBP for service-area businesses
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: GBP 中定义的商家服务覆盖区域，适用于上门服务型业务
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - SAB
+        - Service Area Business
+      zh-CN:
+        - 服务区域
+        - SAB
+
+    examples:
+      - "Plumber service areas: Brooklyn, Queens, Manhattan"
+    pitfalls:
+      - "Service Area Business doesn't display actual address"
+      - "Maximum 20 service areas allowed"
+      - "Setting areas too large dilutes local ranking"
+    relations: []
+    updated_at: "2026-01-02"
+
+  # === Local Ranking Three Factors ===
+
+  - concept_id: proximity
+    version: v1.1
+    domain: geo-seo
+    name: Proximity
+
+    # English SSOT (authoritative)
+    definition: Physical distance between searcher and business location, one of the three local ranking factors
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 搜索者与商家位置之间的物理距离，是本地排名三要素之一
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - distance factor
+        - geographic proximity
+      zh-CN:
+        - 距离因素
+        - 地理接近度
+
+    examples:
+      - "When users search 'coffee shop near me', closest shops more likely to appear in Local Pack"
+    pitfalls:
+      - "Proximity cannot be optimized; depends on user location"
+      - "Mobile searches weight Proximity more heavily"
+      - "Can expand coverage through additional service areas"
+    relations:
+      - type: part_of
+        target: local_pack
+    updated_at: "2026-01-02"
+
+  - concept_id: relevance
+    version: v1.1
+    domain: geo-seo
+    name: Relevance
+
+    # English SSOT (authoritative)
+    definition: Match degree between business information and user search intent, one of the three local ranking factors
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家信息与用户搜索意图的匹配程度，是本地排名三要素之一
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - business match
+        - search relevance
+      zh-CN:
+        - 相关性
+        - 业务匹配度
+
+    examples:
+      - "Searching 'Italian restaurant': businesses categorized as Italian Restaurant have higher Relevance"
+    pitfalls:
+      - "Improve Relevance by completing GBP information"
+      - "Description, services, products all affect Relevance"
+      - "Keyword stuffing will be penalized"
+    relations:
+      - type: part_of
+        target: local_pack
+    updated_at: "2026-01-02"
+
+  - concept_id: prominence
+    version: v1.1
+    domain: geo-seo
+    name: Prominence
+
+    # English SSOT (authoritative)
+    definition: Business's online and offline reputation/authority, one of the three local ranking factors
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家在线上和线下的知名程度，是本地排名三要素之一
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - authority
+        - brand prominence
+      zh-CN:
+        - 知名度
+        - 权威性
+
+    examples:
+      - "National chain brands typically have higher Prominence than new local shops"
+    pitfalls:
+      - "Prominence affected by review count, rating, citations, backlinks"
+      - "Traditional SEO factors also affect Prominence"
+      - "This factor can be improved through long-term effort"
+    relations:
+      - type: part_of
+        target: local_pack
+    updated_at: "2026-01-02"
+
+  # === Search Results Display ===
+
+  - concept_id: local_pack
+    version: v1.1
+    domain: geo-seo
+    name: Local Pack
+
+    # English SSOT (authoritative)
+    definition: Local business listing section in Google search results, typically showing 3 businesses with a map
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: Google 搜索结果中显示的本地商家列表区块，通常包含 3 个商家和地图
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Map Pack
+        - 3-Pack
+        - local results
+      zh-CN:
+        - 地图包
+        - 本地三连
+
+    examples:
+      - "Searching 'pizza near me': map + 3 business listings at top of results is Local Pack"
+    pitfalls:
+      - "Local Pack position CTR far higher than organic results"
+      - "Local Pack ranking factors overlap with but differ from traditional SEO"
+      - "Local Pack takes more screen space on mobile"
+    relations:
+      - type: contains
+        targets: [proximity, relevance, prominence]
+    updated_at: "2026-01-02"
+
+  - concept_id: local_finder
+    version: v1.1
+    domain: geo-seo
+    name: Local Finder
+
+    # English SSOT (authoritative)
+    definition: Full local business listing page shown after clicking "More businesses" below Local Pack
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 点击 Local Pack 下方"更多商家"后展示的完整本地商家列表页面
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - more businesses
+        - local search page
+      zh-CN:
+        - 本地搜索页
+        - 更多商家列表
+
+    examples:
+      - "Local Finder can show 20+ businesses, while Local Pack only shows 3"
+    pitfalls:
+      - "Local Finder ranking may differ from Local Pack ranking"
+      - "Local Finder has more filtering and sorting options"
+    relations:
+      - type: related_to
+        target: local_pack
+    updated_at: "2026-01-02"
+
+  # === Rank Monitoring ===
+
+  - concept_id: geo_grid
+    version: v1.1
+    domain: geo-seo
+    name: Geo Grid
+
+    # English SSOT (authoritative)
+    definition: Visualization method dividing service area into grid points to detect keyword ranking at each point
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 将服务区域划分为网格，在每个格点检测关键词排名的可视化方法
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Grid Rank
+        - geographic grid ranking
+      zh-CN:
+        - 排名格点
+        - 地理网格排名
+
+    examples:
+      - "5x5 Geo Grid means detecting ranking at 25 location points"
+      - "Grid shows keyword ranking distribution across different city areas"
+    pitfalls:
+      - "Geo Grid reveals Proximity's impact on ranking"
+      - "Ranking can vary significantly by location"
+      - "Common tools: Local Falcon, BrightLocal"
+    relations:
+      - type: used_for
+        target: solv
+    updated_at: "2026-01-02"
+
+  - concept_id: solv
+    version: v1.1
+    domain: geo-seo
+    name: SoLV
+
+    # English SSOT (authoritative)
+    definition: Percentage of grid points where business ranks Top 3/Top 10 in Geo Grid, quantifying local visibility
+    formula: Top N grid points / Total grid points * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家在 Geo Grid 中占据 Top 3/Top 10 位置的格点比例，量化本地可见度
+        formula: 进入 Top N 的格点数 ÷ 总格点数 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Share of Local Voice
+        - local visibility share
+      zh-CN:
+        - 本地声量份额
+        - 本地可见度占比
+
+    examples:
+      - "5x5 Grid with 15 grid points ranking Top 3 → SoLV (Top 3) = 60%"
+      - "Competitor SoLV 80%, ours 40% → need to improve local visibility"
+    pitfalls:
+      - "SoLV calculation must specify threshold (Top 3 vs Top 10)"
+      - "Different keywords' SoLV should be tracked separately"
+      - "SoLV is relative metric, convenient for competitor comparison"
+    relations:
+      - type: calculated_from
+        target: geo_grid
+    updated_at: "2026-01-02"
+
+  # === Citations & Links ===
+
+  - concept_id: citation
+    version: v1.1
+    domain: geo-seo
+    name: Citation
+
+    # English SSOT (authoritative)
+    definition: Business NAP information appearing on third-party websites, regardless of whether it includes a link
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 在第三方网站上出现的商家 NAP 信息，无论是否包含链接
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - local citation
+        - directory citation
+      zh-CN:
+        - 引用
+        - 本地引用
+        - 目录引用
+
+    examples:
+      - "Business page on Yelp is a Citation"
+      - "Yellow pages business entry is a Citation"
+    pitfalls:
+      - "Citation ≠ Backlink: Citation doesn't require link, only NAP"
+      - "High-quality Citation sources: Yelp, TripAdvisor, industry directories"
+      - "Both Citation quantity and quality affect Prominence"
+    relations:
+      - type: different_from
+        target: backlink
+    updated_at: "2026-01-02"
+
+  - concept_id: backlink
+    version: v1.1
+    domain: geo-seo
+    name: Backlink
+
+    # English SSOT (authoritative)
+    definition: Hyperlink from other websites pointing to the business website
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 从其他网站指向商家网站的超链接
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - inbound link
+        - external link
+      zh-CN:
+        - 反向链接
+        - 外链
+
+    examples:
+      - "Local news site reports on business with link to website = Backlink"
+    pitfalls:
+      - "Backlink must have <a href> link"
+      - "Locally relevant Backlinks more valuable for Geo-SEO"
+      - "Citation may not have link; Backlink must have link"
+    relations:
+      - type: different_from
+        target: citation
+    updated_at: "2026-01-02"
+
+  # === Review Signals ===
+
+  - concept_id: review_rating
+    version: v1.1
+    domain: geo-seo
+    name: Review Rating
+
+    # English SSOT (authoritative)
+    definition: Business average rating on GBP (1-5 stars)
+    formula: Total stars / Review count
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家在 GBP 上的平均评分（1-5 星）
+        formula: 总星数 ÷ 评论数
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - star rating
+        - average rating
+      zh-CN:
+        - 评分
+        - 星级评分
+
+    examples:
+      - "100 reviews, total 450 stars → Review Rating = 4.5"
+    pitfalls:
+      - "Rating below 4.0 significantly affects click-through rate"
+      - "Rating is one of the primary factors in user decision-making"
+    relations:
+      - type: related_to
+        target: reviews_velocity
+    updated_at: "2026-01-02"
+
+  - concept_id: reviews_velocity
+    version: v1.1
+    domain: geo-seo
+    name: Reviews Velocity
+
+    # English SSOT (authoritative)
+    definition: Rate at which business receives new reviews, typically measured as new reviews per month
+    formula: New reviews / Time period
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家获得新评论的速度，通常以每月新增评论数衡量
+        formula: 新增评论数 ÷ 时间周期
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - review growth rate
+        - review speed
+      zh-CN:
+        - 评论速度
+        - 评论增长率
+
+    examples:
+      - "15 new reviews in past 30 days → Reviews Velocity = 15/month"
+    pitfalls:
+      - "Stable Reviews Velocity healthier than sudden review surge"
+      - "Sudden large volume of new reviews may trigger Google filtering"
+    relations:
+      - type: related_to
+        target: review_recency
+    updated_at: "2026-01-02"
+
+  - concept_id: review_recency
+    version: v1.1
+    domain: geo-seo
+    name: Review Recency
+
+    # English SSOT (authoritative)
+    definition: Days since most recent review, reflecting business activity level
+    formula: Current date - Latest review date
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 商家最近一条评论的时间距今天数，反映商家活跃度
+        formula: 当前日期 - 最新评论日期
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - review freshness
+        - latest review age
+      zh-CN:
+        - 评论新鲜度
+        - 最新评论时间
+
+    examples:
+      - "Latest review was 3 days ago → Review Recency = 3 days"
+    pitfalls:
+      - "Over 30 days without new review considered inactive"
+      - "Google prefers showing businesses with recent reviews"
+    relations:
+      - type: related_to
+        target: reviews_velocity
+    updated_at: "2026-01-02"
+
+  # === Account Status ===
+
+  - concept_id: duplicate_listing
+    version: v1.1
+    domain: geo-seo
+    name: Duplicate Listing
+
+    # English SSOT (authoritative)
+    definition: Situation where same business has multiple profile pages in GBP
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 同一商家在 GBP 中存在多个资料页面的情况
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - duplicate business
+        - duplicate entry
+      zh-CN:
+        - 重复商家
+        - 重复条目
+
+    examples:
+      - "Old address GBP not deleted after relocation creates Duplicate Listing"
+    pitfalls:
+      - "Duplicate Listing dilutes reviews and authority"
+      - "Should merge or delete duplicate entries"
+      - "Use Google's merge request feature to handle"
+    relations: []
+    updated_at: "2026-01-02"
+
+  - concept_id: suspension
+    version: v1.1
+    domain: geo-seo
+    name: Suspension
+
+    # English SSOT (authoritative)
+    definition: State where GBP is suspended from display by Google due to violations
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: GBP 因违规被 Google 暂停展示的状态
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - account suspension
+        - GBP suspension
+      zh-CN:
+        - 账户暂停
+        - GBP 暂停
+
+    examples:
+      - "Using fake address leads to Suspension"
+      - "Keyword stuffing business name leads to Suspension"
+    pitfalls:
+      - "During Suspension, business won't appear in search results"
+      - "Severe violations may lead to permanent Suspension"
+      - "Recovery requires submitting Reinstatement request"
+    relations:
+      - type: leads_to
+        target: reinstatement
+    updated_at: "2026-01-02"
+
+  - concept_id: reinstatement
+    version: v1.1
+    domain: geo-seo
+    name: Reinstatement
+
+    # English SSOT (authoritative)
+    definition: Process of requesting suspended GBP to be restored to display
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 被暂停的 GBP 申请恢复展示的过程
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - account recovery
+        - unsuspension
+      zh-CN:
+        - 账户恢复
+        - 解封
+
+    examples:
+      - "After correcting violations, submit Reinstatement form"
+    pitfalls:
+      - "Reinstatement may take 3-7 days for review"
+      - "Must provide authenticity proof materials"
+      - "Multiple Suspensions increase Reinstatement difficulty"
+    relations:
+      - type: resolves
+        target: suspension
+    updated_at: "2026-01-02"
+
+  # === Pages & Technical ===
+
+  - concept_id: local_landing_page
+    version: v1.1
+    domain: geo-seo
+    name: Local Landing Page
+
+    # English SSOT (authoritative)
+    definition: Webpage optimized for specific geographic location to capture local search traffic
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 针对特定地理位置优化的网页，用于承接本地搜索流量
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - location page
+        - area page
+      zh-CN:
+        - 本地落地页
+        - 地区页面
+
+    examples:
+      - "example.com/locations/new-york-dentist/"
+    pitfalls:
+      - "Each service area should have its own Local Landing Page"
+      - "Avoid creating low-quality doorway pages"
+      - "Must include locally relevant unique content"
+    relations:
+      - type: related_to
+        target: on_page_local_signals
+    updated_at: "2026-01-02"
+
+  - concept_id: on_page_local_signals
+    version: v1.1
+    domain: geo-seo
+    name: On-page Local Signals
+
+    # English SSOT (authoritative)
+    definition: Page elements indicating geographic relevance, such as NAP, local keywords, Schema markup
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 网页上表明地理相关性的元素，如 NAP、本地关键词、Schema 标记等
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - local page elements
+        - localized page elements
+      zh-CN:
+        - 页面本地信号
+        - 本地化页面元素
+
+    examples:
+      - "Footer includes complete NAP information"
+      - "Title includes city name: 'NYC Best Plumber'"
+    pitfalls:
+      - "On-page Local Signals should be integrated naturally; avoid over-optimization"
+      - "Ensure website NAP matches GBP"
+    relations:
+      - type: related_to
+        target: local_landing_page
+    updated_at: "2026-01-02"
+
+  - concept_id: schema_localbusiness
+    version: v1.1
+    domain: geo-seo
+    name: Schema LocalBusiness
+
+    # English SSOT (authoritative)
+    definition: Schema.org structured data format for marking up local business information
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 用于标记本地商家信息的 Schema.org 结构化数据格式
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - LocalBusiness Schema
+        - local business structured data
+      zh-CN:
+        - 本地商家结构化数据
+
+    examples:
+      - "@type: LocalBusiness includes name, address, telephone, openingHours"
+    pitfalls:
+      - "Schema info must match visible page content"
+      - "Use Google Rich Results Test to verify"
+      - "Can use more specific subtypes like Restaurant, Dentist"
+    relations:
+      - type: part_of
+        target: on_page_local_signals
+    updated_at: "2026-01-02"
+
+  # === Tracking & Analytics ===
+
+  - concept_id: utm
+    version: v1.1
+    domain: geo-seo
+    name: UTM
+
+    # English SSOT (authoritative)
+    definition: Tracking parameters added to URLs for identifying traffic sources in Google Analytics
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 添加到 URL 的追踪参数，用于在 Google Analytics 中识别流量来源
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - UTM Parameters
+        - Urchin Tracking Module
+      zh-CN:
+        - UTM 参数
+
+    examples:
+      - "?utm_source=google&utm_medium=organic&utm_campaign=local_seo"
+    pitfalls:
+      - "GBP website links should add UTM tracking"
+      - "UTM parameters are case-sensitive"
+      - "Use Google Campaign URL Builder to generate"
+    relations: []
+    updated_at: "2026-01-02"
+
+  - concept_id: call_tracking
+    version: v1.1
+    domain: geo-seo
+    name: Call Tracking
+
+    # English SSOT (authoritative)
+    definition: Using dynamic phone numbers to track call volume from different channels
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 使用动态电话号码追踪不同渠道带来的来电数量
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - phone tracking
+      zh-CN:
+        - 来电追踪
+        - 电话追踪
+
+    examples:
+      - "GBP uses dedicated tracking number to count map calls"
+    pitfalls:
+      - "Tracking numbers may affect NAP consistency"
+      - "Ensure tracking number forwards correctly"
+      - "Common tools: CallRail, CallTrackingMetrics"
+    relations: []
+    updated_at: "2026-01-02"
+
+  - concept_id: direction_requests
+    version: v1.1
+    domain: geo-seo
+    name: Direction Requests
+
+    # English SSOT (authoritative)
+    definition: Number of times users click "Get directions" in GBP or Google Maps
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 用户在 GBP 或 Google Maps 中点击"获取路线"的次数
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - directions clicked
+        - navigation requests
+      zh-CN:
+        - 路线请求
+        - 导航请求
+
+    examples:
+      - "This month Direction Requests: 250"
+    pitfalls:
+      - "Direction Requests is key metric in GBP Insights"
+      - "Reflects user intent to visit offline"
+    relations: []
+    updated_at: "2026-01-02"
+
+  # === Knowledge Graph & Entities ===
+
+  - concept_id: entity
+    version: v1.1
+    domain: geo-seo
+    name: Entity
+
+    # English SSOT (authoritative)
+    definition: Real-world thing (person, place, organization) recognized by search engines
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 搜索引擎识别的真实世界事物（人、地点、组织等）
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - knowledge entity
+      zh-CN:
+        - 实体
+        - 知识实体
+
+    examples:
+      - "Starbucks is a brand entity recognized by Google"
+    pitfalls:
+      - "Becoming a recognized entity helps Knowledge Panel display"
+      - "Build entity through consistent NAP and authoritative citations"
+    relations:
+      - type: related_to
+        target: knowledge_graph
+    updated_at: "2026-01-02"
+
+  - concept_id: knowledge_graph
+    version: v1.1
+    domain: geo-seo
+    name: Knowledge Graph
+
+    # English SSOT (authoritative)
+    definition: Google's entity relationship database for understanding search intent and displaying knowledge panels
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: Google 构建的实体关系数据库，用于理解搜索意图和展示知识面板
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Google Knowledge Graph
+      zh-CN:
+        - 知识图谱
+
+    examples:
+      - "Info card on right side when searching brand name comes from Knowledge Graph"
+    pitfalls:
+      - "GBP info gets incorporated into Knowledge Graph"
+      - "Wikipedia is important source for Knowledge Graph"
+    relations:
+      - type: contains
+        target: entity
+    updated_at: "2026-01-02"
+
+  # === Efficiency Metrics (Local Pack Context) ===
+
+  - concept_id: ctr
+    version: v1.2
+    domain: geo-seo
+    name: CTR
+
+    # English SSOT (authoritative)
+    definition: Click-through rate after Local Pack or GBP display, measuring local search result attractiveness
+    formula: Local Pack clicks / Local Pack impressions * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: Local Pack 或 GBP 展示后被点击的比率，衡量本地搜索结果的吸引力
+        formula: Local Pack 点击次数 ÷ Local Pack 曝光次数 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Click-Through Rate
+        - Local Pack CTR
+      zh-CN:
+        - 点击率
+        - 本地点击率
+
+    examples:
+      - "GBP shown in Local Pack 1000 times, clicked 50 times → CTR = 5%"
+      - "Local Pack CTR typically higher than organic result CTR"
+    pitfalls:
+      - "Local Pack CTR has different context than Amazon ad CTR"
+      - "Local Pack CTR affected by rating, review count, photo quality"
+      - "Rank position (1/2/3) significantly affects CTR"
+    relations:
+      - type: related_to
+        target: local_pack
+    updated_at: "2026-01-02"
+
+  - concept_id: cvr
+    version: v1.2
+    domain: geo-seo
+    name: CVR
+
+    # English SSOT (authoritative)
+    definition: Rate from Local Pack click to completing target action (call, directions, website visit)
+    formula: Conversions (calls/directions/website) / Local Pack clicks * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 从 Local Pack 点击到完成目标动作（来电、路线请求、网站访问）的比率
+        formula: 转化次数（来电/路线/网站）÷ Local Pack 点击次数 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Conversion Rate
+        - Local Conversion Rate
+      zh-CN:
+        - 转化率
+        - 本地转化率
+
+    examples:
+      - "50 clicks, 10 calls → CVR = 20%"
+      - "CVR can be tracked separately by conversion goal"
+    pitfalls:
+      - "Different context from Amazon CVR (orders/clicks)"
+      - "Local CVR affected by GBP info completeness, review quality"
+      - "High CVR with low click volume may indicate exposure issues"
+    relations:
+      - type: related_to
+        target: direction_requests
+    updated_at: "2026-01-02"
+
+# =============================================================================
+# Common Mistakes (Anti-patterns)
+# =============================================================================
+
+anti_patterns:
+  - mistake: "Confusing Citation with Backlink"
+    wrong: "We have 100 Citations, so our link profile is strong"
+    correct: "Citation only requires NAP info, not necessarily a link; Backlink must have a link"
+    example: "Yelp business page has NAP which is Citation, but may not link to website"
+
+  - mistake: "Treating GBP and GMB as different products"
+    wrong: "We need to optimize both GBP and GMB"
+    correct: "GMB is old name, unified as GBP after 2021, same product"
+    example: "All GMB accounts automatically became GBP"
+
+  - mistake: "Ignoring NAP consistency details"
+    wrong: "Address is close enough"
+    correct: "Suite 108 vs #108 vs Ste 108 all count as inconsistent"
+    example: "Should unify format: '123 Main St, Suite 100, New York, NY 10001'"
+
+  - mistake: "Looking at SoLV without noting calculation threshold"
+    wrong: "Our SoLV is 80%, competitor only 40%"
+    correct: "Must confirm both use Top 3 or Top 10 threshold"
+    example: "SoLV (Top 3) 40% may be harder to achieve than SoLV (Top 10) 80%"
+
+  - mistake: "Pursuing review quantity ignoring quality"
+    wrong: "Quickly get 100 five-star reviews"
+    correct: "Sudden large volume of reviews triggers Google filtering"
+    example: "Steady 5-10 authentic reviews per month healthier than 50 at once"
+
+# =============================================================================
+# Local Ranking Three Factors Diagram
+# =============================================================================
+
+relationships:
+  diagram: |
+    ┌─────────────────────────────────────────────────────────────┐
+    │                  Local Pack Ranking Factors                  │
+    │  ┌───────────────────────────────────────────────────────┐  │
+    │  │                                                       │  │
+    │  │   Proximity ◄──── User location (cannot optimize)     │  │
+    │  │       ↓                                               │  │
+    │  │   Relevance ◄──── GBP completeness + category choice  │  │
+    │  │       ↓                                               │  │
+    │  │   Prominence ◄─── Reviews + Citations + Backlinks     │  │
+    │  │                                                       │  │
+    │  └───────────────────────────────────────────────────────┘  │
+    │                                                             │
+    │  Geo Grid detection → SoLV = Top N grid point percentage    │
+    └─────────────────────────────────────────────────────────────┘
+
+  interpretation: |
+    - Proximity: Distance factor, closer user = higher rank, cannot directly optimize
+    - Relevance: Improve by completing GBP info, choosing precise categories
+    - Prominence: Improve by getting reviews, building Citations, acquiring Backlinks
+    - SoLV: Quantifies overall visibility, convenient for competitor comparison and progress tracking
+
+# =============================================================================
+# Version History
+# =============================================================================
+
+changelog:
+  - version: v1.2
+    date: "2026-01-02"
+    changes:
+      - "Migrated to English SSOT structure"
+      - "Chinese definitions moved to i18n.zh-CN blocks"
+      - "Aliases restructured by locale (en-US, zh-CN)"
+      - "All root-level content now in English"
+      - "Total 32 core terms maintained"
+    trigger: "Phase 2 i18n migration - Glossary SSOT"
+    author: "Claude + LiYe"
+
+  - version: v1.1
+    date: "2026-01-01"
+    changes:
+      - "Added efficiency metrics: CTR (Local Pack CTR), CVR (Local Conversion Rate)"
+      - "Support multi-domain CTR context comparison"
+    trigger: "Multi-domain boundary regression test requires CTR/CVR terms"
+    author: "Claude + LiYe"
+
+  - version: v1.0
+    date: "2026-01-01"
+    changes:
+      - "Initial version (MaaP Schema v1.0)"
+      - "Core entities: GBP, GMB, NAP, Categories, Service Areas"
+      - "Ranking factors: Proximity, Relevance, Prominence"
+      - "Monitoring metrics: Geo Grid, SoLV"
+      - "Citations & Links: Citation vs Backlink"
+      - "Review signals: Rating, Velocity, Recency"
+      - "Account status: Duplicate, Suspension, Reinstatement"
+      - "Technical elements: Local Landing Page, Schema, UTM, Call Tracking"
+      - "Knowledge Graph: Entity, Knowledge Graph"
+      - "Total 28 core terms"
+    trigger: "Expand MaaP multi-domain support"
+    author: "Claude + LiYe"
