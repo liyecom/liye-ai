@@ -10,13 +10,9 @@
  */
 
 import Ajv from "ajv";
-import addFormats from "ajv-formats";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const schema = require("../../contracts/schema/decision.schema.json");
+import schema from "../../contracts/schema/decision.schema.json" assert { type: "json" };
 
 const ajv = new Ajv();
-addFormats(ajv);
 const validate = ajv.compile(schema);
 
 export function generateVerdicts(ruleResults, signals) {
