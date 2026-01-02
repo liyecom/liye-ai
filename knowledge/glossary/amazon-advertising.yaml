@@ -1,0 +1,356 @@
+# =============================================================================
+# Amazon Advertising Glossary (MaaP Schema v1.0 + i18n SSOT)
+# =============================================================================
+# Source: User validation + SellerSprite/Solhun tools + Amazon Advertising
+# Last Updated: 2026-01-02
+# Status: CANONICAL (English SSOT)
+# i18n: English SSOT | Chinese display in i18n.zh-CN blocks
+# =============================================================================
+
+file_version: 2
+domain: amazon-advertising
+
+concepts:
+  # === Ad Internal Efficiency Metrics ===
+
+  - concept_id: AMZ_ACOS
+    version: v1.1
+    domain: amazon-advertising
+    name: ACoS
+
+    # English SSOT (authoritative)
+    definition: Percentage of ad spend relative to ad-attributed sales, measuring advertising efficiency
+    formula: Ad Spend / Ad Sales * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 广告花费占广告销售额的百分比，衡量广告投入效率
+        formula: 广告花费 ÷ 广告销售额 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Advertising Cost of Sales
+        - ad cost ratio
+      zh-CN:
+        - 广告销售成本率
+        - 广告成本比
+
+    examples:
+      - "$10 ad spend generates $100 ad sales → ACoS = 10%"
+      - "For every $100 in ad sales, $10 is spent on ads"
+    pitfalls:
+      - "Low ACoS doesn't mean good ads; consider absolute sales volume"
+      - "High ACoS during new product launch is normal; watch the trend"
+      - "ACoS = 1/ROAS × 100%"
+    relations:
+      - type: related_to
+        target: AMZ_ROAS
+    updated_at: "2026-01-02"
+
+  - concept_id: AMZ_ROAS
+    version: v1.1
+    domain: amazon-advertising
+    name: ROAS
+
+    # English SSOT (authoritative)
+    definition: Ratio of ad-attributed sales to ad spend, measuring return multiplier
+    formula: Ad Sales / Ad Spend
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 广告销售额与广告花费的比值，衡量广告回报倍数
+        formula: 广告销售额 ÷ 广告花费
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Return on Ad Spend
+        - ad return ratio
+      zh-CN:
+        - 广告支出回报率
+        - 广告回报率
+
+    examples:
+      - "$10 ad spend generates $100 ad sales → ROAS = 10x"
+      - "Every $1 in ad spend generates $10 in sales"
+    pitfalls:
+      - "ROAS = 1/ACoS"
+      - "ROAS 2.5x equals ACoS 40%"
+      - "ROAS doesn't consider product cost, only sales"
+    relations:
+      - type: related_to
+        target: AMZ_ACOS
+    updated_at: "2026-01-02"
+
+  # === Overall Operations Metrics ===
+
+  - concept_id: AMZ_ACOAS
+    version: v1.1
+    domain: amazon-advertising
+    name: ACoAS
+
+    # English SSOT (authoritative)
+    definition: Percentage of ad spend relative to total sales (ad + organic), measuring advertising impact on overall profitability
+    formula: Ad Spend / Total Sales * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 广告花费占总销售额（广告+自然）的百分比，衡量广告对整体盈亏的影响
+        formula: 广告花费 ÷ 总销售额 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Advertising Cost of All Sales
+        - TACoS
+        - Total Advertising Cost of Sales
+        - total ad cost ratio
+      zh-CN:
+        - 广告成本占总销售比
+        - 总广告成本率
+
+    examples:
+      - "$10 ad spend, $40 ad sales, $60 organic sales, total $100 → ACoAS = 10%"
+      - "Ad cost is 10% of total revenue"
+    pitfalls:
+      - "ACoAS and TACoS are the same concept with different names"
+      - "Truly reflects advertising impact on profitability"
+      - "Mature products should have low ACoAS (relying on organic traffic)"
+    relations:
+      - type: related_to
+        target: AMZ_ASOAS
+    updated_at: "2026-01-02"
+
+  - concept_id: AMZ_ASOAS
+    version: v1.1
+    domain: amazon-advertising
+    name: ASoAS
+
+    # English SSOT (authoritative)
+    definition: Percentage of ad-attributed sales relative to total sales, measuring product dependency on advertising
+    formula: Ad Sales / Total Sales * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 广告销售额占总销售额的百分比，衡量产品对广告的依赖程度
+        formula: 广告销售额 ÷ 总销售额 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Advertising Sales of All Sales
+        - ad dependency ratio
+      zh-CN:
+        - 广告销售占比
+        - 广告依赖度
+
+    examples:
+      - "$40 ad sales, $60 organic sales, total $100 → ASoAS = 40%"
+      - "40% of sales from ads, 60% from organic traffic"
+    pitfalls:
+      - "High ASoAS means ad dependency; stopping ads will crash sales"
+      - "Low ASoAS indicates healthy organic traffic"
+      - "High ASoAS during new product launch is normal; watch the declining trend"
+    relations:
+      - type: related_to
+        target: AMZ_ACOAS
+    updated_at: "2026-01-02"
+
+  # === Supporting Metrics ===
+
+  - concept_id: AMZ_CPC
+    version: v1.1
+    domain: amazon-advertising
+    name: CPC
+
+    # English SSOT (authoritative)
+    definition: Average cost per ad click
+    formula: Ad Spend / Clicks
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 每次广告点击的平均花费
+        formula: 广告花费 ÷ 点击次数
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Cost Per Click
+        - click cost
+      zh-CN:
+        - 单次点击成本
+        - 点击成本
+
+    examples:
+      - "$100 ad spend, 200 clicks → CPC = $0.50"
+    pitfalls: []
+    relations: []
+    updated_at: "2026-01-02"
+
+  - concept_id: AMZ_CTR
+    version: v1.1
+    domain: amazon-advertising
+    name: CTR
+
+    # English SSOT (authoritative)
+    definition: Ratio of ad clicks to impressions
+    formula: Clicks / Impressions * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 广告点击次数与曝光次数的比值
+        formula: 点击次数 ÷ 曝光次数 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Click-Through Rate
+        - click rate
+      zh-CN:
+        - 点击率
+        - 点击通过率
+
+    examples:
+      - "200 clicks, 40000 impressions → CTR = 0.5%"
+    pitfalls:
+      - "CTR > 0.5% is good"
+      - "CTR 0.3%-0.5% is average"
+      - "CTR < 0.3% needs optimization"
+    relations: []
+    updated_at: "2026-01-02"
+
+  - concept_id: AMZ_CVR
+    version: v1.1
+    domain: amazon-advertising
+    name: CVR
+
+    # English SSOT (authoritative)
+    definition: Ratio of orders to clicks
+    formula: Orders / Clicks * 100%
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 订单数与点击次数的比值
+        formula: 订单数 ÷ 点击次数 × 100%
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Conversion Rate
+        - conversion ratio
+      zh-CN:
+        - 转化率
+        - 成交率
+
+    examples:
+      - "20 orders, 200 clicks → CVR = 10%"
+    pitfalls:
+      - "Low CVR is usually a Listing issue, not an ad issue"
+      - "Different traffic tiers have different reasonable CVR thresholds"
+    relations: []
+    updated_at: "2026-01-02"
+
+# =============================================================================
+# Common Mistakes (Anti-patterns)
+# =============================================================================
+
+anti_patterns:
+  - mistake: "Confusing ACoS with ROI"
+    wrong: "ROI = Profit / Investment"
+    correct: "ACoS = Ad Spend / Ad Sales; ROI requires cost consideration"
+    example: "ACoS 30% does not equal ROI 30%"
+
+  - mistake: "Judging ad quality by ACoS alone"
+    wrong: "Pause ads when ACoS reaches 50%"
+    correct: "Consider ASoAS, product stage, competitive environment holistically"
+    example: "New product ACoS 50% but ASoAS declining means organic traffic is growing"
+
+  - mistake: "Pursuing extremely low ACoS"
+    wrong: "Push ACoS down to 5%"
+    correct: "Too low ACoS may mean insufficient ad investment, missing growth opportunities"
+    example: "ACoS 5% but stagnant sales is worse than ACoS 25% with growing sales"
+
+  - mistake: "Using ACoS to measure all ad types"
+    wrong: "SD ads with ACoS above 20% is a failure"
+    correct: "SD/SBV are display ads with naturally lower CVR; focus on brand exposure"
+    example: "SD ads with ACoS 50% but increasing brand searches may be successful"
+
+# =============================================================================
+# Four Metrics Relationship Diagram
+# =============================================================================
+
+relationships:
+  diagram: |
+    ┌─────────────────────────────────────────────────────────────┐
+    │                    Total Sales ($1000)                       │
+    │  ┌──────────────────────┐ ┌──────────────────────┐          │
+    │  │   Ad Sales ($400)    │ │  Organic Sales ($600) │          │
+    │  └──────────────────────┘ └──────────────────────┘          │
+    │           ↑                                                 │
+    │     Ad Spend ($100)                                         │
+    └─────────────────────────────────────────────────────────────┘
+
+    ACoS  = $100 / $400 = 25%     (Ad internal efficiency)
+    ROAS  = $400 / $100 = 4x      (Ad return multiplier)
+    ACoAS = $100 / $1000 = 10%    (Ad cost vs total sales)
+    ASoAS = $400 / $1000 = 40%    (Ad dependency)
+
+  interpretation: |
+    - ACoS 25%: Good ad efficiency
+    - ROAS 4x: Every $1 ad spend generates $4 sales
+    - ACoAS 10%: Ad cost only 10% of total revenue, good profit margin
+    - ASoAS 40%: 60% sales from organic traffic, healthy product status
+
+# =============================================================================
+# Decision Matrix
+# =============================================================================
+
+decision_matrix:
+  - scenario: "High ACoS, declining ASoAS"
+    interpretation: "Ads are nurturing organic traffic, acceptable"
+    action: "Continue observing, don't cut hastily"
+
+  - scenario: "Low ACoS, high ASoAS"
+    interpretation: "High ad efficiency but severe dependency"
+    action: "Investigate why organic traffic isn't growing"
+
+  - scenario: "ACoAS continuously rising"
+    interpretation: "Ad costs eating into profits"
+    action: "Urgent optimization or reduce ad investment"
+
+  - scenario: "ASoAS continuously declining"
+    interpretation: "Organic traffic growing, product maturing"
+    action: "Consider reducing ad budget"
+
+# =============================================================================
+# Version History
+# =============================================================================
+
+changelog:
+  - version: v1.1
+    date: "2026-01-02"
+    changes:
+      - "Migrated to English SSOT structure"
+      - "Chinese definitions moved to i18n.zh-CN blocks"
+      - "Aliases restructured by locale (en-US, zh-CN)"
+      - "All root-level content now in English"
+    trigger: "Phase 2 i18n migration - Glossary SSOT"
+    author: "Claude + LiYe"
+
+  - version: v1.0
+    date: "2026-01-01"
+    changes:
+      - "Initial version (MaaP Schema v1.0)"
+      - "Core metrics: ACoS, ROAS, ACoAS, ASoAS"
+      - "Supporting metrics: CPC, CTR, CVR"
+      - "Anti-patterns and decision matrix included"
+    trigger: "User corrected ROI/ROAS concept confusion"
+    author: "Claude + LiYe"

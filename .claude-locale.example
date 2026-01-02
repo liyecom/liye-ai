@@ -1,0 +1,17 @@
+# User display language preference
+# Does NOT affect system semantics
+#
+# Priority chain:
+#   1. CLI: --locale zh-CN
+#   2. File: ~/.claude-locale (this file format)
+#   3. Env: CLAUDE_LOCALE=zh-CN
+#   4. Default: zh-CN (from i18n/config.yaml)
+#
+# Supported locales:
+#   - en-US: English
+#   - zh-CN: Simplified Chinese
+#
+# IMPORTANT: This only affects output language.
+# System semantics, policies, and contracts remain in English (SSOT).
+
+locale: zh-CN
