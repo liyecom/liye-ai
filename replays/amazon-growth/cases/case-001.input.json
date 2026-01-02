@@ -1,0 +1,17 @@
+{
+  "asin": "B08TEST001",
+  "metrics": {
+    "ad_spend": 1000,
+    "ad_sales": 2000,
+    "total_sales": 5000,
+    "sessions": 1000,
+    "orders": 50,
+    "inventory_units": 300,
+    "daily_sales_velocity": 10
+  },
+  "thresholds": {
+    "max_acos": 0.3,
+    "min_cvr": 0.03,
+    "min_inventory_days": 15
+  }
+}

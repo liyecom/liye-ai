@@ -1,0 +1,29 @@
+name: Domain Replay Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  replay-regression:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Amazon Growth OS Replay Tests
+        run: |
+          echo "🔁 Running Domain Replay Regression Tests"
+          echo ""
+          node scripts/replay_runner.js replays/amazon-growth/cases
