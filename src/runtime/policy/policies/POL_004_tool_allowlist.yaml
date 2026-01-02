@@ -1,0 +1,25 @@
+# POL_004: Tool Allowlist
+#
+# Purpose: Restrict which tools can be executed.
+# Only pre-approved tools are permitted.
+
+id: POL_004_tool_allowlist
+name: Tool Allowlist Enforcement
+description: Deny execution of tools not in the allowlist
+severity: deny
+
+conditions:
+  action_type: "tool.execute"
+  metadata_not_in_list:
+    key: "tool_name"
+    allowed:
+      - "read"
+      - "write"
+      - "edit"
+      - "glob"
+      - "grep"
+      - "bash"
+      - "web_fetch"
+      - "web_search"
+      - "todo_write"
+      - "ask_user"

@@ -1,0 +1,13 @@
+# POL_002: File Classification Protection
+#
+# Purpose: Protect governance workflow files from modification.
+# .github/workflows/ contains CI/CD and governance controls.
+
+id: POL_002_file_class
+name: Workflow File Protection
+description: Deny modification of files in .github/workflows/
+severity: deny
+
+conditions:
+  action_type: "file.write"
+  target_contains: ".github/workflows"
