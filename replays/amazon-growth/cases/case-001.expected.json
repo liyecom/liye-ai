@@ -1,0 +1,10 @@
+{
+  "decisions": [
+    {
+      "decision_id": "ACOS_TOO_HIGH",
+      "domain": "amazon-growth",
+      "severity": "warning",
+      "version": "v1.0"
+    }
+  ]
+}

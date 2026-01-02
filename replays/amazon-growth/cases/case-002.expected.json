@@ -1,0 +1,16 @@
+{
+  "decisions": [
+    {
+      "decision_id": "CONVERSION_RATE_TOO_LOW",
+      "domain": "amazon-growth",
+      "severity": "warning",
+      "version": "v1.0"
+    },
+    {
+      "decision_id": "STOCKOUT_RISK",
+      "domain": "amazon-growth",
+      "severity": "critical",
+      "version": "v1.0"
+    }
+  ]
+}
