@@ -236,8 +236,39 @@ The Runtime Policy Layer defines a minimal contract for downstream Planner/Agent
 
 See [POLICY_PLANNER_CONTRACT.md](../../../docs/architecture/POLICY_PLANNER_CONTRACT.md) for the full contract specification.
 
+## P3 Freeze Declaration
+
+> **Runtime Policy Engine (P3) is frozen.**
+> No new rules, exceptions, or semantic changes are allowed.
+> All future evolution must occur via P4+ governance layers.
+
+### Violation Rule
+
+Any change that alters decision semantics, verdict types, or suggestion logic constitutes a violation of the P3 freeze.
+
+Specifically, the following are **frozen and immutable**:
+
+| Component | Frozen Semantics |
+|-----------|------------------|
+| `DecisionResult` | ALLOW, DENY (no new values) |
+| `ContractSeverity` | hard, soft (no new values) |
+| `Decision.to_contract()` | 5-field schema frozen |
+| Policy evaluation order | First DENY wins |
+| Fail-close behavior | Errors → DENY |
+
+**Allowed** (non-breaking):
+- Adding new policies (via YAML)
+- Extending `alternative` hints
+- Performance optimizations (same output)
+
+**Prohibited** (freeze violation):
+- New verdict types (e.g., WARN, DEFER)
+- Changing severity semantics
+- Modifying fail-close behavior
+- Altering contract schema
+
 ---
 
-**Version**: 0.3.0 (Contract Boundary)
-**Phase**: P3.2 Runtime Policy
-**Status**: Implemented
+**Version**: 0.3.1 (P3 Frozen)
+**Phase**: P3 Runtime Policy
+**Status**: FROZEN
