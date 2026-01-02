@@ -1,0 +1,55 @@
+# LiYe OS i18n Configuration
+# Version: 1.0.0
+# Date: 2026-01-02
+
+version: 1
+
+settings:
+  # English is the SSOT (Source of Truth)
+  source_locale: en-US
+  # Chinese is the default display language for users
+  default_locale: zh-CN
+  supported_locales:
+    - en-US
+    - zh-CN
+
+# Fallback chain: if translation missing, use these in order
+fallback_chain:
+  zh-CN: [en-US]
+  "*": [en-US]
+
+compilation:
+  # Inject locale metadata into compiled context
+  inject_locale: true
+  # Allow fallback when translation missing
+  fallback_on_missing: true
+  # Warn when using fallback
+  warn_on_fallback: true
+
+content:
+  # SSOT content (must be in English)
+  ssot:
+    - path: CLAUDE.md
+      type: kernel
+      must_exist: true
+    - path: .claude/packs/*.md
+      type: pack
+      must_exist: true
+    - path: knowledge/glossary/*.yaml
+      type: glossary
+      must_exist: true
+
+  # Display layer translations (optional)
+  display:
+    - path: i18n/display/zh-CN/CLAUDE.display.md
+      source: CLAUDE.md
+      must_exist: false
+    - path: i18n/display/zh-CN/packs/*.md
+      source: .claude/packs/*.md
+      must_exist: false
+
+ci:
+  # CI validation rules
+  require_english_ssot: true
+  allow_missing_translations: true
+  coverage_threshold: 80

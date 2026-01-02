@@ -1,71 +1,71 @@
-# Context Pack: Infrastructure（架构/Notion/PARA/配置）
+# Context Pack: Infrastructure (Architecture/Notion/PARA/Configuration)
 
-**加载条件：** 涉及 Notion 同步、PARA 组织、路径配置、命名规范、系统架构理解、MCP 服务器开发、技能创建时加载。
+**Loading Conditions:** Load when tasks involve Notion sync, PARA organization, path configuration, naming conventions, system architecture understanding, MCP server development, or skill creation.
 
-## 新增技能（来自 Awesome Claude Skills）
+## Skills (from Awesome Claude Skills)
 
-### mcp-builder - MCP 服务器构建
-**位置：** `Skills/00_Core_Utilities/development-tools/mcp-builder/`
-**引用：** `Skills/06_Technical_Development/index.yaml`
+### mcp-builder - MCP Server Builder
+**Location:** `Skills/00_Core_Utilities/development-tools/mcp-builder/`
+**Reference:** `Skills/06_Technical_Development/index.yaml`
 
-MCP (Model Context Protocol) 服务器构建指南：
-- MCP 服务器架构设计
-- Python/TypeScript 实现指导
-- 工具定义最佳实践
-- 扩展 LiYe OS MCP 生态
+MCP (Model Context Protocol) Server Building Guide:
+- MCP server architecture design
+- Python/TypeScript implementation guidance
+- Tool definition best practices
+- Extending LiYe OS MCP ecosystem
 
-**LiYe OS 已有 MCP 服务器参考：**
+**Existing LiYe OS MCP Server References:**
 - `src/runtime/mcp/servers/amazon/sellersprite_server.py`
 - `src/runtime/mcp/servers/knowledge/qdrant_server.py`
 
-### skill-creator - 技能创建指南
-**位置：** `Skills/00_Core_Utilities/meta/skill-creator/`
-**引用：** `Skills/99_Incubator/index.yaml`
+### skill-creator - Skill Creation Guide
+**Location:** `Skills/00_Core_Utilities/meta/skill-creator/`
+**Reference:** `Skills/99_Incubator/index.yaml`
 
-创建 Claude Skills 的完整指导：
-- Skill 结构设计
-- SKILL.md 编写规范
-- LiYe OS 三层架构适配
-- 技能验证与发布流程
+Complete guide for creating Claude Skills:
+- Skill structure design
+- SKILL.md writing standards
+- LiYe OS three-layer architecture adaptation
+- Skill validation and publishing process
 
 ---
 
-## Notion Sync 系统
+## Notion Sync System
 
-**位置：** `tools/notion-sync/`
+**Location:** `tools/notion-sync/`
 
-**架构：** Node.js + Notion API + Markdown 双向同步
+**Architecture:** Node.js + Notion API + Markdown bidirectional sync
 
-### 脚本说明
+### Script Reference
 
-| 脚本 | 用途 | 输入 | 输出 |
-|-----|------|------|------|
-| `notion-test.js` | 测试连接 | `.env` | 连接状态 |
-| `analyze-notion-content.js` | 分析内容 | Database ID | 统计报告 |
-| `notion-daily-sync.js` | 每日同步 | 配置文件 | 同步日志 |
-| `index.js` (新) | CLI 工具 | 命令参数 | 执行结果 |
-| `scripts/pull.js` | 从 Notion 拉取 | Database | Markdown 文件 |
-| `scripts/push.js` | 推送到 Notion | Markdown | Notion Pages |
-| `scripts/diff.js` | 对比差异 | - | 差异报告 |
+| Script | Purpose | Input | Output |
+|--------|---------|-------|--------|
+| `notion-test.js` | Test connection | `.env` | Connection status |
+| `analyze-notion-content.js` | Analyze content | Database ID | Statistics report |
+| `notion-daily-sync.js` | Daily sync | Config file | Sync log |
+| `index.js` (new) | CLI tool | Command args | Execution result |
+| `scripts/pull.js` | Pull from Notion | Database | Markdown files |
+| `scripts/push.js` | Push to Notion | Markdown | Notion Pages |
+| `scripts/diff.js` | Compare differences | - | Diff report |
 
-### 配置管理
+### Configuration Management
 
-**环境变量（`.env`）：**
+**Environment Variables (`.env`):**
 ```bash
 # Notion API
 NOTION_API_KEY=<YOUR_NOTION_API_KEY>
 NOTION_DATABASE_ID=xxxxx
 
-# 本地路径
+# Local Path
 LOCAL_SYNC_DIR=../Documents/Obsidian Vault
 
-# 同步行为
+# Sync Behavior
 SYNC_INTERVAL_MINUTES=30
 AUTO_SYNC_ENABLED=false
 CONFLICT_RESOLUTION=ask  # ask | local-wins | notion-wins | merge
 ```
 
-**路径配置（`.paths.config.json`，可选）：**
+**Path Configuration (`.paths.config.json`, optional):**
 ```json
 {
   "vaults": {
@@ -84,38 +84,38 @@ CONFLICT_RESOLUTION=ask  # ask | local-wins | notion-wins | merge
 }
 ```
 
-### 使用流程
+### Usage Flow
 
 ```bash
 cd ~/github/liye_os/tools/notion-sync
 
-# 1. 首次配置
+# 1. Initial configuration
 cp .env.example .env
-vim .env  # 填入 NOTION_API_KEY 和 NOTION_DATABASE_ID
+vim .env  # Fill in NOTION_API_KEY and NOTION_DATABASE_ID
 
-# 2. 安装依赖（如果还没有）
+# 2. Install dependencies (if not done)
 npm install
 
-# 3. 测试连接
+# 3. Test connection
 node notion-test.js
 
-# 4. 查看差异
+# 4. View differences
 npm run diff
 
-# 5. 拉取 Notion 内容
+# 5. Pull Notion content
 npm run pull
 
-# 6. 推送本地更改
+# 6. Push local changes
 npm run push
 
-# 7. 强制覆盖（谨慎使用）
+# 7. Force overwrite (use with caution)
 npm run pull -- --force
 npm run push -- --force
 ```
 
-### Frontmatter 格式
+### Frontmatter Format
 
-**Notion → Markdown：**
+**Notion → Markdown:**
 ```yaml
 ---
 notion_id: abc123def456
@@ -133,15 +133,15 @@ status: In Progress
 ...
 ```
 
-**Markdown → Notion：**
-- 根据 `notion_id` 判断是更新还是新建
-- `title` 映射到 Notion 的 Title 属性
-- `tags`、`status` 等映射到对应的 Notion 属性
-- Markdown 内容转换为 Notion Blocks
+**Markdown → Notion:**
+- Determine update vs create based on `notion_id`
+- `title` maps to Notion Title property
+- `tags`, `status` etc. map to corresponding Notion properties
+- Markdown content converts to Notion Blocks
 
-### 状态管理
+### State Management
 
-**同步状态文件（`.cache/sync-state.json`）：**
+**Sync State File (`.cache/sync-state.json`):**
 ```json
 {
   "last_sync": "2024-01-20T10:30:00Z",
@@ -156,79 +156,79 @@ status: In Progress
 }
 ```
 
-**注意：** `.cache/` 目录应在 `.gitignore` 中
+**Note:** `.cache/` directory should be in `.gitignore`
 
-## PARA / 目录治理
+## PARA / Directory Governance
 
-**原则：** Repo（工程/系统）和 Vault（笔记）必须分区，避免工具扫描导致性能崩溃
+**Principle:** Repo (engineering/system) and Vault (notes) must be separated to avoid tool scanning causing performance collapse
 
-### 物理隔离
+### Physical Isolation
 
 ```
-~/github/liye_os/           # Git 仓库（代码、配置、文档）
-~/Documents/Obsidian Vault/  # Obsidian 笔记库（知识管理）
-~/Documents/liye_workspace/  # PARA 工作区（项目、领域）
-~/data/                     # 大文件存储（数据集、媒体）
-~/vaults/                   # 其他 Vault（备份、归档）
+~/github/liye_os/           # Git repo (code, config, docs)
+~/Documents/Obsidian Vault/  # Obsidian notebook (knowledge management)
+~/Documents/liye_workspace/  # PARA workspace (projects, areas)
+~/data/                     # Large file storage (datasets, media)
+~/vaults/                   # Other vaults (backup, archive)
 ```
 
-**连接方式：**
-- 软链接：让旧路径指向新位置（兜底）
-- 索引文件：在 repo 中维护指向外部 Vault 的索引
-- 双向同步：Notion ↔ Obsidian ↔ LiYe OS（选择性）
+**Connection Methods:**
+- Symlinks: Point old paths to new locations (fallback)
+- Index files: Maintain index in repo pointing to external vaults
+- Bidirectional sync: Notion ↔ Obsidian ↔ LiYe OS (selective)
 
-### PARA 结构
+### PARA Structure
 
 ```
 ~/Documents/liye_workspace/
-├── 00 Inbox/              # 收集箱
-├── 10 Projects/           # 活跃项目（有明确截止日期）
+├── 00 Inbox/              # Collection box
+├── 10 Projects/           # Active projects (with clear deadlines)
 │   ├── amazon_q4_launch/
 │   └── medical_research_xxx/
-├── 20 Areas/              # 持续领域（无截止日期）
+├── 20 Areas/              # Ongoing areas (no deadlines)
 │   ├── Health/
 │   ├── Finance/
 │   └── Career/
-├── 30 Resources/          # 参考资料
+├── 30 Resources/          # Reference materials
 │   ├── Templates/
 │   ├── Checklists/
 │   └── Knowledge_Base/
-└── 40 Archive/            # 已完成/暂停项目
+└── 40 Archive/            # Completed/paused projects
 ```
 
-**与 LiYe OS Repo 的关系：**
-- **Projects** → `Projects_Engine/active/`（索引）
-- **Resources** → `Skills/`（方法论版本化）
-- **Archive** → `Artifacts_Vault/`（交付物归档）
+**Relationship with LiYe OS Repo:**
+- **Projects** → `Projects_Engine/active/` (index)
+- **Resources** → `Skills/` (versioned methodology)
+- **Archive** → `Artifacts_Vault/` (deliverable archive)
 
-### 大文件策略
+### Large File Strategy
 
-**问题：** Git 不适合存储大文件（>10MB），会导致：
-- Clone 时间长
-- 存储空间浪费
-- 协作效率低
+**Problem:** Git is not suitable for large files (>10MB), causing:
+- Long clone times
+- Wasted storage space
+- Low collaboration efficiency
 
-**解决方案：**
+**Solution:**
 
 ```bash
-# 1. 大文件统一进 ~/data
+# 1. Large files go to ~/data
 ~/data/
-├── shengcai/              # 生财有术资料
-├── cancer/                # 癌症领域资料
-├── amazon_reports/        # Amazon 原始报表
-└── medical_papers/        # 医学文献 PDF
+├── shengcai/              # Shengcai materials
+├── cancer/                # Cancer domain materials
+├── amazon_reports/        # Amazon raw reports
+└── medical_papers/        # Medical literature PDFs
 
-# 2. 在 Documents 保留软链接（兜底旧路径）
-ln -s ~/data/shengcai ~/Documents/生财有术
+# 2. Keep symlinks in Documents (fallback for old paths)
+ln -s ~/data/shengcai ~/Documents/shengcai
 
-# 3. 在 repo 中使用外部链接
+# 3. Use external links in repo
 # Systems/amazon-growth-os/data_external → ~/data/amazon_reports
 ln -s ~/data/amazon_reports Systems/amazon-growth-os/data_external
 ```
 
-**`.gitignore` 配置：**
+**`.gitignore` Configuration:**
 ```gitignore
-# 大文件和外部数据
+# Large files and external data
 *.csv
 *.xlsx
 *.pdf
@@ -237,11 +237,11 @@ data_external/
 uploads/
 ```
 
-## 命名与可追溯性
+## Naming and Traceability
 
-### 命名规范
+### Naming Conventions
 
-**目录命名：** 小写 + 下划线
+**Directory Naming:** lowercase + underscore
 ```
 ✅ amazon_growth_os
 ✅ notion_sync
@@ -252,7 +252,7 @@ uploads/
 ❌ Medical_Research_Analyst
 ```
 
-**文件命名：** 描述性 + 日期戳（可选）
+**File Naming:** Descriptive + date stamp (optional)
 ```
 ✅ listing_optimization_report_20240120.md
 ✅ keyword_analysis.py
@@ -260,10 +260,10 @@ uploads/
 
 ❌ report.md
 ❌ script1.py
-❌ 文件.js
+❌ file.js
 ```
 
-**Artifact 命名：** 主题 + 时间戳 + 来源
+**Artifact Naming:** Topic + timestamp + source
 ```
 Artifacts_Vault/by_date/2024/01/
 └── amazon_listing_optimization_20240120_claude.md
@@ -272,11 +272,11 @@ Artifacts_Vault/by_project/timo_canada_q4/
 └── ppc_strategy_optimization_20240115.md
 ```
 
-### 版本追踪
+### Version Tracking
 
-**Git 提交信息（Conventional Commits）：**
+**Git Commit Messages (Conventional Commits):**
 ```bash
-# 格式：<type>(<scope>): <subject>
+# Format: <type>(<scope>): <subject>
 
 feat(notion-sync): add diff command to compare local and Notion
 fix(amazon-growth-os): correct keyword analysis ACOS calculation
@@ -285,17 +285,17 @@ chore(gitignore): add .cache and .env to ignore list
 refactor(Skills): reorganize 12 domains into 6 active domains
 ```
 
-**Type 分类：**
-- `feat`: 新功能
-- `fix`: Bug 修复
-- `docs`: 文档变更
-- `chore`: 构建/配置变更
-- `refactor`: 代码重构
-- `test`: 测试相关
+**Type Classification:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `chore`: Build/config changes
+- `refactor`: Code refactoring
+- `test`: Test-related
 
-### 交付物可追溯
+### Deliverable Traceability
 
-**每个 Artifact 必须包含：**
+**Every Artifact must include:**
 ```markdown
 ---
 title: Amazon Listing Optimization Report
@@ -307,66 +307,68 @@ input: data/inputs/campaign_report_20240115.csv
 output: reports/listing_optimization_20240120.md
 ---
 
-## 背景
+## Background
 ...
 
-## 分析过程
+## Analysis Process
 ...
 
-## 结论和建议
+## Conclusions and Recommendations
 ...
 
-## 附录
-- 数据源：[路径]
-- 脚本：[路径]
-- 依赖版本：[列表]
+## Appendix
+- Data source: [path]
+- Script: [path]
+- Dependency versions: [list]
 ```
 
-## 架构文档索引
+## Architecture Documentation Index
 
-**核心文档：**
-- `README.md` - 项目总览和快速开始
-- `_meta/docs/ARCHITECTURE_CONSTITUTION.md` - 架构宪章
-- `_meta/docs/FILE_SYSTEM_GOVERNANCE.md` - 文件系统治理方案
-- `_meta/EVOLUTION_ROADMAP_2025.md` - 进化路线图
-- `_meta/DUAL_ENGINE_SUMMARY.md` - 双引擎架构总结
-- `_meta/TRIPLE_ENGINE_ARCHITECTURE.md` - 三引擎架构设计
+**Core Documents:**
+- `README.md` - Project overview and quickstart
+- `_meta/docs/ARCHITECTURE_CONSTITUTION.md` - Architecture constitution
+- `_meta/docs/FILE_SYSTEM_GOVERNANCE.md` - File system governance
+- `_meta/EVOLUTION_ROADMAP_2025.md` - Evolution roadmap
+- `_meta/DUAL_ENGINE_SUMMARY.md` - Dual engine architecture summary
+- `_meta/TRIPLE_ENGINE_ARCHITECTURE.md` - Triple engine architecture design
 
-**Skill 文档标准（10 模块）：**
+**Skill Documentation Standard (10 Modules):**
 ```
 Skills/{domain}/{skill_name}/
-├── skill_definition.md       # 核心定义
-├── README.md                 # 快速开始
-├── methods.md                # 方法论详解
-├── templates/                # 模板库
-├── knowledge_base/           # 知识库
-├── evolution_log.md          # 进化日志
-├── collaboration_protocols.md # 协作协议
-├── quality_standards.md      # 质量标准
-├── automation_scripts/       # 自动化脚本
-└── case_studies/             # 案例研究
+├── skill_definition.md       # Core definition
+├── README.md                 # Quickstart
+├── methods.md                # Methodology details
+├── templates/                # Template library
+├── knowledge_base/           # Knowledge base
+├── evolution_log.md          # Evolution log
+├── collaboration_protocols.md # Collaboration protocols
+├── quality_standards.md      # Quality standards
+├── automation_scripts/       # Automation scripts
+└── case_studies/             # Case studies
 ```
 
-## 性能优化建议
+## Performance Optimization Tips
 
-**避免仓库膨胀：**
-1. 定期检查大文件：`find . -type f -size +10M`
-2. 使用 `.gitignore` 排除运行时文件
-3. 虚拟环境（venv, node_modules）不入库
-4. 数据库文件（*.db, *.duckdb）不入库
+**Avoid Repository Bloat:**
+1. Regularly check large files: `find . -type f -size +10M`
+2. Use `.gitignore` to exclude runtime files
+3. Virtual environments (venv, node_modules) not in repo
+4. Database files (*.db, *.duckdb) not in repo
 
-**提升 Notion 同步速度：**
-1. 增量同步：只处理变更的页面
-2. 批量操作：合并多个 API 请求
-3. 缓存：利用 `.cache/sync-state.json` 避免重复处理
-4. 并发：使用 Promise.all 并行处理多个页面
+**Improve Notion Sync Speed:**
+1. Incremental sync: Only process changed pages
+2. Batch operations: Combine multiple API requests
+3. Cache: Use `.cache/sync-state.json` to avoid reprocessing
+4. Concurrency: Use Promise.all to process multiple pages in parallel
 
-**Obsidian 性能：**
-1. Vault 大小控制在 <50,000 个文件
-2. 避免深层嵌套（>5 层）
-3. 图片/PDF 使用外部链接而非嵌入
-4. 定期归档旧内容到 Archive
+**Obsidian Performance:**
+1. Keep vault size under <50,000 files
+2. Avoid deep nesting (>5 levels)
+3. Images/PDFs use external links instead of embedding
+4. Regularly archive old content to Archive
 
 ---
 
 **Char Count:** ~7,000 / 15,000 ✅
+
+<!-- i18n: Chinese display version at i18n/display/zh-CN/packs/infrastructure.md -->

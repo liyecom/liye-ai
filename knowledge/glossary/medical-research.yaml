@@ -1,0 +1,218 @@
+# =============================================================================
+# Medical Research Glossary (MaaP Schema v1.0 + i18n SSOT)
+# =============================================================================
+# Purpose: Evidence-based medicine and clinical research terminology
+# Last Updated: 2026-01-02
+# Status: CANONICAL (English SSOT)
+# i18n: English SSOT | Chinese display in i18n.zh-CN blocks
+# =============================================================================
+
+file_version: 2
+domain: medical-research
+
+concepts:
+  - concept_id: MED_EVIDENCE_LEVEL
+    version: v1.1
+    domain: medical-research
+    name: Evidence Level
+
+    # English SSOT (authoritative)
+    definition: Hierarchical system for evaluating research evidence reliability (e.g., systematic reviews/RCTs/cohort studies/case series).
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 用于评估研究证据可靠性的分层体系（如系统综述/随机对照试验/队列研究/病例系列等）。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Level of Evidence
+        - evidence grade
+        - LOE
+      zh-CN:
+        - 证据等级
+        - 证据级别
+
+    pitfalls:
+      - "High evidence level doesn't mean external validity for current population/endpoint; check external validity and bias."
+    updated_at: "2026-01-02"
+
+  - concept_id: MED_RCT
+    version: v1.1
+    domain: medical-research
+    name: Randomized Controlled Trial (RCT)
+
+    # English SSOT (authoritative)
+    definition: Research design that reduces confounding factor influence through random allocation of intervention/control groups.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 通过随机分配干预/对照组来减少混杂因素影响的研究设计。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - RCT
+        - randomized trial
+        - controlled trial
+      zh-CN:
+        - 随机对照试验
+        - 随机对照实验
+
+    pitfalls:
+      - "Insufficient randomization/loss to follow-up/unblinding can introduce bias."
+    updated_at: "2026-01-02"
+
+  - concept_id: MED_HR
+    version: v1.1
+    domain: medical-research
+    name: Hazard Ratio (HR)
+
+    # English SSOT (authoritative)
+    definition: Ratio comparing event occurrence rates between two groups in survival analysis (HR<1 often indicates reduced risk in intervention group).
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 生存分析中比较两组事件发生速率的比值（HR<1 常表示干预组风险降低）。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - HR
+        - hazard ratio
+      zh-CN:
+        - 风险比
+        - 危险比
+
+    pitfalls:
+      - "HR is not absolute risk; interpret with baseline risk and follow-up duration."
+    updated_at: "2026-01-02"
+
+  - concept_id: MED_OR
+    version: v1.1
+    domain: medical-research
+    name: Odds Ratio (OR)
+
+    # English SSOT (authoritative)
+    definition: Common association strength indicator in case-control studies or logistic regression.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 病例-对照或逻辑回归中常用的关联强度指标。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - OR
+        - odds ratio
+      zh-CN:
+        - 优势比
+        - 比值比
+
+    pitfalls:
+      - "When event rate is high, OR significantly deviates from RR and can be misread as risk ratio."
+    updated_at: "2026-01-02"
+
+  - concept_id: MED_RR
+    version: v1.1
+    domain: medical-research
+    name: Relative Risk (RR)
+
+    # English SSOT (authoritative)
+    definition: Ratio of event probability between exposed and control groups.
+    formula: RR = P(event|exposed) / P(event|control)
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 暴露组与对照组事件发生概率之比。
+        formula: RR = P(事件|暴露) / P(事件|对照)
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - RR
+        - relative risk
+        - risk ratio
+      zh-CN:
+        - 相对风险
+        - 风险比
+
+    updated_at: "2026-01-02"
+
+  - concept_id: MED_P_VALUE
+    version: v1.1
+    domain: medical-research
+    name: P-value
+
+    # English SSOT (authoritative)
+    definition: Probability of observing current or more extreme data when null hypothesis is true.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 在零假设为真时，观察到当前或更极端数据的概率。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - p-value
+        - significance level
+      zh-CN:
+        - p 值
+        - p值
+        - 显著性水平
+
+    pitfalls:
+      - "p<0.05 does not equal clinical significance; nor does it mean hypothesis is true."
+    updated_at: "2026-01-02"
+
+  - concept_id: MED_EFFECT_SIZE
+    version: v1.1
+    domain: medical-research
+    name: Effect Size
+
+    # English SSOT (authoritative)
+    definition: Indicator measuring intervention effect strength (e.g., HR, RR, difference, standardized mean difference).
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 衡量干预效果强度的指标（如 HR、RR、差值、标准化均值差等）。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - effect size
+        - effect magnitude
+      zh-CN:
+        - 效应量
+        - 效应大小
+
+    pitfalls:
+      - "Focusing only on statistical significance ignores effect size magnitude and clinical meaning."
+    updated_at: "2026-01-02"
+
+# =============================================================================
+# Version History
+# =============================================================================
+
+changelog:
+  - version: v1.1
+    date: "2026-01-02"
+    changes:
+      - "Migrated to English SSOT structure"
+      - "Chinese definitions moved to i18n.zh-CN blocks"
+      - "Aliases restructured by locale (en-US, zh-CN)"
+    trigger: "Phase 2 i18n migration - Glossary SSOT"
+    author: "Claude + LiYe"
+
+  - version: v1.0
+    date: "2026-01-01"
+    changes:
+      - "Initial version with evidence-based medicine terms"
+    author: "Claude + LiYe"

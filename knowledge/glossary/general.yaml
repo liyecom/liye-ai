@@ -1,0 +1,162 @@
+# =============================================================================
+# General Glossary (MaaP Schema v1.0 + i18n SSOT)
+# =============================================================================
+# Purpose: Cross-domain terminology for LiYe OS governance
+# Last Updated: 2026-01-02
+# Status: CANONICAL (English SSOT)
+# i18n: English SSOT | Chinese display in i18n.zh-CN blocks
+# =============================================================================
+
+file_version: 2
+domain: general
+
+concepts:
+  - concept_id: GEN_SSOT
+    version: v1.1
+    domain: general
+    name: Single Source of Truth (SSOT)
+
+    # English SSOT (authoritative)
+    definition: The highest authority, auditable, and versionable source of knowledge or configuration defined within the system.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 在系统内被定义为最高权威、可审计、可版本化的知识或配置来源。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - Single Source of Truth
+        - authoritative source
+        - canonical source
+      zh-CN:
+        - 真相源
+        - 单一事实来源
+        - 权威来源
+
+    pitfalls:
+      - "SSOT does not mean immutable; changes must be traceable (version/audit/regression)."
+    updated_at: "2026-01-02"
+
+  - concept_id: GEN_GOVERNANCE_GATE
+    version: v1.1
+    domain: general
+    name: Governance Gate
+
+    # English SSOT (authoritative)
+    definition: Automated rules that block changes violating architecture constitution or governance principles before merge/release.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 用自动化规则在合并/发布前阻止违反架构宪法或治理原则的变更进入主干。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - CI Gate
+        - quality gate
+        - merge gate
+      zh-CN:
+        - 门禁
+        - CI 门禁
+        - 质量门
+
+    updated_at: "2026-01-02"
+
+  - concept_id: GEN_DEFINITION_DRIFT
+    version: v1.1
+    domain: general
+    name: Definition Drift
+
+    # English SSOT (authoritative)
+    definition: Inconsistent definitions of the same concept across different times/teams/documents, leading to incomparable decisions and data interpretation.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 同一概念在不同时间/团队/文档中定义发生不一致，导致决策与数据解释不可比。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - semantic drift
+        - concept drift
+      zh-CN:
+        - 口径漂移
+        - 定义漂移
+
+    pitfalls:
+      - "Drift often stems from lack of schema validation, version management, and reference contracts."
+    updated_at: "2026-01-02"
+
+  - concept_id: GEN_CONFIDENCE
+    version: v1.1
+    domain: general
+    name: Confidence
+
+    # English SSOT (authoritative)
+    definition: System signal for domain routing/retrieval accuracy/answer citation sufficiency, used to trigger degradation or blocking.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 系统对 domain 路由/检索命中/回答引用充分性的综合信号，用于触发降级或阻断。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - confidence score
+        - certainty level
+      zh-CN:
+        - 置信度
+        - 信心度
+
+    pitfalls:
+      - "Confidence should not be hidden; it must enter trace for retrospection and continuous improvement."
+    updated_at: "2026-01-02"
+
+  - concept_id: GEN_GRACEFUL_DEGRADATION
+    version: v1.1
+    domain: general
+    name: Graceful Degradation
+
+    # English SSOT (authoritative)
+    definition: When enhanced capabilities are unavailable, the system continues to work at lower capability levels while explicitly indicating limitations and remediation actions.
+
+    # Display translations
+    i18n:
+      zh-CN:
+        definition: 当增强能力不可用时，系统仍能以较低能力水平工作，同时显式提示限制与补救动作。
+
+    # Aliases for matching
+    aliases:
+      en-US:
+        - fallback mode
+        - degraded mode
+      zh-CN:
+        - 优雅降级
+        - 降级模式
+
+    updated_at: "2026-01-02"
+
+# =============================================================================
+# Version History
+# =============================================================================
+
+changelog:
+  - version: v1.1
+    date: "2026-01-02"
+    changes:
+      - "Migrated to English SSOT structure"
+      - "Chinese definitions moved to i18n.zh-CN blocks"
+      - "Aliases restructured by locale (en-US, zh-CN)"
+    trigger: "Phase 2 i18n migration - Glossary SSOT"
+    author: "Claude + LiYe"
+
+  - version: v1.0
+    date: "2026-01-01"
+    changes:
+      - "Initial version with core governance terms"
+    author: "Claude + LiYe"
