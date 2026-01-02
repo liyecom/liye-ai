@@ -26,6 +26,17 @@ class PolicySeverity(str, Enum):
     DENY = "deny"
 
 
+class ContractSeverity(str, Enum):
+    """
+    Contract severity for Planner consumption.
+
+    - hard: Planner MUST replan or abort (all DENY decisions)
+    - soft: Planner MAY optimize (all ALLOW decisions)
+    """
+    HARD = "hard"
+    SOFT = "soft"
+
+
 @dataclass(frozen=True)
 class Action:
     """
@@ -81,6 +92,8 @@ class Decision:
     """
     Represents the result of a policy evaluation.
 
+    Implements DecisionContract for Planner consumption.
+
     Attributes:
         decision_id: Unique identifier for this decision
         action_id: ID of the evaluated action
@@ -90,6 +103,7 @@ class Decision:
         timestamp: When the decision was made
         suggestion: Optional replan hint for DENY decisions
         alternative: Optional structured hint (e.g., alternative target)
+        severity: Contract severity (hard=must replan, soft=optional)
     """
     decision_id: str
     action_id: str
@@ -99,16 +113,18 @@ class Decision:
     timestamp: datetime = field(default_factory=datetime.utcnow)
     suggestion: Optional[str] = None
     alternative: Optional[Dict[str, Any]] = None
+    severity: ContractSeverity = field(default=ContractSeverity.SOFT)
 
     @classmethod
     def allow(cls, action_id: str, policy_id: str, reason: str) -> "Decision":
-        """Create an ALLOW decision."""
+        """Create an ALLOW decision with soft severity."""
         return cls(
             decision_id=str(uuid.uuid4()),
             action_id=action_id,
             policy_id=policy_id,
             result=DecisionResult.ALLOW,
-            reason=reason
+            reason=reason,
+            severity=ContractSeverity.SOFT,
         )
 
     @classmethod
@@ -120,7 +136,7 @@ class Decision:
         suggestion: Optional[str] = None,
         alternative: Optional[Dict[str, Any]] = None,
     ) -> "Decision":
-        """Create a DENY decision with optional replan hints."""
+        """Create a DENY decision with hard severity and optional replan hints."""
         return cls(
             decision_id=str(uuid.uuid4()),
             action_id=action_id,
@@ -129,6 +145,7 @@ class Decision:
             reason=reason,
             suggestion=suggestion,
             alternative=alternative,
+            severity=ContractSeverity.HARD,
         )
 
     def is_denied(self) -> bool:
@@ -136,17 +153,29 @@ class Decision:
         return self.result == DecisionResult.DENY
 
     def to_dict(self) -> dict:
-        """Convert decision to dictionary for logging."""
-        result = {
+        """Convert decision to dictionary for logging (contract-compliant)."""
+        return {
             "decision_id": self.decision_id,
             "action_id": self.action_id,
             "policy_id": self.policy_id,
             "result": self.result.value,
             "reason": self.reason,
+            "suggestion": self.suggestion,
+            "alternative": self.alternative,
+            "severity": self.severity.value,
             "timestamp": self.timestamp.isoformat(),
         }
-        if self.suggestion is not None:
-            result["suggestion"] = self.suggestion
-        if self.alternative is not None:
-            result["alternative"] = self.alternative
-        return result
+
+    def to_contract(self) -> dict:
+        """
+        Convert decision to DecisionContract format.
+
+        Returns minimal contract for Planner consumption.
+        """
+        return {
+            "result": self.result.value,
+            "reason": self.reason,
+            "suggestion": self.suggestion,
+            "alternative": self.alternative,
+            "severity": self.severity.value,
+        }

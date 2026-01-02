@@ -56,16 +56,17 @@ class DecisionLogger:
 
     def _create_log_entry(self, decision: Decision, action: Action) -> dict:
         """
-        Create a structured log entry.
+        Create a structured log entry (contract-compliant).
 
         Args:
             decision: The decision
             action: The action
 
         Returns:
-            Dictionary suitable for JSON serialization
+            Dictionary suitable for JSON serialization.
+            Fields align 1:1 with DecisionContract schema.
         """
-        entry = {
+        return {
             "log_type": "policy_decision",
             "decision_id": decision.decision_id,
             "action_id": action.id,
@@ -73,16 +74,14 @@ class DecisionLogger:
             "action_target": action.target,
             "action_metadata": action.metadata,
             "policy_id": decision.policy_id,
+            # DecisionContract fields (1:1 alignment)
             "result": decision.result.value,
             "reason": decision.reason,
+            "suggestion": decision.suggestion,
+            "alternative": decision.alternative,
+            "severity": decision.severity.value,
             "timestamp": decision.timestamp.isoformat(),
         }
-        # Include replan hints if present (backward compatible)
-        if decision.suggestion is not None:
-            entry["suggestion"] = decision.suggestion
-        if decision.alternative is not None:
-            entry["alternative"] = decision.alternative
-        return entry
 
     @staticmethod
     def format_for_humans(decision: Decision, action: Action) -> str:
@@ -98,7 +97,7 @@ class DecisionLogger:
         """
         icon = "ALLOWED" if decision.result.value == "ALLOW" else "DENIED"
         lines = [
-            f"[POLICY] {icon}",
+            f"[POLICY] {icon} (severity={decision.severity.value})",
             f"  Action: {action.type} -> {action.target}",
             f"  Policy: {decision.policy_id}",
             f"  Reason: {decision.reason}",
@@ -128,22 +127,21 @@ class AuditTrail:
         self._max_entries = max_entries
 
     def record(self, decision: Decision, action: Action) -> None:
-        """Record a decision."""
+        """Record a decision (contract-compliant)."""
         entry = {
             "decision_id": decision.decision_id,
             "action_id": action.id,
             "action_type": action.type,
             "action_target": action.target,
             "policy_id": decision.policy_id,
+            # DecisionContract fields (1:1 alignment)
             "result": decision.result.value,
             "reason": decision.reason,
+            "suggestion": decision.suggestion,
+            "alternative": decision.alternative,
+            "severity": decision.severity.value,
             "timestamp": decision.timestamp,
         }
-        # Include replan hints if present (backward compatible)
-        if decision.suggestion is not None:
-            entry["suggestion"] = decision.suggestion
-        if decision.alternative is not None:
-            entry["alternative"] = decision.alternative
         self._entries.append(entry)
 
         # Trim if over limit
