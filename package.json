@@ -1,7 +1,7 @@
 {
   "name": "liye-ai",
-  "version": "6.0.0",
-  "description": "LiYe AI - AI-native personal operating system for Claude Code",
+  "version": "6.3.0",
+  "description": "LiYe OS - Governance & Architecture Reference Implementation for AI-collaborative development",
   "keywords": [
     "ai",
     "agent",
