@@ -1,0 +1,16 @@
+{
+  "action": {
+    "type": "file.write",
+    "target": ".github/workflows/ci.yml",
+    "metadata": {"tool_name": "write"}
+  },
+  "expected_contract": {
+    "result": "DENY",
+    "reason": "POL_002_file_class",
+    "suggestion": "Move change to non-governance path",
+    "alternative": {
+      "excluded_paths": [".github/workflows/"]
+    },
+    "severity": "hard"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "action": {
+    "type": "file.read",
+    "target": "README.md",
+    "metadata": {"tool_name": "read"}
+  },
+  "expected_contract": {
+    "result": "ALLOW",
+    "reason": "All policies passed",
+    "suggestion": null,
+    "alternative": null,
+    "severity": "soft"
+  }
+}
