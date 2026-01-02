@@ -100,6 +100,12 @@ LiYe OS maintains clear stability boundaries. See [ARCHITECTURE_CONTRACT.md](doc
 
 ---
 
+## Documentation
+
+- **Core (STABLE):** [`docs/README_CORE.md`](docs/README_CORE.md) - Stable kernel specification and quick start
+
+---
+
 ## Architecture Overview
 
 ```
