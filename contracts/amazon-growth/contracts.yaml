@@ -1,0 +1,364 @@
+domain: amazon-growth
+contract_version: v1.0
+
+decisions:
+
+  # =============================================================================
+  # Listing Quality Decisions
+  # =============================================================================
+
+  LISTING_INCOMPLETE:
+    version: v1.0
+    severity: warning
+    meaning: Listing is missing required content elements
+    what_it_means: >
+      The product listing lacks one or more essential components such as
+      title, bullets, description, images, or backend keywords that are
+      necessary for optimal discoverability and conversion.
+    typical_actions:
+      - complete missing listing sections
+      - add backend keywords
+      - upload additional images
+    evidence_fields:
+      - missing_fields
+      - completeness_score
+      - field_checklist
+
+  LISTING_TITLE_WEAK:
+    version: v1.0
+    severity: warning
+    meaning: Title lacks keyword optimization or clarity
+    what_it_means: >
+      The product title does not effectively communicate the product's
+      key attributes or include high-value search keywords, limiting
+      discoverability and click-through potential.
+    typical_actions:
+      - incorporate primary keywords
+      - improve title structure
+      - add brand and key features
+    evidence_fields:
+      - title_length
+      - keyword_presence
+      - title_score
+
+  # =============================================================================
+  # Traffic & Exposure Decisions
+  # =============================================================================
+
+  IMPRESSIONS_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Product visibility is below expected levels
+    what_it_means: >
+      The product is receiving fewer impressions than comparable products
+      in its category, indicating potential issues with keyword coverage,
+      advertising reach, or organic ranking.
+    typical_actions:
+      - expand keyword targeting
+      - increase advertising budget
+      - improve organic ranking factors
+    evidence_fields:
+      - impressions
+      - category_benchmark
+      - keyword_coverage
+
+  CLICK_THROUGH_RATE_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Users see the listing but do not click
+    what_it_means: >
+      The ratio of clicks to impressions is below acceptable thresholds,
+      suggesting the main image, title, price, or rating are not compelling
+      enough to attract user interest.
+    typical_actions:
+      - optimize main image
+      - improve title appeal
+      - review pricing competitiveness
+    evidence_fields:
+      - ctr
+      - category_ctr_benchmark
+      - impressions
+      - clicks
+
+  # =============================================================================
+  # Conversion & CVR Decisions
+  # =============================================================================
+
+  CONVERSION_RATE_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Listing converts traffic at a below-acceptable rate
+    what_it_means: >
+      Users are visiting the listing but not converting to purchases
+      at an expected rate compared to category benchmarks.
+    typical_actions:
+      - optimize listing images
+      - improve bullet points
+      - adjust pricing or promotion
+    evidence_fields:
+      - conversion_rate
+      - category_benchmark
+      - sessions
+      - orders
+
+  BUY_BOX_LOSS:
+    version: v1.0
+    severity: critical
+    meaning: Product has lost Buy Box ownership
+    what_it_means: >
+      The listing is no longer winning the Buy Box, meaning customers
+      see competitor offers by default, dramatically reducing sales
+      potential despite traffic.
+    typical_actions:
+      - review pricing strategy
+      - check inventory levels
+      - evaluate seller metrics
+    evidence_fields:
+      - buy_box_percentage
+      - competitor_price
+      - seller_rating
+
+  REVIEW_RATING_TOO_LOW:
+    version: v1.0
+    severity: warning
+    meaning: Product rating is below competitive threshold
+    what_it_means: >
+      The average star rating has fallen below levels that maintain
+      customer confidence and conversion rates in the category.
+    typical_actions:
+      - investigate negative reviews
+      - improve product quality
+      - enhance customer service
+    evidence_fields:
+      - average_rating
+      - category_rating_benchmark
+      - review_count
+
+  # =============================================================================
+  # Advertising Efficiency Decisions
+  # =============================================================================
+
+  ACOS_TOO_HIGH:
+    version: v1.0
+    severity: warning
+    meaning: Advertising cost exceeds acceptable efficiency threshold
+    what_it_means: >
+      Advertising spend is disproportionately high relative to ad-attributed sales,
+      indicating inefficient keyword bids, targeting, or conversion performance.
+    typical_actions:
+      - reduce keyword bids
+      - pause low-performing search terms
+      - improve listing conversion rate
+    evidence_fields:
+      - acos
+      - benchmark_acos
+      - ad_spend
+      - ad_sales
+
+  TACOS_TOO_HIGH:
+    version: v1.0
+    severity: warning
+    meaning: Total advertising cost share exceeds healthy ratio
+    what_it_means: >
+      Advertising spend as a percentage of total revenue has grown beyond
+      sustainable levels, indicating over-reliance on paid traffic or
+      declining organic performance.
+    typical_actions:
+      - improve organic ranking
+      - optimize ad efficiency
+      - review product profitability
+    evidence_fields:
+      - tacos
+      - ad_spend
+      - total_sales
+      - organic_sales_ratio
+
+  SEARCH_TERM_WASTE:
+    version: v1.0
+    severity: warning
+    meaning: Significant ad spend on non-converting search terms
+    what_it_means: >
+      A substantial portion of advertising budget is being consumed by
+      search terms that generate clicks but fail to convert, indicating
+      targeting inefficiency.
+    typical_actions:
+      - add negative keywords
+      - refine match types
+      - review search term reports
+    evidence_fields:
+      - wasted_spend
+      - non_converting_terms
+      - spend_threshold
+
+  # =============================================================================
+  # Keyword & Search Decisions
+  # =============================================================================
+
+  KEYWORD_COVERAGE_INSUFFICIENT:
+    version: v1.0
+    severity: warning
+    meaning: Product is not indexed for key search terms
+    what_it_means: >
+      The listing is missing visibility on important search queries
+      that competitors rank for, limiting total addressable traffic.
+    typical_actions:
+      - add keywords to backend
+      - incorporate terms in listing
+      - expand PPC targeting
+    evidence_fields:
+      - missing_keywords
+      - competitor_keywords
+      - coverage_percentage
+
+  RANKING_DECLINING:
+    version: v1.0
+    severity: warning
+    meaning: Organic search position is trending downward
+    what_it_means: >
+      The product's organic ranking for key search terms has deteriorated
+      over the observation period, reducing organic visibility and traffic.
+    typical_actions:
+      - boost sales velocity
+      - improve conversion rate
+      - increase advertising support
+    evidence_fields:
+      - current_rank
+      - previous_rank
+      - rank_change
+      - keyword
+
+  # =============================================================================
+  # Inventory & Supply Chain Decisions
+  # =============================================================================
+
+  STOCKOUT_RISK:
+    version: v1.0
+    severity: critical
+    meaning: Inventory depletion risk detected
+    what_it_means: >
+      Current inventory levels and sales velocity indicate a high risk
+      of stockout within the lead time window.
+    typical_actions:
+      - initiate restock immediately
+      - adjust advertising spend
+      - review supply chain lead times
+    evidence_fields:
+      - inventory_units
+      - daily_sales_velocity
+      - restock_lead_time
+
+  STOCKOUT_IMMINENT:
+    version: v1.0
+    severity: critical
+    meaning: Stockout will occur within days
+    what_it_means: >
+      Inventory will be depleted before any possible restock can arrive,
+      requiring immediate action to mitigate ranking and sales impact.
+    typical_actions:
+      - reduce advertising immediately
+      - expedite shipment if possible
+      - prepare for ranking recovery
+    evidence_fields:
+      - days_of_stock
+      - inventory_units
+      - daily_sales_velocity
+
+  # =============================================================================
+  # Pricing & Promotion Decisions
+  # =============================================================================
+
+  PRICE_TOO_HIGH:
+    version: v1.0
+    severity: warning
+    meaning: Product price exceeds competitive range
+    what_it_means: >
+      The current price point is higher than comparable competitor offers,
+      potentially reducing conversion rate and Buy Box eligibility.
+    typical_actions:
+      - review pricing strategy
+      - analyze competitor prices
+      - consider promotional discount
+    evidence_fields:
+      - current_price
+      - competitor_avg_price
+      - price_percentile
+
+  # =============================================================================
+  # Account & Policy Risk Decisions
+  # =============================================================================
+
+  ACCOUNT_HEALTH_AT_RISK:
+    version: v1.0
+    severity: critical
+    meaning: Account metrics are approaching policy thresholds
+    what_it_means: >
+      One or more account health metrics are trending toward levels
+      that could trigger warnings, restrictions, or suspension.
+    typical_actions:
+      - review account health dashboard
+      - address policy violations
+      - improve customer metrics
+    evidence_fields:
+      - order_defect_rate
+      - late_shipment_rate
+      - policy_violations
+
+  # =============================================================================
+  # Competitive Landscape Decisions
+  # =============================================================================
+
+  COMPETITOR_PRICE_UNDERCUT:
+    version: v1.0
+    severity: warning
+    meaning: Competitor has significantly lower price
+    what_it_means: >
+      A direct competitor is offering the same or similar product at
+      a meaningfully lower price, threatening market share and Buy Box.
+    typical_actions:
+      - evaluate margin for price match
+      - differentiate value proposition
+      - monitor competitor behavior
+    evidence_fields:
+      - our_price
+      - competitor_price
+      - price_gap_percentage
+
+  # =============================================================================
+  # Data Quality & Observability Decisions
+  # =============================================================================
+
+  DATA_INCOMPLETE:
+    version: v1.0
+    severity: info
+    meaning: Required data for analysis is missing
+    what_it_means: >
+      One or more data points needed to generate accurate decisions
+      are unavailable, limiting the reliability of other assessments.
+    typical_actions:
+      - verify data source connectivity
+      - check data freshness
+      - review data pipeline
+    evidence_fields:
+      - missing_fields
+      - data_source
+      - last_update
+
+  # =============================================================================
+  # System Confidence Decisions
+  # =============================================================================
+
+  DECISION_CONFIDENCE_LOW:
+    version: v1.0
+    severity: info
+    meaning: Decision was generated with below-threshold confidence
+    what_it_means: >
+      The system produced a decision but the supporting evidence or
+      signal strength is weaker than normal, warranting human review.
+    typical_actions:
+      - review evidence manually
+      - gather additional data
+      - defer action if uncertain
+    evidence_fields:
+      - confidence_score
+      - confidence_threshold
+      - limiting_factors

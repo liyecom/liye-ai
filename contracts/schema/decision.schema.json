@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LiYe OS Decision Schema",
+  "description": "Canonical schema for machine-verdict decisions in LiYe OS",
+  "type": "object",
+  "required": [
+    "decision_id",
+    "domain",
+    "severity",
+    "confidence",
+    "evidence",
+    "timestamp",
+    "version"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$",
+      "description": "Immutable decision identifier"
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["amazon-growth"],
+      "description": "Domain namespace"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "critical"],
+      "description": "Impact severity"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score of the decision"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Key metrics or signals supporting the decision"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Decision generation time (ISO 8601)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+$",
+      "description": "Decision semantic version"
+    }
+  },
+  "additionalProperties": false
+}
