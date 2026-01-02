@@ -1,0 +1,178 @@
+# =============================================================================
+# Trace Type Profiles v4.2 - Enhancement 1
+# =============================================================================
+# 不同 trace_type 有不同的最小字段集，避免"编造字段"
+# =============================================================================
+
+version: "4.2"
+last_updated: "2025-12-30"
+
+# -----------------------------------------------------------------------------
+# Profile Definitions
+# -----------------------------------------------------------------------------
+trace_type_profiles:
+
+  # === Observation: 只观测，不决策 ===
+  observation:
+    description: "纯观测记录，不包含决策"
+    use_case: "定期数据采集、异常发现、趋势追踪"
+
+    required_fields:
+      - "trace.id"
+      - "trace.created_at"
+      - "trace.agent_id"
+      - "trace.trace_type"
+      - "trace.tenant"
+      - "trace.entity"
+      - "trace.evidence"          # 必须有证据链
+      - "trace.observation"
+
+    optional_fields:
+      - "trace.analysis"          # 可以有初步分析
+      - "trace.causal_links"
+
+    forbidden_fields:
+      - "trace.decision"          # 不决策
+      - "trace.execution"         # 不执行
+      - "trace.hypothesis"        # 不提假设（用 hypothesis 类型）
+
+    validation_rules:
+      - rule: "evidence 至少1条"
+        check: "len(trace.evidence) >= 1"
+      - rule: "observation.key_metrics 至少1个指标"
+        check: "len(trace.observation.key_metrics) >= 1"
+
+  # === Hypothesis: 提出假设，待验证 ===
+  hypothesis:
+    description: "提出需要验证的假设"
+    use_case: "新策略提案、参数调整假设、因果猜想"
+
+    required_fields:
+      - "trace.id"
+      - "trace.created_at"
+      - "trace.agent_id"
+      - "trace.trace_type"
+      - "trace.tenant"
+      - "trace.hypothesis"
+      - "trace.hypothesis.hypothesis_id"
+      - "trace.hypothesis.statement"
+      - "trace.hypothesis.verification_window_days"
+      - "trace.hypothesis.success_criteria"
+
+    optional_fields:
+      - "trace.entity"
+      - "trace.evidence"
+      - "trace.observation"
+      - "trace.analysis"
+      - "trace.causal_links"
+
+    forbidden_fields:
+      - "trace.decision"          # 假设不是决策
+      - "trace.execution"         # 假设不执行
+
+    validation_rules:
+      - rule: "hypothesis_id 格式 H-XXX"
+        check: "trace.hypothesis.hypothesis_id matches H-\\d{3}"
+      - rule: "验证窗口 3-30 天"
+        check: "3 <= trace.hypothesis.verification_window_days <= 30"
+      - rule: "success_criteria 至少1条"
+        check: "len(trace.hypothesis.success_criteria) >= 1"
+
+  # === Decision: 完整决策轨迹 ===
+  decision:
+    description: "完整的决策记录，包含所有层"
+    use_case: "广告调整、内容优化、关键词操作"
+
+    required_fields:
+      - "trace.id"
+      - "trace.created_at"
+      - "trace.agent_id"
+      - "trace.trace_type"
+      - "trace.tenant"
+      - "trace.entity"
+      - "trace.evidence"
+      - "trace.observation"
+      - "trace.analysis"
+      - "trace.decision"
+      - "trace.execution"
+      - "trace.hypothesis"
+
+    optional_fields:
+      - "trace.verification"      # 后续填充
+      - "trace.causal_links"
+
+    forbidden_fields: []          # 无禁止字段
+
+    validation_rules:
+      - rule: "evidence 至少1条"
+        check: "len(trace.evidence) >= 1"
+      - rule: "decision.options_considered 至少2个"
+        check: "len(trace.decision.options_considered) >= 2"
+      - rule: "decision.rationale 不为空"
+        check: "len(trace.decision.rationale) > 10"
+      - rule: "execution.guardrail_check 必须有值"
+        check: "trace.execution.guardrail_check in ['PASS', 'BLOCK', 'ESCALATE']"
+      - rule: "analysis.priority_scores_used 必须记录"
+        check: "trace.analysis.priority_scores_used is not null"
+
+  # === Verification: 验证结果填充 ===
+  verification:
+    description: "对已有假设的验证结果"
+    use_case: "假设验证窗口结束后填充、假设状态更新"
+
+    required_fields:
+      - "trace.id"
+      - "trace.created_at"
+      - "trace.agent_id"
+      - "trace.trace_type"
+      - "trace.tenant"
+      - "trace.verification"
+      - "trace.verification.verified_at"
+      - "trace.verification.actual_outcome"
+      - "trace.verification.hypothesis_result"
+
+    optional_fields:
+      - "trace.entity"
+      - "trace.evidence"
+      - "trace.hypothesis"        # 引用原假设
+      - "trace.causal_links"
+      - "trace.verification.learning"
+      - "trace.verification.confidence_adjustment"
+
+    forbidden_fields:
+      - "trace.decision"          # 验证不是新决策
+      - "trace.execution"         # 验证不执行新动作
+
+    validation_rules:
+      - rule: "hypothesis_result 必须有值"
+        check: "trace.verification.hypothesis_result in ['confirmed', 'rejected', 'inconclusive']"
+      - rule: "actual_outcome 不为空"
+        check: "trace.verification.actual_outcome is not null"
+
+# -----------------------------------------------------------------------------
+# Validation Engine Config
+# -----------------------------------------------------------------------------
+validation_config:
+  strict_mode: true               # 严格模式：forbidden 字段存在即失败
+  allow_extra_fields: false       # 不允许额外字段
+  on_validation_fail: BLOCK       # 验证失败时阻止写入
+
+# -----------------------------------------------------------------------------
+# Usage Example
+# -----------------------------------------------------------------------------
+usage_example: |
+  # 验证 trace 是否符合其 trace_type 的 profile
+  trace_type = trace.trace_type
+  profile = trace_type_profiles[trace_type]
+
+  # 1. 检查必须字段
+  for field in profile.required_fields:
+      assert field exists in trace
+
+  # 2. 检查禁止字段
+  for field in profile.forbidden_fields:
+      assert field not exists in trace
+
+  # 3. 运行验证规则
+  for rule in profile.validation_rules:
+      assert eval(rule.check) == True

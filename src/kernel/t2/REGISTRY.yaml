@@ -1,0 +1,135 @@
+# =============================================================================
+# T2 World State Kernel Registry
+# =============================================================================
+# Status: ACTIVE
+# Version: 1.0.0
+# Role: State Abstraction (what is true now)
+# Depends On: T1_REASONING_KERNEL v2.0.0
+# =============================================================================
+
+kernel:
+  name: T2_WORLD_STATE_KERNEL
+  version: 1.0.0
+  status: ACTIVE
+  role: state_abstraction
+  stability: v1_stable
+  description: "Danger state coordinates derived from T1 causal skeleton"
+
+  dependency:
+    kernel: T1_REASONING_KERNEL
+    version: ">=2.0.0"
+    relationship: "T1 exposes causal fragility → T2 maps to current danger state"
+
+  # Core Truth
+  axiom: |
+    The world is always in some danger state.
+    The question is not "if" but "which coordinates are elevated".
+
+# -----------------------------------------------------------------------------
+# State Primitives (Minimal Set - Cannot Be Reduced)
+# -----------------------------------------------------------------------------
+# These are NOT metrics. These are DANGER STATE COORDINATES.
+# -----------------------------------------------------------------------------
+
+primitives:
+  minimal_set:
+    - id: liquidity_state
+      description: "Current availability of the resource you're counting on"
+      derived_from: T1_liquidity_illusion
+      scale: [ABUNDANT, NORMAL, TIGHT, CRITICAL]
+      question: "Can I access what I need right now?"
+
+    - id: correlation_state
+      description: "Current stability of assumed relationships"
+      derived_from: T1_correlation_regime_shift
+      scale: [STABLE, SHIFTING, BREAKING, BROKEN]
+      question: "Are my assumed correlations still holding?"
+
+    - id: expectation_state
+      description: "Current saturation level of consensus expectations"
+      derived_from: T1_expectation_saturation
+      scale: [DISTRIBUTED, CONVERGING, SATURATED, OVERCROWDED]
+      question: "How crowded is the consensus view?"
+
+    - id: leverage_state
+      description: "Current exposure to feedback amplification"
+      derived_from: T1_reflexivity_loop
+      scale: [UNLEVERAGED, MODERATE, HIGH, EXTREME]
+      question: "How much will moves be amplified?"
+
+    - id: uncertainty_state
+      description: "Current level of unknown unknowns"
+      derived_from: null  # Meta-state
+      scale: [LOW, ELEVATED, HIGH, REGIME_UNKNOWN]
+      question: "How confident can I be about any assessment?"
+
+  count: 5
+  frozen: false  # Can add, cannot remove
+  policy: "These primitives define the danger state space"
+
+# -----------------------------------------------------------------------------
+# T1 → T2 Mapping
+# -----------------------------------------------------------------------------
+
+mapping:
+  source: T1_REASONING_KERNEL
+  config: src/kernel/t2/MAP_FROM_T1.yaml
+  logic: |
+    T1 exposes causal vulnerabilities
+    T2 maps vulnerabilities to current state coordinates
+    The mapping answers: "Given T1's warnings, where are we now?"
+
+# -----------------------------------------------------------------------------
+# API Exports
+# -----------------------------------------------------------------------------
+
+api:
+  path: src/kernel/t2/api
+  exports:
+    - get_world_state         # Returns current 5-dimensional danger state
+    - get_state_dimension     # Returns single dimension state
+    - compare_state_snapshot  # Compares two state snapshots
+
+  constraints:
+    - "MUST NOT return predictions"
+    - "MUST NOT return recommendations"
+    - "MUST only describe current state"
+
+# -----------------------------------------------------------------------------
+# Budget
+# -----------------------------------------------------------------------------
+
+budget:
+  tokens: 300
+  percentage: 15
+  compliant: true
+  note: "State assessment is lightweight - most work done by T1"
+
+# -----------------------------------------------------------------------------
+# Governance
+# -----------------------------------------------------------------------------
+
+governance:
+  role: state_layer
+  policy: "Describe, never prescribe"
+
+  forbidden_outputs:
+    - "You should..."
+    - "The probability is..."
+    - "Recommended action..."
+    - "Optimal strategy..."
+
+  gates:
+    - name: t2-no-prescription
+      scope: output
+      rule: "State description only, no action language"
+      severity: BLOCK
+
+  stability:
+    level: v1_stable
+    breaking_changes_allowed: false
+    path: src/kernel/t2/STABILITY.md
+
+# =============================================================================
+# END OF REGISTRY
+# =============================================================================

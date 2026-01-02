@@ -1,0 +1,157 @@
+# =============================================================================
+# Trace Governance Gate - GitHub Actions CI
+# =============================================================================
+# Purpose: 强制治理检查，无 TRACE 不允许变更进入主干
+# Trigger: PR to main, Push to main
+# =============================================================================
+
+name: Trace Governance Gate
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  trace-governance:
+    name: Trace Governance Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run trace governance checks
+        run: |
+          echo "=== Amazon Growth OS: Trace Governance Gate ==="
+          echo ""
+
+          # Make script executable (in case git didn't preserve)
+          chmod +x scripts/trace_guard.sh 2>/dev/null || true
+
+          # Run the guard script
+          if [[ -f "scripts/trace_guard.sh" ]]; then
+            bash scripts/trace_guard.sh
+          else
+            echo "WARNING: trace_guard.sh not found, running inline checks"
+
+            # Inline fallback checks
+            ERRORS=0
+
+            # Check 1: Required config files
+            for file in "config/amazon-growth/guardrails.yaml" "config/amazon-growth/priority_score.yaml"; do
+              if [[ -f "$file" ]]; then
+                echo "[PASS] $file exists"
+              else
+                echo "[FAIL] $file missing"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+
+            # Check 2: Agent files
+            for file in "Agents/amazon-growth/intent-analyst.yaml" "Agents/amazon-growth/trace-scribe.yaml" "Agents/amazon-growth/guardrail-governor.yaml"; do
+              if [[ -f "$file" ]]; then
+                echo "[PASS] $file exists"
+              else
+                echo "[FAIL] $file missing"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+
+            # Check 3: TRACE template
+            if [[ -f "templates/trace/TRACE_TEMPLATE_v4_2.yaml" ]]; then
+              echo "[PASS] TRACE template exists"
+            else
+              echo "[FAIL] TRACE template missing"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if [[ $ERRORS -gt 0 ]]; then
+              echo ""
+              echo "[FAIL] Found $ERRORS error(s)"
+              exit 1
+            fi
+
+            echo ""
+            echo "[PASS] All inline checks passed"
+          fi
+
+      - name: Check for TRACE files in PR changes
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "=== Checking PR for operational changes ==="
+
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} || true)
+
+          # Check if any operational config was changed
+          OPERATIONAL_CHANGES=$(echo "$CHANGED_FILES" | grep -E "(Agents/amazon-growth/|config/amazon-growth/)" || true)
+
+          if [[ -n "$OPERATIONAL_CHANGES" ]]; then
+            echo "Operational files changed:"
+            echo "$OPERATIONAL_CHANGES"
+            echo ""
+            echo "INFO: Ensure any operational changes have corresponding TRACE documentation"
+          else
+            echo "No operational files changed in this PR"
+          fi
+
+      - name: Validate TRACE format in PR
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "=== Validating TRACE files in PR ==="
+
+          # Find new/modified TRACE files in the PR
+          TRACE_CHANGES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E "TRACE-.*\.(yaml|yml)$" || true)
+
+          if [[ -z "$TRACE_CHANGES" ]]; then
+            echo "No TRACE files in this PR (OK)"
+            exit 0
+          fi
+
+          echo "TRACE files in PR:"
+          echo "$TRACE_CHANGES"
+          echo ""
+
+          ERRORS=0
+          for f in $TRACE_CHANGES; do
+            if [[ ! -f "$f" ]]; then
+              continue
+            fi
+
+            echo "Validating: $f"
+
+            # Required fields check
+            if ! grep -qE '^\s*trace:\s*$' "$f"; then
+              echo "  [FAIL] Missing 'trace:' top-level key"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if ! grep -qE '^\s+id:\s*["'\'']?TRACE-' "$f"; then
+              echo "  [FAIL] Missing 'id: TRACE-*'"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if ! grep -qE '^\s+trace_type:\s*' "$f"; then
+              echo "  [FAIL] Missing 'trace_type'"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if ! grep -qE '^\s+guardrail_check:\s*["'\'']?(PASS|BLOCK|ESCALATE)' "$f"; then
+              echo "  [WARN] Missing 'guardrail_check' (required for decision type)"
+            fi
+
+            echo "  [DONE] $f"
+          done
+
+          if [[ $ERRORS -gt 0 ]]; then
+            echo ""
+            echo "[FAIL] TRACE validation failed with $ERRORS error(s)"
+            exit 1
+          fi
+
+          echo ""
+          echo "[PASS] All TRACE files valid"

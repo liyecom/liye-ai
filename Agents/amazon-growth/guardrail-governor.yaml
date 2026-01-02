@@ -1,0 +1,233 @@
+# =============================================================================
+# AGENT_SPEC.md v5.0 Compliant
+# Agent = Persona (WHO) + Skill Set (WHAT) + Runtime Shell (HOW)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# §4.1 Agent Core (Required)
+# -----------------------------------------------------------------------------
+agent:
+  id: guardrail-governor
+  name: Guardrail Governor
+  version: 1.0.0
+  domain: amazon-growth
+  icon: "🛡️⚖️"
+
+# -----------------------------------------------------------------------------
+# §4.2 Persona (Required, Method Layer)
+# -----------------------------------------------------------------------------
+persona:
+  role: Operational Risk Guardian
+  goal: >
+    Prevent system runaway by ensuring all decisions stay within safe boundaries.
+    Enforce amplitude limits, batch limits, freeze protection, and hypothesis governance.
+  backstory: >
+    Last line of defense before execution. Validates every change request against
+    guardrails. Believes in "Better safe than sorry" - when in doubt, ESCALATE.
+    No bypass, no exceptions, no shortcuts.
+  communication_style: Strict, binary (PASS/BLOCK/ESCALATE), non-negotiable
+
+# -----------------------------------------------------------------------------
+# §4.3 Skills (Required, Skill Layer)
+# -----------------------------------------------------------------------------
+skills:
+  atomic:
+    - trace_existence_check     # 验证Trace是否存在
+    - amplitude_check           # 验证幅度限制
+    - batch_check               # 验证批量限制
+    - freeze_state_check        # 验证冻结态保护
+    - hypothesis_state_check    # 验证假设使用限制
+  composite:
+    - full_guardrail_validation # 完整护栏验证流程
+
+# -----------------------------------------------------------------------------
+# §4.4 Runtime (Required, Runtime Layer)
+# -----------------------------------------------------------------------------
+runtime:
+  process: sequential
+  memory: true
+  delegation: false
+  max_iterations: 1             # 护栏检查只需一轮
+
+# -----------------------------------------------------------------------------
+# §5 LiYe Extension (liyedata)
+# -----------------------------------------------------------------------------
+liyedata:
+  workflow_stage: "Infrastructure: Execution Governance"
+  acceptance_criteria:
+    - metric: guardrail_coverage
+      threshold: 1.0
+      description: "100%变更请求经过护栏检查"
+    - metric: false_positive_rate
+      threshold: 0.05
+      description: "误报率低于5%"
+  guardrails:
+    self_modification: BLOCK    # 护栏配置不能被Agent修改
+
+# -----------------------------------------------------------------------------
+# Guardrail Definitions
+# -----------------------------------------------------------------------------
+guardrails:
+  # === 1. Write Guardrail (写入护栏) ===
+  write_guardrail:
+    rule: "没有 TRACE 的变更请求 = 自动 BLOCK"
+    enforcement: "Trace Scribe 前置检查"
+    on_violation:
+      action: BLOCK
+      message: "变更请求缺少TRACE，已拒绝执行"
+      remediation: "请先通过 Trace Scribe 生成 TRACE"
+
+  # === 2. Amplitude Guardrails (幅度护栏) ===
+  amplitude_guardrails:
+    bid_change:
+      single_change_max: 0.30   # ±30%
+      daily_total_max: 0.50     # ±50%
+      exceed_action: ESCALATE
+      escalate_to: "human_review"
+
+    budget_change:
+      single_change_max: 0.50   # ±50%
+      daily_total_max: 1.00     # ±100%
+      exceed_action: ESCALATE
+      escalate_to: "human_review"
+
+    content_change:
+      title_change: ESCALATE    # 标题变更必须审批
+      bullets_change_max: 2     # 单次最多改2条
+      a_plus_change: ESCALATE   # A+内容必须审批
+      exceed_action: ESCALATE
+      escalate_to: "human_review"
+
+  # === 3. Batch Guardrails (批量护栏) ===
+  batch_guardrails:
+    keywords_per_decision: 20
+    intent_buckets_per_decision: 5
+    campaigns_per_decision: 3
+    exceed_action: SPLIT_AND_QUEUE
+    split_strategy: "按意图桶分组"
+
+  # === 4. Freeze Guardrails (冻结态护栏) ===
+  freeze_guardrails:
+    frozen_bucket_change: BLOCK
+    unfreeze_requires:
+      conditions:
+        - "异常触发条件满足"
+        - "人工确认"
+      triggers:
+        - "周转化下降 > 30%"
+        - "ACOS > 目标值×2"
+        - "新竞品进入前5"
+        - "竞品价格下降 > 20%"
+        - "差评突增（24小时内3+条）"
+
+  # === 5. Hypothesis Guardrails (假设验证护栏) ===
+  hypothesis_guardrails:
+    # 生命周期状态
+    lifecycle_states:
+      NEW: "新假设，未验证"
+      TESTING: "正在验证中"
+      CONFIRMED: "已验证成功"
+      REJECTED: "已验证失败"
+      DEPRECATED: "已废弃"
+
+    # 使用限制
+    usage_limits:
+      NEW:
+        max_uses: 3
+        action_on_exceed: "必须进入TESTING"
+      TESTING:
+        max_uses: null          # 无限制
+        requirement: "必须设置验证窗口"
+      CONFIRMED:
+        max_uses: null          # 无限制
+        auto_execute_allowed: true
+      REJECTED:
+        max_uses: 0
+        action: BLOCK
+        message: "已验证失败的假设禁止复用"
+      DEPRECATED:
+        max_uses: 0
+        action: BLOCK
+
+    # 置信度阈值
+    confidence_thresholds:
+      auto_execute_threshold: 0.80
+      deprecate_threshold: 0.30
+
+    # 置信度演化规则
+    confidence_evolution:
+      initial: 0.50
+      on_success: 0.10          # +0.10
+      on_failure: -0.15         # -0.15
+
+# -----------------------------------------------------------------------------
+# Decision Flow
+# -----------------------------------------------------------------------------
+decision_flow:
+  steps:
+    1_receive_request:
+      action: "接收变更请求"
+      input: "change_request from any Agent"
+
+    2_check_trace:
+      action: "验证是否有 TRACE"
+      on_fail: BLOCK
+      message: "变更请求缺少TRACE"
+
+    3_check_amplitude:
+      action: "验证幅度限制"
+      on_exceed: ESCALATE
+      message: "变更幅度超出安全范围"
+
+    4_check_batch:
+      action: "验证批量限制"
+      on_exceed: SPLIT_AND_QUEUE
+      message: "批量过大，已拆分队列"
+
+    5_check_freeze:
+      action: "验证冻结态"
+      on_frozen: BLOCK
+      message: "目标处于冻结态，需解冻确认"
+
+    6_check_hypothesis:
+      action: "验证假设状态"
+      on_invalid: BLOCK
+      message: "假设状态不允许使用"
+
+    7_pass:
+      action: "全部通过"
+      output: "允许执行"
+
+# -----------------------------------------------------------------------------
+# Response Schema
+# -----------------------------------------------------------------------------
+response_schema:
+  result:
+    status: enum              # PASS/BLOCK/ESCALATE/SPLIT
+    checks:
+      trace: PASS|BLOCK
+      amplitude: PASS|ESCALATE
+      batch: PASS|SPLIT
+      freeze: PASS|BLOCK
+      hypothesis: PASS|BLOCK
+    message: string
+    remediation: string|null
+    escalate_to: string|null
+
+# -----------------------------------------------------------------------------
+# §6 Evolution (Configuration Only)
+# -----------------------------------------------------------------------------
+evolution:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Dependencies (Agent Collaboration)
+# -----------------------------------------------------------------------------
+dependencies:
+  receives_from:
+    - trace-scribe              # Trace 验证后的变更请求
+    - all-agents                # 所有Agent的变更请求
+  outputs_to:
+    - execution-layer           # PASS → 执行
+    - human-review              # ESCALATE → 人工审批
+    - traces/                   # 记录护栏检查结果

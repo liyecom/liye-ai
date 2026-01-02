@@ -1,0 +1,107 @@
+# Lift Regression Gate
+#
+# Prevents T1 modifications from causing Lift regression.
+# BLOCKING: Failed gate will prevent PR merge.
+#
+# Reference: docs/architecture/P0_5_LIFT_REPRODUCTION.md
+
+name: Lift Regression Gate
+
+on:
+  pull_request:
+    paths:
+      # T1 data files
+      - 'data/exports/T1_refined/**'
+      - '**/t1_units*.json'
+
+      # Agent code
+      - 'src/domain/geo-os/agents/**'
+
+      # Lift criteria
+      - 'docs/architecture/REASONING_LIFT*.md'
+
+      # Mechanism whitelist
+      - 'docs/architecture/T1_MECHANISM_WHITELIST.md'
+
+      # Repro pack
+      - 'src/domain/geo-os/experiments/repro_pack_v1/**'
+
+jobs:
+  regression-gate:
+    name: Lift Regression Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Run Lift Regression Gate
+        id: gate
+        run: |
+          cd src/domain/geo-os
+          python scripts/lift_regression_gate.py
+        continue-on-error: false
+
+      - name: Gate Result
+        if: failure()
+        run: |
+          echo "::error::Lift Regression Gate FAILED"
+          echo ""
+          echo "This PR modifies T1-related files and has caused Lift regression."
+          echo ""
+          echo "Required Actions:"
+          echo "  1. Review the gate output above"
+          echo "  2. Analyze root cause of regression"
+          echo "  3. Provide alternative mechanism or justification"
+          echo "  4. Request human review if regression is intentional"
+          echo ""
+          echo "Reference: docs/architecture/P0_5_LIFT_REPRODUCTION.md"
+          exit 1
+
+  # Additional check: Ensure no blacklist mechanisms are used
+  mechanism-check:
+    name: Mechanism Whitelist Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for Blacklist Patterns
+        run: |
+          echo "Checking for blacklist mechanism patterns..."
+
+          # Patterns from T1_MECHANISM_WHITELIST.md Blacklist
+          BLACKLIST_PATTERNS=(
+            "best_practice"
+            "step.by.step"
+            "tutorial"
+            "tip.*trick"
+            "我认为"
+            "根据我的经验"
+            "通常.*建议"
+          )
+
+          FOUND_ISSUES=0
+
+          for pattern in "${BLACKLIST_PATTERNS[@]}"; do
+            if grep -riE "$pattern" src/domain/geo-os/experiments/repro_pack_v1/ 2>/dev/null; then
+              echo "::warning::Found blacklist pattern: $pattern"
+              FOUND_ISSUES=$((FOUND_ISSUES + 1))
+            fi
+          done
+
+          if [ $FOUND_ISSUES -gt 0 ]; then
+            echo "::warning::Found $FOUND_ISSUES potential blacklist mechanism usages"
+          else
+            echo "✅ No blacklist patterns found"
+          fi

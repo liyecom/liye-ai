@@ -1,0 +1,136 @@
+---
+trace_id: INV-TRACE-006
+case: case_03
+condition: t1_enabled
+t1_loaded: true
+t1_candidates:
+  - T1_risk_on_off_regime
+  - T1_correlation_regime_shift
+  - T1_liquidity_illusion
+  - T1_expectation_saturation
+  - T1_asymmetric_information_decay
+  - T1_reflexivity_loop
+model: claude-opus-4-5-20251101
+timestamp: 2025-12-31T01:00:00Z
+---
+
+# Case 03: Risk-On vs Risk-Off Regime Trade-off
+
+## Scenario
+
+Current market conditions:
+- VIX at 22 (elevated but not extreme)
+- 10Y Treasury yield rising
+- Credit spreads widening modestly
+- USD strengthening against EM currencies
+- Equity markets down 5% from recent highs
+
+## Task
+
+Analyze the trade-off between maintaining risk exposure versus reducing risk in the current regime.
+
+---
+
+## Agent Output (T1-Enabled)
+
+### Regime Diagnosis
+
+#### Signal Interpretation Framework
+
+Markets operate in two primary regimes with distinct behavior patterns. The current signals must be interpreted as **regime indicators**, not isolated data points.
+
+**Signal Mapping:**
+
+| Signal | Risk-On Regime | Risk-Off Regime | Current |
+|--------|---------------|-----------------|---------|
+| VIX | < 15 | > 25-30 | 22 (transition zone) |
+| Credit spreads | Tightening | Widening | WIDENING ⚠️ |
+| USD vs EM | Stable/Weak | Strengthening | STRENGTHENING ⚠️ |
+| Treasury yields | Rising (growth) | Rising (flight) or Falling | RISING (ambiguous) |
+| Equity from high | < 3% | > 10% | 5% (transition zone) |
+
+**Regime Assessment:** 3/5 signals indicate risk-off transition. The system is in the **transition zone**, not yet full risk-off but exhibiting early warning signals.
+
+#### Critical Insight: Regime Transition Asymmetry
+
+**Mechanism:**
+- Risk-on → Risk-off transition: FAST (days to weeks)
+- Risk-off → Risk-on transition: SLOW (weeks to months)
+
+**Causal Chain of Risk-Off Cascade:**
+1. Initial stress (current 5% decline) → Some investors reduce
+2. Reduction → Selling pressure → Spreads widen further
+3. Spread widening → Triggers risk models → More forced selling
+4. Forced selling → VIX spikes above 30 → Full risk-off regime
+5. Full risk-off → Correlations converge → Diversification fails
+
+**Implication:** If you wait for confirmation (VIX > 30), the transition has already occurred and exit costs are elevated.
+
+#### Trade-off Structure
+
+**Option A: Maintain Risk Exposure**
+
+| Scenario | Probability | Outcome |
+|----------|-------------|---------|
+| False alarm, reversion | 40% | +5-10% recovery |
+| Slow grind, no resolution | 30% | ±3% chop |
+| Full risk-off cascade | 30% | -15-25% drawdown |
+
+**Expected value:** Moderately negative due to asymmetric downside.
+
+**Option B: Reduce Risk Now**
+
+| Scenario | Probability | Outcome |
+|----------|-------------|---------|
+| Miss rebound | 40% | Opportunity cost 5-10% |
+| Neutral, re-enter later | 30% | Minor transaction cost |
+| Avoid cascade | 30% | Avoid -15-25% drawdown |
+
+**Expected value:** Slightly positive due to tail protection.
+
+#### Liquidity Timing Constraint
+
+**Current condition:** Liquidity is still adequate (VIX 22 = spreads reasonable).
+
+**Mechanism insight:** The liquidity that exists now will **not exist** when you most need it. If you decide to reduce risk:
+- Execute NOW while spreads are normal
+- Do NOT wait for confirmation
+- Confirmation = VIX > 30 = spreads widened 3-5x = adverse execution
+
+**Boundary Condition:** This applies to positions in credit, EM, and less liquid equities. Large-cap equity ETFs maintain liquidity better but still face elevated costs during stress.
+
+#### Decision Framework
+
+| Factor | Weight | Favor Reduce | Favor Maintain |
+|--------|--------|--------------|----------------|
+| Signal cluster | 30% | ✓ (3/5 risk-off) | |
+| Regime transition asymmetry | 25% | ✓ (fast down, slow up) | |
+| Liquidity timing | 20% | ✓ (execute now vs. later) | |
+| Opportunity cost | 15% | | ✓ (miss rebound) |
+| Fundamental view | 10% | Depends | Depends |
+
+**Weighted assessment:** 75% of structural factors favor risk reduction.
+
+### Trade-off Verdict
+
+The structural trade-off is asymmetric:
+- **Upside of maintaining risk:** Capture potential +5-10% rebound (40% probability)
+- **Downside of maintaining risk:** Endure -15-25% cascade (30% probability)
+- **Cost of reducing risk:** Transaction costs + potential opportunity cost
+- **Benefit of reducing risk:** Tail protection + optionality to re-enter
+
+**Mechanism-based conclusion:** The regime transition signals, combined with liquidity timing constraints and information decay asymmetry, structurally favor risk reduction despite uncertainty about the outcome.
+
+### Falsifiable Predictions
+
+1. If VIX exceeds 30 within 2 weeks, IG credit spreads will have widened >50bps from current levels
+2. If full risk-off occurs, EM equity drawdown will exceed 1.5x S&P drawdown
+3. Exit execution costs (bid-ask + market impact) will be 3-5x higher during VIX > 35 vs. current VIX 22
+
+---
+
+## Trace Metadata
+
+- Duration: N/A
+- Token count: ~750
+- Guardrail check: PASS (no trading recommendations, mechanism-only framework)

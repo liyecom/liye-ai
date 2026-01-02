@@ -1,0 +1,72 @@
+{
+  "id": "bsr_velocity_acceleration_01",
+  "domain": "bsr",
+  "mechanism_type": "causal_chain",
+  "name": "Sales Velocity Acceleration",
+  "description": "销售速度加速机制：销量增长率而非绝对销量驱动 BSR 上升",
+
+  "trigger_conditions": [
+    "产品处于排名上升期",
+    "需要加速 BSR 提升",
+    "有额外流量/转化资源可投入"
+  ],
+
+  "causal_chain": "销售速度提升 → A9 检测到增长信号 → 分配更多曝光 → 正向飞轮 → BSR 上升",
+
+  "mechanism_logic": {
+    "core_insight": "A9 算法更关注销量变化率（加速度）而非绝对销量",
+    "velocity_formula": "velocity_score = (sales_today / sales_7day_avg) × recency_weight",
+    "acceleration_tiers": [
+      {
+        "tier": "explosive_growth",
+        "condition": "velocity_score > 2.0",
+        "bsr_effect": "rapid climb (multiple positions/day)",
+        "sustainability": "unsustainable, prepare for decay"
+      },
+      {
+        "tier": "healthy_growth",
+        "condition": "1.2 < velocity_score ≤ 2.0",
+        "bsr_effect": "steady improvement",
+        "sustainability": "sustainable with consistent effort"
+      },
+      {
+        "tier": "maintenance",
+        "condition": "0.8 ≤ velocity_score ≤ 1.2",
+        "bsr_effect": "stable position",
+        "sustainability": "stable, but vulnerable to competitors"
+      },
+      {
+        "tier": "decay",
+        "condition": "velocity_score < 0.8",
+        "bsr_effect": "gradual decline",
+        "sustainability": "requires intervention"
+      }
+    ],
+    "recency_weight": {
+      "today": 1.0,
+      "yesterday": 0.8,
+      "day_before": 0.6,
+      "older": 0.4
+    }
+  },
+
+  "expected_effect": "通过控制销售速度：在关键期（新品期/旺季前）集中资源加速 → 建立排名护城河",
+
+  "boundary_conditions": [
+    "绝对销量仍然重要，速度是边际因素",
+    "类目竞争激烈时，速度阈值更高",
+    "人为刷单速度过快会触发风控"
+  ],
+
+  "anti_patterns": [
+    "追求绝对销量忽视速度节奏",
+    "新品期过于保守（错过加速窗口）",
+    "速度波动过大（被识别为异常）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#platform_mechanism",
+  "bound_cases": ["case_12"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

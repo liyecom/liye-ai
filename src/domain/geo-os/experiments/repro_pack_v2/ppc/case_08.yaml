@@ -1,0 +1,58 @@
+# Case 08: Bid Strategy Escalation Validation
+# Bound Mechanism: ppc_bid_strategy_escalation_01
+
+case_id: case_08
+domain: ppc
+bound_mechanism: ppc_bid_strategy_escalation_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "高效关键词竞价优化决策"
+  context: |
+    某 Campaign 中存在多个关键词表现差异大：
+    - Keyword A: ACoS 12%（Target 25%），点击数 150
+    - Keyword B: ACoS 45%（Target 25%），点击数 80
+    - Keyword C: ACoS 24%（Target 25%），点击数 35
+  question: "应该如何调整这三个关键词的竞价？"
+
+baseline:
+  response_pattern: |
+    通用建议："降低高 ACoS 词的竞价，提升低 ACoS 词的竞价"
+    缺失：
+    - 无具体调整幅度
+    - 未考虑数据量阈值（C 只有 35 点击）
+    - 无分层决策逻辑
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Bid Strategy Escalation 机制：
+
+    1. Keyword A（ACoS 12% vs Target 25%）
+       - Tier: aggressive_increase（ACoS < Target × 0.5）
+       - Action: bid += 30%
+       - Rationale: 高效词，值得抢占更多曝光
+
+    2. Keyword B（ACoS 45% vs Target 25%）
+       - Tier: moderate_decrease（Target × 1.2 < ACoS ≤ Target × 1.5）
+       - Action: bid -= 15%
+       - Rationale: 效率略低，温和收缩
+
+    3. Keyword C（ACoS 24%）
+       - Tier: N/A（数据不足）
+       - Action: 维持观察，积累至 50+ 点击
+       - Rationale: 35 点击未达决策阈值（20 clicks minimum）
+  mechanism_used:
+    - ppc_bid_strategy_escalation_01
+  lift_dimensions:
+    causal_explicitness: "+2（明确的 tier-action 映射）"
+    assumption_clarity: "+1（阈值假设清晰）"
+    hallucination_risk: "-1（有数据支撑）"
+    actionability: "+2（具体百分比建议）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

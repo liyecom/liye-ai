@@ -1,0 +1,70 @@
+# Case 10: Match Type Drift Control Validation
+# Bound Mechanism: ppc_match_type_drift_control_01
+
+case_id: case_10
+domain: ppc
+bound_mechanism: ppc_match_type_drift_control_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "Broad Match 语义漂移诊断"
+  context: |
+    Broad Match 投放词："wireless phone charger"
+    Search Term Report 匹配到：
+    - "wireless phone charger fast": 相关，高转化
+    - "phone case wireless charging": 边缘相关，中等转化
+    - "wireless earbuds charger": 语义漂移，低转化
+    - "wireless router for phone": 严重漂移，0 转化
+  question: "如何处理这些匹配结果？"
+
+baseline:
+  response_pattern: |
+    通用建议："把不好的词加 negative"
+    缺失：
+    - 未识别漂移程度
+    - 未提供系统性策略
+    - 未考虑保留哪些扩展
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Match Type Drift Control 机制：
+
+    漂移分析（semantic_distance to "wireless phone charger"）：
+    - "wireless phone charger fast": distance ~0.1（无漂移）
+    - "phone case wireless charging": distance ~0.4（轻度漂移）
+    - "wireless earbuds charger": distance ~0.7（显著漂移）
+    - "wireless router for phone": distance ~0.9（严重漂移）
+
+    处理策略：
+
+    1. phrase_to_exact_graduation
+       - 提取 "wireless phone charger fast" 为 Exact Match
+       - 独立投放，锁定高效意图
+
+    2. broad_to_phrase_tightening
+       - 原 Broad "wireless phone charger" 改为 Phrase
+       - 阻止 earbuds/router 等跨品类扩展
+
+    3. negative_isolation
+       - Exact Negative: "wireless earbuds charger"
+       - Exact Negative: "wireless router"
+       - 阻断已识别的漂移路径
+
+    4. intent_cluster_monitoring
+       - 观察 "phone case wireless charging"
+       - 如持续有转化，可独立为新 Campaign
+  mechanism_used:
+    - ppc_match_type_drift_control_01
+  lift_dimensions:
+    causal_explicitness: "+2（漂移-策略映射）"
+    assumption_clarity: "+1（distance 阈值明确）"
+    hallucination_risk: "-1（基于 Search Term 数据）"
+    actionability: "+2（具体操作步骤）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

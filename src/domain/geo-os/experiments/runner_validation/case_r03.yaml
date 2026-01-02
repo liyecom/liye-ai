@@ -1,0 +1,65 @@
+# Case R03: Verdict Stability Verification
+# Tests: Stub → LLM transition does not change verdict
+
+case_id: case_r03
+type: verdict_stability
+created: 2025-12-31
+status: LOCKED
+
+description: |
+  Verifies that switching from Stub LLM to Real LLM does not
+  change the verdict on existing cases. The output content may
+  differ, but the final verdict must remain stable.
+
+test_config:
+  mechanism_id: listing_bullet_role_differentiation_01
+  domain: listing
+  reference_case: case_16
+
+input_contract:
+  domain: listing
+  t1_units_used:
+    - listing_bullet_role_differentiation_01
+  case_id: case_r03
+  context_data:
+    bullets:
+      - "Premium quality wireless charger made with high-grade materials"
+      - "Durable construction with premium aluminum alloy body"
+      - "Built with top-quality components for long-lasting use"
+      - "Fast 15W charging compatible with iPhone and Android"
+      - "30-day money back guarantee and 12-month warranty"
+  question: "Are there role overlaps in these bullets?"
+
+verdict_definition:
+  positive_indicators:
+    - trigger_match is true
+    - applicable_rules contains overlap detection
+    - recommended_actions contains role differentiation
+  negative_indicators:
+    - trigger_match is false
+    - empty applicable_rules
+
+stability_requirements:
+  stub_verdict: POSITIVE_LIFT
+  llm_verdict: POSITIVE_LIFT
+  allowed_differences:
+    - Exact wording of rules (semantic equivalence OK)
+    - Order of items in arrays
+    - Specific action phrasing
+
+pass_criteria:
+  - Stub output produces POSITIVE_LIFT verdict
+  - LLM output produces POSITIVE_LIFT verdict
+  - Verdict matches between stub and LLM
+  - Core trigger_match value is stable
+
+fail_triggers:
+  - Verdict changes between stub and LLM
+  - trigger_match flips between runs
+  - LLM introduces new mechanism not in t1_units_used
+
+comparison_protocol:
+  step_1: "Run with Stub LLM, record verdict"
+  step_2: "Run with Real LLM, record verdict"
+  step_3: "Compare verdicts (must match)"
+  step_4: "Document any content differences (informational only)"

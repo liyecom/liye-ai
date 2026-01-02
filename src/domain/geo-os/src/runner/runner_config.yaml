@@ -1,0 +1,48 @@
+# Deterministic LLM Runner Configuration
+# ========================================
+# STATUS: FROZEN
+#
+# ANY modification to this file requires:
+# 1. Human approval (PR review)
+# 2. Justification document
+# 3. All Runner Cases must PASS
+# 4. Regression Gate must PASS
+#
+# Reference: docs/architecture/P2_DETERMINISTIC_LLM_RUNNER.md
+
+# LLM Provider Configuration
+llm:
+  provider: openai
+  model: gpt-5.2
+  temperature: 0.0      # FROZEN - No randomness allowed
+  top_p: 1.0            # FROZEN - No sampling variance
+  max_tokens: 2048
+
+# Execution Configuration
+execution:
+  retries: 0            # FROZEN - No retry variance
+  parallel: false       # FROZEN - Deterministic execution order
+  timeout_sec: 60
+
+# Determinism Enforcement
+determinism:
+  enforce_schema: true        # FROZEN - Always validate output schema
+  reject_free_text: true      # FROZEN - Reject prose/explanations
+  hash_outputs: true          # FROZEN - Hash all outputs for verification
+
+# Schema Configuration
+schema:
+  version: "1.0.0"
+  strict_mode: true           # Extra fields cause FAIL
+
+# Audit Configuration
+audit:
+  log_all_calls: true
+  log_hashes: true
+  log_path: "logs/runner/"
+
+# Freeze Metadata
+_freeze:
+  frozen_at: "2025-12-31"
+  frozen_by: "P2_DETERMINISTIC_LLM_RUNNER"
+  modification_requires: ["human_approval", "justification", "all_tests_pass"]

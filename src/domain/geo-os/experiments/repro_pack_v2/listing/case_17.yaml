@@ -1,0 +1,91 @@
+# Case 17: Information Redundancy Suppression Validation
+# Bound Mechanism: listing_redundancy_suppression_01
+
+case_id: case_17
+domain: listing
+bound_mechanism: listing_redundancy_suppression_01
+created: 2025-12-31
+status: LOCKED
+
+scenario:
+  title: "Listing 信息冗余诊断"
+  context: |
+    产品 Listing（蓝牙耳机）：
+
+    Title: "Wireless Bluetooth Earbuds with Premium Sound Quality and
+           Long Battery Life - True Wireless Earbuds with Premium Audio"
+
+    Bullet 1: "Premium sound quality with deep bass and crystal clear highs"
+
+    Description 开头: "These wireless Bluetooth earbuds deliver premium
+                      sound quality with deep bass..."
+
+    用户反馈："说了很多但不知道重点是什么"
+  question: "信息冗余在哪里？如何优化？"
+
+baseline:
+  response_pattern: |
+    通用建议："内容需要更简洁"
+    缺失：
+    - 未识别具体冗余类型
+    - 未量化冗余程度
+    - 无信息架构建议
+  lift_score: 0
+
+t1_enabled:
+  expected_response: |
+    基于 Information Redundancy Suppression 机制：
+
+    冗余检测：
+
+    1. CROSS_SECTION_REPEAT（跨区重复）
+       - Title 中 "premium sound quality" 出现
+       - Bullet 1 中 "premium sound quality" 重复
+       - Description 中 "premium sound quality" 再次重复
+       - Similarity: 0.85 >> 0.7 阈值
+       - Severity: HIGH
+
+    2. INTRA_TITLE_REPEAT（标题内重复）
+       - "Wireless...Earbuds" 出现 2 次
+       - "Premium" 出现 2 次
+       - 浪费 200 字符标题空间的 30%+
+       - Severity: MEDIUM
+
+    3. KEYWORD_STUFFING（关键词堆砌）
+       - "Wireless Bluetooth" 语义重复
+       - "True Wireless" 再次强调 wireless
+       - Severity: LOW
+
+    抑制方案：
+
+    1. Title 优化（DIFFERENTIATE）
+       原: "Wireless Bluetooth Earbuds with Premium Sound Quality and
+            Long Battery Life - True Wireless Earbuds with Premium Audio"
+
+       改: "Bluetooth 5.3 Earbuds - 40H Playtime, IPX7 Waterproof,
+            aptX HD Audio for iPhone & Android"
+
+       变化：删除重复，增加具体规格
+
+    2. 信息架构重分配：
+       - Title: 核心规格（版本、续航、防水）
+       - Bullet 1: 音质细节（aptX、驱动单元）
+       - Description: 使用场景故事化
+
+    3. 预期效果：
+       - 信息密度 +40%
+       - 关键信息曝光率提高
+       - CVR +5-10%
+  mechanism_used:
+    - listing_redundancy_suppression_01
+  lift_dimensions:
+    causal_explicitness: "+2（冗余类型-影响映射）"
+    assumption_clarity: "+1（相似度阈值）"
+    hallucination_risk: "-1（基于实际内容）"
+    actionability: "+2（具体改写 + 架构）"
+  total_lift: "+4"
+
+evaluation:
+  method: blind_comparison
+  evaluator: human_expert
+  lift_confirmed: pending

@@ -8,11 +8,17 @@ Modes:
 - launch: New product launch with keyword discovery and listing optimization
 - optimize: Existing ASIN optimization with diagnosis and PPC audit
 
+World Model Gate (v6.2.0):
+- All executions MUST pass World Model Gate before proceeding
+- Generates T1/T2/T3 analysis with trace and artifact
+- Use --dry-run to only generate World Model without execution
+
 MCP Integration:
 - Uses MCPToolProvider for standardized tool access (v5.0)
 - Falls back to direct tools if MCP initialization fails
 
 See: docs/architecture/MCP_SPEC.md
+See: docs/architecture/WORLD_MODEL_CONSTITUTION.md
 """
 
 import os
@@ -27,9 +33,20 @@ from dotenv import load_dotenv
 from datetime import datetime
 import json
 
+# Import SSOT Agent Loader
+from agent_loader import load_agents_from_ssot
+
 # Add project root to path for MCP imports
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
+
+# Import World Model Gate (v6.2.0)
+from src.kernel.world_model import (
+    run_world_model,
+    ValidationError,
+    WorldModelInvalidError,
+    WORLD_MODEL_REQUIRED,
+)
 
 # Load environment variables
 load_dotenv()
@@ -233,6 +250,7 @@ def main():
     parser.add_argument('--file_path', type=str, required=False, help='Path to Data File (Excel/CSV)')
     parser.add_argument('--use-mcp', action='store_true', default=True, help='Use MCP tools (default: True)')
     parser.add_argument('--no-mcp', action='store_true', help='Disable MCP, use direct tools')
+    parser.add_argument('--dry-run', action='store_true', help='Only run World Model Gate, do not execute actual operations')
 
     # Launch Mode Arguments
     parser.add_argument('--product', type=str, help='Product Name (Launch Mode)')
@@ -269,9 +287,9 @@ def main():
     # Always prepare fallback tools
     fallback_tools = get_fallback_tools()
 
-    # Load Shared Agents Config
+    # Load Shared Agents Config from SSOT (Agents/amazon-growth/)
     config_dir = Path(__file__).parent / "config"
-    agents_config = load_config(str(config_dir / 'agents.yaml'))
+    agents_config = load_agents_from_ssot()  # SSOT: Agents/amazon-growth/*.yaml
 
     # --- MODE SELECTION ---
     if args.mode == 'launch':
@@ -375,6 +393,61 @@ def main():
             'asin': args.asin,
             'file_path': args.file_path
         }
+
+    # ============================================
+    # World Model Gate (v6.2.0) - REQUIRED
+    # ============================================
+    # Build task description for World Model
+    if args.mode == 'launch':
+        task_desc = f"Launch new product: {args.product} in {args.market}"
+    else:
+        task_desc = f"Optimize ASIN: {args.asin}"
+
+    print("\n" + "=" * 60)
+    print("🧠 WORLD MODEL GATE - Generating T1/T2/T3 Analysis")
+    print("=" * 60)
+
+    try:
+        world_model_result, trace_path, artifact_path = run_world_model(
+            domain="amazon-growth",
+            task=task_desc,
+            context={
+                "user_input": task_desc,
+                "mode": args.mode,
+                "inputs": inputs,
+                "data_sources": ["user_input", "world_model_units"],
+            }
+        )
+
+        print(f"✅ World Model Gate PASSED")
+        print(f"   Trace ID: {world_model_result['audit']['trace_id']}")
+        print(f"   Trace File: {trace_path}")
+        print(f"   Report File: {artifact_path}")
+        print(f"   Failure Modes: {len(world_model_result['t1']['failure_modes'])}")
+        print(f"   Not Telling You: {len(world_model_result['t1']['not_telling_you'])}")
+        print(f"   Allowed Actions: {len(world_model_result['allowed_actions']['allowed'])}")
+        print(f"   Not Allowed: {len(world_model_result['allowed_actions']['not_allowed'])}")
+        print("=" * 60 + "\n")
+
+    except ValidationError as e:
+        print(f"❌ World Model Gate FAILED - Validation Error")
+        for error in e.errors:
+            print(f"   - {error}")
+        print("\nExecution blocked. Fix World Model issues before proceeding.")
+        raise WorldModelInvalidError.from_validation(e.errors) from e
+    except WorldModelInvalidError:
+        # Re-raise WorldModelInvalidError as-is
+        raise
+    except Exception as e:
+        print(f"❌ World Model Gate FAILED - {type(e).__name__}: {e}")
+        raise WorldModelInvalidError(f"World Model generation failed: {e}") from e
+
+    # Dry-run mode: Stop after World Model generation (HARD RETURN)
+    if args.dry_run:
+        print("🔍 DRY-RUN MODE: World Model generated successfully")
+        print(f"\n📄 Review the World Model report at: {artifact_path}")
+        print("✋ STOPPED BEFORE EXECUTION - Use without --dry-run to proceed")
+        sys.exit(0)  # Hard exit, never reach kickoff()
 
     # Execute
     result = crew.kickoff(inputs=inputs)

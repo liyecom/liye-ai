@@ -1,360 +1,124 @@
-# LiYe AI
+# LiYe AI · Personal Operating System
 
-> 让 AI 帮你干活的私人操作系统
+> **让盲目自信在结构上不可能发生。**
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.1.0-green.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-6.0.0-blue.svg)](https://github.com/liyecom/liye-ai)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 
----
-
-## 一句话介绍
-
-**LiYe AI** 是一个帮你管理多个 AI 助手的系统。就像你有一个私人团队，每个成员擅长不同的事，你只需要说一声"帮我分析这个产品"，团队就会自动分工、协作、交付结果。
+LiYe OS 是一个 **AI-native 个人操作系统**，为 Claude Code 提供领域知识和推理框架。
 
 ---
 
-## 这东西能干嘛？
+## 核心理念
 
-### 场景 1：亚马逊卖家
+**世界模型不告诉你该做什么，它确保你无法忽视世界实际的样子。**
 
-你在做跨境电商，每天要：
-- 分析竞品关键词
-- 优化产品标题
-- 调整广告投放
-
-**用 LiYe AI：** 告诉它你的产品链接，它会自动派出"市场分析师"、"关键词专家"、"广告优化师"三个 AI 助手协同工作，几分钟后给你一份完整的优化建议。
-
-### 场景 2：医疗研究者
-
-你在做文献综述，需要：
-- 搜索相关论文
-- 筛选高质量文献
-- 整理证据等级
-
-**用 LiYe AI：** 它会派出"文献检索员"和"证据分析师"，按照 GRADE 标准帮你完成系统综述的初稿。
-
-### 场景 3：知识工作者
-
-你有一堆 PDF、Word 文档需要整理成结构化数据。
-
-**用 LiYe AI：** 它会帮你自动提取、分类、输出成干净的格式。
+| 传统 AI 助手 | LiYe OS |
+|-------------|---------|
+| "这个股票会涨" | "当前流动性紧张，预期已饱和" |
+| 直接给建议 | 暴露因果链和假设 |
+| 隐藏不确定性 | 明确说明"这不告诉你什么" |
 
 ---
 
-## 核心概念（60 秒理解）
+## 使用方式
 
-把 LiYe AI 想象成一个**公司**：
-
-| 概念 | 类比 | 作用 |
-|------|------|------|
-| **智能体** | 员工 | 有特定技能的 AI 助手，比如"分析师"、"写手" |
-| **团队** | 部门 | 多个智能体组成，一起完成复杂任务 |
-| **技能** | 岗位职责 | 智能体能做的事，比如"关键词分析" |
-| **工作流** | 工作手册 | 预设好的流程，比如"新品上架流程" |
-
-**举个例子：**
-> 你说："帮我优化这个亚马逊产品"
->
-> 系统派出"分析团队"（3 个智能体），按照"产品优化流程"（工作流），各自发挥"数据分析"、"文案撰写"、"广告投放"等技能，最后汇总成一份报告给你。
-
----
-
-## 核心创新：上下文编译器
-
-**一句话**：根据你的任务，自动让 Claude 变成专家。
-
-### 它是怎么工作的？
+**在 Claude Code 中直接说：**
 
 ```
-你说："帮我优化 Amazon Listing"
-        ↓
-编译器听到关键词 "amazon" "listing"
-        ↓
-自动加载相关知识：
-  ├── 运营规则（本地知识包）
-  ├── Listing 优化技能（远程技能库）
-  └── 电商专家角色（远程角色库）
-        ↓
-Claude 立刻变成"亚马逊运营专家"
+分析ASIN：B08SVXGTRT
+分析Google公司的财报
+研究这个医学论文的方法论
 ```
 
-### 快速使用
+Claude Code 自动：
+1. 读取 CLAUDE.md 识别任务类型
+2. 加载对应的 Pack（operations / research / infrastructure）
+3. 应用相关的 Agents 和 Skills
+4. 执行任务
+
+**就这么简单。不需要额外命令。**
+
+---
+
+## 架构
+
+```
+liye_os/
+├── CLAUDE.md              # 启动配置（Claude Code 读取）
+├── .claude/packs/         # 领域知识包
+│   ├── operations.md      # Amazon/跨境/电商
+│   ├── research.md        # 医疗/研究
+│   └── infrastructure.md  # 架构/配置
+│
+├── src/kernel/            # 世界模型内核
+│   ├── t1/                # T1 推理内核
+│   ├── t2/                # T2 世界状态
+│   └── t3/                # T3 世界动态
+│
+├── Agents/                # Agent 定义
+│   ├── core/              # 核心代理
+│   └── amazon-growth/     # 领域代理
+│
+├── Skills/                # 方法论与 SOP
+│   └── 12 个领域模块
+│
+└── docs/                  # 文档
+```
+
+---
+
+## 世界模型内核
+
+三层认知流水线，**不预测、不推荐、不优化**：
+
+| 层 | 问题 | 输出 |
+|----|------|------|
+| T1 | 压力下哪里会失败？ | 因果链、假设暴露 |
+| T2 | 当前危险状态？ | 5维坐标（流动性/相关性/预期/杠杆/不确定性） |
+| T3 | 状态如何演变？ | 形态描述（加速/放大/相变） |
+
+**约束**：每个输出必须包含"这不告诉你什么..."
+
+---
+
+## 领域系统
+
+| 领域 | Pack | 触发词 |
+|------|------|--------|
+| Amazon Growth OS | operations.md | amazon, asin, ppc, listing |
+| Investment OS | research.md | 财报, 股票, 投资 |
+| Medical OS | research.md | 医疗, 治疗, 临床 |
+
+---
+
+## 开发
 
 ```bash
-# 根据任务自动加载知识
-node .claude/scripts/assembler.mjs --task "帮我优化 Amazon Listing"
-
-# 查看编译后的上下文
-cat .claude/.compiled/context.md
-```
-
-### 三层知识来源
-
-| 层级 | 来源 | 说明 | 数量 |
-|------|------|------|------|
-| **Packs** | 本地 | 你的业务知识（运营、研究、架构） | 4 个 |
-| **Skills** | 远程 | 能力技能库 | 35+ |
-| **Roles** | 远程 | 专家角色库 | 100+ |
-
-### 智能仲裁
-
-当加载了太多角色时，编译器会自动筛选：
-
-```
-📊 编译结果:
-   - 匹配到角色: 5 个
-   - 实际加载: 3 个（上限）
-   - 被筛掉: 2 个
-   - 筛掉原因: voltagent:devops-engineer（优先级低）
-```
-
-**规则**：
-- 最多加载 3 个角色（避免 Claude 人格分裂）
-- BMad Method 角色 > VoltAgent 角色（方法论 > 通用）
-- 本地知识 > 远程知识（你的规则最重要）
-
----
-
-## 快速开始
-
-### 前置条件
-
-- Node.js 18+
-- Claude Code CLI（[安装指南](https://claude.ai/claude-code)）
-- Anthropic API Key
-
-### 安装步骤
-
-```bash
-# 1. 下载项目
+# 克隆仓库
 git clone https://github.com/liyecom/liye-ai.git
 cd liye-ai
 
-# 2. 安装依赖
-npm install
-
-# 3. 测试上下文编译器
-node .claude/scripts/assembler.mjs --task "测试任务"
-
-# 4. 在 Claude Code 中使用
-# 打开 Claude Code，它会自动读取 CLAUDE.md 和编译后的上下文
-```
-
-### 典型工作流
-
-```bash
-# 步骤 1：告诉编译器你要做什么
-node .claude/scripts/assembler.mjs --task "帮我分析亚马逊关键词"
-
-# 步骤 2：启动 Claude Code
-claude
-
-# 步骤 3：Claude 已经是专家了，直接开始干活
-```
-
----
-
-## 项目结构
-
-```
-liye-ai/
-├── CLAUDE.md              ← 入口配置（Claude 首先读这个）
-├── .claude/
-│   ├── scripts/
-│   │   └── assembler.mjs  ← 上下文编译器（核心）
-│   ├── packs/             ← 本地知识包
-│   │   ├── operations.md  ← 运营知识
-│   │   ├── research.md    ← 研究知识
-│   │   └── infrastructure.md ← 架构知识
-│   └── .compiled/         ← 编译输出（自动生成）
-├── Agents/                ← 智能体配置
-├── Crews/                 ← 团队配置
-├── Skills/                ← 技能文档
-└── src/domain/            ← 业务系统
-    ├── amazon-growth/     ← 亚马逊运营系统
-    ├── geo-os/            ← 知识提取系统
-    └── medical-research/  ← 医疗研究系统
-```
-
----
-
-## 技术架构
-
-LiYe AI 分四层，像拍电影一样分工：
-
-```
-┌─────────────────────────────────────┐
-│  Method 层  — 剧本                  │  ← 定义角色、规则、流程
-├─────────────────────────────────────┤
-│  Runtime 层 — 导演                  │  ← 调度谁干活、怎么配合
-├─────────────────────────────────────┤
-│  Skill 层   — 演员技能              │  ← 每个角色会什么（唱歌、演戏）
-├─────────────────────────────────────┤
-│  Domain 层  — 电影题材              │  ← 具体场景（电商、医疗、知识）
-└─────────────────────────────────────┘
-```
-
-**为什么这样分？**
-- 换演员（Skill）不影响剧本（Method）
-- 换题材（Domain）不影响导演（Runtime）
-- 每层独立演进，互不干扰
-
----
-
-## LiYe CLI vs LiYe OS
-
-很多人会问：**CLI 和 OS 是什么关系？为什么不拆成两个项目？**
-
-### 简单类比
-
-| 概念 | 类比 | 作用 |
-|------|------|------|
-| **LiYe CLI** | 门卫 | 接收你的命令，引导到正确的专家 |
-| **LiYe OS** | 专家团队 | 真正干活的人（知识、技能、引擎） |
-
-### 两者的关系
-
-```
-你说: liye "帮我分析亚马逊关键词"
-        │
-        ▼
-┌─ LiYe CLI (入口) ──────────────┐
-│  解析命令 → 调用编译器          │
-└────────────────────────────────┘
-        │
-        ▼
-┌─ LiYe OS (能力) ──────────────┐
-│  知识包 + 技能 + 智能体 + 引擎  │
-│  编译出专家上下文               │
-└────────────────────────────────┘
-        │
-        ▼
-┌─ Claude Code (执行) ──────────┐
-│  读取上下文 → 完成任务          │
-└────────────────────────────────┘
-```
-
-### CLI 的职责
-
-| ✅ 做的事 | ❌ 不做的事 |
-|----------|-----------|
-| 解析命令行参数 | 不编译上下文 |
-| 路由到正确处理器 | 不执行 Agent |
-| 提供治理工具 | 不定义业务逻辑 |
-| 调用 assembler.mjs | 不管理知识资产 |
-
-### OS 的职责
-
-| ✅ 做的事 | ❌ 不做的事 |
-|----------|-----------|
-| 定义 Agents/Skills | 不解析命令行 |
-| 提供知识包和模板 | 不直接与用户交互 |
-| 执行 Agent 任务 | |
-| 编译任务上下文 | |
-
-### 为什么不拆仓？
-
-1. **已经逻辑分离**：CLI 只有 1,600 行，不包含业务逻辑
-2. **npm 包独立发布**：可以 `npm install -g liye-ai` 全局安装
-3. **YAGNI 原则**：当前没有拆仓解决的实际问题
-
-**未来触发条件**：当有第三方想贡献 CLI 但不想碰 OS 时，再考虑拆仓。
-
----
-
-## 支持的领域
-
-| 领域 | 状态 | 能做什么 |
-|------|------|----------|
-| Amazon 电商 | ✅ 可用 | 关键词分析、Listing 优化、广告策略 |
-| 医疗研究 | ✅ 可用 | 文献检索、证据分级、综述生成 |
-| 知识提取 | ✅ 可用 | PDF/Word 结构化、语义分块 |
-| 更多领域 | 🚧 开发中 | 欢迎贡献 |
-
----
-
-## 质量保障
-
-提交代码前会自动检查：
-
-```bash
-# 手动运行检查
+# 架构检查
 node .claude/scripts/guardrail.mjs
 ```
 
-检查内容：
-- CLAUDE.md 不能超过 10,000 字符（防止臃肿）
-- 每个知识包不能超过 15,000 字符
-- 不合规的代码无法合并
-
-详见 [治理白皮书](docs/whitepaper/GOVERNANCE_STACK.md)
-
 ---
 
-## 常见问题
+## 版本
 
-**Q: 这和 ChatGPT 有什么区别？**
-
-ChatGPT 是一个通用助手，你问什么它答什么。
-LiYe AI 是一个**专家团队管理系统**，你说任务，它自动派出多个专家协作完成。
-
-**Q: 需要什么技术背景？**
-
-| 用途 | 要求 |
-|------|------|
-| 基础使用 | 会用命令行 |
-| 添加知识包 | 会写 Markdown |
-| 定制智能体 | 会写 YAML |
-| 深度开发 | TypeScript/Python |
-
-**Q: 数据安全吗？**
-
-所有数据都在你本地，不会上传到任何服务器。
-API 调用走 Anthropic 官方接口，遵循其隐私政策。
-
-**Q: 和 CrewAI 什么关系？**
-
-LiYe AI 的 Runtime 层使用 CrewAI 作为执行引擎。
-但上下文编译器、知识管理、治理系统是原创的。
-
----
-
-## 贡献
-
-欢迎贡献代码、提 Issue、或者给个 Star。
-
-```bash
-npm install    # 安装依赖
-npm test       # 运行测试
-npm run lint   # 代码检查
-```
-
-详见 [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## 致谢
-
-LiYe AI 站在巨人的肩膀上：
-
-| 项目 | 贡献 |
-|------|------|
-| [CrewAI](https://github.com/joaomdmoura/crewAI) | 多智能体执行框架 |
-| [awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 35+ 技能模板 |
-| [awesome-claude-code-subagents](https://github.com/VoltAgent/awesome-claude-code-subagents) | 100+ 角色模板 |
-| [BMad Method](https://github.com/bmad-code-org/BMAD-METHOD) | 工程方法论角色 |
-
-> 核心代码为原创实现，不包含上述项目源代码。
-> 详见 [Non-Fork Statement](docs/architecture/NON_FORK_STATEMENT.md)
+| 版本 | 日期 | 重点 |
+|------|------|------|
+| 6.0.0 | 2025-12-31 | 移除 CLI，Claude Code 原生 |
+| 5.1.0 | 2025-12-31 | World Model Stack (T2/T3) |
+| 5.0.0 | 2025-12-27 | Multi-Broker 架构 |
 
 ---
 
 ## 许可证
 
-Apache License 2.0 — 详见 [LICENSE](LICENSE)
+[Apache License 2.0](LICENSE)
 
 ---
 
-**LiYe AI v3.1.0** | 2025
-
-*"让 AI 团队帮你干活，你只管拍板。"*
+*LiYe AI - 让盲目自信在结构上不可能发生*
