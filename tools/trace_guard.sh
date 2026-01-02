@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # =============================================================================
-# trace_guard.sh - Trace Governance Gate
+# trace_guard.sh - Trace Governance Gate (v6.3.0)
 # =============================================================================
-# Purpose: CI 检查脚本，验证 TRACE 格式和护栏合规
-# Usage:   ./scripts/trace_guard.sh
+# Purpose: CI check script, validates TRACE format and guardrail compliance
+# Usage:   ./tools/trace_guard.sh  (canonical path as of v6.3.0)
 # Exit:    0 = PASS, 1 = FAIL
+#
+# v6.3.0 Updates:
+# - traces/ and stats/ are NO LONGER Git-managed SSOT artifacts
+# - This script validates infrastructure, not raw trace files
+# - Absence of runtime traces is acceptable for governance PRs
 # =============================================================================
 
 set -euo pipefail
@@ -39,8 +44,9 @@ log_info() {
 # -----------------------------------------------------------------------------
 log_info "=== Check 1: Required Files ==="
 
+# Use canonical path _meta/templates/ (templates/ symlink retired in v6.3.0)
 REQUIRED_FILES=(
-    "templates/trace/TRACE_TEMPLATE_v4_2.yaml"
+    "_meta/templates/trace/TRACE_TEMPLATE_v4_2.yaml"
     "config/amazon-growth/guardrails.yaml"
     "config/amazon-growth/priority_score.yaml"
     "config/amazon-growth/bucket_lifecycle.yaml"
@@ -82,7 +88,8 @@ log_info ""
 log_info "=== Check 3: Validate TRACE Files ==="
 
 # Find trace files (both .yaml and .yml)
-TRACE_FILES=$(find . -path "./traces/*" -name "TRACE-*.yaml" -o -path "./traces/*" -name "TRACE-*.yml" 2>/dev/null || true)
+# Use canonical path data/traces/ (traces/ symlink retired in v6.3.0)
+TRACE_FILES=$(find . -path "./data/traces/*" -name "TRACE-*.yaml" -o -path "./data/traces/*" -name "TRACE-*.yml" 2>/dev/null || true)
 
 if [[ -z "$TRACE_FILES" ]]; then
     log_info "No TRACE files found in repo (OK for initial setup)"
@@ -181,12 +188,13 @@ fi
 log_info ""
 log_info "=== Check 5: Scripts ==="
 
-if [[ -f "scripts/derive_all.sh" ]]; then
-    log_pass "derive_all.sh exists"
-    if [[ -x "scripts/derive_all.sh" ]]; then
+# Use canonical path tools/ (scripts/ symlink retired in v6.3.0)
+if [[ -f "tools/derive_all.sh" ]]; then
+    log_pass "derive_all.sh exists (canonical path)"
+    if [[ -x "tools/derive_all.sh" ]]; then
         log_pass "derive_all.sh is executable"
     else
-        log_warn "derive_all.sh is not executable (run: chmod +x scripts/derive_all.sh)"
+        log_warn "derive_all.sh is not executable (run: chmod +x tools/derive_all.sh)"
     fi
 else
     log_warn "derive_all.sh not found (optional but recommended)"

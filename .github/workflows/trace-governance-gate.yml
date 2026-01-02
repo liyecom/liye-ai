@@ -1,8 +1,18 @@
 # =============================================================================
 # Trace Governance Gate - GitHub Actions CI
 # =============================================================================
-# Purpose: 强制治理检查，无 TRACE 不允许变更进入主干
+# Purpose: Validate trace format and governance compliance for operational changes
 # Trigger: PR to main, Push to main
+#
+# v6.3.0 Updates:
+# - traces/ and stats/ are NO LONGER Git-managed SSOT artifacts
+# - Gate validates presence/format of trace infrastructure, not raw trace files
+# - Absence of runtime traces is acceptable for governance and structure PRs
+#
+# This gate:
+# - Validates trace template and config infrastructure exists
+# - Validates TRACE file format IF operational files are changed
+# - Does NOT require raw trace files in Git
 # =============================================================================
 
 name: Trace Governance Gate
@@ -26,17 +36,21 @@ jobs:
 
       - name: Run trace governance checks
         run: |
-          echo "=== Amazon Growth OS: Trace Governance Gate ==="
+          echo "=== Trace Governance Gate (v6.3.0) ==="
+          echo ""
+          echo "Note: traces/ and stats/ are no longer Git-managed."
+          echo "This gate validates infrastructure, not raw trace files."
           echo ""
 
           # Make script executable (in case git didn't preserve)
-          chmod +x scripts/trace_guard.sh 2>/dev/null || true
+          # Use canonical path (scripts/ symlink retired in v6.3.0)
+          chmod +x tools/trace_guard.sh 2>/dev/null || true
 
-          # Run the guard script
-          if [[ -f "scripts/trace_guard.sh" ]]; then
-            bash scripts/trace_guard.sh
+          # Run the guard script from canonical path
+          if [[ -f "tools/trace_guard.sh" ]]; then
+            bash tools/trace_guard.sh
           else
-            echo "WARNING: trace_guard.sh not found, running inline checks"
+            echo "WARNING: trace_guard.sh not found at tools/, running inline checks"
 
             # Inline fallback checks
             ERRORS=0
@@ -61,9 +75,11 @@ jobs:
               fi
             done
 
-            # Check 3: TRACE template
-            if [[ -f "templates/trace/TRACE_TEMPLATE_v4_2.yaml" ]]; then
-              echo "[PASS] TRACE template exists"
+            # Check 3: TRACE template (canonical path)
+            if [[ -f "_meta/templates/trace/TRACE_TEMPLATE_v4_2.yaml" ]]; then
+              echo "[PASS] TRACE template exists (canonical path)"
+            elif [[ -f "templates/trace/TRACE_TEMPLATE_v4_2.yaml" ]]; then
+              echo "[PASS] TRACE template exists (legacy path - consider migration)"
             else
               echo "[FAIL] TRACE template missing"
               ERRORS=$((ERRORS + 1))
