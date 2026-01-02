@@ -1,124 +1,175 @@
-# LiYe AI · Personal Operating System
+# LiYe OS
 
-> **让盲目自信在结构上不可能发生。**
+<p align="center">
+  <a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a>
+</p>
 
-[![Version](https://img.shields.io/badge/version-6.0.0-blue.svg)](https://github.com/liyecom/liye-ai)
+> **Governance & Architecture Reference Implementation for Claude Code / AI-Collaborative Development**
+>
+> Turn AI outputs into auditable, replayable, and controllable engineering systems.
+
+[![Version](https://img.shields.io/badge/version-6.3.0-blue.svg)](https://github.com/liyecom/liye_os)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-
-LiYe OS 是一个 **AI-native 个人操作系统**，为 Claude Code 提供领域知识和推理框架。
-
----
-
-## 核心理念
-
-**世界模型不告诉你该做什么，它确保你无法忽视世界实际的样子。**
-
-| 传统 AI 助手 | LiYe OS |
-|-------------|---------|
-| "这个股票会涨" | "当前流动性紧张，预期已饱和" |
-| 直接给建议 | 暴露因果链和假设 |
-| 隐藏不确定性 | 明确说明"这不告诉你什么" |
+[![Stability](https://img.shields.io/badge/stability-contract-orange.svg)](docs/architecture/ARCHITECTURE_CONTRACT.md)
 
 ---
 
-## 使用方式
+## What It Is
 
-**在 Claude Code 中直接说：**
+LiYe OS is a **reference implementation** for building AI-collaborative engineering systems with:
+
+- **World Model Gate**: Forces risk analysis before execution (T1/T2/T3 cognitive pipeline)
+- **Architecture Contract**: Defines frozen/stable/experimental boundaries
+- **Replay & Audit**: Every decision is traceable and reproducible
+
+**Core Philosophy**: "Not letting blind confidence happen structurally."
+
+---
+
+## Who It's For
+
+**Use LiYe OS if you:**
+- Want to build a personal AI operating system with governance
+- Need to understand Claude Code + architecture governance best practices
+- Want to reuse World Model Gate design patterns for your own systems
+
+**Do NOT use LiYe OS if you:**
+- Want an out-of-the-box AI tool (this is a reference, not a product)
+- Don't want to understand the architecture before running it
+- Expect a GUI interface
+
+---
+
+## Adoption Paths
+
+Choose your path based on what you need:
+
+### Path 1: Blueprint (Copy Structure)
+
+**Goal**: Reuse directory structure and architecture patterns
 
 ```
-分析ASIN：B08SVXGTRT
-分析Google公司的财报
-研究这个医学论文的方法论
+Start here:
+├── _meta/docs/ARCHITECTURE_CONSTITUTION.md  # Design principles
+├── docs/architecture/                        # Architecture decisions
+└── .github/workflows/*gate*                  # CI governance gates
 ```
 
-Claude Code 自动：
-1. 读取 CLAUDE.md 识别任务类型
-2. 加载对应的 Pack（operations / research / infrastructure）
-3. 应用相关的 Agents 和 Skills
-4. 执行任务
+### Path 2: Governance Stack (Embed Controls)
 
-**就这么简单。不需要额外命令。**
+**Goal**: Integrate CI gates and contracts into your project
+
+```
+Start here:
+├── .github/workflows/architecture-gate.yml   # Architecture enforcement
+├── .github/workflows/constitution-*-gate.yml # Constitution checks
+└── docs/architecture/ARCHITECTURE_CONTRACT.md # Stability contract
+```
+
+### Path 3: Minimal Runtime (Run the System)
+
+**Goal**: Actually run LiYe OS with Claude Code
+
+```bash
+# Clone the repo
+git clone https://github.com/liyecom/liye_os.git
+cd liye_os
+
+# Check architecture compliance
+node .claude/scripts/guardrail.mjs
+
+# Generate context for a task
+node .claude/scripts/assembler.mjs --task "Analyze ASIN B08SVXGTRT"
+
+# Use with Claude Code - just talk naturally:
+# "Analyze ASIN B08SVXGTRT"
+# Claude Code reads CLAUDE.md and auto-loads relevant context
+```
 
 ---
 
-## 架构
+## Stability Contract
+
+LiYe OS maintains clear stability boundaries. See [ARCHITECTURE_CONTRACT.md](docs/architecture/ARCHITECTURE_CONTRACT.md) for details.
+
+| Level | Meaning | Examples |
+|-------|---------|----------|
+| **Frozen** | Immutable, constitutional | `_meta/governance/`, `*gate*` workflows |
+| **Stable** | Backward compatible | `docs/architecture/`, `src/kernel/` interfaces |
+| **Experimental** | May change | `Agents/`, `Crews/`, `src/kernel/` internals |
+
+---
+
+## Architecture Overview
 
 ```
 liye_os/
-├── CLAUDE.md              # 启动配置（Claude Code 读取）
-├── .claude/packs/         # 领域知识包
-│   ├── operations.md      # Amazon/跨境/电商
-│   ├── research.md        # 医疗/研究
-│   └── infrastructure.md  # 架构/配置
+├── CLAUDE.md                 # Context compiler entry (Claude Code reads this)
+├── .claude/packs/            # Domain knowledge packs (on-demand loading)
 │
-├── src/kernel/            # 世界模型内核
-│   ├── t1/                # T1 推理内核
-│   ├── t2/                # T2 世界状态
-│   └── t3/                # T3 世界动态
+├── src/kernel/               # World Model kernel (T1/T2/T3)
+│   ├── t1/                   # Causal reasoning
+│   ├── t2/                   # State assessment
+│   └── t3/                   # Dynamics projection
 │
-├── Agents/                # Agent 定义
-│   ├── core/              # 核心代理
-│   └── amazon-growth/     # 领域代理
+├── _meta/governance/         # Governance rules (Frozen)
+├── .github/workflows/        # CI gates (Frozen: *gate*, Stable: others)
 │
-├── Skills/                # 方法论与 SOP
-│   └── 12 个领域模块
-│
-└── docs/                  # 文档
+├── Agents/                   # Agent definitions (Experimental)
+├── Skills/                   # Methodologies and SOPs
+└── docs/architecture/        # Architecture documentation (Stable)
 ```
 
 ---
 
-## 世界模型内核
+## World Model Gate
 
-三层认知流水线，**不预测、不推荐、不优化**：
+The core innovation: **No execution without risk analysis.**
 
-| 层 | 问题 | 输出 |
-|----|------|------|
-| T1 | 压力下哪里会失败？ | 因果链、假设暴露 |
-| T2 | 当前危险状态？ | 5维坐标（流动性/相关性/预期/杠杆/不确定性） |
-| T3 | 状态如何演变？ | 形态描述（加速/放大/相变） |
+| Layer | Question | Output |
+|-------|----------|--------|
+| T1 | Where will this fail under pressure? | Causal chains, assumptions exposed |
+| T2 | Current dangerous state? | 5D coordinates (liquidity/relevance/expectation/leverage/uncertainty) |
+| T3 | How will state evolve? | Shape description (acceleration/amplification/phase transition) |
 
-**约束**：每个输出必须包含"这不告诉你什么..."
-
----
-
-## 领域系统
-
-| 领域 | Pack | 触发词 |
-|------|------|--------|
-| Amazon Growth OS | operations.md | amazon, asin, ppc, listing |
-| Investment OS | research.md | 财报, 股票, 投资 |
-| Medical OS | research.md | 医疗, 治疗, 临床 |
+**Constraint**: Every output must include "What this doesn't tell you..."
 
 ---
 
-## 开发
+## For Adopters
 
-```bash
-# 克隆仓库
-git clone https://github.com/liyecom/liye-ai.git
-cd liye-ai
+If you're using LiYe OS as a reference or dependency:
 
-# 架构检查
-node .claude/scripts/guardrail.mjs
-```
+1. **Register** in [ADOPTERS.md](ADOPTERS.md) (public or anonymous)
+2. **Watch** for breaking change notifications
+3. **Check** the [stability contract](docs/architecture/ARCHITECTURE_CONTRACT.md) before depending on a component
 
 ---
 
-## 版本
+## Version History
 
-| 版本 | 日期 | 重点 |
-|------|------|------|
-| 6.0.0 | 2025-12-31 | 移除 CLI，Claude Code 原生 |
-| 5.1.0 | 2025-12-31 | World Model Stack (T2/T3) |
-| 5.0.0 | 2025-12-27 | Multi-Broker 架构 |
+| Version | Date | Focus |
+|---------|------|-------|
+| 6.3.0 | 2026-01-02 | Stability contract, adopter registration |
+| 6.2.0 | 2026-01-01 | Phase 5.4 Replay & Regression Gate |
+| 6.0.0 | 2025-12-31 | Claude Code native, removed CLI |
 
 ---
 
-## 许可证
+## License
 
 [Apache License 2.0](LICENSE)
 
 ---
 
-*LiYe AI - 让盲目自信在结构上不可能发生*
+## Brand Note
+
+| Context | Name | Note |
+|---------|------|------|
+| External communication | LiYe AI | Easier to remember |
+| Technical documentation | LiYe OS | Maintains rigor |
+| GitHub repository | liye_os | Unchanged |
+
+---
+
+*LiYe OS - Making blind confidence structurally impossible.*
