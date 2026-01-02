@@ -1,0 +1,28 @@
+{
+  "run_id": "2c65a2fcaf7dac77",
+  "started_at": "2025-12-30T17:06:58.135Z",
+  "finished_at": "2025-12-30T17:06:58.221Z",
+  "status": "needs_manual",
+  "broker": "codex",
+  "model": "gpt-4.1",
+  "route": "ask",
+  "approval_mode": "semi-auto",
+  "sandbox_mode": "read-only",
+  "attempt_count": 1,
+  "environment": {
+    "node_version": "v23.11.0",
+    "platform": "darwin",
+    "cwd": "/Users/liye/github/liye_os"
+  },
+  "approval": {
+    "mode": "semi-auto"
+  },
+  "outputs": [],
+  "evidence": [],
+  "notes": "Codex exited with code 1",
+  "runtime_sec": 0,
+  "error_code": "UNKNOWN",
+  "model_requested": "gpt-4.1",
+  "model_actual": "gpt-4.1",
+  "model_mapped": false
+}

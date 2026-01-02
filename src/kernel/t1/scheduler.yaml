@@ -1,0 +1,153 @@
+# =============================================================================
+# T1 Kernel Scheduler Configuration (v2.0 Plugin Mode)
+# =============================================================================
+# Version: 2.0.0
+# Mode: Plugin (lazy-load contextual modules)
+# Policy: Minimal always-on, trigger-gated contextual
+# =============================================================================
+
+scheduler:
+  kernel: T1_REASONING_KERNEL
+  version: 2.0.0
+  mode: plugin
+  description: "Minimal skeleton with pluggable contextual amplifiers"
+
+# -----------------------------------------------------------------------------
+# Budget Constraints (v2.0 Optimized)
+# -----------------------------------------------------------------------------
+budget:
+  always_on:
+    max_percentage: 12.5
+    max_tokens: 200
+    current_usage: 200  # 1 T1 loaded (minimal skeleton)
+
+  contextual:
+    max_percentage: 45
+    max_tokens: 800     # Max if all plugins triggered
+    typical_usage: 200-400  # Usually 1-2 plugins
+    mode: lazy_plugin
+
+  total:
+    max_percentage: 57.5
+    max_tokens: 1000
+
+# -----------------------------------------------------------------------------
+# Loading Strategy (v2.0 Plugin Mode)
+# -----------------------------------------------------------------------------
+loading:
+  always_on_first: true
+  contextual_mode: trigger_gated
+  trigger_config: src/kernel/t1/TRIGGERS.yaml
+
+  # Always-On: THE ONLY IRREDUCIBLE PRIMITIVE
+  always_on:
+    - id: T1_liquidity_illusion
+      tokens: 200
+      load_order: 1
+      mandatory: true
+      frozen: true
+      behavior: |
+        Inject before any high-stakes inference:
+        "What am I counting on? Under what conditions would this fail?"
+
+  # Contextual: Plugins loaded when triggered
+  contextual_plugins:
+    - id: T1_correlation_regime_shift
+      tokens: 200
+      trigger: stress_detected
+      priority: high
+      demoted_from: always_on
+      note: "v2.0: Synergy with liquidity_illusion makes it contextual"
+
+    - id: T1_risk_on_off_regime
+      tokens: 200
+      trigger: regime_ambiguity
+      priority: medium
+
+    - id: T1_expectation_saturation
+      tokens: 200
+      trigger: high_implied_probability
+      priority: high
+
+    - id: T1_reflexivity_loop
+      tokens: 200
+      trigger: leverage_detected
+      priority: medium
+
+# -----------------------------------------------------------------------------
+# Performance Targets
+# -----------------------------------------------------------------------------
+performance:
+  latency:
+    always_on_load: "< 50ms"
+    contextual_load: "< 100ms per plugin"
+    total_t1_overhead: "< 200ms"
+
+  efficiency:
+    always_on_invocations: "100% of reasoning tasks"
+    contextual_invocations: "< 30% of reasoning tasks"
+    average_token_cost: "~300 tokens"
+
+# -----------------------------------------------------------------------------
+# Telemetry
+# -----------------------------------------------------------------------------
+telemetry:
+  enabled: true
+  metrics:
+    - token_cost
+    - latency_ms
+    - reasoning_lift_delta
+    - trigger_frequency
+    - plugin_activation_rate
+
+  output: traces/kernel/telemetry
+
+  alerts:
+    - condition: token_cost > budget.total.max_tokens
+      action: warn
+      message: "T1 budget exceeded"
+
+    - condition: latency_ms > 300
+      action: warn
+      message: "T1 loading latency high"
+
+# -----------------------------------------------------------------------------
+# Domain Policy
+# -----------------------------------------------------------------------------
+domain_policy:
+  production:
+    require_always_on: true
+    allow_contextual: true
+    allow_deferred: false
+
+  development:
+    require_always_on: true
+    allow_contextual: true
+    allow_deferred: true
+
+  experiment:
+    require_always_on: true  # v2.0: Cannot skip core
+    allow_contextual: true
+    allow_deferred: true
+
+# -----------------------------------------------------------------------------
+# Fallback Behavior
+# -----------------------------------------------------------------------------
+fallback:
+  on_budget_exceeded: drop_lowest_priority_plugin
+  on_trigger_conflict: load_highest_priority
+  on_contextual_failure: continue_with_core_only
+  on_core_failure: halt_reasoning  # v2.0: Core is mandatory
+
+# -----------------------------------------------------------------------------
+# v2.0 Specific Rules
+# -----------------------------------------------------------------------------
+v2_rules:
+  core_is_mandatory: true
+  rollback_allowed: false
+  contextual_removable: false  # Can add, cannot remove
+  plugin_additions_allowed: true
+
+# =============================================================================
+# END OF SCHEDULER
+# =============================================================================

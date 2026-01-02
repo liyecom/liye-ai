@@ -1,0 +1,93 @@
+{
+  "id": "listing_bullet_role_differentiation_01",
+  "domain": "listing",
+  "mechanism_type": "constraint",
+  "name": "Bullet Role Differentiation",
+  "description": "五点角色分化机制：每个 Bullet Point 承担独立的说服职责，避免功能重叠",
+
+  "trigger_conditions": [
+    "编写或优化产品 Bullet Points",
+    "Listing 转化率低于类目平均",
+    "用户反馈信息不清晰或重复感"
+  ],
+
+  "constraint": {
+    "rule": "每个 Bullet 必须有明确且不重复的说服角色",
+    "violation_signal": "多个 Bullet 传达相同类型信息（如都在说材质）"
+  },
+
+  "causal_chain": "角色分化 → 信息密度最大化 → 覆盖更多购买决策因素 → 转化率提升",
+
+  "mechanism_logic": {
+    "role_framework": {
+      "description": "5 个 Bullet 的标准角色分配",
+      "roles": [
+        {
+          "position": 1,
+          "role": "CORE_VALUE",
+          "purpose": "传达核心价值主张/差异化卖点",
+          "example": "专利设计/独特技术/核心功能",
+          "weight": "最重要，40%+ 用户只读第一条"
+        },
+        {
+          "position": 2,
+          "role": "FUNCTIONAL_PROOF",
+          "purpose": "功能细节/性能参数/使用效果",
+          "example": "具体规格、测试数据、使用场景",
+          "weight": "理性说服，回答'能做什么'"
+        },
+        {
+          "position": 3,
+          "role": "QUALITY_ASSURANCE",
+          "purpose": "质量保证/材质/耐用性/安全认证",
+          "example": "材质成分、认证标志、耐用承诺",
+          "weight": "降低风险感知"
+        },
+        {
+          "position": 4,
+          "role": "CONVENIENCE_UX",
+          "purpose": "便利性/易用性/用户体验",
+          "example": "安装简单、维护方便、人体工学",
+          "weight": "减少使用障碍"
+        },
+        {
+          "position": 5,
+          "role": "TRUST_CTA",
+          "purpose": "信任背书/保障承诺/行动号召",
+          "example": "退换保障、客服承诺、适用人群",
+          "weight": "消除最后顾虑"
+        }
+      ]
+    },
+    "overlap_detection": {
+      "method": "semantic_similarity(bullet_i, bullet_j)",
+      "threshold": "similarity > 0.6 indicates overlap",
+      "action": "重写重叠 Bullet，分配不同角色"
+    },
+    "priority_rules": [
+      "Position 1 必须是差异化卖点，不能是通用描述",
+      "每个角色只分配给一个 Bullet",
+      "如果产品简单，可合并角色但不能重复"
+    ]
+  },
+
+  "expected_effect": "通过角色分化：每条 Bullet 承担独立职责 → 信息覆盖最大化 → 转化率提升 8-15%",
+
+  "boundary_conditions": [
+    "简单产品可能不需要 5 个独立角色",
+    "B2B 产品可能需要不同角色框架",
+    "高客单价产品应强化 QUALITY_ASSURANCE"
+  ],
+
+  "anti_patterns": [
+    "5 条 Bullet 都在重复材质优势",
+    "核心卖点放在 Position 3-5（被忽略）",
+    "只堆砌关键词，无说服逻辑"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#constraint",
+  "bound_cases": ["case_16"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

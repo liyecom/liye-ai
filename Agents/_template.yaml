@@ -8,7 +8,7 @@ agent:
   domain: core                    # core | amazon-growth | medical-research | geo-os
 
 # ============================================
-# Persona Layer (WHO) - from BMad Method
+# Persona Layer (WHO)
 # Defines the agent's identity and behavior
 # ============================================
 persona:
@@ -57,12 +57,7 @@ liyedata:
 
 # ============================================
 # Evolution Configuration
-# How the agent learns and improves
+# AGENT_SPEC.md v5.0: only "enabled" field allowed
 # ============================================
 evolution:
   enabled: true
-  storage: .liye/evolution/{agent_id}/
-  learn_from:
-    - execution_logs
-    - user_feedback
-  retention_days: 90

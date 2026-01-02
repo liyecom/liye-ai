@@ -1,0 +1,230 @@
+# =============================================================================
+# T1 Reasoning Kernel Registry (v2.0 Standard)
+# =============================================================================
+# Status: STANDARD (Reference Kernel)
+# Version: 2.0.0 (Minimal Skeleton)
+# Updated: 2025-12-31
+# Policy: IMMUTABLE - No behavior change without new domain verdict
+# =============================================================================
+
+kernel:
+  name: T1_REASONING_KERNEL
+  version: 2.0.0
+  status: STANDARD
+  role: reference
+  stability: v2_frozen
+  description: "Minimal always-on causal skeleton + pluggable contextual modules"
+
+  # Core Truth
+  axiom: |
+    The world will fail you precisely when you need it most.
+    This is not pessimism. This is the only reliable inference.
+
+  verdict:
+    status: UNIVERSAL_TRANSFERABLE
+    freeze_date: 2025-12-31
+    evidence: docs/kernel/T1_THREE_DOMAIN_VERDICT.md
+    domains_validated:
+      - amazon-growth-os
+      - investment-os
+      - medical-os
+    aggregate_lift: 54%
+    cases_tested: 8
+    governance_violations: 0
+
+# -----------------------------------------------------------------------------
+# T1 Classification (v2.0 Minimal Skeleton)
+# Policy: always_on=1 (irreducible), contextual=plugin mode
+# -----------------------------------------------------------------------------
+
+classification:
+  always_on:
+    # THE ONLY ALWAYS-ON PRIMITIVE
+    # Rationale: Highest independent lift (58%) across ALL 3 domains
+    # Meaning: "Liquidity vanishes when you need it most"
+    - id: T1_liquidity_illusion
+      marginal_lift: 0.58
+      independence: HIGH
+      critical_cases: 8/8  # All cases benefited
+      token_cost: 200
+      rationale: "Irreducible causal skeleton - the world fails at peak need"
+      frozen: true
+      freeze_reason: "Highest cross-domain independent lift"
+
+  contextual:
+    # PLUGIN MODE: Loaded only when trigger detected
+    mode: plugin
+    budget_percentage: 45
+    trigger_config: src/kernel/t1/TRIGGERS.yaml
+
+    plugins:
+      # Demoted from always_on in v2.0
+      - id: T1_correlation_regime_shift
+        marginal_lift: 0.47
+        independence: MEDIUM
+        token_cost: 200
+        trigger: stress_detected
+        rationale: "Correlations break under stress - context amplifier"
+        demoted_from: always_on
+        demote_reason: "Synergy with liquidity_illusion makes it contextual"
+
+      - id: T1_risk_on_off_regime
+        marginal_lift: 0.48
+        independence: MEDIUM
+        token_cost: 200
+        trigger: regime_ambiguity
+        rationale: "Regime detection for ambiguous markets"
+
+      - id: T1_expectation_saturation
+        marginal_lift: 0.42
+        independence: HIGH
+        token_cost: 200
+        trigger: high_implied_probability
+        rationale: "Detects over-optimistic outcome expectations"
+
+      - id: T1_reflexivity_loop
+        marginal_lift: 0.23
+        independence: LOW
+        token_cost: 200
+        trigger: leverage_detected
+        rationale: "Feedback loops in leveraged scenarios"
+
+  deferred:
+    - id: T1_asymmetric_information_decay
+      marginal_lift: 0.20
+      independence: LOW
+      token_cost: 200
+      blocker: insufficient_case_coverage
+      next_steps: "Test in news-driven scenarios"
+
+# -----------------------------------------------------------------------------
+# API Exports (Frozen)
+# -----------------------------------------------------------------------------
+api:
+  path: src/kernel/t1/api
+  frozen: true
+  exports:
+    - detect_regime
+    - expose_causal_chain
+    - suppress_false_confidence
+  policy: "API surface is frozen. No additions without new domain verdict."
+
+# -----------------------------------------------------------------------------
+# Budget (v2.0 Optimized)
+# -----------------------------------------------------------------------------
+budget:
+  always_on:
+    count: 1
+    tokens: 200
+    percentage: 12.5
+    compliant: true
+    note: "Minimal skeleton - maximum efficiency"
+
+  contextual:
+    count: 4  # All plugins available
+    tokens: 800  # Max if all triggered (rare)
+    percentage: 45
+    compliant: true
+    mode: lazy_plugin
+
+  total_max:
+    tokens: 1000
+    percentage: 57.5
+    compliant: true
+
+# -----------------------------------------------------------------------------
+# Scheduler (v2.0 Plugin Mode)
+# -----------------------------------------------------------------------------
+scheduler:
+  mode: plugin
+  always_on_first: true
+  contextual_mode: trigger_gated
+  trigger_config: src/kernel/t1/TRIGGERS.yaml
+  config_path: src/kernel/t1/scheduler.yaml
+
+# -----------------------------------------------------------------------------
+# Telemetry
+# -----------------------------------------------------------------------------
+telemetry:
+  enabled: true
+  metrics:
+    - token_cost
+    - latency_ms
+    - reasoning_lift_delta
+    - trigger_frequency
+    - plugin_activation_rate
+  output: traces/kernel/telemetry
+
+# -----------------------------------------------------------------------------
+# Governance (v2.0 Reference Kernel)
+# -----------------------------------------------------------------------------
+governance:
+  role: reference
+  policy: "No behavior change without new domain verdict"
+
+  frozen_scopes:
+    - always_on       # T1_liquidity_illusion is irreducible
+    - api             # API surface is stable
+    - governance      # These rules are stable
+
+  gates:
+    - name: t1-kernel-immutable
+      scope: kernel
+      rule: "Always-on primitives cannot be modified without 3+ domain evidence"
+      severity: BLOCK
+      ci_path: .github/workflows/t1-kernel-gate.yml
+
+    - name: t1-api-frozen
+      scope: api
+      rule: "API exports cannot change without deprecation cycle"
+      severity: BLOCK
+
+    - name: domain-t1-compatibility
+      scope: domain
+      rule: "New domains must declare kernel:T1_REASONING_KERNEL compatibility"
+      on: create
+
+  stability:
+    level: v2_frozen
+    breaking_changes_allowed: false
+    rollback_allowed: false
+    path: src/kernel/t1/STABILITY.md
+
+  review:
+    required_for:
+      - src/kernel/t1/**
+    approvers:
+      - architecture-team
+
+# -----------------------------------------------------------------------------
+# Standard Declaration
+# -----------------------------------------------------------------------------
+standard:
+  name: T1_REASONING_STANDARD
+  version: 1.0
+  audience:
+    - researchers
+    - builders
+    - domain_architects
+  document: docs/standard/T1_REASONING_STANDARD.md
+  purpose: |
+    Anyone building high-stakes reasoning systems
+    must address the T1 problem:
+    "The world fails at peak need."
+
+# -----------------------------------------------------------------------------
+# External Adapters
+# -----------------------------------------------------------------------------
+adapters:
+  status: PLACEHOLDER
+  path: adapters/t1
+  targets:
+    - external-agent
+    - third-party-os
+
+# =============================================================================
+# END OF REGISTRY
+# =============================================================================
+# This kernel is now a REFERENCE STANDARD.
+# It defines what "robust reasoning under uncertainty" means.
+# =============================================================================

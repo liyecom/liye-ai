@@ -1,0 +1,25 @@
+# Mission Pack Template
+# LiYe OS Multi-Broker Architecture
+
+id: "{{mission_id}}"
+objective: "{{objective}}"
+done_definition: "Deliverables in outputs/ directory"
+
+# Broker Configuration
+broker: codex  # codex | gemini | antigravity | claude
+model: gpt-4.1  # Model to use
+
+# Budget Constraints
+budget:
+  maxSteps: 50
+  maxTokens: 100000
+  maxTimeMinutes: 30
+
+# Governance
+approval: on-request  # none | on-request | always
+sandbox: read-only  # read-only | full-access
+
+# Metadata
+tags:
+  - "{{project}}"
+created_at: "{{created_at}}"

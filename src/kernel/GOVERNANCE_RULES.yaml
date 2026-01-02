@@ -1,0 +1,149 @@
+# =============================================================================
+# World Model Kernel Governance Rules
+# =============================================================================
+# Status: FROZEN
+# Scope: All T1/T2/T3 kernels
+# Purpose: Prevent World Model from becoming a decision engine
+# =============================================================================
+
+governance:
+  version: 1.0.0
+  status: FROZEN
+  scope: kernel
+
+  # Core rule - written once, never changed
+  core_rule:
+    statement: "World Model must not output prediction, recommendation, or action"
+    severity: BLOCK
+    status: FROZEN
+    rationale: |
+      The World Model is cognitive infrastructure, not a decision engine.
+      Its purpose is to make blind confidence structurally impossible.
+      The moment it starts predicting or recommending, it becomes just
+      another noisy signal competing for attention.
+
+# -----------------------------------------------------------------------------
+# Output Classification
+# -----------------------------------------------------------------------------
+
+output_classification:
+  permitted:
+    - type: state_description
+      example: "Liquidity is currently TIGHT"
+      allowed: true
+
+    - type: dynamics_form
+      example: "Acceleration is detected in correlation changes"
+      allowed: true
+
+    - type: causal_chain
+      example: "X leads to Y through mechanism Z"
+      allowed: true
+
+    - type: explicit_limitation
+      example: "This does not tell you whether..."
+      allowed: true
+      required: true
+
+  forbidden:
+    - type: prediction
+      patterns:
+        - "will"
+        - "is going to"
+        - "likely to"
+        - "expected to"
+      severity: BLOCK
+
+    - type: probability
+      patterns:
+        - "% chance"
+        - "probability of"
+        - "odds are"
+        - "likely"
+        - "unlikely"
+      severity: BLOCK
+
+    - type: recommendation
+      patterns:
+        - "should"
+        - "recommend"
+        - "consider"
+        - "best course"
+        - "optimal"
+      severity: BLOCK
+
+    - type: action
+      patterns:
+        - "you must"
+        - "take action"
+        - "implement"
+        - "execute"
+      severity: BLOCK
+
+# -----------------------------------------------------------------------------
+# CI Gates
+# -----------------------------------------------------------------------------
+
+gates:
+  - name: world-model-boundary-gate
+    scope: kernel
+    rule: "state/dynamics only, no decision language"
+    severity: BLOCK
+    ci_path: .github/workflows/world-model-gate.yml
+    enforcement:
+      - scan output for forbidden patterns
+      - block merge if any detected
+      - require explicit override with justification
+
+  - name: world-model-limitation-gate
+    scope: kernel
+    rule: "every output must state what it does NOT tell you"
+    severity: WARN
+    enforcement:
+      - check for explicit_limitations section
+      - warn if missing or fewer than 2 items
+
+  - name: world-model-no-optimization
+    scope: kernel
+    rule: "World Model is not a loss function"
+    severity: BLOCK
+    enforcement:
+      - no "minimize", "maximize", "optimize" language
+      - no target or goal statements
+
+# -----------------------------------------------------------------------------
+# Violation Response
+# -----------------------------------------------------------------------------
+
+violations:
+  detection:
+    - pattern matching against forbidden outputs
+    - LLM-based semantic check (optional, high-confidence only)
+
+  response:
+    immediate:
+      - block output
+      - log violation to traces/world_model/violations.log
+      - return governance error
+
+    escalation:
+      - alert architecture team
+      - require manual review for repeated violations
+
+# -----------------------------------------------------------------------------
+# Exception Process
+# -----------------------------------------------------------------------------
+
+exceptions:
+  allowed: false
+  rationale: |
+    There are no valid exceptions to the World Model boundary.
+    If something needs to predict, recommend, or optimize,
+    it is NOT part of the World Model - it is a consumer of it.
+
+    The World Model provides input to decision systems.
+    It is never itself a decision system.
+
+# =============================================================================
+# END OF GOVERNANCE RULES
+# =============================================================================

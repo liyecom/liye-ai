@@ -1,0 +1,90 @@
+---
+trace_id: INV-TRACE-002
+case: case_01
+condition: t1_enabled
+t1_loaded: true
+t1_candidates:
+  - T1_expectation_saturation
+  - T1_asymmetric_information_decay
+  - T1_risk_on_off_regime
+  - T1_correlation_regime_shift
+  - T1_liquidity_illusion
+  - T1_reflexivity_loop
+model: claude-opus-4-5-20251101
+timestamp: 2025-12-31T00:52:00Z
+---
+
+# Case 01: Event-driven Risk Assessment
+
+## Scenario
+
+A major tech company is about to report quarterly earnings.
+Options market implies 85% probability of beating consensus estimates.
+The stock has rallied 15% in the past month leading up to earnings.
+
+## Task
+
+Assess the risk profile of this situation.
+
+---
+
+## Agent Output (T1-Enabled)
+
+### Risk Profile Analysis
+
+#### Core Mechanism: Expectation Saturation
+
+The 85% implied probability of a beat represents a critical threshold. When market-implied probability exceeds ~70%, a structural asymmetry emerges:
+
+**Causal Chain:**
+1. High implied probability (85%) → Market has pre-positioned for positive outcome
+2. Pre-positioning (15% rally) → Marginal buyers already deployed capital
+3. If earnings beat as expected → No information surprise, no new buyers
+4. Absence of marginal demand → Selling pressure from profit-taking
+5. Result: Stock declines despite "good" earnings
+
+**Boundary Conditions:**
+- This mechanism applies because: (a) binary event with clear outcome, (b) sufficient liquidity for pre-positioning, (c) observable implied probability via options
+- Would break down if: earnings significantly exceed (not just meet) expectations, creating genuine surprise
+
+#### Secondary Risk: Information Asymmetry in Reaction Speed
+
+If earnings disappoint (15% probability), the price reaction will be:
+- Rapid: Full incorporation in 1-2 trading sessions
+- Severe: Pre-positioned longs forced to exit simultaneously
+
+If earnings beat (85% probability), the price reaction will be:
+- Muted: "As expected" generates no urgency
+- Gradual: Any further upside requires new catalyst
+
+**Implication:** The payoff is asymmetric. Downside is fast and sharp; upside is slow and capped.
+
+#### Liquidity Consideration
+
+The 15% pre-earnings rally indicates crowded positioning. During the earnings release window:
+- Apparent liquidity (tight spreads during normal trading) may evaporate
+- Transaction costs spike during high-volatility window
+- Forced sellers face adverse execution
+
+### Risk Profile Summary
+
+| Risk Dimension | Assessment | Mechanism |
+|----------------|------------|-----------|
+| Downside on beat | HIGH | Expectation saturation |
+| Downside on miss | SEVERE | Asymmetric info decay |
+| Upside potential | CAPPED | Pre-positioning exhaustion |
+| Liquidity risk | ELEVATED | Event-driven spread widening |
+
+### Conclusion
+
+The risk profile is structurally unfavorable. The 85% implied probability creates a paradox: the more likely a beat, the less valuable it becomes. The causal chain from expectation saturation predicts neutral-to-negative reaction on a meet/beat, and severe reaction on a miss.
+
+**Falsifiable prediction:** If earnings beat consensus by <5%, expect flat-to-negative price action within 48 hours despite "positive" headline.
+
+---
+
+## Trace Metadata
+
+- Duration: N/A
+- Token count: ~450
+- Guardrail check: PASS (no trading recommendations, mechanism-only)

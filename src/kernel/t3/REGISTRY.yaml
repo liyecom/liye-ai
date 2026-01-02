@@ -1,0 +1,152 @@
+# =============================================================================
+# T3 World Dynamics Kernel Registry
+# =============================================================================
+# Status: ACTIVE
+# Version: 1.0.0
+# Role: Dynamics Model (how states evolve under pressure)
+# Depends On: T2_WORLD_STATE_KERNEL v1.0.0
+# =============================================================================
+
+kernel:
+  name: T3_WORLD_DYNAMICS_KERNEL
+  version: 1.0.0
+  status: ACTIVE
+  role: dynamics_model
+  stability: v1_stable
+  description: "State evolution patterns under stress - form only, no outcome"
+
+  dependency:
+    kernel: T2_WORLD_STATE_KERNEL
+    version: ">=1.0.0"
+    relationship: "T2 provides current state → T3 describes possible evolution patterns"
+
+  # Core Truth
+  axiom: |
+    Under pressure, states don't just change.
+    They accelerate, amplify, and occasionally phase-shift.
+    We describe the shape of change, not its destination.
+
+# -----------------------------------------------------------------------------
+# Dynamics Primitives (Strictly Limited to 3)
+# -----------------------------------------------------------------------------
+# CRITICAL: These describe FORM, not OUTCOME
+# acceleration ≠ prediction
+# phase_transition ≠ conclusion
+# -----------------------------------------------------------------------------
+
+primitives:
+  count: 3
+  frozen: true  # Cannot add more
+
+  set:
+    - id: acceleration
+      description: "Rate of change is increasing"
+      question: "Is the situation moving faster than before?"
+      form_only: true
+      does_not_imply:
+        - "Where it will end up"
+        - "When it will stop"
+        - "What you should do"
+
+    - id: amplification
+      description: "Small moves producing larger responses"
+      question: "Are responses disproportionate to inputs?"
+      form_only: true
+      does_not_imply:
+        - "Final magnitude"
+        - "Whether this is good or bad"
+        - "How to dampen it"
+
+    - id: phase_transition
+      description: "System approaching regime boundary"
+      question: "Is the system near a state change threshold?"
+      form_only: true
+      does_not_imply:
+        - "Which new phase will emerge"
+        - "Probability of transition"
+        - "Whether transition should be avoided"
+
+# -----------------------------------------------------------------------------
+# Dynamics Template
+# -----------------------------------------------------------------------------
+
+dynamics_template:
+  path: src/kernel/t3/DYNAMICS_TEMPLATE.yaml
+  policy: "no outcome, no probability, no advice"
+
+  structure:
+    current_state: <FROM_T2>
+    observed_dynamics:
+      acceleration: <DETECTED|NOT_DETECTED>
+      amplification: <DETECTED|NOT_DETECTED>
+      phase_transition: <DETECTED|NOT_DETECTED>
+    pattern_description: <FORM_ONLY_TEXT>
+    what_this_does_not_tell_you:
+      - <EXPLICIT_LIMITATION_1>
+      - <EXPLICIT_LIMITATION_2>
+
+# -----------------------------------------------------------------------------
+# API Exports
+# -----------------------------------------------------------------------------
+
+api:
+  path: src/kernel/t3/api
+  exports:
+    - assess_dynamics          # Detect which dynamics are active
+    - describe_evolution_form  # Describe shape of state change
+    - check_phase_boundary     # Check if near regime transition
+
+  constraints:
+    - "MUST NOT return outcome predictions"
+    - "MUST NOT return probability estimates"
+    - "MUST NOT return action recommendations"
+    - "MUST explicitly state what output does NOT tell you"
+
+# -----------------------------------------------------------------------------
+# Budget
+# -----------------------------------------------------------------------------
+
+budget:
+  tokens: 400
+  percentage: 20
+  compliant: true
+  note: "Dynamics assessment requires more context than state"
+
+# -----------------------------------------------------------------------------
+# Governance
+# -----------------------------------------------------------------------------
+
+governance:
+  role: dynamics_layer
+  policy: "Form only, never fortune-telling"
+
+  forbidden_outputs:
+    - "This will lead to..."
+    - "The probability of..."
+    - "You should prepare for..."
+    - "The likely outcome is..."
+    - "Expect..."
+
+  required_outputs:
+    - "This describes form, not destination"
+    - "What this does NOT tell you: ..."
+
+  gates:
+    - name: t3-no-fortune-telling
+      scope: output
+      rule: "Dynamics description only, no outcome language"
+      severity: BLOCK
+
+    - name: t3-explicit-limitations
+      scope: output
+      rule: "Every dynamics output must state what it does NOT tell you"
+      severity: WARN
+
+  stability:
+    level: v1_stable
+    breaking_changes_allowed: false
+    path: src/kernel/t3/STABILITY.md
+
+# =============================================================================
+# END OF REGISTRY
+# =============================================================================

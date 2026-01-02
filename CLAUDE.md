@@ -3,6 +3,58 @@
 本文件是 **LiYe OS 的启动路由/最小常驻上下文**。不要把长 SOP、长协议、完整技能说明塞回这里。
 需要细节时按任务加载 `.claude/packs/`，或用装配器生成 `.claude/.compiled/context.md`。
 
+---
+
+## 新手执行路径（v6.2.0）
+
+> **架构**: Claude Code Native（无独立 CLI）
+> **版本**: v6.2.0-dev (2026-01-01)
+
+### World Model Gate (v6.2.0)
+
+amazon-growth 执行前**必须**先通过 World Model Gate：
+```bash
+# Dry-run: 只生成 T1/T2/T3 分析，不执行操作
+python src/domain/amazon-growth/main.py --mode launch --product "Test" --dry-run
+
+# 验证 World Model Gate
+python tools/audit/verify_v6_2.py
+```
+详见：`docs/architecture/WORLD_MODEL_CONSTITUTION.md`
+
+### 关键路径
+
+| 概念 | 位置 | 说明 |
+|------|------|------|
+| **Agent 定义** | `Agents/amazon-growth/` | SSOT（唯一权威）|
+| **领域入口** | `src/domain/amazon-growth/main.py` | 主入口 |
+| **Agent 加载器** | `src/domain/amazon-growth/agent_loader.py` | 动态加载 |
+| **执行轨迹** | `data/traces/` | 运行时产出 |
+| **产物归档** | `Artifacts_Vault/reports/` | 报告存放 |
+
+### 禁止使用的旧路径
+
+以下路径已**删除或废弃**，不要在新代码中使用：
+
+```
+❌ src/domain/src/           → 已删除（重复）
+❌ src/domain/agents/        → 已删除（重复）
+❌ config/agents.yaml        → 使用 agent_loader.py
+❌ src/domain/main.py        → 使用 amazon-growth/main.py
+```
+
+### 快速验证
+
+```bash
+# 验证架构合规
+python tools/audit/verify_v6_1.py
+
+# 测试 Agent 加载
+python src/domain/amazon-growth/agent_loader.py --dry-run
+```
+
+---
+
 ## Repo Root
 - Repo: `~/github/liye_os`
 - Claude 执行目录：以当前打开的 repo 为准（不要依赖 ~ 下的 CLAUDE.md）
@@ -67,6 +119,16 @@ cat _meta/docs/FILE_SYSTEM_GOVERNANCE.md
 2. **自动加载**：使用 Assembler 根据任务关键词自动拼接
 
 ## 核心原则（Guardrails）
+
+### 记忆检查（防遗忘）
+在涉及专业术语或做决策前，**先搜索历史**：
+```bash
+# 搜索相关记忆
+mem-search query="[话题]" project="liye_os"
+
+# 查看规范术语表
+Read knowledge/glossary/amazon-advertising.yaml
+```
 
 ### 性能边界
 - `CLAUDE.md` ≤ 10,000 chars（当前文件）

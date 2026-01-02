@@ -67,8 +67,19 @@ jobs:
       - name: Build
         run: npm run build --if-present
 
-      - name: Verify CLI
-        run: node cli/index.js agent list
+      - name: Verify Repository Structure
+        run: |
+          echo "Verifying LiYe OS repository structure..."
+          # Check core directories exist
+          for dir in Agents Skills Systems src/kernel; do
+            if [ -d "$dir" ]; then
+              echo "✓ $dir exists"
+            else
+              echo "✗ $dir missing"
+              exit 1
+            fi
+          done
+          echo "✓ Repository structure verified"
 
   validate-yaml:
     name: Validate YAML

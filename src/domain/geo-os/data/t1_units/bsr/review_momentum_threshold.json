@@ -1,0 +1,86 @@
+{
+  "id": "bsr_review_momentum_threshold_01",
+  "domain": "bsr",
+  "mechanism_type": "threshold_rule",
+  "name": "Review Momentum Threshold",
+  "description": "评论动量阈值机制：评论增速和评分变化对 BSR 的阈值效应",
+
+  "trigger_conditions": [
+    "产品评论数量/评分发生变化",
+    "需要评估评论对排名的影响",
+    "制定评论获取策略时"
+  ],
+
+  "threshold_rules": [
+    {
+      "rule": "minimum_review_count",
+      "threshold": "reviews ≥ 15",
+      "effect": "激活评论权重因子",
+      "implication": "低于15条评论时，评论对BSR影响有限"
+    },
+    {
+      "rule": "rating_floor",
+      "threshold": "rating ≥ 3.8",
+      "effect": "避免转化惩罚",
+      "implication": "低于3.8评分会显著降低转化率和BSR"
+    },
+    {
+      "rule": "recent_review_velocity",
+      "threshold": "≥ 3 reviews/week",
+      "effect": "维持评论新鲜度信号",
+      "implication": "评论停滞会被算法识别为产品热度下降"
+    }
+  ],
+
+  "causal_chain": "评论增加 → 社会证明增强 → 转化率提升 → 销量增加 → BSR 上升",
+
+  "mechanism_logic": {
+    "momentum_formula": "review_momentum = (new_reviews_30d / total_reviews) × rating_stability",
+    "momentum_levels": [
+      {
+        "level": "ACCELERATING",
+        "condition": "momentum > 0.3 AND rating stable/improving",
+        "bsr_effect": "positive boost",
+        "action": "maintain acquisition strategy"
+      },
+      {
+        "level": "STABLE",
+        "condition": "0.1 ≤ momentum ≤ 0.3",
+        "bsr_effect": "neutral",
+        "action": "monitor for decay"
+      },
+      {
+        "level": "DECAYING",
+        "condition": "momentum < 0.1 OR rating declining",
+        "bsr_effect": "negative drag",
+        "action": "accelerate review acquisition"
+      }
+    ],
+    "rating_impact": {
+      "4.5+": "premium conversion boost",
+      "4.0-4.4": "standard performance",
+      "3.5-3.9": "conversion penalty begins",
+      "<3.5": "severe conversion penalty, BSR decline likely"
+    }
+  },
+
+  "expected_effect": "通过维持评论动量：保持社会证明新鲜度 → 支撑转化率 → 稳定/提升 BSR",
+
+  "boundary_conditions": [
+    "早期评论影响力更大（评论稀缺时）",
+    "类目平均评分影响相对表现",
+    "负面评论影响力是正面的3-5倍"
+  ],
+
+  "anti_patterns": [
+    "忽视评论获取（自然衰减）",
+    "追求数量忽视质量（低分评论有害）",
+    "评论集中在短期（被识别为异常）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#threshold_rule",
+  "bound_cases": ["case_14"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

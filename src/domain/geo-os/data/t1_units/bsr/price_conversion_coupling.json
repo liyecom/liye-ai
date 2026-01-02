@@ -1,0 +1,103 @@
+{
+  "id": "bsr_price_conversion_coupling_01",
+  "domain": "bsr",
+  "mechanism_type": "optimization_tradeoff",
+  "name": "Price-Conversion Coupling",
+  "description": "价格-转化耦合机制：价格变动对转化率的非线性影响及其 BSR 传导效应",
+
+  "trigger_conditions": [
+    "考虑调整产品价格时",
+    "需要评估价格变动对销量/排名的影响",
+    "竞品价格发生变化时"
+  ],
+
+  "optimization_tradeoff": {
+    "tradeoff": "价格利润 vs 转化率/销量",
+    "coupling_pattern": "价格变动通过转化率中介影响 BSR，但关系非线性"
+  },
+
+  "causal_chain": "价格变动 → 转化率变化（非线性） → 销量变化 → BSR 变化 → 曝光变化 → 二次销量影响",
+
+  "mechanism_logic": {
+    "price_elasticity_model": {
+      "formula": "cvr_delta = base_elasticity × price_delta × position_modifier",
+      "base_elasticity": {
+        "commodity_category": "-2.0 to -3.0 (高弹性，价格敏感)",
+        "differentiated_category": "-0.5 to -1.5 (中弹性)",
+        "premium_category": "-0.2 to -0.5 (低弹性，品牌溢价)"
+      }
+    },
+    "price_zones": [
+      {
+        "zone": "BELOW_FLOOR",
+        "condition": "price < category_avg × 0.7",
+        "effect": "转化率高但利润低，可能触发质量怀疑",
+        "bsr_impact": "短期正向，长期风险（利润不支撑运营）"
+      },
+      {
+        "zone": "COMPETITIVE",
+        "condition": "category_avg × 0.7 ≤ price ≤ category_avg × 1.1",
+        "effect": "转化率与利润平衡区",
+        "bsr_impact": "稳定，依赖其他因素差异化"
+      },
+      {
+        "zone": "PREMIUM",
+        "condition": "category_avg × 1.1 < price ≤ category_avg × 1.5",
+        "effect": "转化率下降但单位利润高",
+        "bsr_impact": "需要强品牌/差异化支撑"
+      },
+      {
+        "zone": "LUXURY",
+        "condition": "price > category_avg × 1.5",
+        "effect": "转化率显著下降，目标小众市场",
+        "bsr_impact": "BSR 通常较低，但利润率高"
+      }
+    ],
+    "coupling_dynamics": {
+      "price_reduction": {
+        "immediate": "转化率上升 5-15%（视弹性）",
+        "delayed": "BSR 上升 → 曝光增加 → 复合效应",
+        "risk": "价格战、利润侵蚀、品牌降级"
+      },
+      "price_increase": {
+        "immediate": "转化率下降 3-10%",
+        "delayed": "BSR 下降 → 曝光减少 → 负向螺旋风险",
+        "mitigation": "需配合价值感提升（listing/评论/品牌）"
+      }
+    },
+    "decision_framework": {
+      "before_price_change": [
+        "计算当前价格弹性（历史数据）",
+        "评估类目竞争格局",
+        "设定 BSR 容忍阈值"
+      ],
+      "after_price_change": [
+        "监控 48h 转化率变化",
+        "追踪 7d BSR 趋势",
+        "评估是否触发二次调整"
+      ]
+    }
+  },
+
+  "expected_effect": "理解价格-转化耦合后：精准预测价格变动的 BSR 影响 → 在利润与排名间做出数据驱动的权衡",
+
+  "boundary_conditions": [
+    "新品期价格弹性更高（无历史锚定）",
+    "促销期弹性临时放大",
+    "捆绑/变体价格策略改变弹性系数",
+    "Prime Day / Black Friday 等大促期间规律失效"
+  ],
+
+  "anti_patterns": [
+    "频繁调价（破坏价格锚定心理）",
+    "忽视竞品价格联动（孤立定价）",
+    "只看转化率不看利润（虚假繁荣）",
+    "大幅降价后立即涨回（客户信任损失）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#optimization_tradeoff",
+  "bound_cases": ["case_15"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

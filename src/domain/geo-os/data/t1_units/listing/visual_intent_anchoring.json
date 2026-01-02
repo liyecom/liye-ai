@@ -1,0 +1,97 @@
+{
+  "id": "listing_visual_intent_anchoring_01",
+  "domain": "listing",
+  "mechanism_type": "causal_chain",
+  "name": "Visual-Intent Anchoring",
+  "description": "视觉-意图锚定机制：主图必须在 0.5 秒内锚定用户搜索意图",
+
+  "trigger_conditions": [
+    "产品点击率(CTR)低于类目平均",
+    "主图更换后 CTR 变化",
+    "竞品视觉策略分析"
+  ],
+
+  "causal_chain": "用户搜索 → 扫视结果页 → 0.5s 内判断相关性 → 主图锚定意图则点击 → CTR 提升 → 曝光正反馈",
+
+  "mechanism_logic": {
+    "anchoring_principle": {
+      "core_insight": "主图是 CTR 的第一决定因素",
+      "time_budget": "用户在单个产品上停留 < 1s",
+      "decision_window": "前 0.5s 决定是否点击"
+    },
+    "intent_matching_levels": [
+      {
+        "level": "EXPLICIT_MATCH",
+        "description": "搜索词直接可见（如搜'红色水杯'，图中有红色水杯）",
+        "ctr_impact": "baseline",
+        "priority": "必须满足"
+      },
+      {
+        "level": "ATTRIBUTE_SIGNAL",
+        "description": "关键属性视觉传达（如'大容量'通过对比物展示）",
+        "ctr_impact": "+10-20%",
+        "priority": "强烈建议"
+      },
+      {
+        "level": "USE_CASE_PREVIEW",
+        "description": "使用场景预示（如'办公室水杯'展示桌面环境）",
+        "ctr_impact": "+5-15%",
+        "priority": "视产品而定"
+      },
+      {
+        "level": "QUALITY_PERCEPTION",
+        "description": "质感/高级感传达",
+        "ctr_impact": "+5-10%",
+        "priority": "高客单价产品必需"
+      }
+    ],
+    "visual_hierarchy": {
+      "focus_point": "主体产品占画面 85%+",
+      "background": "纯白或简洁（Amazon 规范）",
+      "angle": "最能展示核心卖点的角度",
+      "lighting": "均匀、无阴影、高亮度"
+    },
+    "anti_intent_signals": [
+      {
+        "signal": "CLUTTERED_IMAGE",
+        "effect": "分散注意力，无法快速识别产品",
+        "ctr_impact": "-20-40%"
+      },
+      {
+        "signal": "WRONG_ANGLE",
+        "effect": "无法展示核心属性",
+        "ctr_impact": "-10-25%"
+      },
+      {
+        "signal": "LOW_QUALITY",
+        "effect": "质量感知下降，降低点击意愿",
+        "ctr_impact": "-15-30%"
+      },
+      {
+        "signal": "GENERIC_STOCK",
+        "effect": "与竞品无差异化",
+        "ctr_impact": "-5-15%"
+      }
+    ]
+  },
+
+  "expected_effect": "通过意图锚定优化：主图在 0.5s 内传达搜索匹配 → CTR 提升 15-35% → BSR 正向飞轮",
+
+  "boundary_conditions": [
+    "品牌知名度高时 Logo 可作为锚定元素",
+    "变体产品需要差异化视觉",
+    "手机端和 PC 端裁剪比例不同"
+  ],
+
+  "anti_patterns": [
+    "主图放过多信息（无法快速扫视）",
+    "使用与搜索词无关的创意图",
+    "忽视竞品主图导致同质化"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#causal_chain",
+  "bound_cases": ["case_18"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}

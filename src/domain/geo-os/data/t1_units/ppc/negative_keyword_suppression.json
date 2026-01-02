@@ -1,0 +1,64 @@
+{
+  "id": "ppc_negative_keyword_suppression_01",
+  "domain": "ppc",
+  "mechanism_type": "failure_mode",
+  "name": "Negative Keyword Suppression Mechanism",
+  "description": "否定关键词抑制机制：识别并阻断低转化搜索词流量泄漏",
+
+  "trigger_conditions": [
+    "搜索词报告中存在高点击低转化词",
+    "点击 ≥ 10 次且转化 = 0",
+    "或 ACoS > 目标 ACoS × 3"
+  ],
+
+  "failure_mode_pattern": {
+    "detection": "Search Term Report 分析",
+    "failure_signal": "高点击零转化 或 极高 ACoS",
+    "consequence": "预算流向无效流量 → 整体 ACoS 上升 → 广告效率下降"
+  },
+
+  "causal_chain": "低相关搜索词触发广告 → 用户点击但不购买 → 预算消耗无转化 → ACoS 恶化",
+
+  "mechanism_logic": {
+    "suppression_rules": [
+      {
+        "rule": "zero_conversion_threshold",
+        "condition": "clicks ≥ 10 AND conversions = 0",
+        "action": "add to negative exact",
+        "rationale": "10次点击无转化表明语义不匹配"
+      },
+      {
+        "rule": "extreme_acos_threshold",
+        "condition": "ACoS > Target_ACoS × 3 AND clicks ≥ 5",
+        "action": "add to negative phrase",
+        "rationale": "严重低效但有转化，阻断同类词"
+      },
+      {
+        "rule": "irrelevant_intent",
+        "condition": "搜索词包含竞品品牌名/无关类目词",
+        "action": "add to negative exact immediately",
+        "rationale": "语义完全不匹配，无需等待数据"
+      }
+    ]
+  },
+
+  "expected_effect": "通过否定词机制：阻断无效流量 → 预算集中于高转化词 → 整体 ACoS 下降 15-30%",
+
+  "boundary_conditions": [
+    "新品期需要更宽容的阈值（数据积累期）",
+    "高客单产品可接受更高 ACoS",
+    "季节性词需要谨慎否定（可能季节性恢复）"
+  ],
+
+  "anti_patterns": [
+    "否定太宽泛的短语（误伤有效流量）",
+    "不否定品牌词（竞品流量价值低）",
+    "一次性大批量否定（无法追溯问题）"
+  ],
+
+  "whitelist_reference": "T1_MECHANISM_WHITELIST.md#failure_mode",
+  "bound_cases": ["case_09"],
+  "locked": false,
+  "created": "2025-12-31",
+  "version": "1.0.0"
+}
