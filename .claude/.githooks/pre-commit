@@ -109,9 +109,9 @@ if [ -f ".security/blocklist.txt" ]; then
   # Exclude security config files themselves
   BLOCKLIST_HITS=""
   while IFS= read -r file; do
-    # Skip security config files and pre-commit hook itself
+    # Skip security config files, pre-commit hook, and CI workflows that need to reference blocklist patterns
     case "$file" in
-      .security/*|.claude/.githooks/*|.pre-commit-config.yaml) continue ;;
+      .security/*|.claude/.githooks/*|.pre-commit-config.yaml|.github/workflows/amazon-leak-guard.yml) continue ;;
     esac
     if [ -f "$file" ]; then
       hits=$(grep -Hn -f "$PATTERNS_TEMP" "$file" 2>/dev/null || true)

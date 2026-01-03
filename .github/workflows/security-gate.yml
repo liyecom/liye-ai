@@ -1,0 +1,57 @@
+name: Security Gate (secrets + blocklist)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: gitleaks scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        with:
+          args: detect --source . --redact --no-banner
+
+  blocklist:
+    name: blocklist scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify blocklist file exists
+        run: |
+          test -f .security/blocklist.txt
+
+      - name: Scan repository with blocklist
+        run: |
+          set -e
+          # Exclude security config files themselves
+          if grep -RIn \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=.venv \
+            --exclude-dir=venv \
+            --exclude='.security/*' \
+            --exclude='.pre-commit-config.yaml' \
+            --exclude='.github/workflows/security-gate.yml' \
+            -f .security/blocklist.txt . 2>/dev/null; then
+            echo ""
+            echo "❌ BLOCKED by .security/blocklist.txt"
+            exit 1
+          else
+            echo "✅ PASS: no blocklist hits"
+          fi

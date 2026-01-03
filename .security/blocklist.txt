@@ -12,6 +12,6 @@ B09PQJ8SW8
 B08SVXGTRT
 
 # --- Key prefixes (never allow in public repo) ---
+# Note: AKIA/ASIA removed - gitleaks handles real AWS keys
+# Placeholder prefixes in docs (AKIAXXXXXXXXX) are safe
 sk-ant-
-AKIA
-ASIA
