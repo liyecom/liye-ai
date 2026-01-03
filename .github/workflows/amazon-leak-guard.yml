@@ -7,10 +7,10 @@
 #   - Actual Amazon code paths: Agents/amazon-growth/, Crews/amazon-growth/, etc.
 #   - Customer identifiers: TIMO, timo
 #   - Blocked ASINs from .security/blocklist.txt
+#   - Private repo disclosure: loudmirror/amazon-growth-os, amazon-growth-os in docs
 #
 # What is ALLOWED:
-#   - Documentation references like "Amazon Growth OS has been migrated..."
-#   - Historical architecture docs mentioning amazon-growth-os in text
+#   - Generic references like "a private repository"
 #
 # This gate complements .security/blocklist.txt pre-commit hooks
 # =============================================================================
@@ -159,6 +159,30 @@ jobs:
 
           echo "✅ No API key patterns found"
 
+      - name: Check for private repo disclosure
+        run: |
+          echo "🔍 Checking for private repo disclosure in documentation..."
+          echo ""
+
+          # Block private repo names/URLs in public-facing docs
+          # Exclude this workflow file itself (it needs to reference patterns for detection)
+          EXCLUDE_PATTERNS=".git|node_modules|\.github/workflows/amazon-leak-guard\.yml"
+
+          FOUND=$(grep -rn -E "loudmirror/amazon-growth-os|github\.com/.*/amazon-growth-os|amazon-growth-os" \
+            i18n _meta docs README* 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
+
+          if [ -n "$FOUND" ]; then
+            echo "::error::FORBIDDEN: Private repository disclosure detected in public documentation"
+            echo ""
+            echo "Files containing private repo references:"
+            echo "$FOUND"
+            echo ""
+            echo "Replace with 'a private repository' or remove the reference."
+            exit 1
+          fi
+
+          echo "✅ No private repo disclosure found"
+
       - name: Summary
         run: |
           echo ""
@@ -173,6 +197,6 @@ jobs:
           echo "  - No customer identifiers in code"
           echo "  - No blocked ASINs"
           echo "  - No API key patterns"
+          echo "  - No private repo disclosure in docs"
           echo ""
-          echo "Note: Documentation references to Amazon Growth OS are allowed."
-          echo "Only actual code, data, and identifiers are blocked."
+          echo "Note: Only actual code, data, and identifiers are blocked."
