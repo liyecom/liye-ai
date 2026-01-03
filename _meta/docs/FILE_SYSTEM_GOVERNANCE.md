@@ -40,7 +40,7 @@ File System Governance Plan
 #### P0 - 关键问题（立即处理）
 
 1. **虚拟环境污染 Git**
-   - 位置：`Systems/amazon-growth-os/venv/`
+   - 位置：`Systems/a private repository/venv/`
    - 大小：1.7GB
    - 影响：Clone 时间长、存储浪费、协作困难
    - 根因：`.gitignore` 添加晚于 `venv/` 提交
@@ -59,7 +59,7 @@ File System Governance Plan
 
 4. **重复的 uploads 目录**
    - `Skills/02_Operation_Intelligence/uploads/`
-   - `Systems/amazon-growth-os/uploads/`
+   - `Systems/a private repository/uploads/`
    - 影响：数据分散、不明确的职责划分
 
 5. **命名不一致**
@@ -82,7 +82,7 @@ File System Governance Plan
    - `Skills/99_Incubator/test-skill/skill_definition_template.md`
 
 9. **Systems vs Skills 边界模糊**
-   - `amazon-growth-os` 既在 Systems 又有 skill_definition
+   - `a private repository` 既在 Systems 又有 skill_definition
    - 不清楚两者的区别和关联
 
 ---
@@ -94,14 +94,14 @@ File System Governance Plan
 #### 步骤 1：移除虚拟环境
 
 ```bash
-cd ~/github/liye_os/Systems/amazon-growth-os
+cd ~/github/liye_os/Systems/a private repository
 
 # 1. 备份当前 venv（如果需要）
 tar -czf ~/Downloads/liye_os_venv_backup_$(date +%Y%m%d).tar.gz venv/
 
 # 2. 从 Git 历史中彻底删除
 git filter-branch --force --index-filter \
-  'git rm -rf --cached --ignore-unmatch Systems/amazon-growth-os/venv' \
+  'git rm -rf --cached --ignore-unmatch Systems/a private repository/venv' \
   --prune-empty --tag-name-filter cat -- --all
 
 # 或使用 BFG Repo-Cleaner（更快）
@@ -157,11 +157,11 @@ find . -type f \( -name "*.csv" -o -name "*.xlsx" -o -name "*.xls" \) | grep -v 
 
 # 2. 移动到 Git 外部位置
 mkdir -p ~/Documents/liye_workspace/LiYe_OS_Data/
-mv Systems/amazon-growth-os/uploads/*.csv ~/Documents/liye_workspace/LiYe_OS_Data/amazon_uploads/
+mv Systems/a private repository/uploads/*.csv ~/Documents/liye_workspace/LiYe_OS_Data/amazon_uploads/
 mv Skills/02_Operation_Intelligence/uploads/*.csv ~/Documents/liye_workspace/LiYe_OS_Data/operation_uploads/
 
 # 3. 创建软链接（如果需要本地访问）
-ln -s ~/Documents/liye_workspace/LiYe_OS_Data/amazon_uploads Systems/amazon-growth-os/data_external
+ln -s ~/Documents/liye_workspace/LiYe_OS_Data/amazon_uploads Systems/a private repository/data_external
 ln -s ~/Documents/liye_workspace/LiYe_OS_Data/operation_uploads Skills/02_Operation_Intelligence/data_external
 
 # 4. 更新 .gitignore
@@ -289,7 +289,7 @@ liye_os/
 
 ❌ BAD:
 - Skills/05_Medical_Intelligence/Medical_Research_Analyst/
-- Systems/amazon-growth-os/
+- Systems/a private repository/
 - Skills/06_Technical_Development/CrewAI_Multi_Agent_Framework/
 ```
 
@@ -374,10 +374,10 @@ if [ -d "tools/notion-sync" ]; then
   rmdir tools 2>/dev/null || true
 fi
 
-# 4. 重命名 amazon-growth-os
+# 4. 重命名 a private repository
 echo "🏭 标准化 amazon_growth_os 命名..."
-if [ -d "systems/amazon-growth-os" ]; then
-  git mv systems/amazon-growth-os systems/amazon_growth_os
+if [ -d "systems/a private repository" ]; then
+  git mv systems/a private repository systems/amazon_growth_os
 fi
 
 # 5. 精简 Skills 域分类
@@ -742,7 +742,7 @@ git push origin --force
 | `Systems/` | `systems/` | 重命名 |
 | `Skills/05_Medical_Intelligence/Medical_Research_Analyst/` | `skills/medical/medical_research_analyst/` | 重组+重命名 |
 | `Skills/02_Operation_Intelligence/amazon-keyword-analysis/` | `skills/research/amazon_keyword_analysis/` | 迁移+重命名 |
-| `Systems/amazon-growth-os/` | `systems/amazon_growth_os/` | 重命名 |
+| `Systems/a private repository/` | `systems/amazon_growth_os/` | 重命名 |
 | `tools/notion-sync/` | `systems/notion_sync/` | 迁移 |
 | `Glossaries/` | `_meta/glossary/` | 合并 |
 | `Agents/` | (删除) | 移除空目录 |

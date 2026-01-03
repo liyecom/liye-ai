@@ -139,7 +139,7 @@ git checkout 8935aaf  # v6.0.0 最后一个 commit
 
 ```bash
 # 仅用于开发环境调试，不推荐生产使用
-git checkout feat/amazon-growth-os-v4.2-governance
+git checkout feat/a private repository-v4.2-governance
 ```
 
 ### 紧急回滚（保留历史）

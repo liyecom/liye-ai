@@ -12,7 +12,7 @@
 | 项目 | 值 |
 |------|-----|
 | **Base Git SHA** | `8935aafc4ceb6ec652f16c6aaec9712c42d1027a` |
-| **Base Branch** | `feat/amazon-growth-os-v4.2-governance` |
+| **Base Branch** | `feat/a private repository-v4.2-governance` |
 | **Release Branch** | `release/v6.1.1-hardening` |
 | **创建时间** | 2026-01-01 |
 
@@ -129,7 +129,7 @@ python tools/audit/verify_v6_1.py
 
 | 阶段 | 回滚命令 |
 |------|----------|
-| 任意阶段 | `git checkout feat/amazon-growth-os-v4.2-governance` |
+| 任意阶段 | `git checkout feat/a private repository-v4.2-governance` |
 | 部分修改 | `git stash && git checkout .` |
 
 ---

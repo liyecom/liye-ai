@@ -252,7 +252,7 @@ Level 3 requires documented validation evidence.
 
 ### Domain Validations
 
-- `src/domain/amazon-growth-os/` - Commercial domain
+- `src/domain/a private repository/` - Commercial domain
 - `src/domain/investment-os/` - Financial domain
 - `src/domain/medical-os/` - Clinical domain
 

@@ -212,7 +212,7 @@ ln -s ~/data/shengcai ~/Documents/生财有术
 
 # 2. Git repos 清理历史大文件（如果有）
 cd ~/github/liye_os
-git filter-branch --tree-filter 'rm -rf Systems/amazon-growth-os/venv' HEAD
+git filter-branch --tree-filter 'rm -rf Systems/a private repository/venv' HEAD
 
 # 3. 压缩旧归档（可选）
 tar -czf ~/data/archives/interview_materials_$(date +%Y%m%d).tar.gz ~/Documents/面试相关资料

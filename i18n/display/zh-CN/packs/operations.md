@@ -77,7 +77,7 @@
 
 ## Amazon Growth OS
 
-**位置：** `Systems/amazon-growth-os/`
+**位置：** `Systems/a private repository/`
 
 **用途：** 新品 Launch、老品 Optimize、关键词策略、PPC 分层优化、竞品与漏斗诊断
 
@@ -90,7 +90,7 @@
 **常用入口（从 repo 根目录）：**
 
 ```bash
-cd Systems/amazon-growth-os
+cd Systems/a private repository
 
 # 新品 Launch 模式
 ./run.sh --mode launch --product "XXX" --market "Amazon US"

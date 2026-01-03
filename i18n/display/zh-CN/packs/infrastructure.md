@@ -222,8 +222,8 @@ status: In Progress
 ln -s ~/data/shengcai ~/Documents/生财有术
 
 # 3. 在 repo 中使用外部链接
-# Systems/amazon-growth-os/data_external → ~/data/amazon_reports
-ln -s ~/data/amazon_reports Systems/amazon-growth-os/data_external
+# Systems/a private repository/data_external → ~/data/amazon_reports
+ln -s ~/data/amazon_reports Systems/a private repository/data_external
 ```
 
 **`.gitignore` 配置：**
@@ -279,7 +279,7 @@ Artifacts_Vault/by_project/acme_canada_q4/
 # 格式：<type>(<scope>): <subject>
 
 feat(notion-sync): add diff command to compare local and Notion
-fix(amazon-growth-os): correct keyword analysis ACOS calculation
+fix(a private repository): correct keyword analysis ACOS calculation
 docs(README): update Notion sync configuration guide
 chore(gitignore): add .cache and .env to ignore list
 refactor(Skills): reorganize 12 domains into 6 active domains
@@ -302,7 +302,7 @@ title: Amazon Listing Optimization Report
 date: 2024-01-20
 project: Acme Canada Q4
 author: Claude Sonnet 4.5
-source: ~/github/liye_os/Systems/amazon-growth-os
+source: ~/github/liye_os/Systems/a private repository
 input: data/inputs/campaign_report_20240115.csv
 output: reports/listing_optimization_20240120.md
 ---
