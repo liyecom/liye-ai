@@ -1,0 +1,75 @@
+# =============================================================================
+# Public Replay Regression Gate
+# =============================================================================
+# Purpose: Run replay/regression tests on public domains (skeleton demo)
+#
+# This gate validates that the replay contract remains deterministic:
+#   - Same input (fixed seed) must produce same output
+#   - Tests run on synthetic demo data only
+#   - No private domain dependencies
+#
+# Note: Domain Replay Gate (domain-replay-gate.yml) handles GEO OS.
+#       This gate handles public skeleton demo.
+# =============================================================================
+
+name: Domain Replay Gate / public-replay-regression
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'tools/replay_public_regression.mjs'
+      - 'data/demo/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'tools/replay_public_regression.mjs'
+      - 'data/demo/**'
+
+jobs:
+  replay-regression:
+    name: Public Replay Regression
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run skeleton replay regression
+        run: |
+          echo "🔁 Running Public Replay Regression Tests"
+          echo ""
+
+          # Run skeleton domain replay
+          if [ -f "data/demo/skeleton/replay_input.json" ]; then
+            echo "📦 Testing skeleton domain..."
+            node tools/replay_public_regression.mjs \
+              --input data/demo/skeleton/replay_input.json \
+              --baseline data/demo/skeleton/baseline/replay_output.json
+          else
+            echo "⏭️ No skeleton demo data found, skipping"
+          fi
+
+          echo ""
+          echo "✅ All public replay tests passed"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "========================================="
+          echo "Public Replay Regression Summary"
+          echo "========================================="
+          echo ""
+          echo "Tested domains:"
+          echo "  - skeleton (synthetic demo)"
+          echo ""
+          echo "This gate validates:"
+          echo "  - Deterministic output (same input → same output)"
+          echo "  - Stable decision fields (id, domain, severity, action)"
+          echo "  - No dependency on private domains"

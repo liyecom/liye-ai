@@ -1,0 +1,176 @@
+# =============================================================================
+# Amazon Leak Guard - Prevents Amazon Growth OS Assets from Returning to Public Repo
+# =============================================================================
+# Purpose: Block any commit that introduces Amazon-specific code paths or identifiers
+#
+# What is BLOCKED:
+#   - Actual Amazon code paths: Agents/amazon-growth/, Crews/amazon-growth/, etc.
+#   - Customer identifiers: TIMO, timo
+#   - Blocked ASINs from .security/blocklist.txt
+#
+# What is ALLOWED:
+#   - Documentation references like "Amazon Growth OS has been migrated..."
+#   - Historical architecture docs mentioning amazon-growth-os in text
+#
+# This gate complements .security/blocklist.txt pre-commit hooks
+# =============================================================================
+
+name: Security Gate / amazon-leak-guard
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  leak-guard:
+    name: Block Amazon Asset Leakage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for forbidden code paths
+        run: |
+          echo "🔍 Checking for forbidden Amazon code paths..."
+          echo ""
+
+          VIOLATIONS=0
+
+          # Forbidden directory paths (actual code, not documentation references)
+          FORBIDDEN_PATHS=(
+            "Agents/amazon-growth"
+            "Crews/amazon-growth"
+            "domains/amazon-growth"
+            "knowledge/amazon"
+            "knowledge/private"
+            "Systems/amazon-growth-os"
+            "systems/amazon-growth-os"
+            "src/domain/amazon-growth"
+          )
+
+          for path in "${FORBIDDEN_PATHS[@]}"; do
+            if git ls-files | grep -q "^${path}/"; then
+              echo "::error::FORBIDDEN PATH: $path/ directory detected in repository"
+              git ls-files | grep "^${path}/" | head -5
+              VIOLATIONS=$((VIOLATIONS + 1))
+            fi
+          done
+
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo ""
+            echo "========================================="
+            echo "SECURITY VIOLATION: Amazon assets detected"
+            echo "========================================="
+            echo ""
+            echo "Amazon Growth OS has been migrated to a private repository."
+            echo "These paths must not exist in the public repo."
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ No forbidden code paths found"
+
+      - name: Check for customer identifiers
+        run: |
+          echo "🔍 Checking for customer identifiers..."
+          echo ""
+
+          # Use grep instead of rg for better availability
+          # Exclude known false-positive files
+          EXCLUDE_PATTERNS=".git|node_modules|\.security/blocklist\.txt|\.github/workflows/amazon-leak-guard\.yml"
+
+          # Check for TIMO (customer identifier) - case insensitive in code files
+          if git ls-files | grep -E '\.(py|js|ts|yaml|yml|json|csv)$' | \
+             xargs grep -l -i "TIMO" 2>/dev/null | \
+             grep -v -E "$EXCLUDE_PATTERNS"; then
+            echo "::error::FORBIDDEN: Customer identifier 'TIMO' found in code files"
+            echo ""
+            echo "Files containing 'TIMO':"
+            git ls-files | grep -E '\.(py|js|ts|yaml|yml|json|csv)$' | \
+              xargs grep -l -i "TIMO" 2>/dev/null | \
+              grep -v -E "$EXCLUDE_PATTERNS" || true
+            exit 1
+          fi
+
+          echo "✅ No customer identifiers found"
+
+      - name: Check for blocked ASINs
+        run: |
+          echo "🔍 Checking for blocked ASINs..."
+          echo ""
+
+          # Blocked ASINs (from .security/blocklist.txt)
+          BLOCKED_ASINS=(
+            "B08N5WRWNW"
+            "B09PQPYDBM"
+            "B08SWLTTSW"
+            "B08SW4Z85K"
+            "B09PQJ8SW8"
+            "B08SVXGTRT"
+          )
+
+          EXCLUDE_PATTERNS=".git|node_modules|\.security/blocklist\.txt|\.github/workflows/amazon-leak-guard\.yml"
+          VIOLATIONS=0
+
+          for asin in "${BLOCKED_ASINS[@]}"; do
+            FOUND=$(git ls-files | xargs grep -l "$asin" 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
+            if [ -n "$FOUND" ]; then
+              echo "::error::FORBIDDEN: Blocked ASIN $asin found"
+              echo "Files: $FOUND"
+              VIOLATIONS=$((VIOLATIONS + 1))
+            fi
+          done
+
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo ""
+            echo "========================================="
+            echo "SECURITY VIOLATION: Blocked ASINs detected"
+            echo "========================================="
+            exit 1
+          fi
+
+          echo "✅ No blocked ASINs found"
+
+      - name: Check for API key prefixes
+        run: |
+          echo "🔍 Checking for API key patterns..."
+          echo ""
+
+          EXCLUDE_PATTERNS=".git|node_modules|\.security/blocklist\.txt|\.github/workflows/amazon-leak-guard\.yml|\.env\.example"
+
+          # Check for Anthropic API key prefix
+          if git ls-files | xargs grep -l "sk-ant-" 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS"; then
+            echo "::error::FORBIDDEN: Anthropic API key prefix 'sk-ant-' detected"
+            exit 1
+          fi
+
+          # Check for AWS key prefixes (but exclude example patterns)
+          if git ls-files | xargs grep -l -E "AKIA[A-Z0-9]{16}|ASIA[A-Z0-9]{16}" 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS"; then
+            echo "::error::FORBIDDEN: AWS access key pattern detected"
+            exit 1
+          fi
+
+          echo "✅ No API key patterns found"
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "========================================="
+          echo "Amazon Leak Guard Summary"
+          echo "========================================="
+          echo ""
+          echo "✅ All security checks passed"
+          echo ""
+          echo "Verified:"
+          echo "  - No forbidden Amazon code paths"
+          echo "  - No customer identifiers in code"
+          echo "  - No blocked ASINs"
+          echo "  - No API key patterns"
+          echo ""
+          echo "Note: Documentation references to Amazon Growth OS are allowed."
+          echo "Only actual code, data, and identifiers are blocked."

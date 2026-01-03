@@ -1,0 +1,19 @@
+{
+  "domain": "skeleton",
+  "task": "replay_smoke",
+  "seed": 42,
+  "version": "1.0.0",
+  "payload": {
+    "message": "hello",
+    "metrics": {
+      "signal_a": 0.75,
+      "signal_b": 0.45,
+      "signal_c": 0.90
+    },
+    "thresholds": {
+      "high": 0.80,
+      "medium": 0.50,
+      "low": 0.20
+    }
+  }
+}

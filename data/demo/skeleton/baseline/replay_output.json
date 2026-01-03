@@ -1,0 +1,41 @@
+{
+  "domain": "skeleton",
+  "task": "replay_smoke",
+  "seed": 42,
+  "version": "1.0.0",
+  "status": "PASS",
+  "decisions": [
+    {
+      "decision_id": "SKL-001",
+      "domain": "skeleton",
+      "severity": "medium",
+      "signal": "signal_a",
+      "value": 0.75,
+      "threshold": 0.5,
+      "action": "ALERT"
+    },
+    {
+      "decision_id": "SKL-002",
+      "domain": "skeleton",
+      "severity": "low",
+      "signal": "signal_b",
+      "value": 0.45,
+      "threshold": 0.2,
+      "action": "MONITOR"
+    },
+    {
+      "decision_id": "SKL-003",
+      "domain": "skeleton",
+      "severity": "high",
+      "signal": "signal_c",
+      "value": 0.9,
+      "threshold": 0.8,
+      "action": "ESCALATE"
+    }
+  ],
+  "summary": {
+    "total_signals": 3,
+    "decisions_made": 3,
+    "escalations": 1
+  }
+}
