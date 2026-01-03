@@ -42,7 +42,7 @@ jobs:
       - name: Validate concept_id prefix policy (full enforcement)
         run: node .claude/scripts/validate_concept_prefix.mjs
 
-      - name: Guard: forbid legacy domain-mapping keywords blocks
+      - name: "Guard: forbid legacy domain-mapping keywords blocks"
         run: node .claude/scripts/validate_no_legacy_keywords.mjs
 
       - name: Verify memory brief generated
