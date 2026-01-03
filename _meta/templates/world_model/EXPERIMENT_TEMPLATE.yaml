@@ -21,7 +21,7 @@ experiment:
 
   # === Tenant/Entity Scope ===
   tenant:
-    store_id: "TIMO"
+    store_id: "DEMO_STORE"        # Replace with actual store ID
     marketplace: "US"
   entity:
     asin: "B0XXXX"

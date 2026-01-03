@@ -15,24 +15,24 @@ trace:
 
   # === Enhancement 4: Multi-tenant Support ===
   tenant:
-    store_id: "TIMO"              # 店铺ID
+    store_id: "DEMO_STORE"        # 店铺ID (replace with actual)
     marketplace: "US"             # US | CA | EU | UK | DE | FR | JP
     currency: "USD"
     timezone: "America/Los_Angeles"
 
   entity:
     asin: "B0XXXX"
-    sku: "TIMO-DOORMAT-001"
+    sku: "DEMO-SKU-001"
     intent_bucket_id: "IB-prevent-mud-tracking"
     campaign_id: null             # 可选
 
   # === Enhancement 3: Evidence Pointer (可审计证据链) ===
   evidence:
-    - uri: "uploads/TIMO-US/search_terms_20250102.xlsx"
+    - uri: "uploads/DEMO-US/search_terms_20250102.xlsx"
       sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       captured_at: "2025-01-02T08:00:00Z"
       note: "Amazon 搜索词报告，1月前7天"
-    - uri: "uploads/TIMO-US/广告活动_20250102.xlsx"
+    - uri: "uploads/DEMO-US/广告活动_20250102.xlsx"
       sha256: "FILL_HASH_HERE"
       captured_at: "2025-01-02T08:00:00Z"
       note: "广告活动报表"

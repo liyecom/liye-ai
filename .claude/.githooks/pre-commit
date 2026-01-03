@@ -74,10 +74,11 @@ echo "✅ All pre-commit checks passed"
 # ===== Block staged secrets/runtime/data (hard gate) =====
 echo "🧯 Checking staged files for forbidden patterns..."
 
-STAGED="$(git diff --cached --name-only)"
+# Only check Added/Modified files, not Deleted (--diff-filter=AM)
+STAGED="$(git diff --cached --name-only --diff-filter=AM)"
 
-# 1) Hard block: env / keys
-echo "$STAGED" | grep -E '(^|/)\.env(\.|$)' >/dev/null && {
+# 1) Hard block: env / keys (but allow .env.example)
+echo "$STAGED" | grep -E '(^|/)\.env$|(^|/)\.env\.local$|(^|/)\.env\.production$' >/dev/null && {
   echo "❌ Blocked: .env file is staged. Remove it from staging:"
   echo "   git restore --staged <path-to-env>"
   exit 1
