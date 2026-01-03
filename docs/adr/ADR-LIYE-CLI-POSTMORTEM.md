@@ -1,5 +1,10 @@
 # ADR: LiYe CLI 复盘 (Postmortem)
 
+- decision_id: ADR-0001
+- domain: general
+- status: accepted
+- tags: [cli, postmortem, architecture]
+
 **状态**: Accepted
 **日期**: 2026-01-01
 **决策者**: LiYe
