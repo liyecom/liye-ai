@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+        args: ["detect", "--source", ".", "--redact"]
+
+  - repo: local
+    hooks:
+      - id: blocklist-scan
+        name: Blocklist scan (customer ids / real ASIN / key prefixes)
+        entry: bash -c 'grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=venv -f .security/blocklist.txt . && echo "BLOCKED by .security/blocklist.txt" && exit 1 || exit 0'
+        language: system
+        pass_filenames: false

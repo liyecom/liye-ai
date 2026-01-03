@@ -1,0 +1,17 @@
+# --- Known customer identifiers ---
+TIMO
+timo
+Timo
+
+# --- Known real ASINs (confirmed) ---
+B08N5WRWNW
+B09PQPYDBM
+B08SWLTTSW
+B08SW4Z85K
+B09PQJ8SW8
+B08SVXGTRT
+
+# --- Key prefixes (never allow in public repo) ---
+sk-ant-
+AKIA
+ASIA

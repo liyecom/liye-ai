@@ -97,4 +97,44 @@ echo "$STAGED" | grep -E '\.csv$|\.xlsx$|\.xls$|(^|/)uploads/' >/dev/null && {
 
 echo "✅ Staged file gate passed"
 
+# ===== Blocklist scan (customer IDs / real ASINs / key prefixes) =====
+echo "🛡️ Scanning staged files for blocklisted patterns..."
+
+if [ -f ".security/blocklist.txt" ]; then
+  # Create temp file with non-comment patterns only
+  PATTERNS_TEMP=$(mktemp)
+  grep -v "^#" .security/blocklist.txt | grep -v "^$" > "$PATTERNS_TEMP"
+
+  # Get staged file contents and scan for blocklist patterns
+  # Exclude security config files themselves
+  BLOCKLIST_HITS=""
+  while IFS= read -r file; do
+    # Skip security config files and pre-commit hook itself
+    case "$file" in
+      .security/*|.claude/.githooks/*|.pre-commit-config.yaml) continue ;;
+    esac
+    if [ -f "$file" ]; then
+      hits=$(grep -Hn -f "$PATTERNS_TEMP" "$file" 2>/dev/null || true)
+      if [ -n "$hits" ]; then
+        BLOCKLIST_HITS="${BLOCKLIST_HITS}${hits}\n"
+      fi
+    fi
+  done <<< "$STAGED"
+
+  rm -f "$PATTERNS_TEMP"
+
+  if [ -n "$BLOCKLIST_HITS" ]; then
+    echo ""
+    echo "❌ Blocked: Staged files contain blocklisted patterns:"
+    echo -e "$BLOCKLIST_HITS"
+    echo ""
+    echo "   Review .security/blocklist.txt for blocked terms"
+    echo "   Remove sensitive data before committing"
+    exit 1
+  fi
+  echo "✅ Blocklist scan passed"
+else
+  echo "⚠️ .security/blocklist.txt not found, skipping blocklist scan"
+fi
+
 exit 0
