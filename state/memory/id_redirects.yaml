@@ -1,0 +1,9 @@
+version: 1
+redirects:
+  acos: AMZ_ACOS
+  roas: AMZ_ROAS
+  acoas: AMZ_ACOAS
+  asoas: AMZ_ASOAS
+  cpc: AMZ_CPC
+  ctr: AMZ_CTR
+  cvr: AMZ_CVR

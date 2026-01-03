@@ -12,8 +12,8 @@ hypothesis:
 
   # === Content ===
   statement: "描述假设内容"
-  domain: "amazon-growth"
-  category: "priority_score"      # priority_score | intent_fit | rufus_factor | bidding | content
+  domain: "skeleton"
+  category: "example_category"    # domain-specific categories go here
 
   # === Ownership ===
   owner: "liye"

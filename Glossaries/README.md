@@ -35,7 +35,7 @@ This glossary ensures consistent terminology across:
 | **Agent** | An autonomous unit with Persona + Skills + Runtime |
 | **Crew** | A coordinated team of agents |
 | **Skill** | A discrete capability an agent can use |
-| **Domain** | A vertical application area (e.g., amazon-growth) |
+| **Domain** | A vertical application area (e.g., medical-research) |
 
 ### Architecture Layers
 

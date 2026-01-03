@@ -1,0 +1,68 @@
+name: memory-gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install yaml fast-glob
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Bootstrap memory (smoke test)
+        run: node .claude/scripts/memory_bootstrap.mjs "memory gate smoke test"
+
+      - name: Validate all glossaries (schema smoke)
+        run: node .claude/scripts/validate_glossary.mjs
+
+      - name: Validate ADR repository (id/domain/tags)
+        run: node .claude/scripts/validate_adr.mjs
+
+      - name: Validate concept_id uniqueness (global)
+        run: node .claude/scripts/validate_concept_ids.mjs
+
+      - name: Prefix policy (prevent regression)
+        run: node .claude/scripts/prefix_gate_changed_concepts.mjs
+
+      - name: Validate concept_id prefix policy (full enforcement)
+        run: node .claude/scripts/validate_concept_prefix.mjs
+
+      - name: Guard: forbid legacy domain-mapping keywords blocks
+        run: node .claude/scripts/validate_no_legacy_keywords.mjs
+
+      - name: Verify memory brief generated
+        run: |
+          if [ -f .claude/.compiled/memory_brief.md ]; then
+            echo "✅ Memory brief generated successfully"
+            cat .claude/.compiled/memory_brief.md
+          else
+            echo "❌ Memory brief not found"
+            exit 1
+          fi
+
+      - name: Alias keywords governance report (non-blocking)
+        run: |
+          node .claude/scripts/report_alias_keywords.mjs || true
+          echo "---- ALIAS_KEYWORDS_REPORT preview ----"
+          test -f docs/governance/ALIAS_KEYWORDS_REPORT.md && sed -n '1,120p' docs/governance/ALIAS_KEYWORDS_REPORT.md || true
+
+      - name: Alias keywords diff report (non-blocking)
+        run: |
+          node .claude/scripts/report_alias_keywords_diff.mjs || true
+          echo "---- ALIAS_KEYWORDS_DIFF preview ----"
+          test -f docs/governance/ALIAS_KEYWORDS_DIFF.md && sed -n '1,160p' docs/governance/ALIAS_KEYWORDS_DIFF.md || true

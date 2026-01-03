@@ -1,0 +1,11 @@
+# Example Unfreeze Declaration (DISABLED - rename to .yaml to activate)
+#
+# This file shows the required format for unfreeze declarations.
+# Copy and modify for actual use.
+
+track_id: amz_optimize_ppc_20260101
+files:
+  - tracks/amz_optimize_ppc_20260101/spec.md
+reason: "Requirement changed after checkpoint"
+approved_by: "liye"
+approved_at: "2026-01-02"

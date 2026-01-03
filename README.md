@@ -24,6 +24,10 @@ LiYe OS is a **reference implementation** for building AI-collaborative engineer
 
 **Core Philosophy**: "Not letting blind confidence happen structurally."
 
+> **📦 Domain Migration Notice**
+>
+> Domain-specific implementations (e.g., Amazon Growth OS) have been migrated to private repositories. This public repository now serves as a **framework reference** with generic examples. Historical documentation may reference migrated domains for architectural context.
+
 ---
 
 ## Who It's For

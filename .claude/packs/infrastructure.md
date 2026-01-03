@@ -221,9 +221,9 @@ status: In Progress
 # 2. Keep symlinks in Documents (fallback for old paths)
 ln -s ~/data/shengcai ~/Documents/shengcai
 
-# 3. Use external links in repo
-# Systems/amazon-growth-os/data_external → ~/data/amazon_reports
-ln -s ~/data/amazon_reports Systems/amazon-growth-os/data_external
+# 3. Use external links in repo (example for domain systems)
+# src/domain/<domain-name>/data_external → ~/data/<domain>_reports
+ln -s ~/data/domain_reports src/domain/example-domain/data_external
 ```
 
 **`.gitignore` Configuration:**
@@ -279,7 +279,7 @@ Artifacts_Vault/by_project/timo_canada_q4/
 # Format: <type>(<scope>): <subject>
 
 feat(notion-sync): add diff command to compare local and Notion
-fix(amazon-growth-os): correct keyword analysis ACOS calculation
+fix(domain): correct analysis calculation
 docs(README): update Notion sync configuration guide
 chore(gitignore): add .cache and .env to ignore list
 refactor(Skills): reorganize 12 domains into 6 active domains
@@ -298,13 +298,13 @@ refactor(Skills): reorganize 12 domains into 6 active domains
 **Every Artifact must include:**
 ```markdown
 ---
-title: Amazon Listing Optimization Report
+title: Analysis Report
 date: 2024-01-20
-project: Timo Canada Q4
-author: Claude Sonnet 4.5
-source: ~/github/liye_os/Systems/amazon-growth-os
-input: data/inputs/campaign_report_20240115.csv
-output: reports/listing_optimization_20240120.md
+project: Project Name Q4
+author: Claude
+source: ~/github/liye_os/src/domain/<domain-name>
+input: data/inputs/input_report.csv
+output: reports/analysis_report.md
 ---
 
 ## Background

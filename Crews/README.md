@@ -29,7 +29,7 @@ crew:
   id: unique-identifier
   name: Human Readable Name
   version: 1.0.0
-  domain: core | amazon-growth | medical-research
+  domain: core | skeleton | medical-research
 
 agents:                    # Team members
   - role: lead

@@ -89,19 +89,10 @@ class QdrantMCPServer(BaseMCPServer):
                 logger.info(f"Connected to Qdrant collection: {self._collection}")
 
             # Initialize embedder
-            try:
-                # Try importing from tools directory
-                import sys
-                from pathlib import Path
-                tools_path = Path(__file__).parent.parent.parent.parent.parent / "domain" / "amazon-growth" / "tools"
-                if tools_path.exists():
-                    sys.path.insert(0, str(tools_path))
-                    from simple_embedder import SimpleEmbedder
-                    self._embedder = SimpleEmbedder(model_name=self._embedding_model)
-                    logger.info(f"Initialized embedder: {self._embedding_model}")
-            except ImportError:
-                logger.warning("SimpleEmbedder not available, using fallback")
-                self._embedder = None
+            # Note: Domain-specific embedders should be configured per domain
+            # The embedder implementation is in domain-specific repositories
+            self._embedder = None
+            logger.info("Using default embedder configuration")
 
         except ImportError as e:
             raise ToolExecutionError(

@@ -29,8 +29,9 @@ triggers:
         threshold: "spread > 2x normal"
 
       # Domain-specific stress signals
+      # Note: Domain implementations are in private repositories
       domain_signals:
-        amazon-growth-os:
+        e-commerce-domain:  # Example signals for e-commerce domains
           - keyword_volatility_spike
           - competitor_aggressive_entry
           - category_disruption
@@ -65,7 +66,7 @@ triggers:
         threshold: "regime probability between 0.3 and 0.7"
 
       domain_signals:
-        amazon-growth-os:
+        e-commerce-domain:  # Example signals
           - algorithm_update_suspected
           - seasonal_transition
           - category_policy_change
@@ -103,7 +104,7 @@ triggers:
         threshold: "narrative concentration > 0.8"
 
       domain_signals:
-        amazon-growth-os:
+        e-commerce-domain:  # Example signals
           - seasonal_expectation: "expected sales lift > 2x baseline"
           - launch_hype: "projected conversion > historical 90th percentile"
 
@@ -140,8 +141,8 @@ triggers:
         threshold: "margin call distance < 10%"
 
       domain_signals:
-        amazon-growth-os:
-          - ppc_bid_war: "competitive bidding exceeds profit margin"
+        e-commerce-domain:  # Example signals
+          - bidding_war: "competitive bidding exceeds profit margin"
           - inventory_leverage: "committed inventory > 3 months sales"
 
         investment-os:

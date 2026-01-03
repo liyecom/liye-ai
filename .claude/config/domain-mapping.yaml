@@ -1,0 +1,114 @@
+version: 1
+domains:
+  - id: amazon-advertising
+    priority: 90
+    alias_weight: 0.6
+    core_keywords:
+      # English core
+      - amazon
+      - asin
+      - ppc
+      - acos
+      - roas
+      - acoas
+      - asoas
+      - timo
+      - keepa
+      - listing
+      - rufus
+      # Chinese variants
+      - 亚马逊
+      - 店铺
+      - 转化
+      - 会话
+      - 流量
+    alias_keywords: []
+    glossary: knowledge/glossary/amazon-advertising.yaml
+    adrs_glob: docs/adr/amazon-advertising/**/*.md
+    playbooks_glob: playbooks/amazon-advertising/**/*.md
+
+  - id: geo-os
+    priority: 80
+    alias_weight: 0.6
+    core_keywords:
+      - geo
+      - seo
+      - gsc
+      - "search console"
+      - sitemap
+      - indexing
+      - crawl
+      - robots
+      - canonical
+      - cloudflare
+      - vercel
+      - dns
+      - cname
+      - "a record"
+      - redirect
+      - domain
+    alias_keywords:
+      - "geo-seo"
+      - "geo seo"
+      - "local seo"
+      - "local pack"
+      - "map pack"
+      - gbp
+      - gmb
+      - "google business"
+      - "google business profile"
+      - nap
+      - citations
+      - reviews
+      - rating
+    glossary: knowledge/glossary/geo-os.yaml
+    adrs_glob: docs/adr/geo-os/**/*.md
+    playbooks_glob: playbooks/geo-os/**/*.md
+
+  - id: medical-research
+    priority: 70
+    alias_weight: 0.6
+    core_keywords:
+      - medical
+      - cancer
+      - breast
+      - clinical
+      - trial
+      - biomarker
+      - oncology
+      - paper
+      - meta-analysis
+    alias_keywords: []
+    glossary: knowledge/glossary/medical-research.yaml
+    adrs_glob: docs/adr/medical-research/**/*.md
+    playbooks_glob: playbooks/medical-research/**/*.md
+
+  - id: general
+    priority: 10
+    alias_weight: 0.6
+    core_keywords:
+      - governance
+      - ssot
+      - constitution
+      - gate
+      - ci
+      - trace
+      - audit
+      - policy
+      - decision
+      - adr
+      - architecture
+      - memory
+      - glossary
+      - definition
+      - drift
+    alias_keywords: []
+    glossary: knowledge/glossary/general.yaml
+    adrs_glob: docs/adr/general/**/*.md
+    playbooks_glob: playbooks/general/**/*.md
+
+defaults:
+  topK:
+    concepts: 30
+    adrs: 10
+    playbooks: 5

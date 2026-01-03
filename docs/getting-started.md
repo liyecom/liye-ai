@@ -47,10 +47,12 @@ Layers:
   ✓ Domain Layer: 3 domains configured
 
 Domains:
-  • amazon-growth (application)
+  • skeleton (example application)
   • medical-research (application)
   • geo-os (core)
 ```
+
+> **Note:** Domain-specific implementations (like Amazon Growth OS) are in private repositories. This public framework includes skeleton examples and medical-research as demonstration domains.
 
 ### List Available Agents
 
@@ -62,16 +64,9 @@ Output:
 ```
 === LiYe AI Agents ===
 
-amazon-growth:
-  • market-analyst - Market Intelligence Analyst
-  • keyword-architect - Keyword Strategy Architect
-  • listing-optimizer - Listing Optimization Specialist
-  • diagnostic-architect - Performance Diagnostic Architect
-  • ppc-strategist - PPC Campaign Strategist
-  • execution-agent - Task Execution Specialist
-  • quality-gate - Quality Assurance Gate
-  • review-sentinel - Review Monitoring Sentinel
-  • sprint-orchestrator - Sprint Orchestrator
+skeleton:
+  • example-analyst - Example Analysis Agent
+  • example-optimizer - Example Optimization Agent
 
 medical-research:
   • literature-analyst - Literature Search Analyst
@@ -345,7 +340,7 @@ node cli/index.js workflow run my-workflow --input data.json
 
 ## Next Steps
 
-1. **Explore existing domains**: Check `src/domain/amazon-growth/` for real-world examples
+1. **Explore existing domains**: Check `src/domain/medical-research/` or `src/domain/geo-os/` for examples
 2. **Read the architecture docs**: See `docs/architecture/ARCHITECTURE.md`
 3. **Create your own domain**: Follow the patterns above
 4. **Contribute**: See [CONTRIBUTING.md](../CONTRIBUTING.md)

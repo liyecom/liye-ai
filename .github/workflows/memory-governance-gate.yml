@@ -1,0 +1,160 @@
+# Memory Governance Gate
+# Prevents bypassing memory governance rules
+#
+# Triggers on changes to:
+# - glossary/*.yaml
+# - .claude/scripts/memory_*.mjs
+# - Output Contract related files
+#
+# Rules:
+# - Glossary changes require version bump
+# - MaaP script changes require docs update
+# - Output Contract changes require review
+
+name: Memory Governance Gate
+
+on:
+  pull_request:
+    paths:
+      - 'knowledge/glossary/**/*.yaml'
+      - '.claude/scripts/memory_*.mjs'
+      - '.claude/skills/memory/**'
+      - 'src/memory/**'
+      - 'docs/architecture/MEMORY_*.md'
+
+jobs:
+  governance-check:
+    name: Memory Governance Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff
+
+      - name: Setup Node.js
+        uses: actions/node-v4
+        with:
+          node-version: '20'
+
+      - name: Get changed files
+        id: changed
+        run: |
+          # Get list of changed files
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Check categories
+          GLOSSARY_CHANGED=$(echo "$CHANGED" | grep -c "knowledge/glossary/.*\.yaml" || true)
+          MAAP_CHANGED=$(echo "$CHANGED" | grep -c ".claude/scripts/memory_" || true)
+          CONTRACT_CHANGED=$(echo "$CHANGED" | grep -c ".claude/skills/memory/" || true)
+          
+          echo "glossary_changed=$GLOSSARY_CHANGED" >> $GITHUB_OUTPUT
+          echo "maap_changed=$MAAP_CHANGED" >> $GITHUB_OUTPUT
+          echo "contract_changed=$CONTRACT_CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Validate Glossary Version Bump
+        if: steps.changed.outputs.glossary_changed != '0'
+        run: |
+          echo "📋 Checking glossary version bumps..."
+          
+          FAILED=0
+          
+          for file in $(echo "${{ steps.changed.outputs.files }}" | grep "knowledge/glossary/.*\.yaml"); do
+            echo "Checking: $file"
+            
+            # Get old and new version
+            OLD_VERSION=$(git show ${{ github.event.pull_request.base.sha }}:$file 2>/dev/null | grep -E "^\s*version:" | head -1 | sed 's/.*version:\s*["'\'']\?\([^"'\'']*\)["'\'']\?.*/\1/' || echo "0.0.0")
+            NEW_VERSION=$(grep -E "^\s*version:" $file | head -1 | sed 's/.*version:\s*["'\'']\?\([^"'\'']*\)["'\'']\?.*/\1/' || echo "")
+            
+            echo "  Old version: $OLD_VERSION"
+            echo "  New version: $NEW_VERSION"
+            
+            if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+              echo "❌ FAIL: $file - version not bumped (still $OLD_VERSION)"
+              FAILED=1
+            else
+              echo "✅ PASS: $file - version bumped from $OLD_VERSION to $NEW_VERSION"
+            fi
+          done
+          
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "========================================="
+            echo "❌ GOVERNANCE VIOLATION: Glossary version bump required"
+            echo "========================================="
+            echo ""
+            echo "When modifying glossary files, you MUST bump the version field."
+            echo ""
+            echo "Version bump rules:"
+            echo "  - Typo fix: patch (x.x.1)"
+            echo "  - Clarification: minor (x.1.0)"
+            echo "  - Formula change: major (1.0.0)"
+            echo "  - New term: minor (x.1.0)"
+            echo "  - Remove term: major (1.0.0)"
+            echo ""
+            exit 1
+          fi
+
+      - name: Validate MaaP Docs Update
+        if: steps.changed.outputs.maap_changed != '0'
+        run: |
+          echo "📋 Checking MaaP documentation updates..."
+          
+          DOCS_UPDATED=$(echo "${{ steps.changed.outputs.files }}" | grep -c "docs/architecture/MEMORY" || true)
+          
+          if [ "$DOCS_UPDATED" = "0" ]; then
+            echo ""
+            echo "========================================="
+            echo "⚠️ WARNING: MaaP script changed without docs update"
+            echo "========================================="
+            echo ""
+            echo "When modifying MaaP scripts, please also update:"
+            echo "  - docs/architecture/MEMORY_GOVERNANCE.md"
+            echo "  - docs/architecture/MEMORY_ANTI_FORGETTING_DESIGN.md (if applicable)"
+            echo ""
+            echo "This is a warning, not a blocking error."
+            echo "Consider updating documentation in a follow-up PR."
+            echo ""
+          else
+            echo "✅ PASS: Documentation updated alongside MaaP scripts"
+          fi
+
+      - name: Validate Output Contract Changes
+        if: steps.changed.outputs.contract_changed != '0'
+        run: |
+          echo "📋 Checking Output Contract changes..."
+          
+          # Output Contract changes require explicit review
+          echo ""
+          echo "========================================="
+          echo "ℹ️ REVIEW REQUIRED: Output Contract modified"
+          echo "========================================="
+          echo ""
+          echo "Changes to Output Contract affect all session outputs."
+          echo "Please ensure:"
+          echo "  - [ ] Change is intentional and documented"
+          echo "  - [ ] Drift Detector updated if needed"
+          echo "  - [ ] Existing sessions won't break"
+          echo ""
+          echo "Reviewer: Please verify Output Contract changes are safe."
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "========================================="
+          echo "Memory Governance Gate Summary"
+          echo "========================================="
+          echo ""
+          echo "Files checked:"
+          echo "${{ steps.changed.outputs.files }}" | head -20
+          echo ""
+          echo "Categories:"
+          echo "  - Glossary files changed: ${{ steps.changed.outputs.glossary_changed }}"
+          echo "  - MaaP scripts changed: ${{ steps.changed.outputs.maap_changed }}"
+          echo "  - Output Contract changed: ${{ steps.changed.outputs.contract_changed }}"
+          echo ""
+          echo "✅ Governance gate completed"

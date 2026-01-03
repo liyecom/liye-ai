@@ -65,37 +65,15 @@ jobs:
         run: chmod +x tools/audit/*.sh
 
       # =========================================================================
-      # D1: Geo-SEO Domain Verification
+      # D1-D3: Domain Verification (Skipped - domain-specific tests in private repos)
       # =========================================================================
-      - name: 'D1: Geo-SEO Domain Verification'
+      - name: 'D1-D3: Domain Verification (Skipped)'
         id: d1
-        continue-on-error: true
         run: |
-          echo "=== D1: Geo-SEO Domain Verification ===" | tee artifacts/audit-logs/d1-geo-seo.log
-          bash tools/audit/verify_geo_seo_domain.sh 2>&1 | tee -a artifacts/audit-logs/d1-geo-seo.log
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-
-      # =========================================================================
-      # D2: Multi-Domain Boundary Verification
-      # =========================================================================
-      - name: 'D2: Multi-Domain Boundary Verification'
-        id: d2
-        continue-on-error: true
-        run: |
-          echo "=== D2: Multi-Domain Boundary Verification ===" | tee artifacts/audit-logs/d2-boundary.log
-          bash tools/audit/verify_multidomain_boundary.sh 2>&1 | tee -a artifacts/audit-logs/d2-boundary.log
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-
-      # =========================================================================
-      # D3: Ambiguity Mode Verification
-      # =========================================================================
-      - name: 'D3: Ambiguity Mode Verification'
-        id: d3
-        continue-on-error: true
-        run: |
-          echo "=== D3: Ambiguity Mode Verification ===" | tee artifacts/audit-logs/d3-ambiguity.log
-          bash tools/audit/verify_multidomain_ambiguity.sh 2>&1 | tee -a artifacts/audit-logs/d3-ambiguity.log
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          echo "=== Domain Verification ===" | tee artifacts/audit-logs/domain-verification.log
+          echo "Domain-specific test scripts are in private repositories." | tee -a artifacts/audit-logs/domain-verification.log
+          echo "This workflow validates framework-level infrastructure only." | tee -a artifacts/audit-logs/domain-verification.log
+          echo "SKIPPED" | tee -a artifacts/audit-logs/domain-verification.log
 
       # =========================================================================
       # Collect Artifacts
@@ -164,42 +142,26 @@ jobs:
             fi
           fi
 
-          # Check D2 result
-          if [ -f artifacts/audit-logs/d2-boundary.log ]; then
-            if grep -q "FAIL\|✗" artifacts/audit-logs/d2-boundary.log; then
-              D2_STATUS="FAIL"
-              GATE_PASS=false
-            fi
-          fi
-
-          # Check D3 result
-          if [ -f artifacts/audit-logs/d3-ambiguity.log ]; then
-            if grep -q "FAIL\|✗" artifacts/audit-logs/d3-ambiguity.log; then
-              D3_STATUS="FAIL"
-              GATE_PASS=false
-            fi
-          fi
+          # D2-D3: Skipped (domain-specific tests in private repos)
+          D2_STATUS="SKIPPED"
+          D3_STATUS="SKIPPED"
 
           echo "| Test | Description | Status |"
           echo "|------|-------------|--------|"
-          echo "| D1 | Geo-SEO Domain Verification | $D1_STATUS |"
-          echo "| D2 | Multi-Domain Boundary | $D2_STATUS |"
-          echo "| D3 | Ambiguity Mode | $D3_STATUS |"
+          echo "| D1 | Framework Infrastructure | $D1_STATUS |"
+          echo "| D2 | Multi-Domain Boundary (private) | $D2_STATUS |"
+          echo "| D3 | Ambiguity Mode (private) | $D3_STATUS |"
           echo ""
 
           if [ "$GATE_PASS" = true ]; then
             echo "✅ AUDIT REGRESSION GATE: PASS"
             echo ""
-            echo "All multi-domain governance checks passed."
+            echo "Framework-level governance checks passed."
+            echo "Domain-specific tests are in private repositories."
           else
             echo "❌ AUDIT REGRESSION GATE: FAIL"
             echo ""
-            echo "One or more audit checks failed. Review the logs above."
-            echo ""
-            echo "Local reproduction:"
-            echo "  bash tools/audit/verify_geo_seo_domain.sh"
-            echo "  bash tools/audit/verify_multidomain_boundary.sh"
-            echo "  bash tools/audit/verify_multidomain_ambiguity.sh"
+            echo "Framework infrastructure checks failed. Review the logs above."
             echo ""
             exit 1
           fi

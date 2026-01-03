@@ -103,9 +103,9 @@ node .claude/scripts/guardrail.mjs
 │   │   ├── ARCHITECTURE_CONSTITUTION.md
 │   │   └── FILE_SYSTEM_GOVERNANCE.md
 │   └── templates/         # Template library
-├── Skills/                # Skill library (12 domains)
-├── Systems/               # Executable systems
-│   └── amazon-growth-os/  # Amazon operations system
+├── Skills/                # Skill library
+├── src/domain/            # Domain implementations
+│   └── <domain-name>/     # Domain-specific code (private repos)
 ├── tools/                 # Tool scripts
 │   └── notion-sync/       # Notion sync tool
 ├── Projects_Engine/       # Project management

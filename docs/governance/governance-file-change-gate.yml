@@ -1,0 +1,55 @@
+name: Governance File Change Gate
+
+on:
+  pull_request:
+    paths:
+      - '.github/CODEOWNERS'
+      - '.github/workflows/governance-*.yml'
+      - 'docs/governance/**'
+      - 'docs/architecture/**'
+      - 'CLAUDE.md'
+
+jobs:
+  governance-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Description
+        id: check_description
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          if [[ -z "$BODY" ]]; then
+            echo "❌ PR description is empty"
+            echo "has_governance_section=false" >> $GITHUB_OUTPUT
+          elif echo "$BODY" | grep -q "## Governance Change"; then
+            echo "✅ Governance change section found"
+            echo "has_governance_section=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Missing '## Governance Change' section"
+            echo "has_governance_section=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Enforce Governance Documentation
+        if: steps.check_description.outputs.has_governance_section != 'true'
+        run: |
+          echo "::error::This PR modifies governance-protected files."
+          echo "::error::Please add a '## Governance Change' section to your PR description explaining:"
+          echo "::error::  1. What governance files are being changed"
+          echo "::error::  2. Why this change is necessary"
+          echo "::error::  3. Impact assessment"
+          exit 1
+      
+      - name: Add Governance Label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['🔒 governance-review-required']
+            })
+      
+      - name: Gate Passed
+        run: |
+          echo "✅ Governance file change gate passed"
+          echo "This PR modifies governance files and requires Code Owner approval"

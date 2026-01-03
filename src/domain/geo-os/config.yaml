@@ -17,7 +17,8 @@ domain:
 architecture:
   position: core-infrastructure
   consumers:
-    - amazon-growth      # Consumes geo_units.json
+    # Domain-specific consumers are in private repositories
+    - skeleton           # Example consumer
     - medical-research   # Consumes geo_units.json
   provides:
     - geo_units.json     # Structured knowledge units

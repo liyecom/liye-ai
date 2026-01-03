@@ -27,78 +27,79 @@ TRACES_DIR = REPO_ROOT / "data" / "traces" / "world_model"
 ARTIFACTS_DIR = REPO_ROOT / "Artifacts_Vault" / "reports"
 
 
-# Amazon Growth units - predefined for MVP
-# In future versions, this could be dynamically loaded based on task analysis
-AMAZON_GROWTH_UNITS = {
+# Skeleton domain units - generic examples for framework demonstration
+# Domain-specific units should be loaded dynamically from domain configurations
+# Note: Domain-specific implementations (e.g., e-commerce, investment) are in private repositories
+SKELETON_DOMAIN_UNITS = {
     "t1": [
         {
-            "id": "budget_reflexivity",
-            "failure_mode": "预算增加 → 竞价提高 → CPC 上涨 → 预算消耗更快 → 需要更多预算（正反馈螺旋）",
-            "key_assumption": "假设市场价格不会因为你的行为而变化",
-            "stop_signal": "当 CPC 涨幅超过 ROI 容忍阈值时，停止加预算",
-            "not_telling_you": "竞争对手的预算上限是多少",
+            "id": "resource_reflexivity",
+            "failure_mode": "Increasing resource allocation may trigger competition for the same resources, leading to cost escalation",
+            "key_assumption": "Market prices remain stable regardless of your actions",
+            "stop_signal": "Stop scaling when cost increase exceeds efficiency gains",
+            "not_telling_you": "Competitors' resource limits and strategies",
         },
         {
             "id": "attribution_not_causality",
-            "failure_mode": "广告归因数据显示'广告带来了销售'，但那些顾客可能本来就会购买",
-            "key_assumption": "假设归因系统完美反映因果关系",
-            "stop_signal": "当无法证明'没有广告就没有这笔销售'时，不要断言广告有效",
-            "not_telling_you": "有多少销售是'被广告抢走'的自然转化",
+            "failure_mode": "Attribution data suggests causation but correlation may be coincidental",
+            "key_assumption": "Attribution systems perfectly reflect causal relationships",
+            "stop_signal": "Do not claim causation without controlled experiments",
+            "not_telling_you": "How many outcomes would have occurred organically",
         },
         {
             "id": "seasonality_false_trend",
-            "failure_mode": "把季节性波动误认为是真实趋势，在错误的时间做出错误的决策",
-            "key_assumption": "假设销售变化主要由内部策略驱动",
-            "stop_signal": "在大促期间不要评估长期策略效果",
-            "not_telling_you": "今年的季节性是否和往年相同",
+            "failure_mode": "Mistaking cyclical patterns for permanent trends leads to poor decisions",
+            "key_assumption": "Changes are primarily driven by internal strategy",
+            "stop_signal": "Do not evaluate long-term strategy during anomalous periods",
+            "not_telling_you": "Whether this cycle matches historical patterns",
         },
     ],
     "t2": {
         "liquidity": {
             "level": "medium",
-            "evidence": ["用户未提供具体库存/现金数据，基于输入描述推断"],
-            "gaps": ["实际库存周转天数", "广告预算占销售额比例", "现金流状况"],
+            "evidence": ["No specific data provided, inferred from context"],
+            "gaps": ["Actual resource turnover", "Budget utilization ratio", "Cash flow status"],
         },
         "correlation": {
             "level": "medium",
-            "evidence": ["Amazon 广告系统内各指标存在系统性关联"],
-            "gaps": ["自然排名与广告投放的真实相关性", "跨品类关联效应"],
+            "evidence": ["Systemic correlations exist within the domain"],
+            "gaps": ["True correlation between metrics", "Cross-category effects"],
         },
         "expectation": {
             "level": "medium",
-            "evidence": ["市场竞争状态需要具体数据验证"],
-            "gaps": ["竞品实际广告策略", "类目整体 CPC 趋势", "新进入者情况"],
+            "evidence": ["Market state requires specific data verification"],
+            "gaps": ["Competitor strategies", "Market trends", "New entrants"],
         },
         "leverage": {
             "level": "medium",
-            "evidence": ["广告是运营杠杆之一，但非唯一杠杆"],
-            "gaps": ["产品差异化程度", "定价空间", "供应链弹性"],
+            "evidence": ["Multiple leverage points exist in the system"],
+            "gaps": ["Differentiation factors", "Pricing flexibility", "Supply chain resilience"],
         },
         "uncertainty": {
             "level": "high",
-            "evidence": ["Amazon 算法持续变化，外部因素难以预测"],
-            "gaps": ["算法变更计划", "竞品动态", "宏观经济影响"],
+            "evidence": ["External factors are difficult to predict"],
+            "gaps": ["Platform changes", "Competitor dynamics", "Macro factors"],
         },
     },
     "t3": [
         {
             "type": "amplification",
-            "name": "CPC 螺旋放大",
-            "conditions": ["多个主要卖家同时竞争", "关键词搜索量有限"],
+            "name": "Cost Spiral Amplification",
+            "conditions": ["Multiple actors competing", "Limited resource pool"],
             "early_signals": [
-                "CPC 涨幅 > 搜索量涨幅",
-                "广告位排名波动剧烈",
-                "小幅调整竞价导致显著排名变化",
+                "Cost growth exceeds value growth",
+                "Position volatility increases",
+                "Small adjustments cause large effects",
             ],
         },
         {
             "type": "phase_transition",
-            "name": "断货相变",
-            "conditions": ["库存周转过快", "供应链有不确定性"],
+            "name": "Resource Exhaustion Phase Transition",
+            "conditions": ["High resource consumption rate", "Supply chain uncertainty"],
             "early_signals": [
-                "库存天数 < 14 天",
-                "补货周期延长",
-                "销售速度突然加快",
+                "Buffer < 2 weeks",
+                "Replenishment cycle lengthening",
+                "Consumption rate accelerating",
             ],
         },
     ],
@@ -146,10 +147,13 @@ def _build_world_model_result(
 ) -> WorldModelResult:
     """Build a WorldModelResult from domain units."""
 
-    if domain != "amazon-growth":
-        raise ValueError(f"Unsupported domain: {domain}. Only 'amazon-growth' is supported in MVP.")
+    # Accept skeleton domain for framework demonstration
+    # Domain-specific implementations should be in private repositories
+    supported_domains = {"skeleton", "example", "demo"}
+    if domain not in supported_domains:
+        raise ValueError(f"Unsupported domain: {domain}. Supported: {supported_domains}. Domain-specific implementations are in private repositories.")
 
-    units = AMAZON_GROWTH_UNITS
+    units = SKELETON_DOMAIN_UNITS
     now = datetime.now(timezone.utc).isoformat()
 
     # Build T1
@@ -175,21 +179,21 @@ def _build_world_model_result(
         ]
     }
 
-    # Build allowed_actions
+    # Build allowed_actions (generic examples)
     allowed_actions = {
         "allowed": [
-            "诊断当前广告效果，识别问题根因",
-            "设计小规模 A/B 测试验证假设",
-            "补全缺失数据（库存、CPC历史、竞品信息）",
-            "优化单个关键词或广告组",
-            "设置预算/CPC 硬上限作为安全阀",
+            "Diagnose current state and identify root causes",
+            "Design small-scale experiments to validate hypotheses",
+            "Fill in missing data before making decisions",
+            "Optimize one variable at a time",
+            "Set hard limits as safety valves",
         ],
         "not_allowed": [
-            "直接加大总预算而不先诊断问题",
-            "承诺具体的 ROI 或销售增长数字",
-            "同时调整多个杠杆（预算+竞价+关键词）",
-            "在数据不足时做出重大决策",
-            "忽略季节性因素做趋势判断",
+            "Scale resources without diagnosing problems first",
+            "Promise specific outcome numbers",
+            "Adjust multiple levers simultaneously",
+            "Make major decisions with insufficient data",
+            "Ignore cyclical factors when evaluating trends",
         ],
     }
 
@@ -386,7 +390,7 @@ def run_world_model(
     Run the World Model for a given domain and task.
 
     Args:
-        domain: The domain (e.g., "amazon-growth")
+        domain: The domain (e.g., "skeleton", "example")
         task: The task description
         context: Optional context dict with additional info
 

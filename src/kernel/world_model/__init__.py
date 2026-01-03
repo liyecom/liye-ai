@@ -2,7 +2,9 @@
 World Model Gate - LiYe OS v6.2.0
 
 This module enforces World Model generation before any domain execution.
-Every amazon-growth task must generate T1/T2/T3 analysis before proceeding.
+Every domain task must generate T1/T2/T3 analysis before proceeding.
+
+Note: Domain-specific implementations have been migrated to private repositories.
 """
 
 from .types import (

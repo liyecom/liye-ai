@@ -5,7 +5,7 @@ agent:
   id: my-agent                    # Unique identifier (kebab-case)
   name: My Agent Name             # Human-readable name
   version: 1.0.0                  # Semantic version
-  domain: core                    # core | amazon-growth | medical-research | geo-os
+  domain: core                    # core | skeleton | medical-research | geo-os
 
 # ============================================
 # Persona Layer (WHO)

@@ -29,6 +29,8 @@ export { DomainRegistry, getDomainRegistry } from './registry';
 export type { DomainConfig, RegisteredDomain } from './registry';
 
 // === Domain Manifest ===
+// NOTE: Domain-specific implementations reside in private repositories.
+// This manifest shows the public framework domains only.
 export const DOMAINS = {
   // Core Infrastructure
   'geo-os': {
@@ -39,13 +41,13 @@ export const DOMAINS = {
     path: 'src/domain/geo-os'
   },
 
-  // Application Domains
-  'amazon-growth': {
-    id: 'amazon-growth',
-    name: 'Amazon Growth Operations',
+  // Application Domains (Examples)
+  'skeleton': {
+    id: 'skeleton',
+    name: 'Skeleton Domain',
     layer: 'application',
-    description: 'Multi-agent system for Amazon product lifecycle management',
-    path: 'src/domain/amazon-growth'
+    description: 'Minimal reference implementation for domain architecture',
+    path: 'src/domain/skeleton'
   },
 
   'medical-research': {

@@ -45,7 +45,7 @@ class MCPRegistry:
 
     Usage:
         # Load from domain config (inherits system defaults)
-        registry = MCPRegistry.from_config("src/domain/amazon-growth/config/mcp_servers.yaml")
+        # Example: registry = MCPRegistry.from_config("src/domain/<your-domain>/config/mcp_servers.yaml")
 
         # Get a server
         server = registry.get_server("qdrant-knowledge")

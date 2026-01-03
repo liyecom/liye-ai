@@ -81,18 +81,18 @@ Claude (Sonnet):
 # Amazon Listing Optimization Report
 
 ## Objective
-Optimize Timo Canada ASIN B0XXX Listing, target: improve CTR 10%, CVR 5%
+Optimize target metric, target: improve metric A 10%, metric B 5%
 
 ## Input
-- Data source: `Systems/amazon-growth-os/data/inputs/campaign_report_20240115.csv`
-- Config: `Systems/amazon-growth-os/config/optimization.yaml`
-- Reference: `Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/listing_template.md`
+- Data source: `src/domain/<domain-name>/data/inputs/report.csv`
+- Config: `src/domain/<domain-name>/config/optimization.yaml`
+- Reference: `Skills/<category>/<skill-name>/templates/template.md`
 
 ## Steps
-1. Data loading: Read ad report (2024-01-01 to 2024-01-15)
-2. Keyword analysis: Extract CTR Top 10 and CVR Top 10
-3. Competitor benchmarking: Analyze top 3 competitors' Listings
-4. Generate recommendations: Title, bullets, A+ content optimization
+1. Data loading: Read input data (date range)
+2. Analysis: Extract key metrics
+3. Benchmarking: Compare against baseline
+4. Generate recommendations: Optimization suggestions
 5. Archive output: Save to Artifacts_Vault
 
 ## Output
@@ -339,7 +339,7 @@ git push origin --force
 **Data Rollback:**
 ```bash
 # Restore from backup
-cp ~/data/amazon_reports/backup_20240120/*.csv Systems/amazon-growth-os/data/inputs/
+cp ~/data/backups/backup_20240120/*.csv src/domain/<domain-name>/data/inputs/
 
 # Re-sync from Notion
 cd tools/notion-sync

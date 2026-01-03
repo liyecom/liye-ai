@@ -24,8 +24,9 @@ kernel:
     status: UNIVERSAL_TRANSFERABLE
     freeze_date: 2025-12-31
     evidence: docs/kernel/T1_THREE_DOMAIN_VERDICT.md
+    # Historical validation record - domain implementations are in private repositories
     domains_validated:
-      - amazon-growth-os
+      - e-commerce-domain  # Validated, implementation private
       - investment-os
       - medical-os
     aggregate_lift: 54%

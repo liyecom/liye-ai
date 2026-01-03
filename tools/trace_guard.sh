@@ -45,12 +45,10 @@ log_info() {
 log_info "=== Check 1: Required Files ==="
 
 # Use canonical path _meta/templates/ (templates/ symlink retired in v6.3.0)
+# NOTE: Domain-specific configs are in private repositories.
+# This script validates framework-level trace infrastructure only.
 REQUIRED_FILES=(
     "_meta/templates/trace/TRACE_TEMPLATE_v4_2.yaml"
-    "config/amazon-growth/guardrails.yaml"
-    "config/amazon-growth/priority_score.yaml"
-    "config/amazon-growth/bucket_lifecycle.yaml"
-    "config/amazon-growth/trace_type_profiles.yaml"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -62,24 +60,19 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 
 # -----------------------------------------------------------------------------
-# Check 2: Agent files exist
+# Check 2: Agent template exists
 # -----------------------------------------------------------------------------
 log_info ""
-log_info "=== Check 2: P0 Agent Files ==="
+log_info "=== Check 2: Agent Template ==="
 
-AGENT_FILES=(
-    "Agents/amazon-growth/intent-analyst.yaml"
-    "Agents/amazon-growth/trace-scribe.yaml"
-    "Agents/amazon-growth/guardrail-governor.yaml"
-)
-
-for file in "${AGENT_FILES[@]}"; do
-    if [[ -f "$file" ]]; then
-        log_pass "$file exists"
-    else
-        log_fail "$file missing"
-    fi
-done
+# Domain-specific agents are in private repositories.
+# This check validates the framework agent template only.
+AGENT_TEMPLATE="Agents/_template.yaml"
+if [[ -f "$AGENT_TEMPLATE" ]]; then
+    log_pass "Agent template exists"
+else
+    log_fail "Agent template missing"
+fi
 
 # -----------------------------------------------------------------------------
 # Check 3: Validate TRACE files in repo (if any)
@@ -165,21 +158,19 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Check 4: Guardrails config validation
+# Check 4: Guardrails config validation (skipped - domain-specific)
 # -----------------------------------------------------------------------------
 log_info ""
 log_info "=== Check 4: Guardrails Config ==="
+log_info "Domain-specific guardrails are in private repositories."
+log_info "Framework validates template structure only."
 
-GUARDRAILS_FILE="config/amazon-growth/guardrails.yaml"
-if [[ -f "$GUARDRAILS_FILE" ]]; then
-    # Check for required guardrail sections
-    for section in "write_guardrail" "amplitude_guardrails" "batch_guardrails" "freeze_guardrails" "hypothesis_guardrails"; do
-        if grep -qE "^\s*${section}:" "$GUARDRAILS_FILE"; then
-            log_pass "Has '$section' section"
-        else
-            log_fail "Missing '$section' section"
-        fi
-    done
+# Check that guardrails template/schema exists
+GUARDRAILS_SCHEMA="contracts/schema/decision.schema.json"
+if [[ -f "$GUARDRAILS_SCHEMA" ]]; then
+    log_pass "Decision schema exists"
+else
+    log_warn "Decision schema not found (optional)"
 fi
 
 # -----------------------------------------------------------------------------
