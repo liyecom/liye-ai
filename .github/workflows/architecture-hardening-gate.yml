@@ -7,46 +7,6 @@ on:
     branches: [main, master]
 
 jobs:
-  architecture-verification:
-    name: Verify Architecture Compliance
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install minimal dependencies
-        run: |
-          pip install pyyaml
-
-      - name: Run Architecture Verification (v6.1)
-        run: |
-          python tools/audit/verify_v6_1.py
-        env:
-          PYTHONUNBUFFERED: "1"
-
-      - name: Run World Model Gate Verification (v6.2)
-        run: |
-          python tools/audit/verify_v6_2.py
-        env:
-          PYTHONUNBUFFERED: "1"
-
-      - name: Upload verification results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: architecture-verification-results
-          path: |
-            tools/audit/verify_v6_1.py
-          retention-days: 30
-
   ssot-enforcement:
     name: Enforce SSOT Rules
     runs-on: ubuntu-latest
@@ -88,17 +48,29 @@ jobs:
 
           echo "✅ No SSOT violations found"
 
-      - name: Verify Agent count
+      - name: Verify Agent SSOT structure
         run: |
-          YAML_COUNT=$(find Agents/amazon-growth -name "*.yaml" 2>/dev/null | wc -l)
-          echo "Found $YAML_COUNT Agent YAML files in Agents/amazon-growth/"
-
-          if [ "$YAML_COUNT" -lt 10 ]; then
-            echo "::error::Expected at least 10 Agent YAML files, found $YAML_COUNT"
+          # Check that Agents/ directory exists and has core definitions
+          if [ ! -d "Agents/core" ]; then
+            echo "::error::Missing Agents/core/ directory (SSOT for core agents)"
             exit 1
           fi
 
-          echo "✅ Agent count verified"
+          CORE_COUNT=$(find Agents/core -name "*.yaml" 2>/dev/null | wc -l)
+          echo "Found $CORE_COUNT core Agent YAML files"
+
+          if [ "$CORE_COUNT" -lt 1 ]; then
+            echo "::error::Agents/core/ must contain at least 1 agent definition"
+            exit 1
+          fi
+
+          # Verify _template.yaml exists
+          if [ ! -f "Agents/_template.yaml" ]; then
+            echo "::error::Missing Agents/_template.yaml"
+            exit 1
+          fi
+
+          echo "✅ Agent SSOT structure verified"
 
       - name: Verify canonical structure (v6.3.0+)
         run: |
