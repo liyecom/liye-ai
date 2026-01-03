@@ -105,7 +105,7 @@ node .claude/scripts/guardrail.mjs
 │   └── templates/         # 模板库
 ├── Skills/                # 技能库（12个域）
 ├── Systems/               # 可执行系统
-│   └── amazon-growth-os/  # Amazon 运营系统
+│   └── a private repository/  # Amazon 运营系统
 ├── tools/                 # 工具脚本
 │   └── notion-sync/       # Notion 同步工具
 ├── Projects_Engine/       # 项目管理

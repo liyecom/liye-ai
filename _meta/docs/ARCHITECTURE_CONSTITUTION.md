@@ -306,7 +306,7 @@ Extensions/claude-skills/listing-writer/ (继续存在)
 
 ```
 ✅ 正确命名：
-- amazon-growth-os
+- a private repository
 - medical-research-os
 - content-factory
 
@@ -415,7 +415,7 @@ Systems/{system-name}/
 | Skills 目录 | `{domain}/` 或 `{domain}-{topic}/` | `amazon-operations/`, `medical-research/` |
 | Agent 文件 | `{role}.yaml` | `keyword-analyst.yaml` |
 | Crew 文件 | `{domain}-{purpose}-crew.yaml` | `amazon-launch-crew.yaml` |
-| System 目录 | `{domain}-{function}-os/` 或 `{domain}-{function}/` | `amazon-growth-os/` |
+| System 目录 | `{domain}-{function}-os/` 或 `{domain}-{function}/` | `a private repository/` |
 | Extension 目录 | `{capability}/` | `crewai/`, `sellersprite-api/` |
 
 ### 附录 C：禁止事项

@@ -36,7 +36,7 @@
 ./_meta/docs/ARCHITECTURE_CONSTITUTION.md:320:│  🤖 单个 AI 角色定义             → Agents/                  │
 ./_meta/docs/FILE_SYSTEM_GOVERNANCE.md:205:├── Agents/                   # 🔴 空目录 - 移除或合并
 ./_meta/docs/FILE_SYSTEM_GOVERNANCE.md:748:| `Agents/` | (删除) | 移除空目录 |
-./docs/amazon-growth-os/v4.2/WORKFLOW_v4.2.md:124:├── Agents/amazon-growth/
+./docs/a private repository/v4.2/WORKFLOW_v4.2.md:124:├── Agents/amazon-growth/
 ./docs/architecture/AGENT_SPEC.md:44:Agents/
 ./docs/architecture/BOUNDARY_DEHYDRATION.md:47:│                    Agents/ (execution only)                  │
 ./docs/architecture/BOUNDARY_DEHYDRATION.md:205:**Scope:** `Agents/`

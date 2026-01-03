@@ -26,7 +26,7 @@
 
 | Domain | Cases Tested | Lift Confirmed | Evidence File |
 |--------|--------------|----------------|---------------|
-| amazon-growth-os | 3 | 3/3 | `experiments/reasoning_comparison/` |
+| a private repository | 3 | 3/3 | `experiments/reasoning_comparison/` |
 | investment-os | 3 | 3/3 | `src/domain/investment-os/experiments/reasoning_comparison/CROSS_DOMAIN_VERDICT.md` |
 
 ---

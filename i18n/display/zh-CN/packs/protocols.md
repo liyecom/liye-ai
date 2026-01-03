@@ -84,8 +84,8 @@ Claude (Sonnet):
 优化 Acme Canada ASIN B0XXX 的 Listing，目标提升 CTR 10%，CVR 5%
 
 ## Input
-- 数据源：`Systems/amazon-growth-os/data/inputs/campaign_report_20240115.csv`
-- 配置：`Systems/amazon-growth-os/config/optimization.yaml`
+- 数据源：`Systems/a private repository/data/inputs/campaign_report_20240115.csv`
+- 配置：`Systems/a private repository/config/optimization.yaml`
 - 参考：`Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/listing_template.md`
 
 ## Steps
@@ -339,7 +339,7 @@ git push origin --force
 **数据回滚：**
 ```bash
 # 从备份恢复
-cp ~/data/amazon_reports/backup_20240120/*.csv Systems/amazon-growth-os/data/inputs/
+cp ~/data/amazon_reports/backup_20240120/*.csv Systems/a private repository/data/inputs/
 
 # 从 Notion 重新同步
 cd tools/notion-sync
