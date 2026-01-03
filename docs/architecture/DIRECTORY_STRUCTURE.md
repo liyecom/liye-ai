@@ -240,8 +240,8 @@ liye_os/
 ├── inputs/                # 原始输入
 ├── processed/             # 处理后输出
 ├── uploads/               # 用户上传
-│   ├── Timo-US/
-│   └── Timo-CA/
+│   ├── Acme-US/
+│   └── Acme-CA/
 └── reports/               # 生成报告
 ```
 

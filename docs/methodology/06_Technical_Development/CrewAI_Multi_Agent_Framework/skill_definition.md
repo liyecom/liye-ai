@@ -560,7 +560,7 @@ Role: Amazon SEO Specialist Team
 Task: Optimize listing for {product} in {marketplace}
 Method: Calculate TES scores → Generate optimized listing → Analyze competitors
 Model: TES = (Search Volume × Purchase Rate) / (Title Density + 1)
-Output: Timo Master Keyword Sheet + Optimized Listing Package
+Output: Acme Master Keyword Sheet + Optimized Listing Package
 ```
 
 **Customization Points**:

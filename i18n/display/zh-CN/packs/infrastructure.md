@@ -268,7 +268,7 @@ uploads/
 Artifacts_Vault/by_date/2024/01/
 └── amazon_listing_optimization_20240120_claude.md
 
-Artifacts_Vault/by_project/timo_canada_q4/
+Artifacts_Vault/by_project/acme_canada_q4/
 └── ppc_strategy_optimization_20240115.md
 ```
 
@@ -300,7 +300,7 @@ refactor(Skills): reorganize 12 domains into 6 active domains
 ---
 title: Amazon Listing Optimization Report
 date: 2024-01-20
-project: Timo Canada Q4
+project: Acme Canada Q4
 author: Claude Sonnet 4.5
 source: ~/github/liye_os/Systems/amazon-growth-os
 input: data/inputs/campaign_report_20240115.csv

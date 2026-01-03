@@ -96,8 +96,8 @@ Optimize target metric, target: improve metric A 10%, metric B 5%
 5. Archive output: Save to Artifacts_Vault
 
 ## Output
-- Report: `Artifacts_Vault/by_project/timo_canada_q4/listing_optimization_20240120.md`
-- Data attachment: `Artifacts_Vault/by_project/timo_canada_q4/data/keyword_analysis.csv`
+- Report: `Artifacts_Vault/by_project/acme_canada_q4/listing_optimization_20240120.md`
+- Data attachment: `Artifacts_Vault/by_project/acme_canada_q4/data/keyword_analysis.csv`
 
 ## Risk & Rollback
 - Risk: Optimization may affect existing rankings (recommend A/B testing)
@@ -198,7 +198,7 @@ npm test
 # Retrospective Report: [Project Name]
 
 ## Basic Info
-- Project: Timo Canada Q4 Launch
+- Project: Acme Canada Q4 Launch
 - Duration: 2024-01-01 to 2024-01-20
 - Goal: New product breakout, reach 50 daily sales
 - Actual: 45 daily sales (90% achieved)
@@ -221,7 +221,7 @@ npm test
 ## Knowledge Archive
 - Method update: `Skills/.../methods.md` add "Inventory Management Best Practices"
 - Template update: `Skills/.../templates/launch_checklist.md` add inventory check items
-- Case archive: `Artifacts_Vault/by_project/timo_canada_q4/retrospective.md`
+- Case archive: `Artifacts_Vault/by_project/acme_canada_q4/retrospective.md`
 ```
 
 ### Knowledge Archival Process
@@ -244,10 +244,10 @@ npm test
 
 ```bash
 # 1. Archive Artifacts
-mv reports/listing_optimization_20240120.md Artifacts_Vault/by_project/timo_canada_q4/
+mv reports/listing_optimization_20240120.md Artifacts_Vault/by_project/acme_canada_q4/
 
 # 2. Write retrospective
-vim Artifacts_Vault/by_project/timo_canada_q4/retrospective.md
+vim Artifacts_Vault/by_project/acme_canada_q4/retrospective.md
 
 # 3. Update Methods
 vim Skills/02_Operation_Intelligence/amazon-keyword-analysis/methods.md
@@ -259,7 +259,7 @@ vim Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/launch_ch
 
 # 5. Commit changes
 git add -A
-git commit -m "feat(amazon-keyword): add inventory management best practices from Timo Q4 project"
+git commit -m "feat(amazon-keyword): add inventory management best practices from Acme Q4 project"
 ```
 
 ## Collaboration Protocols (Multi-person Scenarios)

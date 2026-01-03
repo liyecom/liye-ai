@@ -88,10 +88,10 @@ cd liye_os
 node .claude/scripts/guardrail.mjs
 
 # 为任务生成上下文
-node .claude/scripts/assembler.mjs --task "分析 ASIN B08SVXGTRT"
+node .claude/scripts/assembler.mjs --task "分析 ASIN B0EXAMPLE01"
 
 # 用 Claude Code - 直接自然语言对话：
-# "分析 ASIN B08SVXGTRT"
+# "分析 ASIN B0EXAMPLE01"
 # Claude Code 读取 CLAUDE.md 并自动加载相关上下文
 ```
 

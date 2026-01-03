@@ -83,10 +83,10 @@ cd liye_os
 node .claude/scripts/guardrail.mjs
 
 # Generate context for a task
-node .claude/scripts/assembler.mjs --task "Analyze ASIN B08SVXGTRT"
+node .claude/scripts/assembler.mjs --task "Analyze ASIN B0EXAMPLE01"
 
 # Use with Claude Code - just talk naturally:
-# "Analyze ASIN B08SVXGTRT"
+# "Analyze ASIN B0EXAMPLE01"
 # Claude Code reads CLAUDE.md and auto-loads relevant context
 ```
 

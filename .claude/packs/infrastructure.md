@@ -268,7 +268,7 @@ uploads/
 Artifacts_Vault/by_date/2024/01/
 └── amazon_listing_optimization_20240120_claude.md
 
-Artifacts_Vault/by_project/timo_canada_q4/
+Artifacts_Vault/by_project/acme_canada_q4/
 └── ppc_strategy_optimization_20240115.md
 ```
 

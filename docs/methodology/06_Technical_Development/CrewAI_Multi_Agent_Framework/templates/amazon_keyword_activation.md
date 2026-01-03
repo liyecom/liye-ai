@@ -20,7 +20,7 @@ Role: Amazon SEO Specialist Team
 Task: Optimize listing for {product} in {marketplace}
 Method: Calculate TES scores → Generate optimized listing → Analyze competitors
 Model: TES = (Search Volume × Purchase Rate) / (Title Density + 1)
-Output: Timo Master Keyword Sheet + Optimized Listing Package
+Output: Acme Master Keyword Sheet + Optimized Listing Package
 ```
 
 ## Required Inputs
@@ -121,7 +121,7 @@ Files needed:
 **Save Location**:
 ```
 .liye_evolution/artifacts/
-└── YYYYMMDD_Timo_{product}_keyword_analysis.md
+└── YYYYMMDD_Acme_{product}_keyword_analysis.md
 ```
 
 **Integration with amazon-keyword-analysis Skill**:
@@ -146,7 +146,7 @@ Files needed:
    # Use for initial listing creation
    ```
 
-2. **Monthly Keyword Review** (Timo Store):
+2. **Monthly Keyword Review** (Acme Store):
    ```python
    inputs = {
        'product': 'Laptop Stand',

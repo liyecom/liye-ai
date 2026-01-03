@@ -12,7 +12,7 @@ domains:
       - roas
       - acoas
       - asoas
-      - timo
+      - acme
       - keepa
       - listing
       - rufus

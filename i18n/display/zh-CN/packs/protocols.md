@@ -81,7 +81,7 @@ Claude (Sonnet):
 # Amazon Listing Optimization Report
 
 ## Objective
-优化 Timo Canada ASIN B0XXX 的 Listing，目标提升 CTR 10%，CVR 5%
+优化 Acme Canada ASIN B0XXX 的 Listing，目标提升 CTR 10%，CVR 5%
 
 ## Input
 - 数据源：`Systems/amazon-growth-os/data/inputs/campaign_report_20240115.csv`
@@ -96,8 +96,8 @@ Claude (Sonnet):
 5. 归档产出：保存到 Artifacts_Vault
 
 ## Output
-- 报告：`Artifacts_Vault/by_project/timo_canada_q4/listing_optimization_20240120.md`
-- 数据附件：`Artifacts_Vault/by_project/timo_canada_q4/data/keyword_analysis.csv`
+- 报告：`Artifacts_Vault/by_project/acme_canada_q4/listing_optimization_20240120.md`
+- 数据附件：`Artifacts_Vault/by_project/acme_canada_q4/data/keyword_analysis.csv`
 
 ## Risk & Rollback
 - 风险：优化后可能影响现有排名（建议 A/B 测试）
@@ -198,7 +198,7 @@ npm test
 # 复盘报告：[项目名称]
 
 ## 基本信息
-- 项目：Timo Canada Q4 Launch
+- 项目：Acme Canada Q4 Launch
 - 时间：2024-01-01 至 2024-01-20
 - 目标：新品破冰，达到日销 50 单
 - 实际：日销 45 单（90% 达成）
@@ -221,7 +221,7 @@ npm test
 ## 知识沉淀（Archive）
 - 方法更新：`Skills/.../methods.md` 增加"库存管理最佳实践"
 - 模板更新：`Skills/.../templates/launch_checklist.md` 增加库存检查项
-- 案例归档：`Artifacts_Vault/by_project/timo_canada_q4/retrospective.md`
+- 案例归档：`Artifacts_Vault/by_project/acme_canada_q4/retrospective.md`
 ```
 
 ### 知识沉淀流程
@@ -244,10 +244,10 @@ npm test
 
 ```bash
 # 1. 归档 Artifacts
-mv reports/listing_optimization_20240120.md Artifacts_Vault/by_project/timo_canada_q4/
+mv reports/listing_optimization_20240120.md Artifacts_Vault/by_project/acme_canada_q4/
 
 # 2. 撰写复盘
-vim Artifacts_Vault/by_project/timo_canada_q4/retrospective.md
+vim Artifacts_Vault/by_project/acme_canada_q4/retrospective.md
 
 # 3. 更新 Methods
 vim Skills/02_Operation_Intelligence/amazon-keyword-analysis/methods.md
@@ -259,7 +259,7 @@ vim Skills/02_Operation_Intelligence/amazon-keyword-analysis/templates/launch_ch
 
 # 5. 提交变更
 git add -A
-git commit -m "feat(amazon-keyword): add inventory management best practices from Timo Q4 project"
+git commit -m "feat(amazon-keyword): add inventory management best practices from Acme Q4 project"
 ```
 
 ## 协作协议（多人场景）

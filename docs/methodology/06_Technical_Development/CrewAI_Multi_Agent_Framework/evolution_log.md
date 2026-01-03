@@ -154,7 +154,7 @@ Step 3: Validate output against GRADE criteria from Medical_Research_Analyst
 
 **Recommended Usage**:
 ```
-When: Monthly Timo Store keyword review
+When: Monthly Acme Store keyword review
 Step 1: Export 卖家精灵 data
 Step 2: Use CrewAI Amazon template with TES Calculator tool
 Step 3: Generate optimized listing

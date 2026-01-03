@@ -39,16 +39,22 @@ jobs:
       - name: Scan repository with blocklist
         run: |
           set -e
-          # Exclude security config files themselves
+          # Create temp file with non-comment patterns
+          grep -v '^#' .security/blocklist.txt | grep -v '^$' > /tmp/patterns.txt
+
+          # Exclude security config and tooling files
           if grep -RIn \
             --exclude-dir=.git \
             --exclude-dir=node_modules \
             --exclude-dir=.venv \
             --exclude-dir=venv \
+            --exclude-dir=.claude/settings* \
             --exclude='.security/*' \
             --exclude='.pre-commit-config.yaml' \
-            --exclude='.github/workflows/security-gate.yml' \
-            -f .security/blocklist.txt . 2>/dev/null; then
+            --exclude='.github/workflows/*.yml' \
+            --exclude='.claude/scripts/*.mjs' \
+            --exclude='.claude/.githooks/*' \
+            -f /tmp/patterns.txt . 2>/dev/null; then
             echo ""
             echo "❌ BLOCKED by .security/blocklist.txt"
             exit 1

@@ -796,7 +796,7 @@ function pickPacks(taskDesc) {
   const s = (taskDesc || "").toLowerCase();
 
   // Operations Pack 触发词
-  if (/(amazon|asin|ppc|listing|timo|跨境|亚马逊|关键词|广告|运营|keyword|campaign)/i.test(taskDesc)) {
+  if (/(amazon|asin|ppc|listing|acme|跨境|亚马逊|关键词|广告|运营|keyword|campaign)/i.test(taskDesc)) {
     picks.add("operations");
   }
 

@@ -1,6 +1,6 @@
 # Context Pack: Operations（跨境/亚马逊/运营）
 
-**加载条件：** 涉及 Amazon/ASIN/Listing/PPC/关键词/跨境/Timo/运营系统/Excel/电子表格/xlsx/csv分析时加载。
+**加载条件：** 涉及 Amazon/ASIN/Listing/PPC/关键词/跨境/Acme/运营系统/Excel/电子表格/xlsx/csv分析时加载。
 
 ---
 
@@ -196,7 +196,7 @@ CTR（点击率）→ CVR（转化率）→ ACOS → 利润率
 **示例结构：**
 ```
 Artifacts_Vault/by_project/
-└── timo_canada_q4_2024/
+└── acme_canada_q4_2024/
     ├── README.md              # 项目概览
     ├── listing_optimization/  # Listing 优化记录
     ├── ppc_campaigns/         # 广告优化记录
