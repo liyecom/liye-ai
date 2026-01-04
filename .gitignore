@@ -254,6 +254,12 @@ websites/
 !*.env.example
 
 # ============================================
+# Memory System (Generated Diffs)
+# ============================================
+memory/diff/
+!memory/diff/.gitkeep
+
+# ============================================
 # Legacy Symlinks (local only, removed from git tracking v6.3.0)
 # ============================================
 # These symlinks existed for backward compatibility but caused
