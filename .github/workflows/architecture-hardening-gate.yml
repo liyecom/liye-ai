@@ -87,3 +87,12 @@ jobs:
           echo "  data/stats/       (formerly stats/)"
           echo "  data/traces/      (formerly traces/)"
           echo "  Artifacts_Vault/reports/ (formerly reports/)"
+
+      - name: Public Boundary Guard
+        run: python3 .claude/scripts/public_boundary_guard.py
+
+      - name: Runbook Migration Guard
+        run: bash .claude/scripts/runbook_migration_guard.sh
+
+      - name: Governance Index Guard
+        run: bash .claude/scripts/governance_index_guard.sh
