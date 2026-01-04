@@ -45,9 +45,11 @@ These files provide guidance but do not enforce policy.
 | File | Purpose |
 |------|---------|
 | `docs/governance/INDEX.md` | This file - governance structure overview |
+| `docs/governance/PUBLIC_BOUNDARY.md` | Public boundary policy - what is/isn't in public repo |
 | `docs/governance/ALIAS_KEYWORDS_REPORT.md` | Keyword alias audit |
 | `docs/governance/PREFIX_DEBT_REPORT.md` | Prefix debt tracking |
 | `docs/governance/REDIRECT_AUDIT.md` | Redirect usage audit |
+| `docs/runbook/DOMAIN_MIGRATION_PLAYBOOK.md` | Domain migration SOP for private extraction |
 | `docs/architecture/*.md` | Architecture decision records |
 
 ---
