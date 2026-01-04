@@ -251,10 +251,14 @@ if platform == 'netlify':
     self.deployer = NetlifyDeployer(self.config)
 ```
 
+## Documentation
+
+- [Cloudflare DNS Setup Guide](docs/CLOUDFLARE_DNS_SETUP.md) - Vercel + Cloudflare Proxy 模式配置指南
+
 ## Roadmap
 
 - [ ] Google Search Console integration
-- [ ] Cloudflare DNS automation
+- [ ] Cloudflare DNS automation (Manual guide: [docs/CLOUDFLARE_DNS_SETUP.md](docs/CLOUDFLARE_DNS_SETUP.md))
 - [ ] GitHub Actions workflow
 - [ ] Deployment rollback support
 - [ ] Web UI dashboard
