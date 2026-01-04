@@ -142,6 +142,6 @@ outcome:
 
 # === 关联 ===
 links:
-  project: "github.com/loudmirror/amazon-growth-os"
+  project: "<private-domain>"  # 原始项目已迁移至私有仓库
   commit: "326a2ba"
   tutorial: "docs/i18n-tutorial-zh-CN.md"
