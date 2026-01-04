@@ -50,6 +50,7 @@ These files provide guidance but do not enforce policy.
 | `docs/governance/PREFIX_DEBT_REPORT.md` | Prefix debt tracking |
 | `docs/governance/REDIRECT_AUDIT.md` | Redirect usage audit |
 | `docs/runbook/DOMAIN_MIGRATION_PLAYBOOK.md` | Domain migration SOP for private extraction |
+| `docs/governance/GOVERNANCE_DEPLOYMENT_RECORD.md` | Governance deployment audit trail |
 | `docs/architecture/*.md` | Architecture decision records |
 
 ---
