@@ -1,0 +1,147 @@
+# Experience: kern_i18n_amazon_20260104
+# 一个文件包含所有复用所需信息
+
+# === 元数据 ===
+meta:
+  track_id: kern_i18n_amazon_20260104
+  domain: kernel
+  created: "2026-01-04"
+  verdict: success
+  confidence: 0.95
+
+# === 1. 识别 (什么时候用？) ===
+trigger:
+  conditions:
+    - "项目需要多语言支持"
+    - "希望源文件保持稳定不变"
+    - "需要运行时语言切换"
+    - "不想引入外部翻译服务"
+  keywords:
+    - i18n
+    - internationalization
+    - localization
+    - chinese
+    - language-pack
+    - multi-language
+
+# === 2. 决策 (为什么这样做？) ===
+decision:
+  approach: "SSOT + Display Layer"
+  summary: "英文作为单一真相源，中文作为显示层，运行时合并"
+
+  rationale:
+    - "源文件稳定不变，便于协作"
+    - "翻译独立管理，可独立迭代"
+    - "1:1 镜像结构，易验证覆盖率"
+    - "运行时合并，灵活切换语言"
+
+  alternatives_rejected:
+    - name: "Inline Translation"
+      reason: "污染源文件，难以维护，语言增加时文件膨胀"
+    - name: "External Service (Crowdin)"
+      reason: "增加外部依赖，成本高，对小项目过重"
+
+  key_choices:
+    - question: "源文件用什么语言？"
+      answer: "英文 - 技术标准，国际通用"
+    - question: "翻译文件放哪里？"
+      answer: "i18n/display/{locale}/ - 1:1 镜像源文件"
+    - question: "如何合并？"
+      answer: "运行时 deep_merge，翻译覆盖源文件"
+    - question: "缓存策略？"
+      answer: "LRU Cache - 避免重复 I/O"
+
+# === 3. 执行 (怎么做？) ===
+execution:
+  duration_hours: 4
+  phases: 6
+
+  quick_start:
+    - "创建 i18n/config.yaml (source_locale + default_locale)"
+    - "创建 i18n/display/{locale}/ 目录结构"
+    - "实现 Python i18n loader 模块 (lazy load + LRU cache)"
+    - "创建翻译文件 (1:1 镜像源文件)"
+    - "添加 validate.py 验证脚本"
+    - "添加 CI workflow"
+
+  directory_structure: |
+    i18n/
+    ├── config.yaml
+    ├── scripts/validate.py
+    └── display/
+        └── zh-CN/
+            ├── Agents/{domain}/
+            ├── config/{domain}/
+            └── messages/{domain}/
+                ├── common.yaml
+                ├── tools.yaml
+                └── dashboard.yaml
+
+  code_template:
+    config: |
+      version: 1
+      settings:
+        source_locale: en-US
+        default_locale: zh-CN
+      fallback_chain:
+        zh-CN: [en-US]
+
+    loader: |
+      from functools import lru_cache
+
+      @lru_cache(maxsize=32)
+      def load_messages(domain, locale=None):
+          locale = locale or os.getenv('PROJECT_LOCALE', 'zh-CN')
+          return _load_yaml_file(f'i18n/display/{locale}/messages/{domain}.yaml')
+
+      def _(key, domain='common', **kwargs):
+          messages = load_messages(domain)
+          value = get_nested_value(messages, key)
+          return value.format(**kwargs) if value else key
+
+  detail: "见 plan.md"
+
+# === 4. 避险 (要避免什么？) ===
+pitfalls:
+  - id: 1
+    issue: "Python 模块路径问题"
+    symptom: "ModuleNotFoundError"
+    cause: "目录名带横杠时 Python 无法直接 import"
+    solution: "使用 sys.path.insert('path/to/module')"
+
+  - id: 2
+    issue: "键名嵌套问题"
+    symptom: "返回 key 本身而非翻译"
+    cause: "用户期望 _('success') 但实际需要 _('status.success')"
+    solution: "文档明确说明使用嵌套路径，如 status.success"
+
+  - id: 3
+    issue: "环境变量传递"
+    symptom: "子进程中语言切换不生效"
+    cause: "环境变量在子进程中可能未继承"
+    solution: "命令前显式设置 LOCALE=zh-CN python3 ..."
+
+# === 5. 结果 (成功了吗？) ===
+outcome:
+  verdict: success
+
+  metrics:
+    coverage: 100%
+    files_total: 21
+    files_translated: 21
+    lines_added: 2799
+
+  verification:
+    method: "python3 i18n/scripts/validate.py --report"
+    result: "PASS - Coverage 100.0% (21/21 files)"
+
+  learnings:
+    - "SSOT + Display 架构非常适合中小型项目"
+    - "1:1 镜像结构使覆盖率验证变得简单"
+    - "LRU Cache 显著提升加载性能"
+
+# === 关联 ===
+links:
+  project: "<private-domain>"  # 原始项目已迁移至私有仓库
+  commit: "326a2ba"
+  tutorial: "docs/i18n-tutorial-zh-CN.md"

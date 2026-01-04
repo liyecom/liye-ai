@@ -1,0 +1,6 @@
+# Track State
+track_id: kern_i18n_amazon_20260104
+domain: kernel
+status: done
+created: "2026-01-04"
+project: "<private-domain>"  # 原始项目已迁移至私有仓库
