@@ -1,0 +1,9 @@
+{
+  "trace_id": "demo-trace-001",
+  "domain": "skeleton",
+  "contract_id": "citation_required",
+  "inputs": { "claim_type": "factual", "citation_count": 0 },
+  "decision": "BLOCK",
+  "reason": "Factual claims must include citations.",
+  "timestamp": "2026-01-04T00:00:00Z"
+}

@@ -1,0 +1,26 @@
+domain:
+  id: skeleton
+  name: Skeleton Domain
+  version: "0.1.0"
+  description: "Minimal reference domain for validating governance mechanics"
+  layer: core
+
+agents:
+  enabled:
+    - skeleton-analyst
+  orchestrator: skeleton-analyst
+
+workflows:
+  available:
+    - contract-validation
+    - trace-emission
+  default: contract-validation
+
+skills:
+  atomic:
+    - validate_contract
+    - emit_trace
+  composite: []
+
+evolution:
+  enabled: false
