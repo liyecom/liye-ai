@@ -1,0 +1,297 @@
+# =============================================================================
+# TRACE: i18n Implementation for Amazon Growth OS
+# Type: decision (完整决策轨迹)
+# =============================================================================
+
+trace:
+  id: "TRACE-20260104-I18N-001"
+  created_at: "2026-01-04T13:00:00Z"
+  agent_id: "claude-opus-4.5"
+  trace_type: "decision"
+
+  # === Context ===
+  context:
+    project: "amazon-growth-os"
+    repo: "github.com/loudmirror/amazon-growth-os"
+    domain: "kernel"  # 跨领域通用能力
+    tags: ["i18n", "internationalization", "chinese", "localization"]
+
+  # === Layer 1: Observation (观测) ===
+  observation:
+    trigger: "user_request"
+    timestamp: "2026-01-04T10:00:00Z"
+    summary: "用户要求为英文 GitHub 仓库实现中文语言包"
+
+    current_state:
+      - "amazon-growth-os 是纯英文项目"
+      - "包含 12 个 Agent YAML 文件"
+      - "包含 5 个 Config YAML 文件"
+      - "包含 80+ Python 工具脚本"
+      - "包含 Streamlit Dashboard"
+      - "vendor/liye-ai 有现有 i18n 架构参考"
+
+    requirements:
+      - scope: "全覆盖 - Agent + Config + Python + Dashboard"
+      - architecture: "沿用现有 SSOT + Display 架构"
+      - runtime: "支持运行时语言切换"
+      - ci: "需要 CI 验证"
+
+  # === Layer 2: Analysis (分析) ===
+  analysis:
+    options_considered:
+      - id: "A"
+        name: "Inline Translation"
+        description: "直接在源文件中添加多语言字段"
+        pros:
+          - "简单直接"
+          - "无需额外文件"
+        cons:
+          - "污染源文件"
+          - "难以维护"
+          - "语言增加时文件膨胀"
+        risk: "high"
+
+      - id: "B"
+        name: "SSOT + Display Layer"
+        description: "英文作为单一真相源，翻译文件分离存储"
+        pros:
+          - "源文件稳定不变"
+          - "翻译可独立迭代"
+          - "支持多语言扩展"
+          - "运行时合并灵活"
+        cons:
+          - "需要维护两套文件"
+          - "需要开发 loader 模块"
+        risk: "low"
+
+      - id: "C"
+        name: "External Translation Service"
+        description: "使用 Crowdin/Transifex 等外部服务"
+        pros:
+          - "专业翻译管理"
+          - "协作翻译"
+        cons:
+          - "增加外部依赖"
+          - "成本"
+          - "过重"
+        risk: "medium"
+
+    selected_option: "B"
+
+    rationale: |
+      选择 SSOT + Display Layer 架构，理由：
+      1. vendor/liye-ai 已有成熟实现可复用
+      2. 源文件保持英文稳定，便于国际协作
+      3. 翻译独立管理，不影响核心功能
+      4. 运行时合并支持动态语言切换
+      5. 结构镜像设计便于验证覆盖率
+
+    patterns_applied:
+      - pattern: "SSOT (Single Source of Truth)"
+        source: "vendor/liye-ai/i18n"
+        adaptation: "直接复用架构，修改 domain 名称"
+
+      - pattern: "Display Layer Separation"
+        source: "vendor/liye-ai/i18n/display"
+        adaptation: "1:1 镜像源文件结构"
+
+      - pattern: "Lazy Loading + LRU Cache"
+        source: "best practice"
+        adaptation: "Python functools.lru_cache"
+
+  # === Layer 3: Decision (决策) ===
+  decision:
+    summary: "实施 SSOT + Display Layer i18n 架构"
+
+    implementation_plan:
+      - phase: 1
+        name: "基础设施搭建"
+        tasks:
+          - "创建 i18n/ 目录结构"
+          - "编写 i18n/config.yaml"
+          - "实现 Python i18n loader 模块"
+          - "创建验证脚本"
+
+      - phase: 2
+        name: "Agent 翻译"
+        tasks:
+          - "翻译 12 个 Agent YAML 文件"
+          - "修改 agent_loader.py 支持 i18n"
+
+      - phase: 3
+        name: "Config 翻译"
+        tasks:
+          - "翻译 5 个 Config YAML 文件"
+
+      - phase: 4
+        name: "消息语言包"
+        tasks:
+          - "创建 common.yaml"
+          - "创建 tools.yaml"
+          - "创建 runtime.yaml"
+          - "创建 dashboard.yaml"
+
+      - phase: 5
+        name: "代码集成"
+        tasks:
+          - "修改 dashboard/app.py"
+          - "添加 GitHub Actions workflow"
+
+      - phase: 6
+        name: "验证与文档"
+        tasks:
+          - "运行验证脚本"
+          - "编写用户教程"
+
+  # === Layer 4: Execution (执行) ===
+  execution:
+    started_at: "2026-01-04T10:30:00Z"
+    completed_at: "2026-01-04T14:30:00Z"
+    duration_hours: 4
+
+    artifacts_created:
+      new_files: 28
+      modified_files: 2
+      total_lines: 2799
+
+    file_breakdown:
+      - category: "i18n infrastructure"
+        files:
+          - "i18n/config.yaml"
+          - "i18n/scripts/validate.py"
+          - "src/domain/amazon-growth/i18n/__init__.py"
+          - "src/domain/amazon-growth/i18n/constants.py"
+          - "src/domain/amazon-growth/i18n/loader.py"
+        count: 5
+
+      - category: "Agent translations"
+        path: "i18n/display/zh-CN/Agents/amazon-growth/"
+        count: 12
+
+      - category: "Config translations"
+        path: "i18n/display/zh-CN/config/amazon-growth/"
+        count: 5
+
+      - category: "Message packs"
+        files:
+          - "i18n/display/zh-CN/messages/amazon-growth/common.yaml"
+          - "i18n/display/zh-CN/messages/amazon-growth/tools.yaml"
+          - "i18n/display/zh-CN/messages/amazon-growth/runtime.yaml"
+          - "i18n/display/zh-CN/messages/amazon-growth/dashboard.yaml"
+        count: 4
+
+      - category: "CI/CD"
+        files:
+          - ".github/workflows/i18n-gate.yml"
+        count: 1
+
+      - category: "Documentation"
+        files:
+          - "docs/i18n-tutorial-zh-CN.md"
+        count: 1
+
+    git_commit: "326a2ba"
+
+    guardrail_check: "PASS"
+
+  # === Layer 5: Hypothesis (假设) ===
+  hypothesis:
+    id: "H-I18N-001"
+    statement: "SSOT + Display Layer 架构可以实现 100% 翻译覆盖且不影响原有功能"
+
+    expected_outcomes:
+      - metric: "coverage"
+        target: ">= 80%"
+      - metric: "functionality"
+        target: "所有原有功能正常"
+      - metric: "usability"
+        target: "用户可以通过环境变量切换语言"
+
+    verification_method: "运行 validate.py 验证覆盖率，手动测试功能"
+
+  # === Layer 6: Verification (验证) ===
+  verification:
+    verified_at: "2026-01-04T14:45:00Z"
+
+    actual_outcomes:
+      coverage:
+        total: 21
+        translated: 21
+        percentage: 100.0
+        status: "PASS"
+
+      functionality:
+        agent_loader: "PASS - load_agent_with_i18n() 正常工作"
+        dashboard: "PASS - UI 文本可切换"
+        message_pack: "PASS - _() 函数返回正确翻译"
+
+      usability:
+        env_switch: "PASS - export AMAZON_GROWTH_LOCALE=zh-CN 生效"
+        fallback: "PASS - 找不到翻译时 fallback 到英文"
+
+    hypothesis_result: "confirmed"
+
+    learnings:
+      - "键名需要使用嵌套路径如 status.success 而非 success"
+      - "Python 目录名带横杠时需要调整 import 路径"
+      - "环境变量在子进程中需要显式传递"
+
+    confidence_adjustment: "0.5 → 0.95"
+
+  # === Layer 7: Causal Links (因果链接) ===
+  causal_links:
+    caused_by: null  # 首次实施
+
+    causes:
+      - "未来其他项目的 i18n 实施可复用此模式"
+
+    related_artifacts:
+      - type: "skill"
+        path: "liye_os/skills/i18n-implementation-playbook.md"
+        relationship: "程序化执行指南"
+
+      - type: "repo"
+        path: "github.com/loudmirror/amazon-growth-os"
+        relationship: "实施目标项目"
+
+# =============================================================================
+# Meta: 可复用知识提取
+# =============================================================================
+reusable_knowledge:
+  pattern_name: "SSOT + Display Layer i18n"
+
+  trigger_conditions:
+    - "项目需要多语言支持"
+    - "希望保持源文件稳定"
+    - "需要运行时语言切换"
+
+  core_components:
+    - name: "i18n/config.yaml"
+      purpose: "配置 source_locale, default_locale, fallback_chain"
+
+    - name: "i18n/display/{locale}/"
+      purpose: "按语言代码组织的翻译文件，1:1 镜像源文件结构"
+
+    - name: "Python i18n loader"
+      purpose: "运行时加载和合并翻译，提供 _() 便捷函数"
+
+    - name: "validate.py"
+      purpose: "验证覆盖率，集成到 CI/CD"
+
+  key_decisions:
+    - question: "源文件用什么语言？"
+      answer: "英文 - 技术标准，国际通用"
+
+    - question: "翻译文件放哪里？"
+      answer: "i18n/display/{locale}/ - 与源文件 1:1 镜像"
+
+    - question: "如何合并？"
+      answer: "运行时 deep_merge，翻译覆盖源文件对应字段"
+
+    - question: "缓存策略？"
+      answer: "LRU Cache - 避免重复 I/O"
+
+  estimated_effort:
+    small_project: "2-3 hours"
+    medium_project: "4-6 hours"
+    large_project: "1-2 days"
