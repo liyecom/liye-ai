@@ -52,30 +52,13 @@ jobs:
           else
             echo "WARNING: trace_guard.sh not found at tools/, running inline checks"
 
-            # Inline fallback checks
+            # Inline fallback checks (domain-agnostic)
             ERRORS=0
 
-            # Check 1: Required config files
-            for file in "config/amazon-growth/guardrails.yaml" "config/amazon-growth/priority_score.yaml"; do
-              if [[ -f "$file" ]]; then
-                echo "[PASS] $file exists"
-              else
-                echo "[FAIL] $file missing"
-                ERRORS=$((ERRORS + 1))
-              fi
-            done
+            # Note: Domain-specific config/agent checks are in private repos.
+            # Public repo validates only shared infrastructure.
 
-            # Check 2: Agent files
-            for file in "Agents/amazon-growth/intent-analyst.yaml" "Agents/amazon-growth/trace-scribe.yaml" "Agents/amazon-growth/guardrail-governor.yaml"; do
-              if [[ -f "$file" ]]; then
-                echo "[PASS] $file exists"
-              else
-                echo "[FAIL] $file missing"
-                ERRORS=$((ERRORS + 1))
-              fi
-            done
-
-            # Check 3: TRACE template (canonical path)
+            # Check 1: TRACE template (canonical path)
             if [[ -f "_meta/templates/trace/TRACE_TEMPLATE_v4_2.yaml" ]]; then
               echo "[PASS] TRACE template exists (canonical path)"
             elif [[ -f "templates/trace/TRACE_TEMPLATE_v4_2.yaml" ]]; then
@@ -103,8 +86,9 @@ jobs:
           # Get list of changed files
           CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} || true)
 
-          # Check if any operational config was changed
-          OPERATIONAL_CHANGES=$(echo "$CHANGED_FILES" | grep -E "(Agents/amazon-growth/|config/amazon-growth/)" || true)
+          # Check if any operational config was changed (public domains only)
+          # Note: amazon-growth checks are in private repo workflow
+          OPERATIONAL_CHANGES=$(echo "$CHANGED_FILES" | grep -E "(Agents/skeleton/|src/domain/skeleton/)" || true)
 
           if [[ -n "$OPERATIONAL_CHANGES" ]]; then
             echo "Operational files changed:"
