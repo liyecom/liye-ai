@@ -14,6 +14,12 @@
     "type": "git",
     "url": "https://github.com/liyecom/liye-ai.git"
   },
+  "bin": {
+    "liye-recall": "./tools/recall/recall.js"
+  },
+  "scripts": {
+    "recall": "node tools/recall/recall.js"
+  },
   "dependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
