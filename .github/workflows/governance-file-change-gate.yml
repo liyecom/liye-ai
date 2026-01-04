@@ -3,26 +3,39 @@ name: Governance File Change Gate
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '.github/workflows/**'
-      - '.github/CODEOWNERS'
-      - 'docs/governance/**'
-      - 'docs/architecture/**'
-      - 'CLAUDE.md'
+  push:
+    branches: [main]
 
 jobs:
   governance-review:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check governance file changes
         run: |
           echo "=== Governance File Change Gate ==="
-          echo "This PR modifies protected governance files."
+
+          # Get changed files (PR or push)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || echo "")
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+          fi
+
+          # Check if any governance files are changed
+          GOVERNANCE_CHANGES=$(echo "$CHANGED" | grep -E '^\.github/|^docs/governance/|^docs/architecture/|^CLAUDE\.md' || true)
+
+          if [ -z "$GOVERNANCE_CHANGES" ]; then
+            echo "No governance files changed in this PR."
+            echo "[PASS] governance-review: No sensitive files modified."
+            exit 0
+          fi
+
+          echo "This PR modifies protected governance files:"
+          echo "$GOVERNANCE_CHANGES"
+          echo ""
           echo "Requires approval from @liyecom/governance-team per CODEOWNERS."
-          echo ""
-          echo "Changed governance files:"
-          git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^\.github/|^docs/governance/|^docs/architecture/|^CLAUDE\.md' || echo "No governance files changed"
-          echo ""
-          echo "Gate passed - CODEOWNERS will enforce review requirement."
+          echo "[PASS] Gate passed - CODEOWNERS will enforce review requirement."
