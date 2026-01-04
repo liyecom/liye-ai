@@ -1,0 +1,11 @@
+contract:
+  id: citation_required
+  version: "1.0.0"
+  intent: enforce_citation_for_factual_claims
+
+condition:
+  claim_type: factual
+  citation_count: "== 0"
+
+decision: BLOCK
+reason: "Factual claims must include citations."

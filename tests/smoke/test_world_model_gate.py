@@ -233,12 +233,10 @@ class TestWorldModelGateNegative:
         assert any("version" in e for e in errors)
 
 
-@pytest.mark.skip(reason="Skeleton domain not yet implemented - integration tests deferred")
 class TestWorldModelGateIntegration:
     """Integration tests for World Model Gate in skeleton entry.
 
-    NOTE: These tests are skipped until a skeleton domain is implemented.
-    The skeleton domain will serve as a minimal reference implementation
+    The skeleton domain serves as a minimal reference implementation
     demonstrating World Model Gate integration patterns.
     """
 
