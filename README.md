@@ -4,6 +4,11 @@
   <a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
+> **LiYe OS is an open governance and execution framework.**
+> **Domain intelligence and business data are intentionally excluded.**
+
+See: [`docs/governance/PUBLIC_BOUNDARY.md`](docs/governance/PUBLIC_BOUNDARY.md) for the public/private boundary.
+
 > **Governance & Architecture Reference Implementation for Claude Code / AI-Collaborative Development**
 >
 > Turn AI outputs into auditable, replayable, and controllable engineering systems.
