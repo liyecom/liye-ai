@@ -19,6 +19,12 @@ See: [`docs/governance/PUBLIC_BOUNDARY.md`](docs/governance/PUBLIC_BOUNDARY.md) 
 
 ---
 
+## Quickstart
+
+- Start here: [docs/quickstart/SKELETON_QUICKSTART.md](docs/quickstart/SKELETON_QUICKSTART.md)
+
+---
+
 ## What It Is
 
 LiYe OS is a **reference implementation** for building AI-collaborative engineering systems with:
