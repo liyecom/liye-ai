@@ -330,7 +330,7 @@ isDomain(obj: unknown): obj is Domain
 当 query 可能属于多个 domain 时（如 "seo 优化"），系统按以下优先级判断：
 
 1. **Negative Keywords 排除**: 如果出现 `amazon`, `acos` 等，排除 geo-seo
-2. **Priority 比较**: amazon-advertising (90) > geo-seo (85) > geo-os (80)
+2. **Priority 比较**: amazon-advertising (90) > geo-seo (85) > geo (80)
 3. **Keyword Hit Count**: 命中更多关键词的 domain 获得更高 confidence
 
 **当前状态**: 单 Domain 行为（仅选择最高 confidence 的 domain）

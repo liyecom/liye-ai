@@ -1,0 +1,73 @@
+name = "information-radar"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# ===========================================
+# KV Namespaces
+# ===========================================
+
+# Deduplication store
+[[kv_namespaces]]
+binding = "SEEN_ITEMS"
+id = "79b598904ed94a2d8faa6f2eea6c3ed1"
+
+[[kv_namespaces]]
+binding = "PUSH_REGISTRY"
+id = "74fe382523b84786853de4cb1f1b36cb"
+
+[[kv_namespaces]]
+binding = "TOKEN_CACHE"
+id = "928cc2e18a9944ee83fb5105a77c2d05"
+
+# V2.0: Signal storage and digest history
+[[kv_namespaces]]
+binding = "SIGNAL_STORE"
+id = "82cb888788274807af68af4cce294bc0"
+
+[[kv_namespaces]]
+binding = "DIGEST_HISTORY"
+id = "9fae2c78b5d3404eb3c43e2bc261c90e"
+
+# ===========================================
+# Cron Triggers
+# V2.0: Signal ingestion + Digest generation
+# ===========================================
+[triggers]
+crons = [
+  "*/5 * * * *",   # Signal ingestion (every 5 minutes)
+  "0 23 * * *",    # Daily digest (UTC 23:00 = Beijing 7:00 AM)
+  "0 0 * * 1"      # Weekly digest (Monday UTC 00:00 = Beijing 8:00 AM)
+]
+
+# ===========================================
+# Environment Variables
+# ===========================================
+# Secrets (set via `wrangler secret put`):
+#   GEMINI_API_KEY        - Google AI Studio API key
+#   PH_ACCESS_TOKEN       - Product Hunt API token
+#
+# Push Channel Secrets (at least one required):
+#   WECHAT_APPID          - WeChat test account appid
+#   WECHAT_SECRET         - WeChat test account secret
+#   WECHAT_TEMPLATE_ID    - WeChat template message ID
+#   WECOM_WEBHOOK_URL     - Enterprise WeChat bot webhook (backup)
+#   PUSHPLUS_TOKEN        - PushPlus token (cold backup)
+
+[vars]
+# Data source config
+HN_RSS_URL = "https://hnrss.org/frontpage"
+
+# Processing config
+PUSH_THRESHOLD = "3"
+MAX_ITEMS_PER_PUSH = "5"
+MERGE_WINDOW_MINUTES = "10"
+
+# Push channel priority (comma-separated)
+# Options: wechat_test, wecom_bot, wecom_app, pushplus
+# V2.0: 企业微信群机器人优先
+PUSH_CHANNEL_PRIORITY = "wecom_bot,pushplus"
+
+# V2.0 Config - Digest Mode
+ENABLE_REALTIME_PUSH = "false"     # 禁用实时推送，改为 Digest 模式
+DAILY_DIGEST_ENABLED = "true"      # 启用每日简报
+WEEKLY_DIGEST_ENABLED = "true"     # 启用每周周报

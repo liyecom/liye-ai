@@ -64,10 +64,10 @@ liye_os/
 │  位置: /src/domain/ + /Agents/ + /Crews/ + /Systems/        │
 │  职责: 业务实现、工作流编排、可部署子系统                    │
 │  活跃领域:                                                   │
-│    ├── geo-os/           # 核心知识引擎 (生产)               │
+│    ├── geo/           # 核心知识引擎 (生产)               │
 │    ├── skeleton/         # 最小参考领域                      │
 │    ├── medical-research/ # 医学研究框架                      │
-│    └── information-os/   # 信息系统 (Systems/)              │
+│    └── information-radar/   # 信息系统 (Systems/)              │
 └────────────────────┬────────────────────────────────────────┘
                      │
         ┌────────────┼────────────┐
@@ -122,7 +122,7 @@ src/kernel/
 
 ```
 Systems/
-├── information-os/        # 信息操作系统 v1.0
+├── information-radar/        # 信息操作系统 v1.0
 │   ├── workers/           # Cloudflare Workers
 │   │   ├── hn-collector/  # HackerNews 信号采集
 │   │   ├── ph-collector/  # ProductHunt 信号采集
@@ -134,7 +134,7 @@ Systems/
     └── ...
 ```
 
-### information-os 推送优先级
+### information-radar 推送优先级
 
 | 优先级 | 渠道 | 状态 | 说明 |
 |-------|------|------|------|
@@ -176,12 +176,12 @@ Systems/
 | 外部服务 | 用途 | 集成位置 | 配置 |
 |---------|------|---------|------|
 | **Notion API** | 知识双向同步 | tools/notion-sync/ | NOTION_API_KEY, NOTION_DATABASE_ID |
-| **Gemini API** | 中文摘要生成 | Systems/information-os/ | GEMINI_API_KEY |
-| **Product Hunt** | 信号采集 (GraphQL) | Systems/information-os/ | PH_ACCESS_TOKEN |
-| **Hacker News** | 信号采集 (RSS) | Systems/information-os/ | 无需认证 |
-| **微信测试号** | 推送通知 | Systems/information-os/ | WECHAT_APPID, WECHAT_SECRET |
-| **企业微信 Bot** | 推送热备 | Systems/information-os/ | WECOM_WEBHOOK_URL |
-| **PushPlus** | 推送冷备 | Systems/information-os/ | PUSHPLUS_TOKEN |
+| **Gemini API** | 中文摘要生成 | Systems/information-radar/ | GEMINI_API_KEY |
+| **Product Hunt** | 信号采集 (GraphQL) | Systems/information-radar/ | PH_ACCESS_TOKEN |
+| **Hacker News** | 信号采集 (RSS) | Systems/information-radar/ | 无需认证 |
+| **微信测试号** | 推送通知 | Systems/information-radar/ | WECHAT_APPID, WECHAT_SECRET |
+| **企业微信 Bot** | 推送热备 | Systems/information-radar/ | WECOM_WEBHOOK_URL |
+| **PushPlus** | 推送冷备 | Systems/information-radar/ | PUSHPLUS_TOKEN |
 
 ### 5.2 Notion 同步命令
 
@@ -387,5 +387,5 @@ npm run recall
 **Last Updated**: 2026-01-10
 **Changelog**:
 - v2.0 (2026-01-10) 重构：添加世界模型内核、外部集成、数据流章节；更新领域迁移状态
-- v1.2 修正 geo-os 描述为"生成式引擎优化系统 (GEO)"
+- v1.2 修正 geo 描述为"生成式引擎优化系统 (GEO)"
 - v1.1 添加占位符追踪表

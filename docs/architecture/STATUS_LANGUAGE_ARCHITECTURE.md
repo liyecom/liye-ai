@@ -51,7 +51,7 @@
 - [x] 5 glossary files migrated (57 concepts total)
   - amazon-advertising.yaml (7 concepts)
   - general.yaml (5 concepts)
-  - geo-os.yaml (6 concepts)
+  - geo.yaml (6 concepts)
   - geo-seo.yaml (32 concepts)
   - medical-research.yaml (7 concepts)
 - [x] Chinese definitions moved to `i18n.zh-CN` blocks

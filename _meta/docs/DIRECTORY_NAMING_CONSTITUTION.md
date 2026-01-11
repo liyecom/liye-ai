@@ -32,7 +32,7 @@
 |--------|------|------|------|------|
 | `websites` | **类型**（能生产网站） | OS 内部 | 源码、模板、生成规则 | `liye_os/websites/` |
 | `sites` | **实例**（已存在的网站） | OS 外部 | 具体网站项目 | `~/github/sites/` |
-| `Systems` | **类型**（系统能力） | OS 内部 | 可执行系统 | `liye_os/Systems/geo-os/` |
+| `Systems` | **类型**（系统能力） | OS 内部 | 可执行系统 | `liye_os/Systems/geo/` |
 | `tools` | **类型**（工具能力） | OS 内部 | 工具脚本 | `liye_os/tools/` |
 | `data` | **实例**（数据文件） | OS 外部 | 数据存储 | `~/data/` |
 

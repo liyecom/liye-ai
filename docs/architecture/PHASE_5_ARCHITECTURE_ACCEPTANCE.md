@@ -225,9 +225,9 @@ All three must align. A decision is valid only if it passes schema, has a contra
 
 **Validated Phase 5 Capabilities**:
 - Decision Inventory: 85 decisions across 12 categories (Visibility, Ranking, Reviews, etc.)
-- Decision Contracts: 45 semantic contracts in `contracts/geo-os/contracts.yaml`
+- Decision Contracts: 45 semantic contracts in `contracts/geo/contracts.yaml`
 - Agent Pipeline: signal_agent.js → rule_agent.js → verdict_agent.js
-- Replay Gate: Deterministic tests in `replays/geo-os/cases/`
+- Replay Gate: Deterministic tests in `replays/geo/cases/`
 
 ### Commonality vs. Difference
 

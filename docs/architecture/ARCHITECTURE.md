@@ -39,7 +39,7 @@ LiYe OS Four-Layer Architecture (Tri-Fork Fusion)
 │ ④ LiYe Domain Layer   (WHERE) ← LiYe Original               │
 │    - amazon-growth/ (9 Agents)                              │
 │    - medical-research/                                      │
-│    - geo-os/                                                │
+│    - geo/                                                │
 │    - custom-domain/                                         │
 │    【ASSEMBLY ONLY - Does not modify upper layers】         │
 └─────────────────────────────────────────────────────────────┘

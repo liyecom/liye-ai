@@ -49,7 +49,7 @@ Layers:
 Domains:
   • skeleton (example application)
   • medical-research (application)
-  • geo-os (core)
+  • geo (core)
 ```
 
 > **Note:** Domain-specific implementations (like Amazon Growth OS) are in private repositories. This public framework includes skeleton examples and medical-research as demonstration domains.
@@ -340,7 +340,7 @@ node cli/index.js workflow run my-workflow --input data.json
 
 ## Next Steps
 
-1. **Explore existing domains**: Check `src/domain/medical-research/` or `src/domain/geo-os/` for examples
+1. **Explore existing domains**: Check `src/domain/medical-research/` or `src/domain/geo/` for examples
 2. **Read the architecture docs**: See `docs/architecture/ARCHITECTURE.md`
 3. **Create your own domain**: Follow the patterns above
 4. **Contribute**: See [CONTRIBUTING.md](../CONTRIBUTING.md)

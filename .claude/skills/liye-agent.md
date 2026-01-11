@@ -37,7 +37,7 @@ agent:
   id: kebab-case-identifier
   name: Human Readable Name
   version: 1.0.0
-  domain: core | amazon-growth | medical-research | geo-os
+  domain: core | amazon-growth | medical-research | geo
 
 persona:
   role: "What role this agent plays"

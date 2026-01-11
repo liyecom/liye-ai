@@ -47,7 +47,7 @@ PR #33 removed root-level symlinks. The contract must follow facts, not history.
   - `src/**` - Domain runtime code
   - `schemas/**` - Schema definitions
   - `replays/**` - Replay test cases
-  - `config/amazon-growth/**`, `config/geo-os/**` - Domain configs
+  - `config/amazon-growth/**`, `config/geo/**` - Domain configs
   - `Agents/**` - Agent definitions
   - `tools/replay_runner.js`, `tools/geo_os_replay_runner.js`
 - Updated replay runner path from `scripts/` to `tools/`

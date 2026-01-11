@@ -4,4 +4,4 @@
 
 ## Summary
 - Total violations: **0**
-- Domains covered: amazon-advertising, geo-os, medical-research, general
+- Domains covered: amazon-advertising, geo, medical-research, general
