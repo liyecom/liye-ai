@@ -734,5 +734,50 @@ rg -n '\b[a-z0-9]+(?:-[a-z0-9]+)*-os\b' . --glob '!.git/**' --glob '!**/node_mod
 
 ---
 
-*宪法版本: 1.6*
+### Amendment 2026-01-11-F: Engineering Naming Unification (No sub-OS branding)
+
+**版本**: v1.7
+**生效日期**: 2026-01-11
+**关联条款**: Amendment E (v1.6)
+
+**Policy**:
+
+1. **Engineering names MUST NOT use the `-os` suffix** (directories, packages, modules, file/folder names, doc titles in code context).
+
+2. **"LiYe OS" is the ONLY allowed "OS" term**, as the umbrella framework brand.
+
+3. **Submodules must use explicit types**:
+   - Engine: `*-engine` (decision kernel)
+   - Service: `*-service` / `*-radar` / `*-hub` (deployable, long-running)
+   - Utility: `*-pipeline` / `*-tool` / `*-sync` (run-and-exit)
+
+**Rationale**:
+
+Avoid conflating three distinct architectural forms (engine/service/utility) under "OS" semantics. The previous practice of naming everything `*-os` caused confusion between:
+- Tools that simply transform data (pipelines)
+- Services that run continuously (workers)
+- Engines that make decisions (kernels)
+
+This amendment hardens Amendment E into an absolute rule with no exceptions.
+
+**Enforcement**:
+
+```bash
+# CI gate: Must return empty (no matches)
+rg -n '\b[a-z0-9]+(?:-[a-z0-9]+)*-os\b' . \
+  --glob '!.git/**' \
+  --glob '!**/node_modules/**' \
+  --glob '!.claude/.compiled/**' \
+  --glob '!data/**' \
+  --glob '!tracks/**' \
+  --glob '!memory/**' \
+  --glob '!state/**' \
+  --glob '!Artifacts_Vault/**'
+
+# Allowed patterns: "LiYe OS" only (product brand, not engineering)
+```
+
+---
+
+*宪法版本: 1.7*
 *最后更新: 2026-01-11*

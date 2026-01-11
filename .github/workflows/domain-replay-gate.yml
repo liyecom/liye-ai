@@ -1,22 +1,21 @@
 # =============================================================================
-# Domain Replay Gate - Regression Testing for Domain Runtime Changes
+# Domain Replay Gate - Regression Testing for ENGINE Changes Only
 # =============================================================================
-# Purpose: Run replay/regression tests ONLY when domain runtime code changes
+# Purpose: Run replay/regression tests ONLY when ENGINE code changes
 #
-# Scope: This gate MUST only run when domain runtime code changes:
-#   - src/**
-#   - schemas/**
-#   - replays/**
-#   - domain-specific logic files
+# Scope: This gate MUST only run when src/domain/**-engine changes:
+#   - src/domain/**  (Engines only)
+#   - schemas/**     (Contract schemas)
 #
-# This gate MUST NOT block PRs that are:
-#   - docs-only
-#   - governance-only
-#   - repository structure normalization
-#   - CI/gate refactors
+# This gate MUST NOT trigger for:
+#   - tools/** (Utilities like geo-pipeline)
+#   - Systems/** (Services like information-radar)
+#   - docs/**
+#   - governance changes
 #
-# Note: Replay is not required for structural or governance normalization PRs.
-# Note: Amazon Growth Engine has been migrated to private repository (2026-01-03)
+# Note: Amendment F (v1.7) - Only Engines live in src/domain/
+# Note: Geo Pipeline is now a utility in tools/geo-pipeline/ (not subject to this gate)
+# Note: Amazon Growth Engine migrated to private repository (2026-01-03)
 # =============================================================================
 
 name: Domain Replay Gate
@@ -25,24 +24,23 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      # Domain runtime code
-      - 'src/**'
-      - 'schemas/**'
-      - 'replays/**'
-      # Domain-specific configs
-      - 'config/geo/**'
-      # Agent definitions that affect runtime
-      - 'Agents/**'
-      # Replay runner scripts
+      # Engine runtime code ONLY
+      - 'src/domain/**'
+      # Contract schemas that engines depend on
+      - 'contracts/schema/**'
+      # Replay cases for engines
+      - 'replays/geo/cases/**'
+      # Engine-related agents
+      - 'Agents/geo/**'
+      # Replay runner
       - 'tools/geo_os_replay_runner.js'
   push:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'schemas/**'
-      - 'replays/**'
-      - 'config/geo/**'
-      - 'Agents/**'
+      - 'src/domain/**'
+      - 'contracts/schema/**'
+      - 'replays/geo/cases/**'
+      - 'Agents/geo/**'
       - 'tools/geo_os_replay_runner.js'
 
 jobs:
