@@ -26,7 +26,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.VISIBILITY_TOO_LOW) {
     const decision = {
       decision_id: "VISIBILITY_TOO_LOW",
-      domain: "geo-os",
+      domain: "geo",
       severity: "warning",
       confidence: 0.80,
       evidence: {
@@ -44,7 +44,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.LOCAL_PACK_RANK_DROP) {
     const decision = {
       decision_id: "LOCAL_PACK_RANK_DROP",
-      domain: "geo-os",
+      domain: "geo",
       severity: "critical",
       confidence: 0.85,
       evidence: {
@@ -62,7 +62,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.REVIEW_RATING_TOO_LOW) {
     const decision = {
       decision_id: "REVIEW_RATING_TOO_LOW",
-      domain: "geo-os",
+      domain: "geo",
       severity: "warning",
       confidence: 0.82,
       evidence: {
@@ -80,7 +80,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.REVIEW_COUNT_TOO_LOW) {
     const decision = {
       decision_id: "REVIEW_COUNT_TOO_LOW",
-      domain: "geo-os",
+      domain: "geo",
       severity: "warning",
       confidence: 0.78,
       evidence: {
@@ -98,7 +98,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.REVIEW_RESPONSE_RATE_LOW) {
     const decision = {
       decision_id: "REVIEW_RESPONSE_RATE_LOW",
-      domain: "geo-os",
+      domain: "geo",
       severity: "warning",
       confidence: 0.75,
       evidence: {
@@ -116,7 +116,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.PROFILE_INCOMPLETE) {
     const decision = {
       decision_id: "PROFILE_INCOMPLETE",
-      domain: "geo-os",
+      domain: "geo",
       severity: "warning",
       confidence: 0.90,
       evidence: {
@@ -134,7 +134,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.CITATION_INCONSISTENCY) {
     const decision = {
       decision_id: "CITATION_INCONSISTENCY",
-      domain: "geo-os",
+      domain: "geo",
       severity: "warning",
       confidence: 0.85,
       evidence: {
@@ -152,7 +152,7 @@ export function generateVerdicts(ruleResults, signals) {
   if (ruleResults.POSTS_STALE) {
     const decision = {
       decision_id: "POSTS_STALE",
-      domain: "geo-os",
+      domain: "geo",
       severity: "info",
       confidence: 0.88,
       evidence: {
