@@ -5,7 +5,7 @@
 import type { Env } from "../../types";
 import type { LLMProvider, LLMRequest, LLMResponse } from "../types";
 
-const DEFAULT_MODEL = "gemini-2.5-pro";
+const DEFAULT_MODEL = "gemini-2.0-flash-001";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export const geminiProvider: LLMProvider = {

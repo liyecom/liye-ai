@@ -68,15 +68,12 @@ export async function handleDailyDigestCron(
 
     console.log(`[Cron] Generated daily digest: ${record.content_length} chars, ${record.signals.length} signals, ${messages.length} messages`);
 
-    // V2.1: Push each message separately for mobile optimization
-    let successCount = 0;
-    let failCount = 0;
+    // V2.3: Parallel push for speed (messages have sequence numbers for reading order)
+    console.log(`[Cron] Pushing ${messages.length} messages in parallel`);
 
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-      console.log(`[Cron] Pushing message ${i + 1}/${messages.length} (${msg.length} chars)`);
+    const pushPromises = messages.map((msg, i) => {
+      console.log(`[Cron] Preparing message ${i + 1}/${messages.length} (${msg.length} chars)`);
 
-      // Create a digest signal for pushing
       const digestSignal = {
         source: "hacker_news" as const,
         title: `Information Radar 每日简报 - ${record.date}`,
@@ -95,22 +92,22 @@ export async function handleDailyDigestCron(
         feedback_count: 0,
       };
 
-      const pushResult = await batchPush([digestSignal], env, {
+      return batchPush([digestSignal], env, {
         template: "digest",
         digestMarkdown: msg,
       });
+    });
 
-      if (pushResult.success) {
-        successCount++;
-      } else {
-        failCount++;
-        console.error(`[Cron] Message ${i + 1} push failed:`, pushResult.errors);
-      }
+    const results = await Promise.all(pushPromises);
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.length - successCount;
 
-      // Small delay between messages
-      if (i < messages.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+    if (failCount > 0) {
+      results.forEach((r, i) => {
+        if (!r.success) {
+          console.error(`[Cron] Message ${i + 1} push failed:`, r.errors);
+        }
+      });
     }
 
     console.log(`[Cron] Daily digest push complete: ${successCount}/${messages.length} succeeded`);

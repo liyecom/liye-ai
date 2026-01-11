@@ -99,18 +99,23 @@ function formatSignalItem(item: DailyDigestLLMResponse["fullSummary"][0]): strin
 
 /**
  * Generate markdown messages from LLM response
- * V2.2: Returns 4 messages for mobile optimization
+ * V2.3: Returns 4 messages for mobile optimization with sequence numbers
  * - Message 1: Header + TOP 1-3
  * - Message 2: TOP 4-6
  * - Message 3: TOP 7-10
  * - Message 4: 关键词 + 趋势洞察
+ *
+ * Each message includes [消息 N/4] prefix for reading order when delivered in parallel
  */
 function generateMarkdownMessages(response: DailyDigestLLMResponse): string[] {
   const messages: string[] = [];
   const items = response.fullSummary;
+  const totalMsgs = 4; // Fixed 4-message structure
 
   // Message 1: Header + TOP 1-3
   const msg1Lines: string[] = [];
+  msg1Lines.push(`**[消息 1/${totalMsgs}]**`);
+  msg1Lines.push("");
   msg1Lines.push(`**📡 ${response.title}**`);
   msg1Lines.push(`${response.date} | 今日收录 ${response.totalCount} 条`);
   msg1Lines.push("");
@@ -126,6 +131,8 @@ function generateMarkdownMessages(response: DailyDigestLLMResponse): string[] {
   // Message 2: TOP 4-6
   if (items.length > 3) {
     const msg2Lines: string[] = [];
+    msg2Lines.push(`**[消息 2/${totalMsgs}]**`);
+    msg2Lines.push("");
     msg2Lines.push("**【今日 TOP 10 精选 · 2/3】**");
     msg2Lines.push("");
 
@@ -139,6 +146,8 @@ function generateMarkdownMessages(response: DailyDigestLLMResponse): string[] {
   // Message 3: TOP 7-10
   if (items.length > 6) {
     const msg3Lines: string[] = [];
+    msg3Lines.push(`**[消息 3/${totalMsgs}]**`);
+    msg3Lines.push("");
     msg3Lines.push("**【今日 TOP 10 精选 · 3/3】**");
     msg3Lines.push("");
 
@@ -151,6 +160,8 @@ function generateMarkdownMessages(response: DailyDigestLLMResponse): string[] {
 
   // Message 4: 关键词 + 趋势洞察 (严格只有这两项)
   const msg4Lines: string[] = [];
+  msg4Lines.push(`**[消息 4/${totalMsgs}]**`);
+  msg4Lines.push("");
 
   if (response.themes.length > 0) {
     msg4Lines.push("**【今日关键词】**");
@@ -163,7 +174,7 @@ function generateMarkdownMessages(response: DailyDigestLLMResponse): string[] {
     msg4Lines.push(response.insights);
   }
 
-  if (msg4Lines.length > 0) {
+  if (msg4Lines.length > 2) { // Has content beyond sequence header
     messages.push(msg4Lines.join("\n").trim());
   }
 
@@ -285,9 +296,17 @@ export async function generateDailyDigest(
 
   // LLM mode: generate with AI
   try {
+    // Limit signals to top 10 by score to avoid Worker timeout (30s limit)
+    const MAX_SIGNALS_FOR_LLM = 10;
+    const topSignals = [...signals]
+      .sort((a, b) => b.value_score - a.value_score)
+      .slice(0, MAX_SIGNALS_FOR_LLM);
+
+    console.log(`[DailyDigest] Using top ${topSignals.length} signals for LLM (of ${signals.length} total)`);
+
     // Prepare user prompt
     const signalsText = formatSignalsForPrompt(
-      signals.map((s) => ({
+      topSignals.map((s) => ({
         ...s,
         detected_at: s.detected_at,
       }))
