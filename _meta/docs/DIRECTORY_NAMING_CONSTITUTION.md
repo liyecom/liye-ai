@@ -104,7 +104,7 @@ dist/
 
 ## 四、标准工作流（强制执行）
 
-### 4.1 新建 GEO OS 网站项目
+### 4.1 新建 Geo Pipeline 网站项目
 
 ```bash
 # 1. 在源码目录创建项目
@@ -146,17 +146,17 @@ cd ~/websites/existing-site/dist/
 ## 五、决策树（新项目放哪里？）
 
 ```
-新项目是 GEO OS 体系的吗？
+新项目是 Geo Pipeline 体系的吗？
 │
-├─ 是 GEO OS 网站
+├─ 是 Geo Pipeline 网站
 │  └─ 放 ~/github/liye_os/websites/{项目名}/
 │     ├── 源码在这里
 │     └── 构建到 ~/websites/{项目名}/dist/
 │
-├─ 是 GEO OS 系统
+├─ 是 Geo Pipeline 系统
 │  └─ 放 ~/github/liye_os/Systems/{系统名}/
 │
-├─ 是 GEO OS 工具
+├─ 是 Geo Pipeline 工具
 │  └─ 放 ~/github/liye_os/tools/{工具名}/
 │
 └─ 否（独立项目）

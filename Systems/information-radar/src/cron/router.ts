@@ -79,7 +79,7 @@ export async function handleDailyDigestCron(
       // Create a digest signal for pushing
       const digestSignal = {
         source: "hacker_news" as const,
-        title: `Information OS 每日简报 - ${record.date}`,
+        title: `Information Radar 每日简报 - ${record.date}`,
         summary_zh: msg.slice(0, 200),
         value_score: 5 as const,
         link: "",
@@ -149,7 +149,7 @@ export async function handleWeeklyDigestCron(
     // Push digest via channels
     const digestSignal = {
       source: "hacker_news" as const,
-      title: `Information OS 周报 - ${record.date}`,
+      title: `Information Radar 周报 - ${record.date}`,
       summary_zh: markdown.slice(0, 500) + "...",
       value_score: 5 as const,
       link: "",

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-直接使用原始知识库中的完整文档，替换 GEO OS 生成的碎片化内容
+直接使用原始知识库中的完整文档，替换 Geo Pipeline 生成的碎片化内容
 """
 
 import json
@@ -105,7 +105,7 @@ def main():
     # Astro 项目路径
     astro_posts = Path.home() / 'github/liye_os/websites/amazon-optimization/src/content/posts'
 
-    print("🚀 提取原始完整文档替换 GEO OS 碎片\\n")
+    print("🚀 提取原始完整文档替换 Geo Pipeline 碎片\\n")
 
     # 1. 找到所有完整文档
     complete_docs = find_complete_documents(amazon_kb)

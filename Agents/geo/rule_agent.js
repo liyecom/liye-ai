@@ -1,5 +1,5 @@
 /**
- * Rule Agent - GEO OS
+ * Rule Agent - Geo Pipeline
  *
  * Purpose: Evaluate boolean triggers only, no verdicts
  *

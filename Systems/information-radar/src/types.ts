@@ -1,5 +1,5 @@
 /**
- * Information OS - Type Definitions
+ * Information Radar - Type Definitions
  * V2.0 Schema (with Score Calibration & Digest Support)
  */
 

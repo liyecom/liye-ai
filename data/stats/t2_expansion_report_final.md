@@ -85,7 +85,7 @@
 ## 下一步建议
 
 1. **全量运行 Refinement Pipeline** - 当前只处理了100个候选，可扩展到全部1760+
-2. **更新 GEO OS 配置** - 将新来源加入 `config.yaml`
+2. **更新 Geo Pipeline 配置** - 将新来源加入 `config.yaml`
 3. **质量审查** - 抽查 T1 单元的 truth_delta 质量
 
 ---

@@ -1,4 +1,4 @@
-# GEO OS Agents
+# Geo Pipeline Agents
 
 T1-powered agents for verified domains.
 

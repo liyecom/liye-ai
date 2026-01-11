@@ -144,7 +144,7 @@ node .claude/scripts/guardrail.mjs
 
 ### 代码质量标准
 
-**Python（Amazon Growth OS）：**
+**Python（Amazon Growth Engine）：**
 ```bash
 # Linting
 black src/

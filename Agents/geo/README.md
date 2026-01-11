@@ -1,4 +1,4 @@
-# GEO OS — Domain Agent Pipeline
+# Geo Pipeline — Domain Agent Pipeline
 
 This pipeline enforces strict separation of concerns:
 

@@ -1,4 +1,4 @@
-# GEO OS Baseline Registry
+# Geo Pipeline Baseline Registry
 
 ## T0: geo_seo (Frozen Baseline)
 
@@ -9,7 +9,7 @@
 
 ### Purpose
 
-geo_seo 作为 GEO OS 的第一个完整处理的真相源，被冻结为 **T0 基准**。
+geo_seo 作为 Geo Pipeline 的第一个完整处理的真相源，被冻结为 **T0 基准**。
 
 ### 基准规则
 

@@ -1,7 +1,7 @@
-# GEO OS — Decision Contracts
+# Geo Pipeline — Decision Contracts
 
 This directory defines human-consumable contracts for all machine decisions
-produced by GEO OS.
+produced by Geo Pipeline.
 
 Rules:
 - Contracts explain decisions; they do not generate them

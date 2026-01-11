@@ -1,4 +1,4 @@
-# GEO OS Refinement Pipeline
+# Geo Pipeline Refinement Pipeline
 
 T2 → T1 知识单元精炼管道，通过 TRUTH_DELTA_GATE 实现质量控制。
 

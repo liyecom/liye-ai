@@ -34,7 +34,7 @@ function formatPushPlusMarkdown(message: PushMessage): string {
   const lines: string[] = [];
   const now = getTimestamp();
 
-  lines.push(`## \u{1F4E1} Information OS \u4FE1\u606F\u96F7\u8FBE`);
+  lines.push(`## \u{1F4E1} Information Radar \u4FE1\u606F\u96F7\u8FBE`);
   lines.push(`*${now}*`);
   lines.push("");
 
@@ -71,7 +71,7 @@ function formatPushPlusMarkdown(message: PushMessage): string {
 
   lines.push("");
   lines.push("---");
-  lines.push("*Powered by Information OS*");
+  lines.push("*Powered by Information Radar*");
 
   return lines.join("\n");
 }

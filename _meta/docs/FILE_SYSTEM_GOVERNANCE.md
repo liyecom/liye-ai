@@ -649,7 +649,7 @@ cd systems/notion_sync && npm outdated
 - [ ] 所有目录小写+下划线
 - [ ] Skills 缩减到 6 个域
 - [ ] 无空的顶层目录
-- [ ] Amazon Growth OS 可正常运行
+- [ ] Amazon Growth Engine 可正常运行
 - [ ] Notion Sync 可正常运行
 
 ### Phase 3：治理自动化（下月）

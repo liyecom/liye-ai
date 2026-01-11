@@ -246,7 +246,7 @@ This trail is complete. This trail is immutable. This trail is the foundation of
 
 LiYe OS has been validated on two production domains. This is not a roadmap. This is a statement of fact.
 
-### 6.2 Amazon Growth OS
+### 6.2 Amazon Growth Engine
 
 The first domain addresses e-commerce operations. It includes:
 
@@ -257,7 +257,7 @@ The first domain addresses e-commerce operations. It includes:
 
 The domain demonstrates that the architecture handles complex, data-intensive decision surfaces.
 
-### 6.3 GEO OS
+### 6.3 Geo Pipeline
 
 The second domain addresses search engine optimization. It includes:
 

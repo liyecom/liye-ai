@@ -1,8 +1,8 @@
-# Information OS Push Architecture v1.0
+# Information Radar Push Architecture v1.0
 
 ## 概述
 
-Information OS Push Subsystem 是一个**可替换、可扩展、可降级、可长期演进**的推送子系统。
+Information Radar Push Subsystem 是一个**可替换、可扩展、可降级、可长期演进**的推送子系统。
 
 > **核心原则**: 测试号只是默认实现之一，不是系统前提。
 
@@ -12,7 +12,7 @@ Information OS Push Subsystem 是一个**可替换、可扩展、可降级、可
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Information OS Core                          │
+│                    Information Radar Core                          │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐    │
 │  │ HN Source│   │ PH Source│   │ Dedup    │   │ Summarize│    │
 │  └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘    │

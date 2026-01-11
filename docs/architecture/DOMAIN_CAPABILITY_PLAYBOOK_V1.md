@@ -2,7 +2,7 @@
 
 **Status**: Active | Authoritative
 **Version**: v1.0
-**Based On**: Amazon Growth OS, GEO OS
+**Based On**: Amazon Growth Engine, Geo Pipeline
 **Last Updated**: 2026-01-02
 
 ---
@@ -431,7 +431,7 @@ Architecture acceptance review is mandatory before a Domain can:
 
 ### Playbook v1.0 Applicability
 
-This Playbook applies to all Domains targeting Phase 5 capability. It is based on the implementation patterns validated by Amazon Growth OS and GEO OS. Future Domains must follow this Playbook without modification unless a formal ADR approves changes.
+This Playbook applies to all Domains targeting Phase 5 capability. It is based on the implementation patterns validated by Amazon Growth Engine and Geo Pipeline. Future Domains must follow this Playbook without modification unless a formal ADR approves changes.
 
 ---
 
@@ -444,15 +444,15 @@ This Playbook applies to all Domains targeting Phase 5 capability. It is based o
 | **Version** | v1.0 |
 | **Status** | Active |
 | **Authority** | Authoritative |
-| **Based On** | Amazon Growth OS, GEO OS |
+| **Based On** | Amazon Growth Engine, Geo Pipeline |
 | **Effective Date** | 2026-01-02 |
 
 ### Validation Basis
 
 This Playbook is derived from the successful Phase 5 implementations in:
 
-- **Amazon Growth OS**: 45+ decisions, full contract coverage, deterministic replay
-- **GEO OS**: 85 decisions, 45 contracts, CI-enforced governance
+- **Amazon Growth Engine**: 45+ decisions, full contract coverage, deterministic replay
+- **Geo Pipeline**: 85 decisions, 45 contracts, CI-enforced governance
 
 Both Domains have passed Phase 5 architecture acceptance and serve as the reference implementations for this Playbook.
 

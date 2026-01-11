@@ -1,7 +1,7 @@
-# GEO OS — Decision Inventory
+# Geo Pipeline — Decision Inventory
 
 > Purpose:
-> This document defines the complete decision surface of GEO OS.
+> This document defines the complete decision surface of Geo Pipeline.
 > Each decision represents a machine-verdict that can be replayed, audited,
 > and governed. Decisions are language-neutral and versioned.
 >
@@ -178,6 +178,6 @@
 ## 14. Status
 
 - Phase: 5.1
-- Domain: GEO OS
+- Domain: Geo Pipeline
 - State: Draft → Pending Freeze
 - Next Step: Decision Schema & Contract Definition (Phase 5.2)

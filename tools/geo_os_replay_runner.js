@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Replay Runner - GEO OS
+ * Replay Runner - Geo Pipeline
  *
  * Purpose: Execute deterministic replay tests for decision pipeline
  *
@@ -145,7 +145,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`\n🔁 Replay Runner - GEO OS`);
+  console.log(`\n🔁 Replay Runner - Geo Pipeline`);
   console.log(`   Cases directory: ${casesDir}`);
   console.log(`   Found ${inputFiles.length} case(s)\n`);
 

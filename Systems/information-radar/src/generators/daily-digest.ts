@@ -187,7 +187,7 @@ function generateSimpleMarkdown(
 ): string {
   const lines: string[] = [];
 
-  lines.push(`📡 **Information OS 每日简报**`);
+  lines.push(`📡 **Information Radar 每日简报**`);
   lines.push(`${dateStr} (${dayOfWeek}) | 今日收录 ${signals.length} 条`);
   lines.push("");
   lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -234,7 +234,7 @@ export async function generateDailyDigest(
   const signals = await getSignalsByDate(dateStr, env);
 
   if (signals.length === 0) {
-    const emptyMsg = `📡 **Information OS 每日简报**\n${dateStr} (${dayOfWeek})\n\n今日暂无新信号收录。`;
+    const emptyMsg = `📡 **Information Radar 每日简报**\n${dateStr} (${dayOfWeek})\n\n今日暂无新信号收录。`;
     return {
       markdown: emptyMsg,
       messages: [emptyMsg],

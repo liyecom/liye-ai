@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GEO OS - AI 元数据增强层
+Geo Pipeline - AI 元数据增强层
 使用 Claude API 为 units 生成完整的 SEO 元数据 + 联盟营销字段
 
 用法：

@@ -2,7 +2,7 @@
 
 **Loading Conditions:** Load when tasks involve domain-specific operations, data analysis, workflow execution, or system operations.
 
-> **Migration Notice:** Domain-specific operational content (Amazon Growth OS, TES Framework, etc.) has been migrated to private repositories. This pack now demonstrates the framework patterns using generic examples.
+> **Migration Notice:** Domain-specific operational content (Amazon Growth Engine, TES Framework, etc.) has been migrated to private repositories. This pack now demonstrates the framework patterns using generic examples.
 
 ---
 

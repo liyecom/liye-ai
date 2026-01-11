@@ -49,7 +49,7 @@ if [[ ! -d "$TRACES_DIR" ]]; then
     exit 1
 fi
 
-log_info "=== Amazon Growth OS: Derive All ==="
+log_info "=== Amazon Growth Engine: Derive All ==="
 log_info "Runtime:  $RUNTIME"
 log_info "Traces:   $TRACES_DIR"
 log_info ""

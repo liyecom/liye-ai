@@ -1,5 +1,5 @@
 /**
- * Verdict Agent - GEO OS
+ * Verdict Agent - Geo Pipeline
  *
  * Purpose: Output schema-bound decisions only
  *

@@ -3,7 +3,7 @@
 
 **Version:** 1.0
 **Status:** Public Whitepaper
-**Project:** GEO OS
+**Project:** Geo Pipeline
 
 ---
 
@@ -211,7 +211,7 @@ Truth must be earned.**
 
 ## Appendix: Reference Implementation
 
-This whitepaper is backed by a working implementation in GEO OS,
+This whitepaper is backed by a working implementation in Geo Pipeline,
 including:
 
 - Tier-enforced execution guards

@@ -1,5 +1,5 @@
 /**
- * Information OS - Configuration
+ * Information Radar - Configuration
  */
 
 import type { Env } from "./types";
