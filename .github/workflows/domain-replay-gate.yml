@@ -16,7 +16,7 @@
 #   - CI/gate refactors
 #
 # Note: Replay is not required for structural or governance normalization PRs.
-# Note: Amazon Growth OS has been migrated to private repository (2026-01-03)
+# Note: Amazon Growth Engine has been migrated to private repository (2026-01-03)
 # =============================================================================
 
 name: Domain Replay Gate
@@ -83,13 +83,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run GEO OS Replay Tests
+      - name: Run Geo Pipeline Replay Tests
         run: |
-          echo "🔁 Running GEO OS Replay Tests"
+          echo "🔁 Running Geo Pipeline Replay Tests"
           echo ""
           # Check if replay cases exist
           if [ -d "replays/geo/cases" ]; then
             node tools/geo_os_replay_runner.js replays/geo/cases
           else
-            echo "⏭️ No GEO OS replay cases found, skipping"
+            echo "⏭️ No Geo Pipeline replay cases found, skipping"
           fi

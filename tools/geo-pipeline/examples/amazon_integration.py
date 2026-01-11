@@ -1,7 +1,7 @@
 """
-示例：Amazon Growth OS如何消费GEO输出
+示例：Amazon Growth Engine如何消费GEO输出
 
-这个文件演示了Application System如何使用GEO OS的输出。
+这个文件演示了Application System如何使用Geo Pipeline的输出。
 """
 
 import json
@@ -146,10 +146,10 @@ def example_usage():
 
 
 if __name__ == "__main__":
-    # TODO: 这个示例需要先运行GEO OS生成数据
-    print("TODO: Run GEO OS first to generate data")
+    # TODO: 这个示例需要先运行Geo Pipeline生成数据
+    print("TODO: Run Geo Pipeline first to generate data")
     print("\nExample usage:")
-    print("  python run.py                  # 运行GEO OS")
+    print("  python run.py                  # 运行Geo Pipeline")
     print("  python examples/amazon_integration.py  # 运行此示例")
     
     # example_usage()

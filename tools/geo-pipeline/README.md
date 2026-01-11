@@ -1,4 +1,4 @@
-# GEO OS v0.1 - Knowledge Engine
+# Geo Pipeline v0.1 - Knowledge Engine
 
 > Core System of LiYe OS
 > Layer: Core Infrastructure
@@ -8,12 +8,12 @@
 
 将散落的原始文档（PDF、DOCX等）转换为结构化、可被系统消费的知识单元。
 
-**GEO OS在LiYe OS中的定位**：
+**Geo Pipeline在LiYe OS中的定位**：
 
 ```
 Application Systems (Amazon OS, Research OS, etc.)
            ↓ (consumes geo_units.json)
-       GEO OS ← YOU ARE HERE
+       Geo Pipeline ← YOU ARE HERE
            ↓ (processes)
       Truth Sources (~/data/archives/)
         ├── geo_seo      [Priority 1] GEO-SEO 知识库
@@ -76,7 +76,7 @@ python3 _meta/governance/validator.py
 ### Basic Usage
 
 ```bash
-# 进入GEO OS目录
+# 进入Geo Pipeline目录
 cd src/domain/geo
 
 # 列出所有数据源
@@ -170,7 +170,7 @@ processing:
 
 ## 📊 Output Format
 
-GEO OS输出的 `geo_units_v0.1.json` 格式：
+Geo Pipeline输出的 `geo_units_v0.1.json` 格式：
 
 ```json
 {
@@ -250,7 +250,7 @@ stats = reader.stats()
 - [ ] 全量处理
 
 ### ⏳ Phase 3: 集成 (待开始)
-- [ ] Amazon Growth OS 集成
+- [ ] Amazon Growth Engine 集成
 - [ ] 更新 CLAUDE.md
 - [ ] 文档完善
 
@@ -258,7 +258,7 @@ stats = reader.stats()
 
 ## 🎓 Architecture Compliance
 
-GEO OS遵守LiYe OS架构宪法：
+Geo Pipeline遵守LiYe OS架构宪法：
 
 - ✅ 注册在 `Systems/REGISTRY.yaml` (layer: core)
 - ✅ 不依赖 Application Systems
@@ -292,7 +292,7 @@ geo:
    - 性能评估
 
 3. **集成**
-   - Amazon Growth OS集成
+   - Amazon Growth Engine集成
    - 文档更新
    - 用户指南
 

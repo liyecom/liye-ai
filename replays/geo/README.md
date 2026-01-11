@@ -1,6 +1,6 @@
-# GEO OS — Replay & Regression Gate
+# Geo Pipeline — Replay & Regression Gate
 
-This directory contains deterministic test cases for the GEO OS decision pipeline.
+This directory contains deterministic test cases for the Geo Pipeline decision pipeline.
 
 ## Purpose
 

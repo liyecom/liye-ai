@@ -1,5 +1,5 @@
 """
-GEO OS - Export Module
+Geo Pipeline - Export Module
 导出模块：将所有units导出为单个JSON文件
 
 职责：

@@ -8,7 +8,7 @@
 
 ## What is the World Model Gate?
 
-Every time you ask Amazon Growth OS to do something—launch a product, optimize an ASIN, adjust PPC—the system **must first think through what could go wrong**.
+Every time you ask Amazon Growth Engine to do something—launch a product, optimize an ASIN, adjust PPC—the system **must first think through what could go wrong**.
 
 This is not optional. This is a gate. If the World Model fails, the system stops.
 

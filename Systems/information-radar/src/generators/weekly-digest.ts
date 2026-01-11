@@ -225,7 +225,7 @@ export async function generateWeeklyDigest(
   const signals = await getSignalsByWeek(weekStr, env);
 
   if (signals.length === 0) {
-    const emptyMsg = `# Information OS 周报\n${weekRange}\n\n本周暂无新信号收录。`;
+    const emptyMsg = `# Information Radar 周报\n${weekRange}\n\n本周暂无新信号收录。`;
     return {
       markdown: emptyMsg,
       messages: [emptyMsg],

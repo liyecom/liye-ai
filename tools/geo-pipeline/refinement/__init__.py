@@ -1,5 +1,5 @@
 """
-GEO OS Refinement Pipeline
+Geo Pipeline Refinement Pipeline
 T2 → T1 Knowledge Refinement with Constitutional Gates
 """
 

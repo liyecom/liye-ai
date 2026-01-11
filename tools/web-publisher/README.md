@@ -1,6 +1,6 @@
-# GEO OS Web Publisher
+# Geo Pipeline Web Publisher
 
-**网站生成工具套件** - 将 GEO OS 处理的知识内容转化为垂类网站
+**网站生成工具套件** - 将 Geo Pipeline 处理的知识内容转化为垂类网站
 
 ---
 
@@ -181,7 +181,7 @@ bash deploy.sh
 
 ## 🔗 参考文档
 
-- [GEO OS 实施计划](../../.claude/plans/swirling-dancing-hummingbird.md)
+- [Geo Pipeline 实施计划](../../.claude/plans/swirling-dancing-hummingbird.md)
 - [架构宪法](../../_meta/docs/DIRECTORY_NAMING_CONSTITUTION.md)
 
 ---

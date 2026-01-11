@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GEO OS - 数据清洗脚本
+Geo Pipeline - 数据清洗脚本
 过滤低价值内容，保留优质 units
 
 过滤规则：

@@ -1,5 +1,5 @@
 /**
- * Information OS - Main Entry Point
+ * Information Radar - Main Entry Point
  * Cloudflare Workers Cron Handler
  *
  * Version: 1.0.0
@@ -52,7 +52,7 @@ export default {
     ctx: ExecutionContext
   ): Promise<void> {
     const cronType = determineCronType(controller.cron);
-    console.log(`[Information OS] Cron triggered: ${controller.cron} (${cronType}) at ${new Date().toISOString()}`);
+    console.log(`[Information Radar] Cron triggered: ${controller.cron} (${cronType}) at ${new Date().toISOString()}`);
 
     // V2.0: Route to appropriate handler
     if (cronType === "daily_digest") {
@@ -91,7 +91,7 @@ export default {
       }
 
       if (allItems.length === 0) {
-        console.log("[Information OS] No items fetched, exiting");
+        console.log("[Information Radar] No items fetched, exiting");
         return;
       }
 
@@ -100,7 +100,7 @@ export default {
       console.log(`[Dedup] ${allNewItems.length} new items (${allItems.length - allNewItems.length} duplicates)`);
 
       if (allNewItems.length === 0) {
-        console.log("[Information OS] No new items, exiting");
+        console.log("[Information Radar] No new items, exiting");
         return;
       }
 
@@ -151,9 +151,9 @@ export default {
         console.log(`[Push] Realtime push disabled, ${signals.length} signals stored for digest`);
       }
 
-      console.log(`[Information OS] Completed successfully`);
+      console.log(`[Information Radar] Completed successfully`);
     } catch (error) {
-      console.error(`[Information OS] Fatal error:`, error);
+      console.error(`[Information Radar] Fatal error:`, error);
       throw error;
     }
   },
@@ -233,7 +233,7 @@ export default {
       const testSignal: Signal = {
         // V0 fields
         source: "hacker_news",
-        title: "Test Message from Information OS",
+        title: "Test Message from Information Radar",
         summary_zh: "这是一条测试消息，用于验证推送通道是否正常工作。",
         value_score: 5,
         link: "https://github.com/liyecom/liye-os",
@@ -514,7 +514,7 @@ export default {
 
     return new Response(
       JSON.stringify({
-        name: "Information OS",
+        name: "Information Radar",
         version: "2.0.0",
         push_subsystem: "v2.0",
         features: {

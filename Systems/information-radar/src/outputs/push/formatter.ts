@@ -39,7 +39,7 @@ export function formatMarkdownMessage(message: PushMessage): string {
 
   // V2.0: Digest mode - return full content (splitting handled by channel)
   if (message.template === "digest" && message.digestContent) {
-    const footer = "\n\n---\n*Powered by Information OS*";
+    const footer = "\n\n---\n*Powered by Information Radar*";
     return message.digestContent + footer;
   }
 
@@ -55,7 +55,7 @@ export function formatMarkdownMessage(message: PushMessage): string {
     lines.push("");
     lines.push(`[查看原文](${item.link})`);
   } else {
-    lines.push(`### 📡 Information OS 信息雷达`);
+    lines.push(`### 📡 Information Radar 信息雷达`);
     lines.push(`*${now}*`);
     lines.push("");
     lines.push(`共 **${message.items.length}** 条新内容:`);
@@ -76,7 +76,7 @@ export function formatMarkdownMessage(message: PushMessage): string {
 
   lines.push("");
   lines.push("---");
-  lines.push("*Powered by Information OS*");
+  lines.push("*Powered by Information Radar*");
 
   return lines.join("\n");
 }

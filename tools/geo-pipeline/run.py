@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GEO OS v0.1 - Main Entry Point
+Geo Pipeline v0.1 - Main Entry Point
 知识引擎主入口 - 支持多数据源
 
 Usage:
@@ -364,7 +364,7 @@ def print_source_summary(source_id, results):
 def list_sources(raw_config):
     """列出所有数据源"""
     print("\n" + "=" * 60)
-    print("GEO OS - Available Truth Sources")
+    print("Geo Pipeline - Available Truth Sources")
     print("=" * 60)
 
     sources = raw_config.get('sources', {})
@@ -392,7 +392,7 @@ def list_sources(raw_config):
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description='GEO OS v0.1 - Knowledge Engine (Multi-Source)')
+    parser = argparse.ArgumentParser(description='Geo Pipeline v0.1 - Knowledge Engine (Multi-Source)')
     parser.add_argument('--dry-run', action='store_true', help='Dry run mode (不实际执行)')
     parser.add_argument('--source', default=None, help='Process specific source only (默认处理所有启用的源)')
     parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
@@ -427,7 +427,7 @@ def main():
 
     # 打印启动信息
     print("=" * 60)
-    print("GEO OS v0.1 - Knowledge Engine")
+    print("Geo Pipeline v0.1 - Knowledge Engine")
     print("=" * 60)
     print(f"Mode: {'Single Source' if args.source else 'All Enabled Sources'}")
     print(f"Sources: {', '.join([s['id'] for s in sources_to_process])}")
@@ -464,7 +464,7 @@ def main():
         # 总结
         elapsed = datetime.now() - start_time
         print("\n" + "=" * 60)
-        print("✅ GEO OS Pipeline Completed Successfully")
+        print("✅ Geo Pipeline Completed Successfully")
         print("=" * 60)
         print(f"⏱️  Total time: {elapsed.total_seconds():.1f} seconds")
         print(f"📦 Sources processed: {len(all_results)}")

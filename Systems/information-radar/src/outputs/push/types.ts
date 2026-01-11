@@ -1,5 +1,5 @@
 /**
- * Information OS Push Subsystem - Type Definitions
+ * Information Radar Push Subsystem - Type Definitions
  * Version: 1.0
  *
  * 核心原则: 测试号只是默认实现之一，不是系统前提

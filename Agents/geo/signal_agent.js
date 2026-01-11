@@ -1,5 +1,5 @@
 /**
- * Signal Agent - GEO OS
+ * Signal Agent - Geo Pipeline
  *
  * Purpose: Compute metrics only, no judgments
  *

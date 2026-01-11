@@ -45,7 +45,7 @@ export const DAILY_DIGEST_PROMPT = `你是一个技术情报分析师，负责�
 
 ## JSON 响应格式
 {
-  "title": "Information OS 每日简报",
+  "title": "Information Radar 每日简报",
   "date": "2026-01-10 (周五)",
   "totalCount": 23,
   "fullSummary": [
@@ -117,7 +117,7 @@ export const WEEKLY_DIGEST_PROMPT = `你是一个技术情报分析师，负责�
 
 ## JSON 响应格式
 {
-  "title": "Information OS 周报",
+  "title": "Information Radar 周报",
   "weekInfo": "2026年第2周 (1/6 - 1/12)",
   "totalCount": 89,
   "overview": "本周技术圈最大看点是...",

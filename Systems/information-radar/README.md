@@ -1,12 +1,12 @@
-# Information OS
+# Information Radar
 
 **A domain OS under LiYe OS** for ingesting, filtering, summarizing, and scoring external public information signals.
 
 ## Core Positioning (Frozen)
 
-> Information OS is responsible for ingesting, filtering, summarizing, and scoring external public information signals (e.g. Hacker News, Product Hunt).
+> Information Radar is responsible for ingesting, filtering, summarizing, and scoring external public information signals (e.g. Hacker News, Product Hunt).
 >
-> Information OS does **NOT** make decisions and does **NOT** execute actions.
+> Information Radar does **NOT** make decisions and does **NOT** execute actions.
 > It only provides structured, scored signals to other systems.
 
 **Key Principle**: Signal only, no decision.
@@ -215,10 +215,10 @@ npm run deploy
 ## Relationship with Other OS
 
 ```
-Information OS → Outputs structured signals
+Information Radar → Outputs structured signals
                       ↓
-GEO OS → Can pull signals as external input (future)
-Amazon Growth OS → Can pull signals as market signals (future)
+Geo Pipeline → Can pull signals as external input (future)
+Amazon Growth Engine → Can pull signals as market signals (future)
 ```
 
 **Current**: Interface alignment only, no code coupling.

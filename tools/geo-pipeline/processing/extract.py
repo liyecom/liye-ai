@@ -1,5 +1,5 @@
 """
-GEO OS - Extract Module
+Geo Pipeline - Extract Module
 提取模块：提取文档结构（标题、列表等）
 
 职责：

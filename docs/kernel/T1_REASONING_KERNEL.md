@@ -38,7 +38,7 @@ T1 (Tier-1 Reasoning Primitives) are **canonical causal mechanisms** that struct
 
 | Domain | Cases | Lift Confirmed | Hallucination Control |
 |--------|-------|----------------|----------------------|
-| Amazon Growth OS | 3 | 3/3 (100%) | ✅ Stable |
+| Amazon Growth Engine | 3 | 3/3 (100%) | ✅ Stable |
 | Investment Reasoning OS | 3 | 3/3 (100%) | ✅ Stable |
 
 ### Dimension-wise Improvement

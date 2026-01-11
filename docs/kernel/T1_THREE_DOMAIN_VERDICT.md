@@ -9,7 +9,7 @@
 ## Executive Summary
 
 T1_REASONING_KERNEL has been validated across three distinct domains:
-1. **Amazon Growth OS** - Commercial optimization
+1. **Amazon Growth Engine** - Commercial optimization
 2. **Investment Reasoning OS** - Financial decision-making
 3. **Medical Reasoning OS** - High-stakes clinical reasoning
 
@@ -32,7 +32,7 @@ All three domains show significant T1 lift with zero governance violations.
 
 ## Domain-Specific Findings
 
-### Amazon Growth OS
+### Amazon Growth Engine
 - T1 prevented over-reliance on keyword density metrics
 - Exposed hidden assumptions in TES scoring
 - Identified regime shifts in search algorithm behavior

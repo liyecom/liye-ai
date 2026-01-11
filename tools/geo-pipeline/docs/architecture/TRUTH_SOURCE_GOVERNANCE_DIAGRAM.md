@@ -1,6 +1,6 @@
 # Truth Source Governance Architecture
 
-This diagram illustrates how GEO OS enforces knowledge quality **before ingestion**,
+This diagram illustrates how Geo Pipeline enforces knowledge quality **before ingestion**,
 using tiered truth sources, guards, refinement pipelines, and review loops.
 
 ---

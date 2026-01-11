@@ -1,9 +1,9 @@
-# LiYe AI Domain Configuration - GEO OS (Knowledge Engine)
+# LiYe AI Domain Configuration - Geo Pipeline (Knowledge Engine)
 # Location: src/domain/geo/config.yaml
 
 domain:
   id: geo
-  name: GEO OS Knowledge Engine
+  name: Geo Pipeline Knowledge Engine
   version: 0.1.0
   description: Core knowledge extraction and processing engine for LiYe OS
   layer: core  # Note: This is core infrastructure, not application domain
@@ -23,7 +23,7 @@ architecture:
   provides:
     - geo_units.json     # Structured knowledge units
   data_flow: |
-    Raw Data (archives) → GEO OS → geo_units.json → Application Systems
+    Raw Data (archives) → Geo Pipeline → geo_units.json → Application Systems
 
 # === Processing Pipeline ===
 pipeline:
@@ -58,7 +58,7 @@ pipeline:
 
 # === Skill Mapping ===
 skills:
-  # GEO OS uses Python modules as skills
+  # Geo Pipeline uses Python modules as skills
   pipeline_skills:
     - normalize         # ingestion/normalize.py
     - chunk            # processing/chunk.py

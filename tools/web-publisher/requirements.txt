@@ -1,4 +1,4 @@
-# GEO OS Web Publisher - Python 依赖
+# Geo Pipeline Web Publisher - Python 依赖
 
 # Claude API
 anthropic>=0.40.0

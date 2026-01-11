@@ -1,5 +1,5 @@
 # =============================================================================
-# Amazon Leak Guard - Prevents Amazon Growth OS Assets from Returning to Public Repo
+# Amazon Leak Guard - Prevents Amazon Growth Engine Assets from Returning to Public Repo
 # =============================================================================
 # Purpose: Block any commit that introduces Amazon-specific code paths or identifiers
 #
@@ -67,7 +67,7 @@ jobs:
             echo "SECURITY VIOLATION: Amazon assets detected"
             echo "========================================="
             echo ""
-            echo "Amazon Growth OS has been migrated to a private repository."
+            echo "Amazon Growth Engine has been migrated to a private repository."
             echo "These paths must not exist in the public repo."
             echo ""
             exit 1

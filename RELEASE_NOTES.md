@@ -57,13 +57,13 @@ Created `ADOPTERS.md` for tracking downstream dependencies:
 
 ## Phase 5 Completions (v6.2.0 → v6.3.0)
 
-### Amazon Growth OS
+### Amazon Growth Engine
 - Phase 5.1: Decision Inventory
 - Phase 5.2: Decision Schema & Contracts
 - Phase 5.3: Agent Pipeline
 - Phase 5.4: Replay & Regression Gate
 
-### GEO OS (SEO Domain)
+### Geo Pipeline (SEO Domain)
 - Phase 5.1-5.4: Full domain capability implementation
 - Domain Capability Playbook v1 for replication
 

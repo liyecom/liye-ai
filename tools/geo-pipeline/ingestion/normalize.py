@@ -1,5 +1,5 @@
 """
-GEO OS - Normalize Module
+Geo Pipeline - Normalize Module
 标准化模块：将各类文档转为Markdown
 
 职责：

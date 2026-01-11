@@ -35,7 +35,7 @@ export const DOMAINS = {
   // Core Infrastructure
   'geo': {
     id: 'geo',
-    name: 'GEO OS Knowledge Engine',
+    name: 'Geo Pipeline Knowledge Engine',
     layer: 'core',
     description: 'Core knowledge extraction and processing engine',
     path: 'src/domain/geo'

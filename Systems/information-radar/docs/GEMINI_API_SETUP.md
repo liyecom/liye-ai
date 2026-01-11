@@ -1,6 +1,6 @@
 # Gemini API Setup Guide
 
-本指南帮助你配置 Google Gemini API 用于 Information OS 的中文摘要功能。
+本指南帮助你配置 Google Gemini API 用于 Information Radar 的中文摘要功能。
 
 ## 获取 API Key
 
@@ -48,7 +48,7 @@ PH_ACCESS_TOKEN=your_ph_token
 | Gemini 1.5 Flash | 15 | 1,000,000 | 1,500 |
 | Gemini 1.5 Pro | 2 | 32,000 | 50 |
 
-### Information OS 使用预估
+### Information Radar 使用预估
 
 - 每分钟轮询 1 次
 - 平均每次 0-5 个新 item
@@ -57,7 +57,7 @@ PH_ACCESS_TOKEN=your_ph_token
 
 ## 模型选择
 
-Information OS 默认使用 `gemini-2.0-flash`：
+Information Radar 默认使用 `gemini-2.0-flash`：
 - 速度快
 - 成本低
 - 免费额度大
@@ -128,7 +128,7 @@ curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:g
 - Gemini 2.0 Flash: $0.075 / 100万 input tokens
 - Gemini 1.5 Pro: $3.50 / 100万 input tokens
 
-对于 Information OS，免费额度通常足够。
+对于 Information Radar，免费额度通常足够。
 
 ---
 

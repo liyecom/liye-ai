@@ -1,7 +1,7 @@
 # T1 Cross-Domain Verdict
 
 **Date**: 2025-12-31
-**Domains Compared**: Amazon Growth OS ↔ Investment Reasoning OS
+**Domains Compared**: Amazon Growth Engine ↔ Investment Reasoning OS
 **Experiment Type**: Controlled reasoning comparison (Baseline vs T1-Enabled)
 
 ---
@@ -38,7 +38,7 @@
 
 | Domain | Cases with Lift | Avg Dimension Lift | Hallucination Control |
 |--------|-----------------|-------------------|----------------------|
-| Amazon Growth OS | 3/3 (100%) | +2.3 | ✅ Stable |
+| Amazon Growth Engine | 3/3 (100%) | +2.3 | ✅ Stable |
 | Investment Reasoning OS | 3/3 (100%) | +2.5 | ✅ Stable |
 
 ### Dimension-wise Consistency

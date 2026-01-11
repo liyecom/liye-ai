@@ -1,5 +1,5 @@
 /**
- * Information OS Push Subsystem
+ * Information Radar Push Subsystem
  * Channel Router - 推送通道路由器
  *
  * 功能:

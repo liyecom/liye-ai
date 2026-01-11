@@ -1,5 +1,5 @@
 """
-GEO OS - Chunk Module
+Geo Pipeline - Chunk Module
 分块模块：将长文档分割为固定大小的chunks
 
 职责：

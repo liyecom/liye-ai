@@ -52,7 +52,7 @@ Domains:
   • geo (core)
 ```
 
-> **Note:** Domain-specific implementations (like Amazon Growth OS) are in private repositories. This public framework includes skeleton examples and medical-research as demonstration domains.
+> **Note:** Domain-specific implementations (like Amazon Growth Engine) are in private repositories. This public framework includes skeleton examples and medical-research as demonstration domains.
 
 ### List Available Agents
 

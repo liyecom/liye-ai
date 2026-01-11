@@ -2,7 +2,7 @@
 
 ## 0. Purpose
 
-This document defines the canonical Truth Source Tier Model for GEO OS.
+This document defines the canonical Truth Source Tier Model for Geo Pipeline.
 
 The goal is to prevent knowledge pollution by enforcing **structural governance**
 instead of relying on downstream agent reasoning.

@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Version**: 1.0
 **Date**: 2026-01-02
-**Validated Domains**: Amazon Growth OS, GEO OS
+**Validated Domains**: Amazon Growth Engine, Geo Pipeline
 
 ---
 
@@ -13,7 +13,7 @@ Phase 5 establishes a governance architecture that makes AI decision systems **a
 
 The core achievement: AI agents no longer produce opaque outputs. Every decision is schema-validated, contract-documented, and regression-tested. Silent behavioral changes are structurally impossible.
 
-This capability has been independently validated on two production domains (Amazon Growth OS, GEO OS), proving that the architecture is domain-agnostic and replicable.
+This capability has been independently validated on two production domains (Amazon Growth Engine, Geo Pipeline), proving that the architecture is domain-agnostic and replicable.
 
 ---
 
@@ -213,7 +213,7 @@ All three must align. A decision is valid only if it passes schema, has a contra
 
 ## 6. Multi-Domain Validation
 
-### Amazon Growth OS
+### Amazon Growth Engine
 
 **Validated Phase 5 Capabilities**:
 - Decision Inventory: 45+ decisions across BSR, Reviews, Pricing, Advertising, Inventory
@@ -221,7 +221,7 @@ All three must align. A decision is valid only if it passes schema, has a contra
 - Agent Pipeline: signal_agent.js → rule_agent.js → verdict_agent.js
 - Replay Gate: Deterministic tests in `replays/amazon-growth/cases/`
 
-### GEO OS
+### Geo Pipeline
 
 **Validated Phase 5 Capabilities**:
 - Decision Inventory: 85 decisions across 12 categories (Visibility, Ranking, Reviews, etc.)
@@ -343,8 +343,8 @@ Phase 5 capabilities represent a structural advantage:
 
 | Domain | Status | Replay Tests |
 |--------|--------|--------------|
-| Amazon Growth OS | ✅ Complete | ✅ Passing |
-| GEO OS | ✅ Complete | ✅ Passing |
+| Amazon Growth Engine | ✅ Complete | ✅ Passing |
+| Geo Pipeline | ✅ Complete | ✅ Passing |
 
 ### Constraints for Future Phases
 
