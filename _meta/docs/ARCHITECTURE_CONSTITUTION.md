@@ -31,6 +31,41 @@ LiYe OS 的架构基于一个核心洞察：
 
 以下术语在 LiYe OS 中有明确定义，**不得混用**：
 
+### 第 3.1 条：共享工具函数红线
+
+> **Shared utilities must be pure, side-effect free, and domain-agnostic.**
+
+**规则**：
+- 共享工具函数（如 `formatter.ts`、`utils/` 下的模块）**必须是纯函数**
+- **禁止副作用**：不得调用 API、写入存储、修改全局状态
+- **禁止领域耦合**：不得依赖特定业务逻辑或领域知识
+- **输入决定输出**：相同输入必须产生相同输出
+
+**违规示例**：
+```typescript
+// ❌ 有副作用（调用 API）
+function formatAndLog(data) {
+  console.log(data);  // side effect
+  return format(data);
+}
+
+// ❌ 领域耦合
+function formatHackerNewsTitle(item) {
+  return `[HN] ${item.title}`;  // domain-specific
+}
+
+// ✅ 正确：纯函数 + 领域无关
+function formatSourceDisplay(source: string): string {
+  const map = { hacker_news: "HN", product_hunt: "PH" };
+  return map[source] ?? source;
+}
+```
+
+**理由**：
+1. 纯函数易于测试、复用、推理
+2. 避免隐藏依赖导致的调试困难
+3. 确保工具层可以安全地被任何 System 引用
+
 ### 第 4 条：工具不可反向定义架构
 
 > LiYe OS 的架构以**系统抽象层级**为核心，而非任何具体工具或框架。

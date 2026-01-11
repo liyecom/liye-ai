@@ -1,16 +1,41 @@
+# LiYe OS
+
 <p align="center">
   <a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
-# LiYe OS
+> **用于编排智能代理、升级人与系统协作方式的 AI 原生基础设施。**
 
-> **面向 Claude Code / AI 协作开发的「治理与架构参考实现」**
->
-> 让 AI 的输出变成可审计、可回放、可控演进的工程系统。
+**实现方式**：面向 Claude Code / AI 协作开发的治理与架构参考实现。
+让 AI 的输出变成可审计、可回放、可控演进的工程系统。
 
 [![Version](https://img.shields.io/badge/version-6.3.0-blue.svg)](https://github.com/liyecom/liye_os)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![Stability](https://img.shields.io/badge/stability-contract-orange.svg)](docs/architecture/ARCHITECTURE_CONTRACT.md)
+
+---
+
+## 1 分钟快速入门
+
+```bash
+# 克隆并探索
+git clone https://github.com/liyecom/liye_os.git
+cd liye_os
+
+# 查看架构概览
+cat docs/architecture/DIRECTORY_STRUCTURE.md
+
+# 查看治理宪法
+cat _meta/docs/ARCHITECTURE_CONSTITUTION.md
+```
+
+**你会发现**：
+- `CLAUDE.md` - Claude Code 的上下文编译器入口
+- `src/kernel/` - 世界模型 (T1/T2/T3) 用于执行前风险分析
+- `_meta/governance/` - 治理规则 (Frozen 级别)
+- `Skills/` - 方法论与 SOP 库
+
+> **想要运行系统？** 参见 [SKELETON_QUICKSTART.md](docs/quickstart/SKELETON_QUICKSTART.md)
 
 ---
 
@@ -28,15 +53,30 @@ LiYe OS 是用于构建 AI 协作工程系统的**参考实现**，包含：
 
 ## 适合谁
 
-**适合使用 LiYe OS 的人：**
-- 想构建带治理能力的个人 AI 操作系统
-- 想理解 Claude Code + 架构治理最佳实践
-- 想复用 World Model Gate 设计模式到自己的系统
+**核心受众**：希望通过 AI 原生基础设施升级人与系统协作方式的人。
 
-**不适合使用 LiYe OS 的人：**
-- 想要开箱即用的 AI 工具（这是参考实现，不是产品）
-- 不想理解架构就直接跑
-- 期望有 GUI 界面
+| 适合 | 不适合 |
+|------|--------|
+| 构建带治理能力的个人 AI 操作系统 | 想要开箱即用的 AI 产品 |
+| 学习 Claude Code + 架构治理模式 | 偏好 GUI 工具 |
+| 复用世界模型门禁进行风险分析 | 需要交钥匙方案，不想研究架构 |
+| 将 AI 代理集成到现有工作流 | 寻找 SaaS 平台 |
+
+> **这是参考实现，不是产品。**
+> 你应该预期需要阅读文档、理解架构后才能获得价值。
+
+---
+
+## 路线图
+
+**当前聚焦 (2025 Q1)**：
+- Notion 增强同步与实时仪表板
+- Skills System v2 生成管道
+- 世界模型门禁成熟度
+
+**2026 愿景**：自演进的个人操作系统，大部分工作由 AI 代理完成。
+
+查看完整路线图：[`_meta/EVOLUTION_ROADMAP_2025.md`](_meta/EVOLUTION_ROADMAP_2025.md)
 
 ---
 
@@ -50,14 +90,9 @@ LiYe OS 是用于构建 AI 协作工程系统的**参考实现**，包含：
 
 ```text
 从这里开始：
-├── _meta/
-│   └── docs/
-│       └── ARCHITECTURE_CONSTITUTION.md   # 设计原则
-├── docs/
-│   └── architecture/                      # 架构决策
-└── .github/
-    └── workflows/
-        └── *gate*                         # CI 治理门禁
+├── _meta/docs/ARCHITECTURE_CONSTITUTION.md   # 设计原则
+├── docs/architecture/                         # 架构决策
+└── .github/workflows/*gate*                   # CI 治理门禁
 ```
 
 ### 路径 2：接治理（Governance Stack）
@@ -66,13 +101,9 @@ LiYe OS 是用于构建 AI 协作工程系统的**参考实现**，包含：
 
 ```text
 从这里开始：
-├── .github/
-│   └── workflows/
-│       ├── architecture-gate.yml            # 架构强制检查
-│       └── constitution-*-gate.yml          # 宪法检查
-└── docs/
-    └── architecture/
-        └── ARCHITECTURE_CONTRACT.md         # 稳定性契约
+├── .github/workflows/architecture-gate.yml    # 架构强制检查
+├── .github/workflows/constitution-*-gate.yml  # 宪法检查
+└── docs/architecture/ARCHITECTURE_CONTRACT.md # 稳定性契约
 ```
 
 ### 路径 3：跑闭环（Minimal Runtime）
@@ -88,10 +119,9 @@ cd liye_os
 node .claude/scripts/guardrail.mjs
 
 # 为任务生成上下文
-node .claude/scripts/assembler.mjs --task "分析 ASIN B0EXAMPLE01"
+node .claude/scripts/assembler.mjs --task "你的任务描述"
 
-# 用 Claude Code - 直接自然语言对话：
-# "分析 ASIN B0EXAMPLE01"
+# 用 Claude Code - 直接自然语言对话
 # Claude Code 读取 CLAUDE.md 并自动加载相关上下文
 ```
 
@@ -106,6 +136,12 @@ LiYe OS 维护清晰的稳定性边界。详见 [ARCHITECTURE_CONTRACT.md](docs/
 | **Frozen** | 不可变，宪法级 | `_meta/governance/`、`*gate*` 工作流 |
 | **Stable** | 向后兼容 | `docs/architecture/`、`src/kernel/` 接口 |
 | **Experimental** | 可能变更 | `Agents/`、`Crews/`、`src/kernel/` 内部实现 |
+
+---
+
+## 文档
+
+- **核心 (STABLE)**：[`docs/README_CORE.md`](docs/README_CORE.md) - 稳定内核规范和快速入门
 
 ---
 
@@ -181,4 +217,4 @@ liye_os/
 
 ---
 
-*LiYe OS - 让盲目自信在结构上不可能发生*
+*LiYe OS - 用于智能代理编排的 AI 原生基础设施。*
