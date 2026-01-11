@@ -28,7 +28,7 @@ agent:
   id: unique-identifier
   name: Human Readable Name
   version: 1.0.0
-  domain: core | skeleton | medical-research | geo-os
+  domain: core | skeleton | medical-research | geo
 
 persona:           # Agent Identity
   role: ...

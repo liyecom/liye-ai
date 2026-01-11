@@ -16,12 +16,12 @@
 | Domain | Priority | Core | Alias | Legacy | Status |
 |--------|----------|------|-------|--------|--------|
 | amazon-advertising | 90 | 16 | 0 | 0 | ✅ Governed |
-| geo-os | 80 | 16 | 13 | 0 | ✅ Governed |
+| geo | 80 | 16 | 13 | 0 | ✅ Governed |
 | medical-research | 70 | 9 | 0 | 0 | ✅ Governed |
 | general | 10 | 15 | 0 | 0 | ✅ Governed |
 
 ## Alias Keywords Detail
-### geo-os
+### geo
 - **Priority**: 80
 - **Core keywords** (16): geo, seo, gsc, search console, sitemap, indexing, crawl, robots, canonical, cloudflare...
 - **Alias keywords** (13): geo-seo, geo seo, local seo, local pack, map pack, gbp, gmb, google business, google business profile, nap, citations, reviews, rating

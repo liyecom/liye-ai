@@ -3,7 +3,7 @@
 /**
  * Public Replay Regression Runner
  *
- * Purpose: Execute deterministic replay tests for public domains (skeleton, geo-os)
+ * Purpose: Execute deterministic replay tests for public domains (skeleton, geo)
  * This runner does NOT depend on any private domain modules.
  *
  * Usage:

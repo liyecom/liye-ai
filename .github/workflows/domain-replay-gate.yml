@@ -30,7 +30,7 @@ on:
       - 'schemas/**'
       - 'replays/**'
       # Domain-specific configs
-      - 'config/geo-os/**'
+      - 'config/geo/**'
       # Agent definitions that affect runtime
       - 'Agents/**'
       # Replay runner scripts
@@ -41,7 +41,7 @@ on:
       - 'src/**'
       - 'schemas/**'
       - 'replays/**'
-      - 'config/geo-os/**'
+      - 'config/geo/**'
       - 'Agents/**'
       - 'tools/geo_os_replay_runner.js'
 
@@ -88,8 +88,8 @@ jobs:
           echo "🔁 Running GEO OS Replay Tests"
           echo ""
           # Check if replay cases exist
-          if [ -d "replays/geo-os/cases" ]; then
-            node tools/geo_os_replay_runner.js replays/geo-os/cases
+          if [ -d "replays/geo/cases" ]; then
+            node tools/geo_os_replay_runner.js replays/geo/cases
           else
             echo "⏭️ No GEO OS replay cases found, skipping"
           fi

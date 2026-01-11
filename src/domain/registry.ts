@@ -136,7 +136,7 @@ export class DomainRegistry {
   }
 
   /**
-   * Get application domains (excludes core infrastructure like geo-os)
+   * Get application domains (excludes core infrastructure like geo)
    */
   getApplicationDomains(): RegisteredDomain[] {
     return this.getByLayer('application');

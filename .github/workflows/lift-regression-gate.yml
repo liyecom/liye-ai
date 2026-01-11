@@ -15,7 +15,7 @@ on:
       - '**/t1_units*.json'
 
       # Agent code
-      - 'src/domain/geo-os/agents/**'
+      - 'src/domain/geo/agents/**'
 
       # Lift criteria
       - 'docs/architecture/REASONING_LIFT*.md'
@@ -24,7 +24,7 @@ on:
       - 'docs/architecture/T1_MECHANISM_WHITELIST.md'
 
       # Repro pack
-      - 'src/domain/geo-os/experiments/repro_pack_v1/**'
+      - 'src/domain/geo/experiments/repro_pack_v1/**'
 
 jobs:
   regression-gate:
@@ -47,7 +47,7 @@ jobs:
       - name: Run Lift Regression Gate
         id: gate
         run: |
-          cd src/domain/geo-os
+          cd src/domain/geo
           python scripts/lift_regression_gate.py
         continue-on-error: false
 
@@ -94,7 +94,7 @@ jobs:
           FOUND_ISSUES=0
 
           for pattern in "${BLACKLIST_PATTERNS[@]}"; do
-            if grep -riE "$pattern" src/domain/geo-os/experiments/repro_pack_v1/ 2>/dev/null; then
+            if grep -riE "$pattern" src/domain/geo/experiments/repro_pack_v1/ 2>/dev/null; then
               echo "::warning::Found blacklist pattern: $pattern"
               FOUND_ISSUES=$((FOUND_ISSUES + 1))
             fi

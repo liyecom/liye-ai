@@ -120,7 +120,7 @@ jobs:
       - name: Verify domain structure
         run: |
           echo "Checking domain structure..."
-          for domain in skeleton medical-research geo-os; do
+          for domain in skeleton medical-research geo; do
             if [ -d "src/domain/$domain" ]; then
               echo "✓ Domain $domain exists"
               if [ -f "src/domain/$domain/config.yaml" ]; then

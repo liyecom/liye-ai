@@ -5,7 +5,7 @@
  *
  * Purpose: Execute deterministic replay tests for decision pipeline
  *
- * Usage: node tools/geo_os_replay_runner.js replays/geo-os/cases
+ * Usage: node tools/geo_os_replay_runner.js replays/geo/cases
  *
  * Rules:
  * - Same input must produce same decisions
@@ -17,9 +17,9 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { runSignals } from "../Agents/geo-os/signal_agent.js";
-import { applyRules } from "../Agents/geo-os/rule_agent.js";
-import { generateVerdicts } from "../Agents/geo-os/verdict_agent.js";
+import { runSignals } from "../Agents/geo/signal_agent.js";
+import { applyRules } from "../Agents/geo/rule_agent.js";
+import { generateVerdicts } from "../Agents/geo/verdict_agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,7 +125,7 @@ function main() {
 
   if (!casesDir) {
     console.error("Usage: node tools/geo_os_replay_runner.js <cases-directory>");
-    console.error("Example: node tools/geo_os_replay_runner.js replays/geo-os/cases");
+    console.error("Example: node tools/geo_os_replay_runner.js replays/geo/cases");
     process.exit(1);
   }
 

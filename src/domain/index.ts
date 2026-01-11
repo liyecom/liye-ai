@@ -33,12 +33,12 @@ export type { DomainConfig, RegisteredDomain } from './registry';
 // This manifest shows the public framework domains only.
 export const DOMAINS = {
   // Core Infrastructure
-  'geo-os': {
-    id: 'geo-os',
+  'geo': {
+    id: 'geo',
     name: 'GEO OS Knowledge Engine',
     layer: 'core',
     description: 'Core knowledge extraction and processing engine',
-    path: 'src/domain/geo-os'
+    path: 'src/domain/geo'
   },
 
   // Application Domains (Examples)

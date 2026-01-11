@@ -130,7 +130,7 @@ These rules MUST be enforced:
 
 domain_prefix: 3-4 letter abbreviation
   - amz  = amazon-advertising
-  - geo  = geo-os
+  - geo  = geo
   - med  = medical-research
   - gen  = general
 
@@ -173,8 +173,8 @@ A Track MUST reference a valid domain from `domain-mapping.yaml`:
 domains:
   - id: amazon-advertising  # ← Track can bind to this
     glossary: knowledge/glossary/amazon-advertising.yaml
-  - id: geo-os
-    glossary: knowledge/glossary/geo-os.yaml
+  - id: geo
+    glossary: knowledge/glossary/geo.yaml
 ```
 
 Binding is established in `state.yaml`:

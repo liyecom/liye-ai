@@ -109,7 +109,7 @@ LiYe_OS/
 ├── Systems/                  # 可部署系统（一等公民）
 │
 ├── src/                      # 源代码（运行时实现）
-│   ├── domain/               # 领域层（amazon-growth, geo-os 等）
+│   ├── domain/               # 领域层（amazon-growth, geo 等）
 │   ├── runtime/              # 运行时层（MCP, executor）
 │   ├── kernel/               # 内核层（T1/T2/T3 World Model）
 │   ├── brokers/              # LLM 调度器
@@ -660,5 +660,79 @@ python src/domain/amazon-growth/main.py --mode launch --product "Test" --dry-run
 
 ---
 
-*宪法版本: 1.5*
-*最后更新: 2026-01-01*
+### Amendment 2026-01-11-E: Utility / Service / Engine Classification (Engineering Standard)
+
+**版本**: v1.6
+**生效日期**: 2026-01-11
+**关联条款**: 第 10 条（System 是一等公民）
+
+**内容**：
+
+为消除 `-os` 后缀的命名混淆，建立清晰的工程分类标准。
+
+#### 1. Utility (Tool)
+- **定义**：按需运行、运行即退出的工具
+- **特征**：批量转换、管道处理、同步工具
+- **位置**：`tools/`
+- **示例**：`geo-pipeline`, `notion-sync`, `doc-converter`
+
+#### 2. Service (System)
+- **定义**：可部署、长期运行、承担运维责任的服务
+- **特征**：持续运行（worker/server/cron）或暴露 HTTP 端点
+- **位置**：`Systems/`
+- **示例**：`information-radar`, `site-deployer`, `push-service`
+
+#### 3. Engine (Domain decision kernel)
+- **定义**：可复用的决策核心（Observations → Decisions/Plans/Policies）
+- **特征**：必须可测试、无直接 IO/运行时耦合
+- **位置**：`src/domain/`
+- **示例**：`investment-engine`, `growth-engine`
+
+#### 4. 命名规范（工程层面）
+
+**`-os` 后缀在工程命名中被禁止**（目录、包、模块）。
+
+使用显式类型后缀：
+- `*-engine` （引擎）
+- `*-service` / `*-radar` / `*-hub` （服务）
+- `*-tool` / `*-pipeline` / `*-sync` （工具）
+
+**说明**："XX OS" 可作为产品叙事出现在文档中，但不得用于代码标识符。
+
+#### 5. 判定流程
+
+```
+你构建了一个新系统
+         │
+         ▼
+┌─────────────────────────────┐
+│ Q1: 它需要 World Model 吗？ │
+└─────────────────────────────┘
+         │
+    ┌────┴────┐
+   YES       NO
+    │         │
+    ▼         ▼
+┌────────┐  ┌─────────────────────────────┐
+│ Q2: 它 │  │ Q3: 它在外部基础设施上      │
+│ 编排多 │  │     持续运行吗？            │
+│ Agent? │  └─────────────────────────────┘
+└────────┘           │
+    │           ┌────┴────┐
+   YES         YES       NO
+    │           │         │
+    ▼           ▼         ▼
+ ENGINE     SERVICE    UTILITY
+src/domain/  Systems/   tools/
+```
+
+**验证方式**：
+```bash
+# 扫描禁用的 -os token（不应有输出）
+rg -n '\b[a-z0-9]+(?:-[a-z0-9]+)*-os\b' . --glob '!.git/**' --glob '!**/node_modules/**'
+```
+
+---
+
+*宪法版本: 1.6*
+*最后更新: 2026-01-11*

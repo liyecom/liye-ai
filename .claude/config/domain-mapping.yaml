@@ -27,7 +27,7 @@ domains:
     adrs_glob: docs/adr/amazon-advertising/**/*.md
     playbooks_glob: playbooks/amazon-advertising/**/*.md
 
-  - id: geo-os
+  - id: geo
     priority: 80
     alias_weight: 0.6
     core_keywords:
@@ -61,9 +61,9 @@ domains:
       - citations
       - reviews
       - rating
-    glossary: knowledge/glossary/geo-os.yaml
-    adrs_glob: docs/adr/geo-os/**/*.md
-    playbooks_glob: playbooks/geo-os/**/*.md
+    glossary: knowledge/glossary/geo.yaml
+    adrs_glob: docs/adr/geo/**/*.md
+    playbooks_glob: playbooks/geo/**/*.md
 
   - id: medical-research
     priority: 70

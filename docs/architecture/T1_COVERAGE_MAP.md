@@ -62,7 +62,7 @@ T1 扩展不是"抓更多内容"，而是"补机制空白"。
 | Keyword Bundling | ✅ COVERED | 1 | - |
 | Budget Allocation | ✅ COVERED | 1 | - |
 
-**Mechanism Files**: `src/domain/geo-os/data/t1_units/ppc/`
+**Mechanism Files**: `src/domain/geo/data/t1_units/ppc/`
 - `bid_strategy_escalation.json`
 - `negative_keyword_suppression.json`
 - `match_type_drift_control.json`
@@ -87,7 +87,7 @@ T1 扩展不是"抓更多内容"，而是"补机制空白"。
 | Buy Box Mechanism | ✅ COVERED | 2 | case_03, case_06 |
 | Price Suppression | ✅ COVERED | 2 | - |
 
-**Mechanism Files**: `src/domain/geo-os/data/t1_units/bsr/`
+**Mechanism Files**: `src/domain/geo/data/t1_units/bsr/`
 - `velocity_acceleration.json`
 - `conversion_elasticity.json`
 - `review_momentum_threshold.json`
@@ -114,7 +114,7 @@ T1 扩展不是"抓更多内容"，而是"补机制空白"。
 | Bullet Information Density | ✅ COVERED | 1 | - |
 | Image-Text Intent Consistency | ✅ COVERED | 1 | - |
 
-**Mechanism Files**: `src/domain/geo-os/data/t1_units/listing/`
+**Mechanism Files**: `src/domain/geo/data/t1_units/listing/`
 - `bullet_role_differentiation.json`
 - `redundancy_suppression.json`
 - `visual_intent_anchoring.json`
