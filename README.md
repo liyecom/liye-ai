@@ -4,14 +4,10 @@
   <a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
-> **LiYe OS is an open governance and execution framework.**
-> **Domain intelligence and business data are intentionally excluded.**
+> **An AI-native infrastructure for orchestrating intelligent agents and upgrading how humans and systems work.**
 
-See: [`docs/governance/PUBLIC_BOUNDARY.md`](docs/governance/PUBLIC_BOUNDARY.md) for the public/private boundary.
-
-> **Governance & Architecture Reference Implementation for Claude Code / AI-Collaborative Development**
->
-> Turn AI outputs into auditable, replayable, and controllable engineering systems.
+**Implementation**: A governance and architecture reference for Claude Code / AI-collaborative development.
+Turn AI outputs into auditable, replayable, and controllable engineering systems.
 
 [![Version](https://img.shields.io/badge/version-6.3.0-blue.svg)](https://github.com/liyecom/liye_os)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
@@ -19,9 +15,27 @@ See: [`docs/governance/PUBLIC_BOUNDARY.md`](docs/governance/PUBLIC_BOUNDARY.md) 
 
 ---
 
-## Quickstart
+## 1-Minute Quickstart
 
-- Start here: [docs/quickstart/SKELETON_QUICKSTART.md](docs/quickstart/SKELETON_QUICKSTART.md)
+```bash
+# Clone and explore
+git clone https://github.com/liyecom/liye_os.git
+cd liye_os
+
+# View architecture overview
+cat docs/architecture/DIRECTORY_STRUCTURE.md
+
+# View governance constitution
+cat _meta/docs/ARCHITECTURE_CONSTITUTION.md
+```
+
+**What you'll find**:
+- `CLAUDE.md` - Context compiler entry point for Claude Code
+- `src/kernel/` - World Model (T1/T2/T3) for risk analysis
+- `_meta/governance/` - Governance rules (Frozen tier)
+- `Skills/` - Methodology and SOP library
+
+> **Want to run the system?** See [SKELETON_QUICKSTART.md](docs/quickstart/SKELETON_QUICKSTART.md)
 
 ---
 
@@ -35,23 +49,34 @@ LiYe OS is a **reference implementation** for building AI-collaborative engineer
 
 **Core Philosophy**: "Not letting blind confidence happen structurally."
 
-> **📦 Domain Migration Notice**
->
-> Domain-specific implementations (e.g., Amazon Growth OS) have been migrated to private repositories. This public repository now serves as a **framework reference** with generic examples. Historical documentation may reference migrated domains for architectural context.
-
 ---
 
 ## Who It's For
 
-**Use LiYe OS if you:**
-- Want to build a personal AI operating system with governance
-- Need to understand Claude Code + architecture governance best practices
-- Want to reuse World Model Gate design patterns for your own systems
+**Core audience**: People who want to upgrade how humans and systems work through AI-native infrastructure.
 
-**Do NOT use LiYe OS if you:**
-- Want an out-of-the-box AI tool (this is a reference, not a product)
-- Don't want to understand the architecture before running it
-- Expect a GUI interface
+| Good Fit | Not a Good Fit |
+|----------|----------------|
+| Building a personal AI operating system with governance | Want an out-of-the-box AI product |
+| Learning Claude Code + architecture governance patterns | Prefer GUI-based tools |
+| Reusing World Model Gate for risk analysis | Need a turnkey solution without studying architecture |
+| Integrating AI agents into existing workflows | Looking for a SaaS platform |
+
+> **This is a reference implementation, not a product.**
+> You should expect to read documentation and understand architecture before deriving value.
+
+---
+
+## Roadmap
+
+**Current Focus (Q1 2025)**:
+- Notion Enhanced Sync with real-time dashboard
+- Skills System v2 with generation pipeline
+- World Model Gate maturity
+
+**2026 Vision**: Self-evolving personal operating system where AI agents handle most work.
+
+See full roadmap: [`_meta/EVOLUTION_ROADMAP_2025.md`](_meta/EVOLUTION_ROADMAP_2025.md)
 
 ---
 
@@ -94,10 +119,9 @@ cd liye_os
 node .claude/scripts/guardrail.mjs
 
 # Generate context for a task
-node .claude/scripts/assembler.mjs --task "Analyze ASIN B0EXAMPLE01"
+node .claude/scripts/assembler.mjs --task "Your task description"
 
-# Use with Claude Code - just talk naturally:
-# "Analyze ASIN B0EXAMPLE01"
+# Use with Claude Code - just talk naturally
 # Claude Code reads CLAUDE.md and auto-loads relevant context
 ```
 
@@ -193,4 +217,4 @@ If you're using LiYe OS as a reference or dependency:
 
 ---
 
-*LiYe OS - Making blind confidence structurally impossible.*
+*LiYe OS - AI-native infrastructure for intelligent agent orchestration.*
