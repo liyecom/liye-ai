@@ -13,7 +13,7 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const schema = require("../../contracts/schema/decision.schema.json");
+const schema = require("../../verdicts/schema/decision.schema.json");
 
 const ajv = new Ajv();
 addFormats(ajv);

@@ -121,9 +121,9 @@ Make every decision machine-verifiable and human-readable.
 | **Decision Schema** | Global (LiYe OS) | Frozen. Never copy, never modify. |
 | **Decision Contracts** | Domain-specific | Domain team owns. Must follow schema. |
 
-The Decision Schema (`contracts/schema/decision.schema.json`) is shared across all Domains. It defines structural validity. No Domain may create a custom schema.
+The Decision Schema (`verdicts/schema/decision.schema.json`) is shared across all Domains. It defines structural validity. No Domain may create a custom schema.
 
-Decision Contracts are Domain-private. Each Domain creates its own contracts in `contracts/<domain>/contracts.yaml`.
+Decision Contracts are Domain-private. Each Domain creates its own contracts in `verdicts/<domain>/contracts.yaml`.
 
 ### Inputs
 
@@ -132,8 +132,8 @@ Decision Contracts are Domain-private. Each Domain creates its own contracts in 
 
 ### Outputs
 
-- `contracts/<domain>/contracts.yaml` — Semantic contracts for all decisions
-- `contracts/<domain>/README.md` — Contract documentation
+- `verdicts/<domain>/contracts.yaml` — Semantic contracts for all decisions
+- `verdicts/<domain>/README.md` — Contract documentation
 
 ### Contract Writing Rules
 
@@ -338,7 +338,7 @@ Phase 5.4 is complete when replay tests exist, CI gates are active, and the Doma
 | Artifact | Consistency Requirement |
 |----------|------------------------|
 | Phase structure | 5.1 → 5.2 → 5.3 → 5.4 lifecycle is mandatory |
-| Decision Schema | All Domains use `contracts/schema/decision.schema.json` |
+| Decision Schema | All Domains use `verdicts/schema/decision.schema.json` |
 | Replay mechanism | Stable field comparison, CI gate enforcement |
 | Agent pipeline | Signal → Rule → Verdict structure |
 | Contract format | YAML with required fields (version, severity, meaning, etc.) |

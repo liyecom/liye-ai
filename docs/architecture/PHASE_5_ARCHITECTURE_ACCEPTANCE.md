@@ -144,9 +144,9 @@ All three must align. A decision is valid only if it passes schema, has a contra
 **Purpose**: Make every decision machine-verifiable and human-readable.
 
 **Artifacts**:
-- `contracts/schema/decision.schema.json` — JSON Schema for all decisions
-- `contracts/<domain>/contracts.yaml` — Semantic contracts per decision
-- `contracts/<domain>/README.md` — Contract documentation
+- `verdicts/schema/decision.schema.json` — JSON Schema for all decisions
+- `verdicts/<domain>/contracts.yaml` — Semantic contracts per decision
+- `verdicts/<domain>/README.md` — Contract documentation
 
 **Acceptance Criteria**:
 - [ ] Every decision in 5.1 inventory has a contract in 5.2
@@ -225,7 +225,7 @@ All three must align. A decision is valid only if it passes schema, has a contra
 
 **Validated Phase 5 Capabilities**:
 - Decision Inventory: 85 decisions across 12 categories (Visibility, Ranking, Reviews, etc.)
-- Decision Contracts: 45 semantic contracts in `contracts/geo/contracts.yaml`
+- Decision Contracts: 45 semantic contracts in `verdicts/geo/contracts.yaml`
 - Agent Pipeline: signal_agent.js → rule_agent.js → verdict_agent.js
 - Replay Gate: Deterministic tests in `replays/geo/cases/`
 

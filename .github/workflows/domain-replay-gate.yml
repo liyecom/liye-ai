@@ -27,7 +27,7 @@ on:
       # Engine runtime code ONLY
       - 'src/domain/**'
       # Contract schemas that engines depend on
-      - 'contracts/schema/**'
+      - 'verdicts/schema/**'
       # Replay cases for engines
       - 'replays/geo/cases/**'
       # Engine-related agents
@@ -38,7 +38,7 @@ on:
     branches: [main]
     paths:
       - 'src/domain/**'
-      - 'contracts/schema/**'
+      - 'verdicts/schema/**'
       - 'replays/geo/cases/**'
       - 'Agents/geo/**'
       - 'tools/geo_os_replay_runner.js'
