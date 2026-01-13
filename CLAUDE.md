@@ -100,16 +100,37 @@ node .claude/scripts/guardrail.mjs
 │   └── .githooks/         # Git hooks
 ├── _meta/                 # Metadata and documentation
 │   ├── docs/              # Architecture documentation
-│   │   ├── ARCHITECTURE_CONSTITUTION.md
-│   │   └── FILE_SYSTEM_GOVERNANCE.md
+│   ├── contracts/         # Machine-executable constraints (NEW)
+│   ├── schemas/           # JSON schemas for validation
 │   └── templates/         # Template library
+├── tracks/                # Execution containers (domain-scoped)
 ├── Skills/                # Skill library
 ├── src/domain/            # Domain implementations
-│   └── <domain-name>/     # Domain-specific code (private repos)
 ├── tools/                 # Tool scripts
-│   └── notion-sync/       # Notion sync tool
 ├── Projects_Engine/       # Project management
 └── Artifacts_Vault/       # Artifact archive
+```
+
+## Contracts & Verdicts
+
+| Directory | Purpose | Consumer |
+|-----------|---------|----------|
+| `_meta/contracts/` | Governance constraints (machine-enforced) | CI / Gates / Validators |
+| `verdicts/` | Decision semantics (human-readable) | Auditing / Explanation |
+
+**Contracts** = "Can the system do this?" (治理约束)
+- Global templates in `_meta/contracts/`
+- Project instances in `tracks/<track_id>/`
+- Skills write instances, Builders read instances
+
+**Verdicts** = "What does the decision mean?" (判定语义)
+- Human-readable explanation of machine decisions
+- NOT consumed by CI or validators
+- Used for auditing, replay interpretation
+
+**Validation**:
+```bash
+python _meta/governance/validator.py
 ```
 
 ## Architecture Boundaries (Important)

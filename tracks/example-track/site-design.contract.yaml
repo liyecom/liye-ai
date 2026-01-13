@@ -1,0 +1,101 @@
+# Site Design Contract (Track Instance)
+# =============================================================================
+# Version: 1.0
+# Kind: site-design
+# Scope: track-instance
+# Created: 2026-01-13
+#
+# PURPOSE:
+# This is an example project instance of the site-design contract.
+# It demonstrates how Skills should fill in concrete values for a specific project.
+#
+# USAGE:
+# - Skills: Copy this template and fill in project-specific values
+# - Builders: Read this file to generate site components
+# =============================================================================
+
+version: "1.0"
+kind: site-design
+scope: track-instance
+enforcement: warning
+
+# Reference to parent template
+inherits:
+  from: _meta/contracts/site-design.contract.yaml
+
+# -----------------------------------------------------------------------------
+# SITE METADATA
+# -----------------------------------------------------------------------------
+site:
+  name: example-site
+  description: "Example SaaS landing page for demonstration"
+  stack:
+    - astro
+    - tailwind
+    - react
+
+# -----------------------------------------------------------------------------
+# DESIGN TOKENS (concrete values)
+# -----------------------------------------------------------------------------
+tokens:
+  colors:
+    primary: "#4F46E5"        # Indigo
+    secondary: "#10B981"      # Emerald
+    background: "#0B1220"     # Deep navy
+    surface: "#1E293B"        # Slate
+    text:
+      primary: "#F8FAFC"      # Near white
+      secondary: "#94A3B8"    # Slate gray
+    accent: "#F59E0B"         # Amber
+    error: "#EF4444"          # Red
+    success: "#22C55E"        # Green
+    warning: "#F59E0B"        # Amber
+
+  typography:
+    primary_font: "Inter"
+    heading_font: "Inter"
+    mono_font: "JetBrains Mono"
+
+  spacing:
+    base_unit: 8
+
+  borders:
+    radius:
+      default: 8
+
+# -----------------------------------------------------------------------------
+# OVERRIDES (project-specific modifications)
+# -----------------------------------------------------------------------------
+constraints:
+  layout:
+    max_width_px: 1280        # Slightly wider than default
+    content_max_width_px: 720  # Narrower content for readability
+
+  motion:
+    allow_heavy_runtime_animation: false
+
+ux:
+  accessibility:
+    min_contrast_ratio: 4.5
+
+  navigation:
+    require_breadcrumbs: false
+    max_menu_depth: 2
+
+# -----------------------------------------------------------------------------
+# NOTES
+# -----------------------------------------------------------------------------
+notes:
+  rationale: |
+    This example demonstrates a dark-mode SaaS landing page optimized for:
+    - Developer audience (technical, clean aesthetic)
+    - High contrast for accessibility
+    - Minimal animation for performance
+
+  decisions:
+    - "Chose Indigo as primary to align with technical/professional feel"
+    - "Dark background reduces eye strain for developer audience"
+    - "Limited to 2 fonts for performance"
+
+  created_by: "UI/UX Skill - Example Instance"
+  last_modified: "2026-01-13"

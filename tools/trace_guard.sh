@@ -166,7 +166,7 @@ log_info "Domain-specific guardrails are in private repositories."
 log_info "Framework validates template structure only."
 
 # Check that guardrails template/schema exists
-GUARDRAILS_SCHEMA="contracts/schema/decision.schema.json"
+GUARDRAILS_SCHEMA="verdicts/schema/decision.schema.json"
 if [[ -f "$GUARDRAILS_SCHEMA" ]]; then
     log_pass "Decision schema exists"
 else
