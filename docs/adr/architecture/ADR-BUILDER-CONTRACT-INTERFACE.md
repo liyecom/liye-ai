@@ -1,12 +1,10 @@
-# ADR: Builder-Contract Interface Architecture
+# ADR-0005: Builder-Contract Interface Architecture
 
-```yaml
-decision_id: ADR-0005
-domain: architecture
-status: accepted
-created: 2026-01-13
-tags: [builder, contract, interface, theme-factory, adapter]
-```
+- decision_id: ADR-0005
+- domain: architecture
+- status: accepted
+- created: 2026-01-13
+- tags: [builder, contract, interface, theme-factory, adapter]
 
 ## Context
 
