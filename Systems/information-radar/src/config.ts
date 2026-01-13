@@ -35,7 +35,7 @@ export function getConfig(env: Env) {
         apiUrl: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
       },
       gemini: {
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash-001",
         apiUrl: "https://generativelanguage.googleapis.com/v1beta/models",
       },
     },

@@ -86,9 +86,14 @@ export default {
       if (phItems.status === "fulfilled") {
         allItems.push(...phItems.value);
         console.log(`[PH] Fetched ${phItems.value.length} items`);
+        if (phItems.value.length > 0) {
+          console.log(`[PH] Sample: ${phItems.value[0].id} - ${phItems.value[0].title.slice(0, 30)}`);
+        }
       } else {
         console.error(`[PH] Fetch failed:`, phItems.reason);
       }
+
+      console.log(`[Sources] Total: ${allItems.length} (HN: ${hnItems.status === "fulfilled" ? hnItems.value.length : 0}, PH: ${phItems.status === "fulfilled" ? phItems.value.length : 0})`)
 
       if (allItems.length === 0) {
         console.log("[Information Radar] No items fetched, exiting");
@@ -105,11 +110,21 @@ export default {
       }
 
       // 3. Limit items per run to avoid Workers timeout (30s limit)
-      // Process max 5 items per cron, rest will be picked up next run
+      // Fair distribution: shuffle items to ensure both HN and PH get processed
       const MAX_ITEMS_PER_RUN = 5;
-      const newItems = allNewItems.slice(0, MAX_ITEMS_PER_RUN);
+      const shuffled = [...allNewItems].sort(() => Math.random() - 0.5);
+      const newItems = shuffled.slice(0, MAX_ITEMS_PER_RUN);
+
+      // Log source distribution
+      const hnCount = newItems.filter(i => i.source === "hacker_news").length;
+      const phCount = newItems.filter(i => i.source === "product_hunt").length;
+      console.log(`[Select] Processing ${newItems.length} items: ${hnCount} HN, ${phCount} PH`);
+      for (const item of newItems) {
+        console.log(`[Select] - ${item.source}: ${item.id} - ${item.title.slice(0, 40)}`);
+      }
+
       if (allNewItems.length > MAX_ITEMS_PER_RUN) {
-        console.log(`[Throttle] Processing ${newItems.length} of ${allNewItems.length} items (rest next run)`);
+        console.log(`[Throttle] ${allNewItems.length - MAX_ITEMS_PER_RUN} items deferred to next run`);
       }
 
       // 4. Process with LLM (summarize + score)
@@ -327,7 +342,36 @@ export default {
         stages.llm_api = { success: false, error: String(e) };
       }
 
-      // Stage 5: Check secrets presence
+      // Stage 5: Simulate ingestion selection
+      try {
+        const hnItems2 = await fetchHackerNews(env);
+        const phItems2 = await fetchProductHunt(env);
+        const allItems = [...hnItems2, ...phItems2];
+
+        // Debug: check individual KV lookups
+        const sampleId = allItems[0]?.id || "unknown";
+        const sampleSeen = await env.SEEN_ITEMS?.get(sampleId);
+
+        const newItems = await filterNewItems(allItems, env);
+        const shuffled = [...newItems].sort(() => Math.random() - 0.5).slice(0, 5);
+        stages.ingestion_sim = {
+          total_fetched: allItems.length,
+          hn_fetched: hnItems2.length,
+          ph_fetched: phItems2.length,
+          kv_debug: {
+            seen_items_defined: !!env.SEEN_ITEMS,
+            sample_id: sampleId,
+            sample_seen_value: sampleSeen,
+            sample_seen_type: typeof sampleSeen,
+          },
+          new_items: newItems.length,
+          selected: shuffled.map(i => ({ id: i.id, source: i.source, title: i.title.slice(0, 30) })),
+        };
+      } catch (e) {
+        stages.ingestion_sim = { success: false, error: String(e) };
+      }
+
+      // Stage 6: Check secrets presence
       stages.secrets = {
         GLM_API_KEY: env.GLM_API_KEY ? "set" : "missing",
         GEMINI_API_KEY: env.GEMINI_API_KEY ? "set" : "missing",
@@ -341,6 +385,32 @@ export default {
         timestamp: new Date().toISOString(),
         stages,
       }, null, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Clear SEEN_ITEMS - for debugging only
+    if (url.pathname === "/debug/clear-seen" && request.method === "POST") {
+      // This is a simple approach - delete keys one by one based on fetched items
+      const hnItems = await fetchHackerNews(env);
+      const phItems = await fetchProductHunt(env);
+      const allItems = [...hnItems, ...phItems];
+
+      let deleted = 0;
+      for (const item of allItems) {
+        try {
+          await env.SEEN_ITEMS.delete(item.id);
+          deleted++;
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      return new Response(JSON.stringify({
+        status: "cleared",
+        deleted,
+        total_items: allItems.length,
+      }), {
         headers: { "Content-Type": "application/json" },
       });
     }
