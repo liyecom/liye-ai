@@ -154,6 +154,28 @@ function isToolFailure(payload) {
   return false;
 }
 
+function detectUpgradeIntent(toolName, payload) {
+  // PR / publish / deploy / handoff signals
+  // We mainly look at Bash commands because most of these actions are executed via Bash.
+  // Keep it conservative: only upgrade, never downgrade.
+  const cmd = (payload?.tool_input?.command || payload?.toolInput?.command || "").toString();
+
+  // PR-related
+  if (/\bgh\s+pr\s+create\b/i.test(cmd)) return "pr:create";
+  if (/\bgh\s+pr\s+(submit|ready|merge)\b/i.test(cmd)) return "pr:action";
+  if (/\bgit\s+push\b/i.test(cmd) && /\b(origin|upstream)\b/i.test(cmd)) return "git:push";
+  if (/\bgit\s+commit\b/i.test(cmd)) return "git:commit";
+
+  // Publish / deploy keywords
+  if (/\b(wrangler\s+deploy|vercel\s+deploy|npm\s+publish|pnpm\s+publish|yarn\s+publish)\b/i.test(cmd)) return "publish:deploy";
+  if (/\b(docker\s+push|kubectl\s+apply|helm\s+upgrade|terraform\s+apply)\b/i.test(cmd)) return "publish:infra";
+
+  // Handoff / release notes / changelog updates are often a signal
+  if (/\b(RELEASE_NOTES|CHANGELOG|handoff|交接|发布)\b/i.test(cmd)) return "handoff:signal";
+
+  return null;
+}
+
 function maybeUpgradeToGoverned(state, reason) {
   if (state.execution_mode === "governed") return state;
   state.execution_mode = "governed";
@@ -191,15 +213,33 @@ async function main() {
   const planSource = resolvePlanSource(state);
   const summary = summarizePlan(planSource);
 
-  if (state.active_track && !state.execution_mode) state.execution_mode = "governed";
+  // Default to fast if not set (Upgrade Router may change this below)
   if (!state.execution_mode) state.execution_mode = "fast";
+
+  const toolName = payload.tool_name || payload.toolName || process.env.CLAUDE_TOOL_NAME || "(unknown)";
+
+  // --- Upgrade Router (D: two-speed) ---
+  // Default is FAST. Upgrade to GOVERNED only when necessary:
+  // 1) active_track exists
+  // 2) 3-strike (already handled in --post)
+  // 3) PR / publish / handoff / release signals (detected here)
+  if (state.active_track) {
+    maybeUpgradeToGoverned(state, "active_track present");
+  } else {
+    const intent = detectUpgradeIntent(toolName, payload);
+    if (intent) {
+      maybeUpgradeToGoverned(state, `upgrade_intent:${intent}`);
+    }
+  }
+
+  // Persist any upgrades before printing alignment
   saveMemoryState(state);
 
+  // Header reflects final mode (after Upgrade Router)
   const header = state.execution_mode === "governed"
     ? "[Governed Path Alignment]"
     : "[Fast Path Alignment]";
 
-  const toolName = payload.tool_name || payload.toolName || process.env.CLAUDE_TOOL_NAME || "(unknown)";
   const msg = [
     header,
     `Plan Source: ${summary.source}`,

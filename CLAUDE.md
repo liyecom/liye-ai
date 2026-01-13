@@ -227,9 +227,17 @@ node "$CLAUDE_PROJECT_DIR/.claude/scripts/pre_tool_check.mjs" --post
 node "$CLAUDE_PROJECT_DIR/.claude/scripts/stop_gate.mjs"
 ```
 
+### Mode Defaults & Upgrade Rules
+- Default: **fast** (no blocking)
+- Upgrade to **governed** only when:
+  - `active_track` exists, OR
+  - `3-strike` consecutive failures >= 3, OR
+  - PR / publish / handoff signals detected (git push/commit, gh pr, wrangler/vercel/npm publish, 交接/发布)
+- Stop Gate blocks only in **governed**
+
 ---
 
-**Version**: 2.1
+**Version**: 2.2
 **Last Updated**: 2026-01-13
 **Char Count**: ~6,500 / 10,000
 **i18n**: English SSOT | Chinese display: `i18n/display/zh-CN/CLAUDE.display.md`
