@@ -1,10 +1,13 @@
 # ADR: Cloudflare Workers Runtime Lessons
 
-**ADR ID**: ADR-CLOUDFLARE-WORKERS-RUNTIME-LESSONS
-**Status**: Accepted
+- decision_id: ADR-0004
+- domain: systems
+- status: accepted
+- created: 2026-01-13
+- tags: [cloudflare, workers, runtime, timezone, secrets, llm]
+
 **Scope**: Systems / Cloudflare Workers
 **Related System**: Information Radar v2.4
-**Date**: 2026-01-13
 
 ---
 
