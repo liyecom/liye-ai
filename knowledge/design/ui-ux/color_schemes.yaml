@@ -1,0 +1,257 @@
+# Color Schemes Knowledge Base
+# Source: Design intelligence database
+# Purpose: Color palette catalog by product type
+
+color_schemes:
+  - id: saas_general
+    product_type: SaaS (General)
+    keywords: [saas, general]
+    primary: "#2563EB"
+    secondary: "#3B82F6"
+    cta: "#F97316"
+    background: "#F8FAFC"
+    text: "#1E293B"
+    border: "#E2E8F0"
+    notes: Trust blue + accent contrast
+
+  - id: micro_saas
+    product_type: Micro SaaS
+    keywords: [micro, saas]
+    primary: "#2563EB"
+    secondary: "#3B82F6"
+    cta: "#F97316"
+    background: "#F8FAFC"
+    text: "#1E293B"
+    border: "#E2E8F0"
+    notes: Vibrant primary + white space
+
+  - id: ecommerce
+    product_type: E-commerce
+    keywords: [commerce]
+    primary: "#3B82F6"
+    secondary: "#60A5FA"
+    cta: "#F97316"
+    background: "#F8FAFC"
+    text: "#1E293B"
+    border: "#E2E8F0"
+    notes: Brand primary + success green
+
+  - id: ecommerce_luxury
+    product_type: E-commerce Luxury
+    keywords: [commerce, luxury]
+    primary: "#1C1917"
+    secondary: "#44403C"
+    cta: "#CA8A04"
+    background: "#FAFAF9"
+    text: "#0C0A09"
+    border: "#D6D3D1"
+    notes: Premium colors + minimal accent
+
+  - id: b2b_service
+    product_type: B2B Service
+    keywords: [b2b, service]
+    primary: "#0F172A"
+    secondary: "#334155"
+    cta: "#0369A1"
+    background: "#F8FAFC"
+    text: "#020617"
+    border: "#E2E8F0"
+    notes: Professional blue + neutral grey
+
+  - id: healthcare_app
+    product_type: Healthcare App
+    keywords: [healthcare, app]
+    primary: "#0891B2"
+    secondary: "#22D3EE"
+    cta: "#059669"
+    background: "#ECFEFF"
+    text: "#164E63"
+    border: "#A5F3FC"
+    notes: Calm blue + health green + trust
+
+  - id: educational_app
+    product_type: Educational App
+    keywords: [educational, app]
+    primary: "#4F46E5"
+    secondary: "#818CF8"
+    cta: "#F97316"
+    background: "#EEF2FF"
+    text: "#1E1B4B"
+    border: "#C7D2FE"
+    notes: Playful colors + clear hierarchy
+
+  - id: creative_agency
+    product_type: Creative Agency
+    keywords: [creative, agency]
+    primary: "#EC4899"
+    secondary: "#F472B6"
+    cta: "#06B6D4"
+    background: "#FDF2F8"
+    text: "#831843"
+    border: "#FBCFE8"
+    notes: Bold primaries + artistic freedom
+
+  - id: gaming
+    product_type: Gaming
+    keywords: [gaming]
+    primary: "#7C3AED"
+    secondary: "#A78BFA"
+    cta: "#F43F5E"
+    background: "#0F0F23"
+    text: "#E2E8F0"
+    border: "#4C1D95"
+    notes: Vibrant + neon + immersive colors
+
+  - id: fintech_crypto
+    product_type: Fintech/Crypto
+    keywords: [fintech, crypto]
+    primary: "#F59E0B"
+    secondary: "#FBBF24"
+    cta: "#8B5CF6"
+    background: "#0F172A"
+    text: "#F8FAFC"
+    border: "#334155"
+    notes: Dark tech colors + trust + vibrant accents
+
+  - id: ai_chatbot
+    product_type: AI/Chatbot Platform
+    keywords: [chatbot, platform]
+    primary: "#7C3AED"
+    secondary: "#A78BFA"
+    cta: "#06B6D4"
+    background: "#FAF5FF"
+    text: "#1E1B4B"
+    border: "#DDD6FE"
+    notes: Neutral + AI Purple (#6366F1)
+
+  - id: beauty_spa_wellness
+    product_type: Beauty/Spa/Wellness Service
+    keywords: [beauty, spa, wellness, service]
+    primary: "#10B981"
+    secondary: "#34D399"
+    cta: "#8B5CF6"
+    background: "#ECFDF5"
+    text: "#064E3B"
+    border: "#A7F3D0"
+    notes: Soft pastels (Pink #FFB6C1 Sage #90EE90) + Cream + Gold accents
+
+  - id: luxury_premium
+    product_type: Luxury/Premium Brand
+    keywords: [luxury, premium, brand]
+    primary: "#1C1917"
+    secondary: "#44403C"
+    cta: "#CA8A04"
+    background: "#FAFAF9"
+    text: "#0C0A09"
+    border: "#D6D3D1"
+    notes: Black + Gold (#FFD700) + White + Minimal accent
+
+  - id: restaurant_food
+    product_type: Restaurant/Food Service
+    keywords: [restaurant, food, service]
+    primary: "#DC2626"
+    secondary: "#F87171"
+    cta: "#CA8A04"
+    background: "#FEF2F2"
+    text: "#450A0A"
+    border: "#FECACA"
+    notes: Warm colors (Orange Red Brown) + appetizing imagery
+
+  - id: fitness_gym
+    product_type: Fitness/Gym App
+    keywords: [fitness, gym, app]
+    primary: "#DC2626"
+    secondary: "#F87171"
+    cta: "#16A34A"
+    background: "#FEF2F2"
+    text: "#1F2937"
+    border: "#FECACA"
+    notes: Energetic (Orange #FF6B35 Electric Blue) + Dark bg
+
+  - id: real_estate
+    product_type: Real Estate/Property
+    keywords: [real, estate, property]
+    primary: "#0F766E"
+    secondary: "#14B8A6"
+    cta: "#0369A1"
+    background: "#F0FDFA"
+    text: "#134E4A"
+    border: "#99F6E4"
+    notes: Trust Blue (#0077B6) + Gold accents + White
+
+  - id: legal_services
+    product_type: Legal Services
+    keywords: [legal, services]
+    primary: "#1E3A8A"
+    secondary: "#1E40AF"
+    cta: "#B45309"
+    background: "#F8FAFC"
+    text: "#0F172A"
+    border: "#CBD5E1"
+    notes: Navy Blue (#1E3A5F) + Gold + White
+
+  - id: banking_finance
+    product_type: Banking/Traditional Finance
+    keywords: [banking, traditional, finance]
+    primary: "#0F766E"
+    secondary: "#14B8A6"
+    cta: "#0369A1"
+    background: "#F0FDFA"
+    text: "#134E4A"
+    border: "#99F6E4"
+    notes: Navy (#0A1628) + Trust Blue + Gold accents
+
+  - id: cybersecurity
+    product_type: Cybersecurity Platform
+    keywords: [cybersecurity, security, cyber, hacker]
+    primary: "#00FF41"
+    secondary: "#0D0D0D"
+    cta: "#00FF41"
+    background: "#000000"
+    text: "#E0E0E0"
+    border: "#1F1F1F"
+    notes: Matrix Green + Deep Black + Terminal feel
+
+  - id: developer_tools
+    product_type: Developer Tool / IDE
+    keywords: [developer, tool, ide, code, dev]
+    primary: "#3B82F6"
+    secondary: "#1E293B"
+    cta: "#2563EB"
+    background: "#0F172A"
+    text: "#F1F5F9"
+    border: "#334155"
+    notes: Dark syntax theme colors + Blue focus
+
+  - id: biotech
+    product_type: Biotech / Life Sciences
+    keywords: [biotech, science, biology, medical]
+    primary: "#0EA5E9"
+    secondary: "#0284C7"
+    cta: "#10B981"
+    background: "#F8FAFC"
+    text: "#0F172A"
+    border: "#E2E8F0"
+    notes: Sterile White + DNA Blue + Life Green
+
+  - id: space_tech
+    product_type: Space Tech / Aerospace
+    keywords: [space, aerospace, tech, futuristic]
+    primary: "#FFFFFF"
+    secondary: "#94A3B8"
+    cta: "#3B82F6"
+    background: "#0B0B10"
+    text: "#F8FAFC"
+    border: "#1E293B"
+    notes: Deep Space Black + Star White + Metallic
+
+  - id: climate_tech
+    product_type: Climate Tech
+    keywords: [climate, green, energy]
+    primary: "#2E8B57"
+    secondary: "#87CEEB"
+    cta: "#FFD700"
+    background: "#F0FFF4"
+    text: "#1A3320"
+    border: "#C6E6C6"
+    notes: Nature Green + Solar Yellow + Air Blue

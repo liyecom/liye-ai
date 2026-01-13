@@ -1,0 +1,19 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+title = "LiYe OS Gitleaks Config"
+
+[allowlist]
+  description = "Allowlist for false positives"
+
+  # UI/UX knowledge files contain design tokens, not secrets
+  paths = [
+    '''knowledge/design/ui-ux/.*\.yaml$''',
+  ]
+
+  # Allow specific patterns that are not secrets
+  regexTarget = "match"
+  regexes = [
+    '''ensure_\d+\.\d+_contrast''',
+    '''WCAG_AA[A]?''',
+  ]

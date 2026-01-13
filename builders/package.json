@@ -1,0 +1,17 @@
+{
+  "name": "@liye-os/builders",
+  "version": "1.0.0",
+  "description": "LiYe OS Builder System - Contract-to-UI pipeline",
+  "type": "module",
+  "scripts": {
+    "ir": "npx tsx adapters/site-design.adapter.ts",
+    "theme": "npx tsx theme-factory/builder.ts",
+    "check": "npx tsx theme-factory/compliance.ts"
+  },
+  "devDependencies": {
+    "yaml": "^2.3.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

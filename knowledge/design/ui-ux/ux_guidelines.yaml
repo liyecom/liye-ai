@@ -1,0 +1,453 @@
+# UX Guidelines Knowledge Base
+# Source: Design intelligence database
+# Purpose: UX patterns and anti-patterns reference
+
+ux_guidelines:
+  # Navigation
+  - id: smooth_scroll
+    category: navigation
+    issue: Smooth Scroll
+    platform: web
+    description: Anchor links should scroll smoothly to target section
+    severity: high
+
+  - id: sticky_navigation
+    category: navigation
+    issue: Sticky Navigation
+    platform: web
+    description: Fixed nav should not obscure content
+    severity: medium
+
+  - id: active_state
+    category: navigation
+    issue: Active State
+    platform: all
+    description: Current page/section should be visually indicated
+    severity: medium
+
+  - id: back_button
+    category: navigation
+    issue: Back Button
+    platform: mobile
+    description: Users expect back to work predictably
+    severity: high
+
+  - id: deep_linking
+    category: navigation
+    issue: Deep Linking
+    platform: all
+    description: URLs should reflect current state for sharing
+    severity: medium
+
+  # Animation
+  - id: excessive_motion
+    category: animation
+    issue: Excessive Motion
+    platform: all
+    description: Too many animations cause distraction and motion sickness
+    severity: high
+
+  - id: duration_timing
+    category: animation
+    issue: Duration Timing
+    platform: all
+    description: Animations should feel responsive not sluggish (150-300ms for micro-interactions)
+    severity: medium
+
+  - id: reduced_motion
+    category: animation
+    issue: Reduced Motion
+    platform: all
+    description: Respect user's motion preferences via prefers-reduced-motion
+    severity: high
+
+  - id: loading_states
+    category: animation
+    issue: Loading States
+    platform: all
+    description: Show feedback during async operations
+    severity: high
+
+  - id: hover_vs_tap
+    category: animation
+    issue: Hover vs Tap
+    platform: all
+    description: Hover effects don't work on touch devices
+    severity: high
+
+  - id: transform_performance
+    category: animation
+    issue: Transform Performance
+    platform: web
+    description: Use transform and opacity for animations, avoid width/height/top/left
+    severity: medium
+
+  # Layout
+  - id: z_index_management
+    category: layout
+    issue: Z-Index Management
+    platform: web
+    description: Define z-index scale system (10, 20, 30, 50) to avoid conflicts
+    severity: high
+
+  - id: overflow_hidden
+    category: layout
+    issue: Overflow Hidden
+    platform: web
+    description: Hidden overflow can clip important content
+    severity: medium
+
+  - id: content_jumping
+    category: layout
+    issue: Content Jumping
+    platform: web
+    description: Layout shift when content loads is jarring
+    severity: high
+
+  - id: viewport_units
+    category: layout
+    issue: Viewport Units
+    platform: web
+    description: 100vh can be problematic on mobile browsers - use dvh
+    severity: medium
+
+  - id: container_width
+    category: layout
+    issue: Container Width
+    platform: web
+    description: Limit max-width for text content (65-75ch)
+    severity: medium
+
+  # Touch
+  - id: touch_target_size
+    category: touch
+    issue: Touch Target Size
+    platform: mobile
+    description: Minimum 44x44px touch targets
+    severity: high
+
+  - id: touch_spacing
+    category: touch
+    issue: Touch Spacing
+    platform: mobile
+    description: Minimum 8px gap between touch targets
+    severity: medium
+
+  - id: gesture_conflicts
+    category: touch
+    issue: Gesture Conflicts
+    platform: mobile
+    description: Custom gestures can conflict with system gestures
+    severity: medium
+
+  # Interaction
+  - id: focus_states
+    category: interaction
+    issue: Focus States
+    platform: all
+    description: Keyboard users need visible focus indicators
+    severity: high
+
+  - id: hover_states
+    category: interaction
+    issue: Hover States
+    platform: web
+    description: Visual feedback on interactive elements
+    severity: medium
+
+  - id: disabled_states
+    category: interaction
+    issue: Disabled States
+    platform: all
+    description: Clearly indicate non-interactive elements with opacity and cursor
+    severity: medium
+
+  - id: loading_buttons
+    category: interaction
+    issue: Loading Buttons
+    platform: all
+    description: Prevent double submission during async actions
+    severity: high
+
+  - id: error_feedback
+    category: interaction
+    issue: Error Feedback
+    platform: all
+    description: Users need to know when something fails
+    severity: high
+
+  - id: confirmation_dialogs
+    category: interaction
+    issue: Confirmation Dialogs
+    platform: all
+    description: Confirm before delete/irreversible actions
+    severity: high
+
+  # Accessibility
+  - id: color_contrast
+    category: accessibility
+    issue: Color Contrast
+    platform: all
+    description: Minimum 4.5:1 ratio for normal text
+    severity: high
+
+  - id: color_only
+    category: accessibility
+    issue: Color Only
+    platform: all
+    description: Don't convey information by color alone
+    severity: high
+
+  - id: alt_text
+    category: accessibility
+    issue: Alt Text
+    platform: all
+    description: Images need text alternatives
+    severity: high
+
+  - id: heading_hierarchy
+    category: accessibility
+    issue: Heading Hierarchy
+    platform: web
+    description: Use sequential heading levels h1-h6
+    severity: medium
+
+  - id: aria_labels
+    category: accessibility
+    issue: ARIA Labels
+    platform: all
+    description: Interactive elements need accessible names
+    severity: high
+
+  - id: keyboard_navigation
+    category: accessibility
+    issue: Keyboard Navigation
+    platform: web
+    description: All functionality accessible via keyboard
+    severity: high
+
+  - id: form_labels
+    category: accessibility
+    issue: Form Labels
+    platform: all
+    description: Inputs must have associated labels
+    severity: high
+
+  - id: skip_links
+    category: accessibility
+    issue: Skip Links
+    platform: web
+    description: Allow keyboard users to skip navigation
+    severity: medium
+
+  # Performance
+  - id: image_optimization
+    category: performance
+    issue: Image Optimization
+    platform: all
+    description: Use appropriate size and format (WebP)
+    severity: high
+
+  - id: lazy_loading
+    category: performance
+    issue: Lazy Loading
+    platform: all
+    description: Load content as needed
+    severity: medium
+
+  - id: font_loading
+    category: performance
+    issue: Font Loading
+    platform: web
+    description: Use font-display swap or optional
+    severity: medium
+
+  - id: bundle_size
+    category: performance
+    issue: Bundle Size
+    platform: web
+    description: Monitor and minimize bundle size
+    severity: medium
+
+  # Forms
+  - id: input_labels
+    category: forms
+    issue: Input Labels
+    platform: all
+    description: Every input needs a visible label
+    severity: high
+
+  - id: error_placement
+    category: forms
+    issue: Error Placement
+    platform: all
+    description: Show error below related input
+    severity: medium
+
+  - id: inline_validation
+    category: forms
+    issue: Inline Validation
+    platform: all
+    description: Validate on blur for most fields
+    severity: medium
+
+  - id: input_types
+    category: forms
+    issue: Input Types
+    platform: all
+    description: Use appropriate input types (email, tel, number, url)
+    severity: medium
+
+  - id: required_indicators
+    category: forms
+    issue: Required Indicators
+    platform: all
+    description: Mark required fields clearly with asterisk or (required)
+    severity: medium
+
+  - id: submit_feedback
+    category: forms
+    issue: Submit Feedback
+    platform: all
+    description: Confirm form submission status
+    severity: high
+
+  # Responsive
+  - id: mobile_first
+    category: responsive
+    issue: Mobile First
+    platform: web
+    description: Design for mobile then enhance for larger screens
+    severity: medium
+
+  - id: readable_font_size
+    category: responsive
+    issue: Readable Font Size
+    platform: all
+    description: Minimum 16px body text on mobile
+    severity: high
+
+  - id: viewport_meta
+    category: responsive
+    issue: Viewport Meta
+    platform: web
+    description: Set viewport width=device-width initial-scale=1
+    severity: high
+
+  - id: horizontal_scroll
+    category: responsive
+    issue: Horizontal Scroll
+    platform: web
+    description: Avoid horizontal scrolling - ensure content fits viewport
+    severity: high
+
+  # Typography
+  - id: line_height
+    category: typography
+    issue: Line Height
+    platform: all
+    description: Use 1.5-1.75 for body text
+    severity: medium
+
+  - id: line_length
+    category: typography
+    issue: Line Length
+    platform: web
+    description: Limit to 65-75 characters per line
+    severity: medium
+
+  - id: contrast_readability
+    category: typography
+    issue: Contrast Readability
+    platform: all
+    description: Use darker text on light backgrounds
+    severity: high
+
+  # Feedback
+  - id: loading_indicators
+    category: feedback
+    issue: Loading Indicators
+    platform: all
+    description: Show spinner/skeleton for operations > 300ms
+    severity: high
+
+  - id: empty_states
+    category: feedback
+    issue: Empty States
+    platform: all
+    description: Guide users when no content exists
+    severity: medium
+
+  - id: error_recovery
+    category: feedback
+    issue: Error Recovery
+    platform: all
+    description: Help users recover from errors with clear next steps
+    severity: medium
+
+  - id: toast_notifications
+    category: feedback
+    issue: Toast Notifications
+    platform: all
+    description: Auto-dismiss after 3-5 seconds
+    severity: medium
+
+  # AI Interaction
+  - id: ai_disclaimer
+    category: ai_interaction
+    issue: AI Disclaimer
+    platform: all
+    description: Clearly label AI generated content
+    severity: high
+
+  - id: ai_streaming
+    category: ai_interaction
+    issue: Streaming Response
+    platform: all
+    description: Stream text response token by token
+    severity: medium
+
+  - id: ai_feedback_loop
+    category: ai_interaction
+    issue: Feedback Loop
+    platform: all
+    description: AI needs user feedback to improve (thumbs up/down)
+    severity: low
+
+  # Spatial UI
+  - id: gaze_hover
+    category: spatial_ui
+    issue: Gaze Hover
+    platform: visionos
+    description: Elements should respond to eye tracking before pinch
+    severity: high
+
+  - id: depth_layering
+    category: spatial_ui
+    issue: Depth Layering
+    platform: visionos
+    description: UI needs Z-depth to separate content from environment
+    severity: medium
+
+  # Sustainability
+  - id: auto_play_video
+    category: sustainability
+    issue: Auto-Play Video
+    platform: web
+    description: Click-to-play or pause when off-screen
+    severity: medium
+
+  - id: asset_weight
+    category: sustainability
+    issue: Asset Weight
+    platform: web
+    description: Compress and lazy load 3D models
+    severity: medium
+
+  # Motion Sensitivity
+  - id: motion_sensitivity
+    category: accessibility
+    issue: Motion Sensitivity
+    platform: all
+    description: Parallax/Scroll-jacking causes nausea - respect prefers-reduced-motion
+    severity: high

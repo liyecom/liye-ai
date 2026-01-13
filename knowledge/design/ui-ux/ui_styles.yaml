@@ -1,0 +1,258 @@
+# UI Styles Knowledge Base
+# Source: Design intelligence database
+# Purpose: Descriptive catalog of UI style patterns
+
+styles:
+  - id: minimalism
+    category: general
+    keywords: [clean, simple, spacious, functional, white-space, high-contrast, geometric, sans-serif, grid-based]
+    primary_colors: ["#000000", "#FFFFFF"]
+    secondary_colors: ["#F5F1E8", "#808080", "#B38B6D"]
+    effects: [subtle-hover, smooth-transitions, sharp-shadows, clear-type-hierarchy]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: high
+    era: 1950s_swiss
+    complexity: low
+
+  - id: neumorphism
+    category: general
+    keywords: [soft-ui, embossed, debossed, convex, concave, light-source, subtle-depth, rounded, monochromatic]
+    primary_colors: ["#C8E0F4", "#F5E0E8", "#E8E8E8"]
+    effects: [soft-box-shadow, smooth-press, inner-shadow]
+    light_mode: full
+    dark_mode: partial
+    performance: good
+    accessibility: low_contrast
+    mobile_friendly: good
+    era: 2020s_modern
+    complexity: medium
+
+  - id: glassmorphism
+    category: general
+    keywords: [frosted-glass, transparent, blurred-background, layered, vibrant, depth, multi-layer]
+    primary_colors: ["rgba(255,255,255,0.1)", "rgba(255,255,255,0.3)"]
+    secondary_colors: ["#0080FF", "#8B00FF", "#FF1493", "#20B2AA"]
+    effects: [backdrop-blur, subtle-border, light-reflection, z-depth]
+    light_mode: full
+    dark_mode: full
+    performance: good
+    accessibility: ensure_4.5_contrast
+    mobile_friendly: good
+    era: 2020s_modern
+    complexity: medium
+
+  - id: brutalism
+    category: general
+    keywords: [raw, unpolished, stark, high-contrast, plain-text, default-fonts, visible-borders, asymmetric, anti-design]
+    primary_colors: ["#FF0000", "#0000FF", "#FFFF00", "#000000", "#FFFFFF"]
+    secondary_colors: ["#00FF00", "#FF00FF"]
+    effects: [no-smooth-transitions, sharp-corners, bold-typography, visible-grid]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: medium
+    era: 1950s_brutalist
+    complexity: low
+
+  - id: 3d_hyperrealism
+    category: general
+    keywords: [depth, realistic-textures, 3d-models, spatial-navigation, tactile, skeuomorphic, rich-detail, immersive]
+    primary_colors: ["#001F3F", "#228B22", "#800020", "#FFD700", "#C0C0C0"]
+    effects: [webgl, realistic-shadows, physics-lighting, parallax, smooth-3d]
+    light_mode: partial
+    dark_mode: partial
+    performance: poor
+    accessibility: not_accessible
+    mobile_friendly: low
+    era: 2020s_modern
+    complexity: high
+
+  - id: vibrant_block
+    category: general
+    keywords: [bold, energetic, playful, block-layout, geometric-shapes, high-color-contrast, duotone, modern]
+    primary_colors: ["#39FF14", "#BF00FF", "#FF1493", "#00FFFF", "#FFAA00"]
+    secondary_colors: ["#FF7F00", "#FF006E", "#CCFF00"]
+    effects: [large-sections, animated-patterns, bold-hover, scroll-snap]
+    light_mode: full
+    dark_mode: full
+    performance: good
+    accessibility: ensure_WCAG
+    mobile_friendly: high
+    era: 2020s_modern
+    complexity: medium
+
+  - id: dark_mode_oled
+    category: general
+    keywords: [dark-theme, low-light, high-contrast, deep-black, midnight-blue, eye-friendly, oled, night-mode, power-efficient]
+    primary_colors: ["#000000", "#121212", "#0A0E27"]
+    secondary_colors: ["#39FF14", "#0080FF", "#FFD700", "#BF00FF"]
+    effects: [minimal-glow, dark-to-light-transitions, low-white-emission, high-readability]
+    light_mode: none
+    dark_mode: only
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: high
+    era: 2020s_modern
+    complexity: low
+
+  - id: accessible_ethical
+    category: general
+    keywords: [high-contrast, large-text, keyboard-navigation, screen-reader-friendly, wcag-compliant, focus-state, semantic]
+    primary_colors: ["WCAG_AA_AAA_4.5_min", "high_luminosity_7_plus"]
+    effects: [clear-focus-rings, aria-labels, skip-links, responsive, reduced-motion, 44x44px-touch-targets]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: high
+    era: universal
+    complexity: low
+
+  - id: claymorphism
+    category: general
+    keywords: [soft-3d, chunky, playful, toy-like, bubbly, thick-borders, double-shadows, rounded]
+    primary_colors: ["#FDBCB4", "#ADD8E6", "#98FF98", "#E6E6FA"]
+    effects: [inner-outer-shadows, soft-press, fluffy-elements, smooth-transitions]
+    light_mode: full
+    dark_mode: partial
+    performance: good
+    accessibility: ensure_4.5_contrast
+    mobile_friendly: high
+    era: 2020s_modern
+    complexity: medium
+
+  - id: aurora_ui
+    category: general
+    keywords: [vibrant-gradients, smooth-blend, northern-lights, mesh-gradient, luminous, atmospheric, abstract]
+    primary_colors: ["#0080FF", "#FF1493", "#00FFFF"]
+    effects: [large-flowing-gradients, subtle-animations, depth-via-color-layering, smooth-morph]
+    light_mode: full
+    dark_mode: full
+    performance: good
+    accessibility: text_contrast_check
+    mobile_friendly: good
+    era: 2020s_modern
+    complexity: medium
+
+  - id: retro_futurism
+    category: general
+    keywords: [vintage-sci-fi, 80s-aesthetic, neon-glow, geometric-patterns, crt-scanlines, pixel-art, cyberpunk, synthwave]
+    primary_colors: ["#0080FF", "#FF006E", "#00FFFF", "#1A1A2E", "#5D34D0"]
+    secondary_colors: ["#C0C0C0", "#FFD700", "#FF10F0"]
+    effects: [crt-scanlines, neon-glow, glitch-effects]
+    light_mode: full
+    dark_mode: dark_focused
+    performance: moderate
+    accessibility: high_contrast_strain
+    mobile_friendly: medium
+    era: 1980s_retro
+    complexity: medium
+
+  - id: flat_design
+    category: general
+    keywords: [2d, minimalist, bold-colors, no-shadows, clean-lines, simple-shapes, typography-focused, modern, icon-heavy]
+    primary_colors: [solid-bright-red, orange, blue, green]
+    effects: [no-gradients-shadows, simple-hover, fast-loading, clean-transitions]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: high
+    era: 2010s_modern
+    complexity: low
+
+  - id: neubrutalism
+    category: general
+    keywords: [bold-borders, black-outlines, primary-colors, thick-shadows, no-gradients, flat-colors, 45deg-shadows, playful, gen-z]
+    primary_colors: ["#FFEB3B", "#FF5252", "#2196F3", "#000000"]
+    effects: [box-shadow-4px-4px-0-black, border-3px-solid-black, no-gradients, sharp-corners, bold-typography]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: high
+    era: 2020s_modern
+    complexity: low
+
+  - id: bento_box_grid
+    category: general
+    keywords: [modular-cards, asymmetric-grid, varied-sizes, apple-style, dashboard-tiles, negative-space, clean-hierarchy]
+    primary_colors: ["#FFFFFF", "#F5F5F5"]
+    effects: [grid-template-varied-spans, rounded-xl, subtle-shadows, hover-scale, smooth-transitions]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AA
+    mobile_friendly: high
+    era: 2020s_apple
+    complexity: low
+
+  - id: cyberpunk_ui
+    category: general
+    keywords: [neon, dark-mode, terminal, hud, sci-fi, glitch, dystopian, futuristic, matrix, tech-noir]
+    primary_colors: ["#00FF00", "#FF00FF", "#00FFFF", "#0D0D0D"]
+    effects: [neon-glow, glitch-animations, scanlines, terminal-fonts]
+    light_mode: none
+    dark_mode: only
+    performance: moderate
+    accessibility: limited_dark_neon
+    mobile_friendly: medium
+    era: 2020s_cyberpunk
+    complexity: medium
+
+  - id: organic_biophilic
+    category: general
+    keywords: [nature, organic-shapes, green, sustainable, rounded, flowing, wellness, earthy, natural-textures]
+    primary_colors: ["#228B22", "#8B4513", "#87CEEB", "#F5F5DC"]
+    effects: [rounded-corners, organic-curves, natural-shadows, flowing-svg-shapes]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AA
+    mobile_friendly: high
+    era: 2020s_sustainable
+    complexity: low
+
+  - id: ai_native_ui
+    category: general
+    keywords: [chatbot, conversational, voice, assistant, agentic, ambient, minimal-chrome, streaming-text, ai-interactions]
+    primary_colors: ["#6366F1", "#10B981", "#F5F5F5"]
+    effects: [typing-indicators, streaming-text-animations, pulse-animations, context-cards, smooth-reveals]
+    light_mode: full
+    dark_mode: full
+    performance: excellent
+    accessibility: WCAG_AA
+    mobile_friendly: high
+    era: 2020s_ai_era
+    complexity: low
+
+  - id: spatial_ui_visionos
+    category: general
+    keywords: [glass, depth, immersion, spatial, translucent, gaze, gesture, apple, vision-pro]
+    primary_colors: ["rgba(255,255,255,0.15)", "rgba(255,255,255,0.30)"]
+    effects: [parallax-depth, dynamic-lighting-response, gaze-hover-effects, smooth-scale-on-focus]
+    light_mode: full
+    dark_mode: full
+    performance: moderate_blur_cost
+    accessibility: contrast_risks
+    mobile_friendly: high_if_adapted
+    era: 2024_spatial_era
+    complexity: high
+
+  - id: e_ink_paper
+    category: general
+    keywords: [paper-like, matte, high-contrast, texture, reading, calm, slow-tech, monochrome]
+    primary_colors: ["#FDFBF7", "#F5F5F5", "#1A1A1A"]
+    secondary_colors: ["#4A4A4A", "#FFFF00"]
+    effects: [no-motion-blur, distinct-page-turns, grain-noise-texture, sharp-transitions]
+    light_mode: full
+    dark_mode: low_inverted_only
+    performance: excellent
+    accessibility: WCAG_AAA
+    mobile_friendly: high
+    era: 2020s_digital_wellbeing
+    complexity: low

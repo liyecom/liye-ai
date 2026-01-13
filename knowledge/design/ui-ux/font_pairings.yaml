@@ -1,0 +1,202 @@
+# Font Pairings Knowledge Base
+# Source: Design intelligence database
+# Purpose: Typography pairing catalog with Google Fonts references
+
+font_pairings:
+  - id: classic_elegant
+    name: Classic Elegant
+    category: serif_sans
+    heading_font: Playfair Display
+    body_font: Inter
+    keywords: [elegant, luxury, sophisticated, timeless, premium, editorial]
+    best_for: [luxury-brands, fashion, spa, beauty, editorial, magazines, high-end-ecommerce]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Inter:wght@300;400;500;600;700|Playfair+Display:wght@400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');"
+    notes: High contrast between elegant heading and clean body
+
+  - id: modern_professional
+    name: Modern Professional
+    category: sans_sans
+    heading_font: Poppins
+    body_font: Open Sans
+    keywords: [modern, professional, clean, corporate, friendly, approachable]
+    best_for: [saas, corporate-sites, business-apps, startups, professional-services]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Open+Sans:wght@300;400;500;600;700|Poppins:wght@400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');"
+    notes: Geometric Poppins for headings, humanist Open Sans for readability
+
+  - id: tech_startup
+    name: Tech Startup
+    category: sans_sans
+    heading_font: Space Grotesk
+    body_font: DM Sans
+    keywords: [tech, startup, modern, innovative, bold, futuristic]
+    best_for: [tech-companies, startups, saas, developer-tools, ai-products]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=DM+Sans:wght@400;500;700|Space+Grotesk:wght@400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');"
+    notes: Space Grotesk has unique character, DM Sans is highly readable
+
+  - id: minimal_swiss
+    name: Minimal Swiss
+    category: sans_sans
+    heading_font: Inter
+    body_font: Inter
+    keywords: [minimal, clean, swiss, functional, neutral, professional]
+    best_for: [dashboards, admin-panels, documentation, enterprise-apps, design-systems]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Inter:wght@300;400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');"
+    notes: Single font family with weight variations - ultimate simplicity
+
+  - id: playful_creative
+    name: Playful Creative
+    category: display_sans
+    heading_font: Fredoka
+    body_font: Nunito
+    keywords: [playful, friendly, fun, creative, warm, approachable]
+    best_for: [children-apps, educational, gaming, creative-tools, entertainment]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Fredoka:wght@400;500;600;700|Nunito:wght@300;400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');"
+    notes: Rounded, friendly fonts perfect for playful UIs
+
+  - id: wellness_calm
+    name: Wellness Calm
+    category: serif_sans
+    heading_font: Lora
+    body_font: Raleway
+    keywords: [calm, wellness, health, relaxing, natural, organic]
+    best_for: [health-apps, wellness, spa, meditation, yoga, organic-brands]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Lora:wght@400;500;600;700|Raleway:wght@300;400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Raleway:wght@300;400;500;600;700&display=swap');"
+    notes: Lora's organic curves with Raleway's elegant simplicity
+
+  - id: developer_mono
+    name: Developer Mono
+    category: mono_sans
+    heading_font: JetBrains Mono
+    body_font: IBM Plex Sans
+    keywords: [code, developer, technical, precise, functional, hacker]
+    best_for: [developer-tools, documentation, code-editors, tech-blogs, cli-apps]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=IBM+Plex+Sans:wght@300;400;500;600;700|JetBrains+Mono:wght@400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');"
+    notes: JetBrains for code, IBM Plex for UI - developer focused
+
+  - id: corporate_trust
+    name: Corporate Trust
+    category: sans_sans
+    heading_font: Lexend
+    body_font: Source Sans 3
+    keywords: [corporate, trustworthy, accessible, readable, professional, clean]
+    best_for: [enterprise, government, healthcare, finance, accessibility-focused]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Lexend:wght@300;400;500;600;700|Source+Sans+3:wght@300;400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');"
+    notes: Lexend designed for readability - excellent accessibility
+
+  - id: brutalist_raw
+    name: Brutalist Raw
+    category: mono_mono
+    heading_font: Space Mono
+    body_font: Space Mono
+    keywords: [brutalist, raw, technical, monospace, minimal, stark]
+    best_for: [brutalist-designs, developer-portfolios, experimental, tech-art]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Space+Mono:wght@400;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');"
+    notes: All-mono for raw brutalist aesthetic - limited weights
+
+  - id: vietnamese_friendly
+    name: Vietnamese Friendly
+    category: sans_sans
+    heading_font: Be Vietnam Pro
+    body_font: Noto Sans
+    keywords: [vietnamese, international, readable, clean, multilingual, accessible]
+    best_for: [vietnamese-sites, multilingual-apps, international-products]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Be+Vietnam+Pro:wght@300;400;500;600;700|Noto+Sans:wght@300;400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap');"
+    notes: Be Vietnam Pro excellent Vietnamese support - Noto as fallback
+
+  - id: japanese_elegant
+    name: Japanese Elegant
+    category: serif_sans
+    heading_font: Noto Serif JP
+    body_font: Noto Sans JP
+    keywords: [japanese, elegant, traditional, modern, multilingual, readable]
+    best_for: [japanese-sites, japanese-restaurants, cultural-sites, anime-manga]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Noto+Sans+JP:wght@300;400;500;700|Noto+Serif+JP:wght@400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;600;700&display=swap');"
+    notes: Noto fonts excellent Japanese support - traditional + modern feel
+
+  - id: korean_modern
+    name: Korean Modern
+    category: sans_sans
+    heading_font: Noto Sans KR
+    body_font: Noto Sans KR
+    keywords: [korean, modern, clean, professional, multilingual, readable]
+    best_for: [korean-sites, k-beauty, k-pop, korean-businesses, multilingual]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Noto+Sans+KR:wght@300;400;500;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');"
+    notes: Clean Korean typography - single font with weight variations
+
+  - id: chinese_simplified
+    name: Chinese Simplified
+    category: sans_sans
+    heading_font: Noto Sans SC
+    body_font: Noto Sans SC
+    keywords: [chinese, simplified, modern, professional, multilingual, readable]
+    best_for: [simplified-chinese-sites, mainland-china-market, business-apps]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Noto+Sans+SC:wght@300;400;500;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');"
+    notes: Simplified Chinese support - clean modern look
+
+  - id: arabic_elegant
+    name: Arabic Elegant
+    category: serif_sans
+    heading_font: Noto Naskh Arabic
+    body_font: Noto Sans Arabic
+    keywords: [arabic, elegant, traditional, cultural, rtl, readable]
+    best_for: [arabic-sites, middle-east-market, islamic-content, bilingual-sites]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Noto+Naskh+Arabic:wght@400;500;600;700|Noto+Sans+Arabic:wght@300;400;500;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;500;700&display=swap');"
+    notes: RTL support - Naskh for traditional, Sans for modern Arabic
+
+  - id: accessibility_first
+    name: Accessibility First
+    category: sans_sans
+    heading_font: Atkinson Hyperlegible
+    body_font: Atkinson Hyperlegible
+    keywords: [accessible, readable, inclusive, wcag, dyslexia-friendly, clear]
+    best_for: [accessibility-critical-sites, government, healthcare, inclusive-design]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Atkinson+Hyperlegible:wght@400;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');"
+    notes: Designed for maximum legibility - excellent for accessibility
+
+  - id: gaming_bold
+    name: Gaming Bold
+    category: display_sans
+    heading_font: Russo One
+    body_font: Chakra Petch
+    keywords: [gaming, bold, action, esports, competitive, energetic]
+    best_for: [gaming, esports, action-games, competitive-sports, entertainment]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Chakra+Petch:wght@300;400;500;600;700|Russo+One"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap');"
+    notes: Russo One for impact - Chakra Petch for techy body text
+
+  - id: crypto_web3
+    name: Crypto/Web3
+    category: sans_sans
+    heading_font: Orbitron
+    body_font: Exo 2
+    keywords: [crypto, web3, futuristic, tech, blockchain, digital]
+    best_for: [crypto-platforms, nft, blockchain, web3, futuristic-tech]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Exo+2:wght@300;400;500;600;700|Orbitron:wght@400;500;600;700"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap');"
+    notes: Orbitron for futuristic headers - Exo 2 for readable body
+
+  - id: pixel_retro
+    name: Pixel Retro
+    category: display_sans
+    heading_font: Press Start 2P
+    body_font: VT323
+    keywords: [pixel, retro, gaming, 8-bit, nostalgic, arcade]
+    best_for: [pixel-art-games, retro-websites, creative-portfolios]
+    google_fonts_url: "https://fonts.google.com/share?selection.family=Press+Start+2P|VT323"
+    css_import: "@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');"
+    notes: Press Start 2P is very wide/large - VT323 better for body text
