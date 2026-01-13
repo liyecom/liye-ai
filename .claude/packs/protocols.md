@@ -355,6 +355,49 @@ vim tools/notion-sync/.env  # Reconfigure
 
 ---
 
-**Char Count:** ~8,500 / 15,000 ✅
+## Protocol: 3-Strike (Consecutive Failures Stop-Loss)
+
+### Definition
+- **Strike** = one tool/action failure (non-zero exit, explicit error, failed test, etc.)
+- We count **consecutive** strikes. Any success resets consecutive count to 0.
+
+### On 3rd consecutive strike (Recovery Mode)
+Must do ALL:
+1) State the most likely root cause (1–2 hypotheses)
+2) Shrink blast radius: propose 1–2 minimal, low-risk next actions
+3) If needed: rollback plan (how to return to safe state)
+4) Auto-upgrade execution_mode to `governed` with a reason
+
+### Output Template
+```markdown
+## 3-Strike Recovery
+
+**Root cause hypothesis:**
+- Hypothesis 1: ...
+- Hypothesis 2: ...
+
+**Minimal next actions:**
+1. ...
+2. ...
+
+**Rollback (if needed):**
+- ...
+
+**Upgrade reason:**
+- 3-strike triggered: consecutive failures >= 3
+```
+
+### Fast Path vs Governed Path
+
+| Aspect | Fast Path (Default) | Governed Path |
+|--------|---------------------|---------------|
+| **Startup cost** | Zero/low | Full context compile |
+| **Writes to** | traces/ only | memory_brief + ADR |
+| **Stop gate** | Non-blocking | Blocks if incomplete |
+| **When** | Normal operation | After 3-strike / handoff / PR |
+
+---
+
+**Char Count:** ~9,500 / 15,000 ✅
 
 <!-- i18n: Chinese display version at i18n/display/zh-CN/packs/protocols.md -->

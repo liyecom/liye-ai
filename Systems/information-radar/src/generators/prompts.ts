@@ -159,9 +159,11 @@ export const WEEKLY_DIGEST_PROMPT = `你是一个技术情报分析师，负责�
  */
 export const DAILY_DIGEST_USER_PROMPT = `请为以下 {{count}} 条信号生成每日简报:
 
+今日日期: {{date}} ({{dayOfWeek}})
+
 {{signals}}
 
-请按照系统提示的 JSON 格式返回每日简报。`;
+请按照系统提示的 JSON 格式返回每日简报。注意: date 字段请使用上面给出的"今日日期"。`;
 
 /**
  * User prompt template for weekly digest

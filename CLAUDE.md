@@ -189,7 +189,55 @@ git commit -m "..."
 
 ---
 
-**Version**: 2.0
-**Last Updated**: 2026-01-02
-**Char Count**: ~5,000 / 10,000
+## Execution Policy: Two-Speed (D) + Traces-First (F1)
+
+### Concepts (plain language)
+- **Session** = this chat's temporary cockpit (keep goal/phase/next actions aligned)
+- **Track** = long-lived project folder for audit, handoff, governance
+
+### Default Mode
+- Start in **Fast Path** unless an active Track is detected.
+- Fast Path writes facts to **traces/** only.
+- Only after upgrade to **Governed Path**, we curate traces into **memory_brief** (and ADR if needed).
+
+### 3-Strike Protocol (Stop-loss)
+- Count **consecutive** failures.
+- On the 3rd consecutive failure → enter **Recovery Mode** and auto-upgrade to **governed**.
+
+### Upgrade Triggers (Fast → Governed)
+- consecutive_errors >= 3 (3-strike)
+- multi-session continuation / PR / handoff / publication
+- new terminology / new constraints / decisions requiring ADR
+
+### Hook Setup (Project settings)
+> Do NOT commit your `.claude/settings.local.json`.
+Use Claude Code `/hooks` to register commands below (project scope).
+
+**Recommended hooks**
+- SessionStart → ensure memory_state + session plan (no Track)
+- UserPromptSubmit (fallback alignment) → pre_tool_check
+- PreToolUse → pre_tool_check (best-effort; may be flaky in some versions)
+- PostToolUse → pre_tool_check --post (to update counters / strike)
+- Stop → stop_gate (completion gate)
+
+**Commands**
+```bash
+node "$CLAUDE_PROJECT_DIR/.claude/scripts/pre_tool_check.mjs"
+node "$CLAUDE_PROJECT_DIR/.claude/scripts/pre_tool_check.mjs" --post
+node "$CLAUDE_PROJECT_DIR/.claude/scripts/stop_gate.mjs"
+```
+
+### Mode Defaults & Upgrade Rules
+- Default: **fast** (no blocking)
+- Upgrade to **governed** only when:
+  - `active_track` exists, OR
+  - `3-strike` consecutive failures >= 3, OR
+  - PR / publish / handoff signals detected (git push/commit, gh pr, wrangler/vercel/npm publish, 交接/发布)
+- Stop Gate blocks only in **governed**
+
+---
+
+**Version**: 2.2
+**Last Updated**: 2026-01-13
+**Char Count**: ~6,500 / 10,000
 **i18n**: English SSOT | Chinese display: `i18n/display/zh-CN/CLAUDE.display.md`

@@ -66,18 +66,31 @@ async function callLLMForDigest(
 }
 
 /**
- * Format date as YYYY-MM-DD
+ * Get Beijing timezone date
+ * Important: Cron runs at UTC 23:00 = Beijing 7:00 AM next day
+ * So we need to use Beijing timezone for correct date
  */
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+function getBeijingDate(date: Date = new Date()): Date {
+  // Add 8 hours to UTC to get Beijing time
+  const beijingOffset = 8 * 60 * 60 * 1000; // 8 hours in ms
+  return new Date(date.getTime() + beijingOffset);
 }
 
 /**
- * Get day of week in Chinese
+ * Format date as YYYY-MM-DD (Beijing timezone)
+ */
+function formatDate(date: Date): string {
+  const beijing = getBeijingDate(date);
+  return beijing.toISOString().split("T")[0];
+}
+
+/**
+ * Get day of week in Chinese (Beijing timezone)
  */
 function getDayOfWeekCN(date: Date): string {
+  const beijing = getBeijingDate(date);
   const days = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-  return days[date.getDay()];
+  return days[beijing.getUTCDay()];
 }
 
 /**
@@ -314,6 +327,8 @@ export async function generateDailyDigest(
 
     const userPrompt = DAILY_DIGEST_USER_PROMPT
       .replace("{{count}}", String(signals.length))
+      .replace("{{date}}", dateStr)
+      .replace("{{dayOfWeek}}", dayOfWeek)
       .replace("{{signals}}", signalsText);
 
     // Call LLM with timeout
