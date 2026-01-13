@@ -1,0 +1,219 @@
+# Site Design Contract (Global Template)
+# =============================================================================
+# Version: 1.0
+# Kind: site-design
+# Scope: global-template
+# Created: 2026-01-13
+#
+# PURPOSE:
+# This is the global template for site-level design constraints.
+# Project instances MUST extend this template and provide concrete values
+# in tracks/<track_id>/site-design.contract.yaml
+#
+# AUTHORITY:
+# - Architecture Constitution (SSOT)
+# - Amendment 2026-01-11-E: Utility / Service / Engine Classification
+# =============================================================================
+
+version: "1.0"
+kind: site-design
+scope: global-template
+enforcement: advisory   # advisory | warning | blocking
+
+description: |
+  Global template for site-level design constraints.
+  Project instances must extend this template and
+  provide concrete values in tracks/<track_id>/.
+
+# -----------------------------------------------------------------------------
+# INTENDED USAGE
+# -----------------------------------------------------------------------------
+intended_usage:
+  skills:
+    - "UI/UX Skills derive tokens and constraints from this file"
+    - "Skills write project instances, never consume templates directly"
+  builders:
+    - "Builders consume track-level instances ONLY"
+    - "Builders CANNOT modify contracts"
+
+# -----------------------------------------------------------------------------
+# DEFAULTS (can be overridden in project instances)
+# -----------------------------------------------------------------------------
+defaults:
+  site_type: saas          # saas | docs | landing | blog | dashboard
+  audience: b2b            # b2b | b2c | developer | enterprise
+  tone: professional       # professional | casual | technical | friendly
+
+# -----------------------------------------------------------------------------
+# STYLE SYSTEM
+# -----------------------------------------------------------------------------
+style:
+  allowed_modes:
+    - light
+    - dark
+  default_mode: light
+
+  palette_strategy: semantic  # semantic | brand | neutral
+
+# -----------------------------------------------------------------------------
+# DESIGN TOKENS (null = must be provided in instance)
+# -----------------------------------------------------------------------------
+tokens:
+  colors:
+    primary: null           # e.g., "#4F46E5"
+    secondary: null         # e.g., "#10B981"
+    background: null        # e.g., "#0B1220"
+    surface: null           # e.g., "#1E293B"
+    text:
+      primary: null         # e.g., "#F8FAFC"
+      secondary: null       # e.g., "#94A3B8"
+    accent: null            # e.g., "#F59E0B"
+    error: null             # e.g., "#EF4444"
+    success: null           # e.g., "#22C55E"
+    warning: null           # e.g., "#F59E0B"
+
+  typography:
+    primary_font: null      # e.g., "Inter"
+    heading_font: null      # e.g., "Inter" (can be same as primary)
+    mono_font: null         # e.g., "JetBrains Mono"
+    max_fonts: 2            # Maximum number of font families
+
+    scale:
+      base: 16              # Base font size in px
+      ratio: 1.25           # Type scale ratio
+
+    weights:
+      normal: 400
+      medium: 500
+      semibold: 600
+      bold: 700
+
+  spacing:
+    base_unit: 8            # Base spacing unit in px
+    scale: [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128]
+
+  borders:
+    radius:
+      none: 0
+      sm: 4
+      md: 8
+      lg: 12
+      xl: 16
+      full: 9999
+
+    width:
+      default: 1
+      thick: 2
+
+  shadows:
+    allow_shadows: true
+    max_elevation: 3        # Number of elevation levels
+
+# -----------------------------------------------------------------------------
+# LAYOUT CONSTRAINTS
+# -----------------------------------------------------------------------------
+constraints:
+  layout:
+    max_width_px: 1200
+    content_max_width_px: 800
+    min_mobile_width_px: 320
+
+    grid:
+      columns: 12
+      gutter_px: 24
+
+    breakpoints:
+      sm: 640
+      md: 768
+      lg: 1024
+      xl: 1280
+      2xl: 1536
+
+  motion:
+    allow_heavy_runtime_animation: false
+    max_animation_duration_ms: 500
+    prefer_reduced_motion: true
+
+  images:
+    require_alt_text: true
+    max_hero_size_kb: 500
+    allowed_formats:
+      - webp
+      - png
+      - jpg
+      - svg
+
+# -----------------------------------------------------------------------------
+# UX REQUIREMENTS
+# -----------------------------------------------------------------------------
+ux:
+  accessibility:
+    min_contrast_ratio: 4.5           # WCAG AA
+    min_contrast_ratio_large: 3.0     # WCAG AA for large text
+    require_focus_indicators: true
+    require_skip_links: true
+    require_aria_labels: true
+
+  anti_patterns:
+    # These UX patterns are explicitly forbidden
+    - confirm_shaming               # e.g., "No thanks, I don't want to save money"
+    - forced_popup                  # Popups that can't be dismissed
+    - dark_patterns                 # Deceptive UI tricks
+    - infinite_scroll_without_nav   # No way to navigate to specific content
+    - auto_play_media               # Video/audio that plays automatically
+    - hover_only_content            # Content only accessible via hover
+
+  navigation:
+    require_breadcrumbs: false
+    max_menu_depth: 3
+    require_search: false           # For sites with >20 pages
+
+  forms:
+    require_labels: true
+    require_error_messages: true
+    allow_inline_validation: true
+
+# -----------------------------------------------------------------------------
+# RULES (machine-executable constraints)
+# -----------------------------------------------------------------------------
+rules:
+  - id: design-001
+    name: "Design contract must be instantiated per track"
+    description: |
+      Builders must not consume this global template directly.
+      Each project must have its own instance in tracks/<track_id>/.
+    violation_action: block_build
+    source: "Architecture Constitution §Design Governance"
+
+  - id: design-002
+    name: "Skills cannot generate code directly"
+    description: |
+      UI/UX Skills may only write contract instances.
+      Code generation is the Builder's responsibility.
+    violation_action: block_build
+    source: "Architecture Constitution §Separation of Concerns"
+
+  - id: design-003
+    name: "Builders cannot modify contracts"
+    description: |
+      Builders are read-only consumers of contracts.
+      Only Skills may create or update contract instances.
+    violation_action: block_commit
+    source: "Architecture Constitution §SSOT Principle"
+
+  - id: design-004
+    name: "Required tokens must be provided"
+    description: |
+      Tokens marked as null in the template must have values
+      in the project instance. Validation fails if any required
+      token remains null.
+    violation_action: warning
+    source: "Architecture Constitution §Completeness"
+
+  - id: design-005
+    name: "Anti-patterns are forbidden"
+    description: |
+      Any implementation that uses patterns listed in ux.anti_patterns
+      must be rejected during review.
+    violation_action: block_merge
+    source: "Architecture Constitution §UX Standards"

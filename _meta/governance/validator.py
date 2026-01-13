@@ -4,10 +4,22 @@ LiYe OS Architecture Validator
 验证系统是否符合架构宪法
 
 Usage: python _meta/governance/validator.py
+
+Extended in v1.1 (2026-01-13):
+- Added contracts validation against JSON schema
+- Added enforcement level checking (blocking/warning/advisory)
 """
 
 import yaml
+import json
 from pathlib import Path
+from typing import List, Dict, Any, Tuple
+
+try:
+    import jsonschema
+    HAS_JSONSCHEMA = True
+except ImportError:
+    HAS_JSONSCHEMA = False
 
 class ArchitectureValidator:
     def __init__(self):
@@ -67,6 +79,104 @@ class ArchitectureValidator:
         # 目前只做基础验证
         return []
 
+    def validate_contracts(self) -> Tuple[List[str], List[str], bool]:
+        """
+        验证所有 contract 文件是否符合 schema
+
+        Returns:
+            Tuple[violations, warnings, has_blocking_failure]
+        """
+        violations = []
+        warnings = []
+        has_blocking_failure = False
+
+        # Load schema
+        schema_path = self.repo_root / "_meta/schemas/contracts.schema.json"
+        if not schema_path.exists():
+            warnings.append("⚠️  contracts.schema.json not found, skipping contract validation")
+            return violations, warnings, has_blocking_failure
+
+        if not HAS_JSONSCHEMA:
+            warnings.append("⚠️  jsonschema not installed, skipping contract validation")
+            warnings.append("   Install with: pip install jsonschema")
+            return violations, warnings, has_blocking_failure
+
+        with open(schema_path) as f:
+            schema = json.load(f)
+
+        # Find all contract files
+        contract_files = []
+
+        # Global templates in _meta/contracts/
+        contracts_dir = self.repo_root / "_meta/contracts"
+        if contracts_dir.exists():
+            contract_files.extend(contracts_dir.glob("*.contract.yaml"))
+
+        # Track instances in tracks/*/
+        tracks_dir = self.repo_root / "tracks"
+        if tracks_dir.exists():
+            contract_files.extend(tracks_dir.glob("*/*.contract.yaml"))
+
+        if not contract_files:
+            warnings.append("⚠️  No contract files found")
+            return violations, warnings, has_blocking_failure
+
+        # Validate each contract
+        for contract_path in contract_files:
+            rel_path = contract_path.relative_to(self.repo_root)
+
+            try:
+                with open(contract_path) as f:
+                    contract = yaml.safe_load(f)
+
+                if contract is None:
+                    violations.append(f"❌ {rel_path}: Empty or invalid YAML")
+                    continue
+
+                # Validate against schema
+                try:
+                    jsonschema.validate(contract, schema)
+                except jsonschema.ValidationError as e:
+                    enforcement = contract.get('enforcement', 'advisory')
+                    error_msg = f"{rel_path}: {e.message}"
+
+                    if enforcement == 'blocking':
+                        violations.append(f"❌ [BLOCKING] {error_msg}")
+                        has_blocking_failure = True
+                    elif enforcement == 'warning':
+                        warnings.append(f"⚠️  [WARNING] {error_msg}")
+                    else:
+                        warnings.append(f"ℹ️  [ADVISORY] {error_msg}")
+                    continue
+
+                # Validate rules have source field
+                rules = contract.get('rules', [])
+                for rule in rules:
+                    if 'source' not in rule:
+                        rule_id = rule.get('id', 'unknown')
+                        enforcement = contract.get('enforcement', 'advisory')
+                        msg = f"{rel_path}: Rule '{rule_id}' missing 'source' field (must reference Constitution)"
+
+                        if enforcement == 'blocking':
+                            violations.append(f"❌ [BLOCKING] {msg}")
+                            has_blocking_failure = True
+                        else:
+                            warnings.append(f"⚠️  {msg}")
+
+                # Check track instances have inherits field
+                scope = contract.get('scope', 'global-template')
+                if scope == 'track-instance' and 'inherits' not in contract:
+                    violations.append(f"❌ {rel_path}: Track instance must have 'inherits' field")
+                    has_blocking_failure = True
+
+            except yaml.YAMLError as e:
+                violations.append(f"❌ {rel_path}: YAML parse error - {e}")
+                has_blocking_failure = True
+            except Exception as e:
+                violations.append(f"❌ {rel_path}: Unexpected error - {e}")
+
+        return violations, warnings, has_blocking_failure
+
     def validate_all(self):
         """运行所有验证"""
         print("🔍 LiYe OS Architecture Validation")
@@ -103,6 +213,20 @@ class ArchitectureValidator:
                 print(f"   {v}")
         else:
             print("   ✅ Data boundaries valid")
+
+        # 4. Contracts 验证
+        print("\n4. Checking contracts...")
+        contract_violations, contract_warnings, has_blocking = self.validate_contracts()
+
+        for w in contract_warnings:
+            print(f"   {w}")
+
+        if contract_violations:
+            all_violations.extend(contract_violations)
+            for v in contract_violations:
+                print(f"   {v}")
+        elif not contract_warnings:
+            print("   ✅ All contracts valid")
 
         # 总结
         print("\n" + "=" * 50)

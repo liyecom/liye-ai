@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://liye-os.dev/schemas/contracts.schema.json",
+  "title": "LiYe OS Contract Schema",
+  "description": "Schema for validating machine-executable constraint contracts",
+  "type": "object",
+
+  "required": ["version", "kind", "enforcement"],
+
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Contract version (semantic versioning)",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "examples": ["1.0", "1.0.0"]
+    },
+
+    "kind": {
+      "type": "string",
+      "description": "Type of contract",
+      "enum": [
+        "site-design",
+        "api-behavior",
+        "content-style",
+        "architecture",
+        "naming",
+        "security"
+      ]
+    },
+
+    "scope": {
+      "type": "string",
+      "description": "Whether this is a template or project instance",
+      "enum": ["global-template", "track-instance"],
+      "default": "global-template"
+    },
+
+    "enforcement": {
+      "type": "string",
+      "description": "How violations are handled",
+      "enum": ["advisory", "warning", "blocking"]
+    },
+
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the contract"
+    },
+
+    "inherits": {
+      "type": "object",
+      "description": "Reference to parent template (for track instances)",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Path to parent template",
+          "pattern": "^_meta/contracts/.*\\.contract\\.yaml$"
+        }
+      },
+      "required": ["from"]
+    },
+
+    "intended_usage": {
+      "type": "object",
+      "description": "Documentation of how this contract should be used",
+      "properties": {
+        "skills": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "builders": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "defaults": {
+      "type": "object",
+      "description": "Default values that can be overridden"
+    },
+
+    "tokens": {
+      "type": "object",
+      "description": "Design tokens (colors, typography, spacing, etc.)"
+    },
+
+    "style": {
+      "type": "object",
+      "description": "Style system configuration"
+    },
+
+    "constraints": {
+      "type": "object",
+      "description": "Layout and behavior constraints"
+    },
+
+    "ux": {
+      "type": "object",
+      "description": "UX requirements and anti-patterns",
+      "properties": {
+        "accessibility": {
+          "type": "object",
+          "properties": {
+            "min_contrast_ratio": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 21
+            }
+          }
+        },
+        "anti_patterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of forbidden UX patterns"
+        }
+      }
+    },
+
+    "rules": {
+      "type": "array",
+      "description": "Machine-executable constraint rules",
+      "items": {
+        "$ref": "#/definitions/rule"
+      }
+    },
+
+    "site": {
+      "type": "object",
+      "description": "Site-specific configuration (for track instances)",
+      "properties": {
+        "name": { "type": "string" },
+        "stack": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "notes": {
+      "type": "object",
+      "description": "Additional notes and rationale"
+    }
+  },
+
+  "definitions": {
+    "rule": {
+      "type": "object",
+      "required": ["id", "name", "violation_action"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the rule",
+          "pattern": "^[a-z]+-\\d{3}$",
+          "examples": ["design-001", "arch-002"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name of the rule"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed explanation of the rule"
+        },
+        "violation_action": {
+          "type": "string",
+          "description": "Action to take when rule is violated",
+          "enum": [
+            "log",
+            "warning",
+            "block_build",
+            "block_commit",
+            "block_merge"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "description": "Reference to constitution clause or amendment"
+        },
+        "verify_command": {
+          "type": "string",
+          "description": "Shell command to verify the rule"
+        }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "scope": { "const": "track-instance" }
+        }
+      },
+      "then": {
+        "required": ["inherits"],
+        "properties": {
+          "inherits": {
+            "required": ["from"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "enforcement": { "const": "blocking" }
+        }
+      },
+      "then": {
+        "required": ["rules"],
+        "properties": {
+          "rules": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}
