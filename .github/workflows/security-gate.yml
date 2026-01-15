@@ -46,8 +46,9 @@ jobs:
           # Create temp file with non-comment patterns
           grep -v '^#' .security/blocklist.txt | grep -v '^$' > /tmp/patterns.txt
 
-          # Run blocklist scan, excluding security tooling directories
+          # Run blocklist scan, excluding security tooling and knowledge directories
           # Note: .security/, .claude/, .github/ contain patterns for detection purposes
+          # Note: Skills/**/ui-ux/ contains public design reference data with marketing terms
           HITS=$(grep -RIn \
             --exclude-dir=.git \
             --exclude-dir=node_modules \
@@ -56,6 +57,7 @@ jobs:
             --exclude-dir=.security \
             --exclude-dir=.claude \
             --exclude-dir=.github \
+            --exclude-dir=ui-ux \
             --exclude=.gitignore \
             --exclude=.pre-commit-config.yaml \
             -f /tmp/patterns.txt . 2>/dev/null || true)
