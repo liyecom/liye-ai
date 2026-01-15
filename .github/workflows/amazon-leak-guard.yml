@@ -81,8 +81,9 @@ jobs:
           echo ""
 
           # Use grep instead of rg for better availability
-          # Exclude known false-positive files
-          EXCLUDE_PATTERNS=".git|node_modules|\.security/blocklist\.txt|\.github/workflows/amazon-leak-guard\.yml"
+          # Exclude known false-positive files and directories
+          # Note: Skills/**/ui-ux/ contains public design data with "testimonial" which matches "TIMO"
+          EXCLUDE_PATTERNS=".git|node_modules|\.security/blocklist\.txt|\.github/workflows/amazon-leak-guard\.yml|Skills/.*/ui-ux/"
 
           # Check for TIMO (customer identifier) - case insensitive in code files
           if git ls-files | grep -E '\.(py|js|ts|yaml|yml|json|csv)$' | \
