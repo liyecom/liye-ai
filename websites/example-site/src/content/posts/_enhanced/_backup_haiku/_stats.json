@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-12-27T16:25:36.107647",
+  "total_files": 3,
+  "processed": 3,
+  "skipped": 0,
+  "total_cost": 0.870177,
+  "elapsed_seconds": 614.928084,
+  "results": [
+    {
+      "file": "10_亚马逊精铺新品布局广告打法_完整版.md",
+      "original_length": 20930,
+      "enhanced_length": 20658,
+      "improvement_ratio": 0.9870043000477783,
+      "input_tokens": 17268,
+      "output_tokens": 16000,
+      "cost": 0.291804,
+      "output_path": "/Users/liye/github/liye_os/websites/amazon-optimization/src/content/posts/_enhanced/10_亚马逊精铺新品布局广告打法_完整版.md"
+    },
+    {
+      "file": "11_亚马逊精铺新品广告布局最强打法_完整版.md",
+      "original_length": 21412,
+      "enhanced_length": 21439,
+      "improvement_ratio": 1.0012609751541193,
+      "input_tokens": 17268,
+      "output_tokens": 16000,
+      "cost": 0.291804,
+      "output_path": "/Users/liye/github/liye_os/websites/amazon-optimization/src/content/posts/_enhanced/11_亚马逊精铺新品广告布局最强打法_完整版.md"
+    },
+    {
+      "file": "1_亚马逊新品广告低成本推进打法_完整版.md",
+      "original_length": 18068,
+      "enhanced_length": 20634,
+      "improvement_ratio": 1.1420190391853,
+      "input_tokens": 15523,
+      "output_tokens": 16000,
+      "cost": 0.286569,
+      "output_path": "/Users/liye/github/liye_os/websites/amazon-optimization/src/content/posts/_enhanced/1_亚马逊新品广告低成本推进打法_完整版.md"
+    }
+  ]
+}

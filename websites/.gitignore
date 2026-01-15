@@ -1,0 +1,66 @@
+# GEO OS Websites - Build Artifacts & Dependencies
+# 根据架构宪法：构建产物不入库
+
+# ═══════════════════════════════════════════════════════════════
+# §4.6 Live vs Example 站点治理
+# ═══════════════════════════════════════════════════════════════
+# Live 站点（客户资产）不入库 - 本地存在但 Git 不跟踪
+# Example 站点（平台验证）可入库 - 作为模板和回归测试
+# ═══════════════════════════════════════════════════════════════
+
+# Live Sites (Brand Storefronts) - DO NOT TRACK
+kuachu/
+timomats/
+refetone/
+foneyimats/
+
+# Live Sites (Content Hubs) - DO NOT TRACK
+muddymatsfordogs/
+
+# Future Live Sites (add here when created)
+# newbrand/
+
+# ═══════════════════════════════════════════════════════════════
+# Example Sites (Templates) - ALLOWED TO TRACK
+# example-site/ is the only tracked site (smoke test / template)
+# ═══════════════════════════════════════════════════════════════
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+.astro/
+.output/
+.vercel/
+.netlify/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+.cache/

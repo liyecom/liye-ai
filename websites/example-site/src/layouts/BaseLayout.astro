@@ -1,0 +1,85 @@
+---
+/**
+ * BaseLayout - Main layout component for kuachu site
+ *
+ * Theme values are defined in:
+ * - tracks/kuachu/site-design.contract.yaml (source of truth)
+ * - src/styles/global.css (CSS variables)
+ *
+ * To update theme: npx tsx builders/theme-factory/builder.ts kuachu
+ */
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  keywords?: string[];
+}
+
+const { title, description, keywords = [] } = Astro.props;
+
+// Brand values - should match Contract metadata
+const siteTitle = "跨出";
+const siteSlogan = "跨境出海运营百科";
+const fullTitle = title ? `${title} | ${siteTitle}` : `${siteTitle} - ${siteSlogan}`;
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    {keywords.length > 0 && <meta name="keywords" content={keywords.join(', ')} />}
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    {description && <meta name="twitter:description" content={description} />}
+
+    <!-- Umami Analytics -->
+    <script defer src="https://umami-iota-blush.vercel.app/script.js" data-website-id="e1e476cf-cb25-4db4-a207-bd6fc8712b5b"></script>
+  </head>
+  <body class="min-h-screen" style="background: var(--color-background, #F9FAFB);">
+    <header class="bg-white border-b border-gray-200">
+      <nav class="max-w-5xl mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+          <a href="/" class="hover:opacity-80 transition-opacity">
+            <div class="flex flex-col">
+              <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                {siteTitle}
+              </span>
+              <span class="text-xs text-gray-500 mt-0.5">{siteSlogan}</span>
+            </div>
+          </a>
+          <div class="flex items-center gap-6">
+            <a href="/" class="text-sm text-gray-600 hover:text-gray-900">首页</a>
+            <a href="/#categories" class="text-sm text-gray-600 hover:text-gray-900">分类</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="min-h-[calc(100vh-200px)]">
+      <slot />
+    </main>
+
+    <footer class="border-t border-gray-200 bg-white py-8 mt-auto">
+      <div class="max-w-5xl mx-auto px-4">
+        <div class="text-center text-sm text-gray-600">
+          <p class="mb-2">© {new Date().getFullYear()} {siteTitle} - {siteSlogan}</p>
+          <p class="text-xs text-gray-500">kuachu.com · 跨境出海知识分享</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

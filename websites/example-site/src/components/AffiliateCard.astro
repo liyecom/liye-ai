@@ -1,0 +1,91 @@
+---
+interface Props {
+  products: string[];
+  ctaText?: string;
+}
+
+const { products, ctaText = "查看推荐工具" } = Astro.props;
+
+// 联盟产品数据库（后续可以从配置文件加载）
+const affiliateData: Record<string, {
+  name: string;
+  description: string;
+  affiliateLink: string;
+  emoji: string;
+  gradient: string;
+}> = {
+  amazon_seller_tools: {
+    name: "Jungle Scout - Amazon 卖家工具",
+    description: "专业的选品、关键词、竞品分析工具",
+    affiliateLink: "https://www.junglescout.com/?via=affiliate",
+    emoji: "🔍",
+    gradient: "from-blue-500 to-cyan-500"
+  },
+  ecommerce_platforms: {
+    name: "Shopify - 电商建站平台",
+    description: "快速搭建独立站，无需编程基础",
+    affiliateLink: "https://www.shopify.com/?ref=affiliate",
+    emoji: "🛒",
+    gradient: "from-green-500 to-emerald-500"
+  },
+  ai_writing_tools: {
+    name: "Jasper AI - AI 写作助手",
+    description: "自动生成 Listing、广告文案",
+    affiliateLink: "https://www.jasper.ai/?via=affiliate",
+    emoji: "✨",
+    gradient: "from-purple-500 to-pink-500"
+  },
+  marketing_software: {
+    name: "Helium 10 - 营销软件套装",
+    description: "Amazon PPC、SEO 优化工具",
+    affiliateLink: "https://www.helium10.com/?via=affiliate",
+    emoji: "📊",
+    gradient: "from-orange-500 to-red-500"
+  },
+  online_courses: {
+    name: "Udemy - 跨境电商课程",
+    description: "系统学习 Amazon 运营",
+    affiliateLink: "https://www.udemy.com/courses/search/?q=amazon+fba&via=affiliate",
+    emoji: "🎓",
+    gradient: "from-indigo-500 to-blue-500"
+  },
+  books: {
+    name: "《Amazon 运营实战》",
+    description: "从0到1搭建跨境电商业务",
+    affiliateLink: "https://www.amazon.com/dp/XXXXX?tag=affiliate",
+    emoji: "📚",
+    gradient: "from-amber-500 to-yellow-500"
+  }
+};
+
+const recommendations = products
+  .filter(id => affiliateData[id])
+  .map(id => affiliateData[id]);
+---
+
+{recommendations.length > 0 && (
+  <div class="my-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+    <h3 class="text-lg font-semibold mb-4 text-gray-900">推荐工具</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {recommendations.map(product => (
+        <div class="bg-white p-4 rounded border border-gray-200">
+          <div class="flex items-start gap-3">
+            <div class="text-2xl">{product.emoji}</div>
+            <div class="flex-1">
+              <h4 class="font-medium text-gray-900 mb-1">{product.name}</h4>
+              <p class="text-sm text-gray-600 mb-3">{product.description}</p>
+              <a
+                href={product.affiliateLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-block px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              >
+                {ctaText}
+              </a>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
