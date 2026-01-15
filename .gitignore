@@ -29,6 +29,8 @@ credentials/
 **/data/*.csv
 **/data/*.xlsx
 !**/data/.gitkeep
+# Exception: UI/UX Skill knowledge data (public reference)
+!Skills/**/ui-ux/data/*.csv
 
 # ============================================
 # 报告 (Reports - Contains Client Data)
@@ -200,6 +202,9 @@ yarn-error.log
 *.csv
 *.xlsx
 *.xls
+# Exception: UI/UX Skill public reference data
+!Skills/**/ui-ux/data/*.csv
+!Skills/**/ui-ux/data/**/*.csv
 *.db
 *.sqlite
 *.duckdb

@@ -42,12 +42,15 @@ if [ -n "$large_files" ]; then
   exit 1
 fi
 
-# Check 4: Prevent data files
-if git diff --cached --name-only | grep -E "\.(csv|xlsx|xls|db|sqlite|duckdb)$"; then
+# Check 4: Prevent data files (except allowed paths)
+# Allow: Skills/**/ui-ux/data/ (public reference data)
+data_files=$(git diff --cached --name-only | grep -E "\.(csv|xlsx|xls|db|sqlite|duckdb)$" | grep -v "Skills/.*/ui-ux/data/" || true)
+if [ -n "$data_files" ]; then
+  echo "$data_files"
   echo ""
   echo "❌ Commit blocked: Attempting to commit data files"
   echo "   Data files should be in data_external/ (gitignored)"
-  echo "   Update .gitignore if this is intentional"
+  echo "   Allowed exception: Skills/**/ui-ux/data/"
   exit 1
 fi
 
@@ -91,10 +94,13 @@ echo "$STAGED" | grep -E '(^|/)node_modules/|(^|/)venv/|(^|/)\.venv/|\.duckdb$|\
 }
 
 # 3) Hard block: data files & uploads (privacy)
-echo "$STAGED" | grep -E '\.csv$|\.xlsx$|\.xls$|(^|/)uploads/' >/dev/null && {
+# Exception: Skills/**/ui-ux/data/ (public reference data)
+blocked_data=$(echo "$STAGED" | grep -E '\.csv$|\.xlsx$|\.xls$|(^|/)uploads/' | grep -v "Skills/.*/ui-ux/data/" || true)
+if [ -n "$blocked_data" ]; then
   echo "❌ Blocked: data file or uploads/ staged."
+  echo "$blocked_data"
   exit 1
-}
+fi
 
 echo "✅ Staged file gate passed"
 
@@ -110,9 +116,10 @@ if [ -f ".security/blocklist.txt" ]; then
   # Exclude security config files themselves
   BLOCKLIST_HITS=""
   while IFS= read -r file; do
-    # Skip security config files, pre-commit hook, CI workflows, and .gitignore (legitimately references blocked patterns)
+    # Skip security config files, pre-commit hook, CI workflows, .gitignore, and UI/UX Skill
     case "$file" in
       .security/*|.claude/.githooks/*|.pre-commit-config.yaml|.github/workflows/amazon-leak-guard.yml|.gitignore) continue ;;
+      Skills/*/ui-ux/*|Skills/*/*/ui-ux/*) continue ;;
     esac
     if [ -f "$file" ]; then
       hits=$(grep -Hn -f "$PATTERNS_TEMP" "$file" 2>/dev/null || true)
