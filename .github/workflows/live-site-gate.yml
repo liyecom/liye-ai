@@ -1,0 +1,62 @@
+# Live Site Protection Gate
+# §4.6 Live vs Example 站点治理 - CI 强制执行
+#
+# 防止 Live 站点（客户资产）被意外提交到公开仓库
+# 只有 example-site/ 允许被 tracked
+
+name: Live Site Gate
+
+on:
+  pull_request:
+    paths:
+      - 'websites/**'
+
+jobs:
+  check-live-sites:
+    name: Block Live Sites from PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Live Site files
+        run: |
+          echo "🛡️ §4.6 Live Site Gate - Checking for unauthorized site files..."
+          echo ""
+
+          # Get changed files in websites/ directory
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^websites/' || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "✅ No websites/ changes detected"
+            exit 0
+          fi
+
+          echo "📂 Changed files in websites/:"
+          echo "$CHANGED"
+          echo ""
+
+          # Check for Live site files (anything except example-site/, .gitignore, README.md, _templates/)
+          LIVE_FILES=$(echo "$CHANGED" | grep -E '^websites/(?!example-site/|\.gitignore$|README\.md$|_templates/)' || true)
+
+          if [ -n "$LIVE_FILES" ]; then
+            echo ""
+            echo "❌ BLOCKED: Live site files detected in PR!"
+            echo ""
+            echo "The following files violate §4.6 Live vs Example governance:"
+            echo "$LIVE_FILES"
+            echo ""
+            echo "📜 Rule: Only websites/example-site/ may be tracked in this repository."
+            echo "         Live sites (kuachu, timomats, refetone, etc.) are customer assets"
+            echo "         and must remain gitignored."
+            echo ""
+            echo "🔧 Fix: Remove these files from your commit:"
+            echo "   git rm -r --cached <path>"
+            echo "   git commit --amend"
+            exit 1
+          fi
+
+          echo "✅ All websites/ changes are in allowed paths (example-site/, .gitignore, README.md, _templates/)"
