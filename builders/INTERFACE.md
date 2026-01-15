@@ -135,6 +135,102 @@ Before a Builder is considered compliant:
 - [ ] Never accesses `_meta/contracts/`
 - [ ] Never modifies contract
 - [ ] Outputs match contract constraints
+- [ ] Generates `build-manifest.json` alongside artifacts
 
 ---
-**Frozen**: 2026-01-13
+
+## Build Manifest Specification (v1.1)
+
+Builders SHOULD output a `build-manifest.json` alongside generated artifacts.
+This manifest enables version tracking, GDP integration, and artifact registry.
+
+### Output Location
+
+```
+themes/sites/{site-id}/build-manifest.json
+```
+
+### Schema
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["version", "site_id", "generated_at", "artifacts", "contract_hash"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest schema version",
+      "const": "1.0"
+    },
+    "site_id": {
+      "type": "string",
+      "description": "Site identifier matching _registry.yaml"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 build timestamp"
+    },
+    "contract_hash": {
+      "type": "string",
+      "description": "SHA256 hash of source contract (for change detection)"
+    },
+    "builder_version": {
+      "type": "string",
+      "description": "Builder tool version"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "type", "size_bytes"],
+        "properties": {
+          "file": { "type": "string" },
+          "type": { "enum": ["css", "json", "html", "js"] },
+          "size_bytes": { "type": "integer" }
+        }
+      }
+    },
+    "theme": {
+      "type": "object",
+      "description": "Theme summary extracted from contract",
+      "properties": {
+        "primary_color": { "type": "string" },
+        "mode": { "enum": ["light", "dark"] }
+      }
+    }
+  }
+}
+```
+
+### Example
+
+```json
+{
+  "version": "1.0",
+  "site_id": "timomats",
+  "generated_at": "2026-01-15T14:30:00Z",
+  "contract_hash": "sha256:a1b2c3...",
+  "builder_version": "1.0.0",
+  "artifacts": [
+    { "file": "theme.css", "type": "css", "size_bytes": 1024 },
+    { "file": "tailwind.config.js", "type": "js", "size_bytes": 512 }
+  ],
+  "theme": {
+    "primary_color": "#2563EB",
+    "mode": "light"
+  }
+}
+```
+
+### Usage
+
+1. **Version Tracking**: Compare `contract_hash` to detect stale builds
+2. **GDP Integration**: Manifest provides metadata for analytics dashboards
+3. **Artifact Registry**: `artifacts` array enables npm/CDN distribution
+4. **Build Verification**: CI can validate manifest existence and schema
+
+---
+
+**Frozen**: 2026-01-13 (v1.0) | Extended: 2026-01-15 (v1.1 - build-manifest)
