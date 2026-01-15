@@ -224,24 +224,64 @@ export function build(trackId: string, outputDir?: string): BuildOutput {
 // CLI ENTRY POINT
 // ============================================================================
 
+/**
+ * Usage:
+ *   npx tsx builder.ts <site-id>                    # From themes repo (default)
+ *   npx tsx builder.ts <site-id> --tracks           # From liye_os/tracks (legacy)
+ *   npx tsx builder.ts <site-id> --output <dir>    # Custom output directory
+ *
+ * Environment:
+ *   THEMES_REPO - Path to themes repository (default: ../../../themes)
+ */
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const trackId = process.argv[2];
-  const outputDir = process.argv[3];
+  const args = process.argv.slice(2);
+  const siteId = args.find(a => !a.startsWith('--'));
+  const useTracksMode = args.includes('--tracks');
+  const outputIndex = args.indexOf('--output');
+  const customOutput = outputIndex !== -1 ? args[outputIndex + 1] : undefined;
 
-  if (!trackId) {
-    console.error('Usage: npx tsx builder.ts <track-id> [output-dir]');
-    console.error('Example: npx tsx builder.ts example-saas-dashboard ./dist');
+  if (!siteId) {
+    console.error('Usage: npx tsx builder.ts <site-id> [--tracks] [--output <dir>]');
+    console.error('');
+    console.error('Examples:');
+    console.error('  npx tsx builder.ts kuachu                    # Build from themes repo');
+    console.error('  npx tsx builder.ts example-track --tracks    # Build from liye_os/tracks');
+    console.error('  npx tsx builder.ts kuachu --output ./dist    # Custom output');
     process.exit(1);
   }
 
   try {
-    const output = build(trackId, outputDir || `./tracks/${trackId}/dist`);
+    // Determine paths based on mode
+    const themesRepo = process.env.THEMES_REPO || join(process.cwd(), '..', 'themes');
+    const contractRoot = useTracksMode ? './tracks' : join(themesRepo, 'sites');
+    const defaultOutput = useTracksMode
+      ? `./tracks/${siteId}/dist`
+      : join(themesRepo, 'sites', siteId);
 
-    if (!outputDir) {
-      // If no output dir, print to stdout
-      console.log('=== CSS Variables ===');
-      console.log(output.cssVars);
+    const outputDir = customOutput || defaultOutput;
+
+    // Load contract from appropriate location
+    const ir = loadContract(siteId, contractRoot);
+
+    // Generate artifacts
+    const output: BuildOutput = {
+      cssVars: generateCSSVars(ir),
+      tailwindConfig: generateTailwindConfig(ir),
+      htmlTemplate: generateHTMLTemplate(ir),
+    };
+
+    // Write to disk
+    if (!existsSync(outputDir)) {
+      mkdirSync(outputDir, { recursive: true });
     }
+
+    writeFileSync(join(outputDir, 'theme.css'), output.cssVars);
+    writeFileSync(join(outputDir, 'tailwind.config.js'), output.tailwindConfig);
+    writeFileSync(join(outputDir, 'index.html'), output.htmlTemplate);
+
+    console.log(`✅ Theme built for ${siteId}`);
+    console.log(`   Contract: ${contractRoot}/${siteId}/site-design.contract.yaml`);
+    console.log(`   Output: ${outputDir}`);
   } catch (error) {
     console.error(error);
     process.exit(1);
