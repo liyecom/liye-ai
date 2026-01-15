@@ -18,7 +18,7 @@
  * Examples:
  *   node recall.js "i18n"
  *   node recall.js "i18n" --domain kernel
- *   node recall.js "ppc optimization" --project amazon-growth-os
+ *   node recall.js "ppc optimization" --project amazon-growth-engine
  */
 
 const fs = require("fs");
@@ -326,7 +326,7 @@ Options:
 Examples:
   node recall.js "i18n"
   node recall.js "i18n" --domain kernel
-  node recall.js "ppc optimization" --project amazon-growth-os
+  node recall.js "ppc optimization" --project amazon-growth-engine
 `);
     process.exit(1);
   }
