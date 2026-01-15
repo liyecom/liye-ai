@@ -7,7 +7,7 @@
 #   - Actual Amazon code paths: Agents/amazon-growth/, Crews/amazon-growth/, etc.
 #   - Customer identifiers: TIMO, timo
 #   - Blocked ASINs from .security/blocklist.txt
-#   - Private repo disclosure: loudmirror/amazon-growth-os, amazon-growth-os in docs
+#   - Private repo disclosure: loudmirror/amazon-growth-engine, amazon-growth-engine in docs
 #
 # What is ALLOWED:
 #   - Generic references like "a private repository"
@@ -48,8 +48,8 @@ jobs:
             "domains/amazon-growth"
             "knowledge/amazon"
             "knowledge/private"
-            "Systems/amazon-growth-os"
-            "systems/amazon-growth-os"
+            "Systems/amazon-growth-engine"
+            "systems/amazon-growth-engine"
             "src/domain/amazon-growth"
           )
 
@@ -169,7 +169,7 @@ jobs:
           # Exclude this workflow file itself (it needs to reference patterns for detection)
           EXCLUDE_PATTERNS=".git|node_modules|\.github/workflows/amazon-leak-guard\.yml"
 
-          FOUND=$(grep -rn -E "loudmirror/amazon-growth-os|github\.com/.*/amazon-growth-os|amazon-growth-os" \
+          FOUND=$(grep -rn -E "loudmirror/amazon-growth-engine|github\.com/.*/amazon-growth-engine|amazon-growth-engine" \
             i18n _meta docs README* 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
 
           if [ -n "$FOUND" ]; then
