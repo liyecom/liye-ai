@@ -1,0 +1,452 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+  keywords={frontmatter.keywords}
+>
+  <!-- Reading Progress Bar -->
+  <div id="reading-progress" class="fixed top-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 z-50 transition-all duration-150" style="width: 0%"></div>
+
+  <article class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <!-- Hero Header with Gradient Background -->
+    <header class="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white py-16">
+      <div class="max-w-3xl mx-auto px-6">
+        <!-- Back Link -->
+        <div class="mb-6">
+          <a href="/" class="inline-flex items-center text-sm text-blue-100 hover:text-white transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            返回首页
+          </a>
+        </div>
+
+        <!-- Category Badge -->
+        <div class="mb-6">
+          <span class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium border border-white/30">
+            {frontmatter.category}
+          </span>
+        </div>
+
+        <!-- Title -->
+        <h1 class="text-4xl md:text-5xl font-bold leading-tight mb-6 tracking-tight">
+          {frontmatter.title}
+        </h1>
+
+        <!-- Meta Info -->
+        <div class="flex flex-wrap items-center gap-4 text-sm text-blue-100">
+          <time datetime={frontmatter.pubDate}>
+            {new Intl.DateTimeFormat('zh-CN', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }).format(new Date(frontmatter.pubDate))}
+          </time>
+          <span class="w-1 h-1 rounded-full bg-blue-200"></span>
+          <span>阅读时间约 25 分钟</span>
+          {frontmatter.source && (
+            <>
+              <span class="w-1 h-1 rounded-full bg-blue-200"></span>
+              <span>来源：{frontmatter.source}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <!-- Article Content -->
+    <div class="max-w-3xl mx-auto px-6 py-12">
+      <!-- Content with Enhanced Typography -->
+      <div class="prose prose-lg max-w-none">
+        <slot />
+      </div>
+
+      <!-- Article Footer -->
+      <footer class="mt-16 pt-8 border-t-2 border-gray-100">
+        <!-- Tags -->
+        {frontmatter.keywords && frontmatter.keywords.length > 0 && (
+          <div class="mb-8">
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">相关标签</h3>
+            <div class="flex flex-wrap gap-2">
+              {frontmatter.keywords.map(keyword => (
+                <a
+                  href={`/?tag=${encodeURIComponent(keyword)}`}
+                  class="px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-full text-sm font-medium border border-blue-100 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                >
+                  {keyword}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <!-- CTA Card -->
+        <div class="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl">
+          <h3 class="text-2xl font-bold mb-4">觉得有帮助？</h3>
+          <p class="text-blue-100 mb-6">
+            这篇文章包含了实战验证的策略和真实数据。如果对你有价值，请分享给需要的朋友。
+          </p>
+          <div class="flex gap-3">
+            <a href="/" class="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+              查看更多文章
+            </a>
+          </div>
+        </div>
+
+        <!-- Source Attribution -->
+        {frontmatter.source_url && (
+          <div class="mt-8 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+            <p class="text-sm text-gray-600">
+              <span class="font-semibold text-gray-900">原文链接：</span>
+              <a href={frontmatter.source_url} class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank" rel="noopener noreferrer">
+                {frontmatter.source_url}
+              </a>
+            </p>
+          </div>
+        )}
+      </footer>
+    </div>
+  </article>
+</BaseLayout>
+
+<style is:global>
+  /* ==========================================
+     SMOOTH SCROLLING - HTML LEVEL
+     ========================================== */
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* ==========================================
+     ENHANCED TYPOGRAPHY - MEDIUM STYLE
+     ========================================== */
+
+  .prose {
+    color: #1a1a1a;
+    font-size: 1.125rem;
+    line-height: 1.8;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+
+  /* ==========================================
+     HEADINGS with Visual Hierarchy
+     ========================================== */
+
+  .prose h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    color: #111827;
+    letter-spacing: -0.025em;
+  }
+
+  .prose h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid #e5e7eb;
+    color: #111827;
+    position: relative;
+  }
+
+  .prose h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(to right, #3b82f6, #8b5cf6);
+    border-radius: 2px;
+  }
+
+  .prose h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    color: #1f2937;
+    position: relative;
+    padding-left: 1rem;
+  }
+
+  .prose h3::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    width: 4px;
+    height: 1.5rem;
+    background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+    border-radius: 2px;
+  }
+
+  .prose h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: #374151;
+  }
+
+  /* ==========================================
+     PARAGRAPHS with Perfect Reading Width
+     ========================================== */
+
+  .prose p {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.8;
+    color: #374151;
+  }
+
+  .prose p:first-of-type {
+    font-size: 1.25rem;
+    color: #1f2937;
+    line-height: 1.7;
+  }
+
+  /* ==========================================
+     LINKS with Subtle Underline
+     ========================================== */
+
+  .prose a {
+    color: #2563eb;
+    text-decoration: none;
+    background-image: linear-gradient(to right, #93c5fd 0%, #93c5fd 100%);
+    background-position: 0 100%;
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    transition: all 0.2s ease;
+  }
+
+  .prose a:hover {
+    color: #1d4ed8;
+    background-size: 100% 100%;
+    background-image: linear-gradient(to right, #dbeafe 0%, #dbeafe 100%);
+  }
+
+  /* ==========================================
+     LISTS with Beautiful Bullets
+     ========================================== */
+
+  .prose ul {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .prose ul > li {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.7;
+  }
+
+  .prose ul > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .prose ol {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+    counter-reset: item;
+  }
+
+  .prose ol > li {
+    position: relative;
+    margin-bottom: 0.75rem;
+    line-height: 1.7;
+    counter-increment: item;
+  }
+
+  .prose ol > li::marker {
+    content: counter(item) ". ";
+    color: #3b82f6;
+    font-weight: 700;
+  }
+
+  /* ==========================================
+     BLOCKQUOTES - Elegant Callouts
+     ========================================== */
+
+  .prose blockquote {
+    margin: 2rem 0;
+    padding: 1.5rem 1.5rem 1.5rem 2rem;
+    background: linear-gradient(to right, #eff6ff 0%, #f5f3ff 100%);
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: #1e40af;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .prose blockquote p {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.7;
+  }
+
+  /* ==========================================
+     CODE - Syntax Highlighting
+     ========================================== */
+
+  .prose code {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+    background: #f8fafc;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #db2777;
+    border: 1px solid #e2e8f0;
+  }
+
+  .prose pre {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #1e293b;
+    border-radius: 12px;
+    overflow-x: auto;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+  }
+
+  .prose pre code {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    padding: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  /* ==========================================
+     TABLES - Data Visualization
+     ========================================== */
+
+  .prose table {
+    margin: 2.5rem 0;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .prose thead {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  }
+
+  .prose thead th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #1d4ed8;
+  }
+
+  .prose tbody tr {
+    background: white;
+    transition: all 0.2s ease;
+  }
+
+  .prose tbody tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  .prose tbody tr:hover {
+    background: #eff6ff;
+    transform: scale(1.01);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .prose tbody td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #374151;
+    font-size: 0.95rem;
+  }
+
+  .prose tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* Highlight numbers in tables */
+  .prose tbody td:has(strong),
+  .prose tbody td > strong {
+    font-weight: 700;
+    color: #1e40af;
+  }
+
+  /* ==========================================
+     STRONG/BOLD - Highlight Effect
+     ========================================== */
+
+  .prose strong {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* ==========================================
+     HORIZONTAL RULES - Section Dividers
+     ========================================== */
+
+  .prose hr {
+    margin: 3rem 0;
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #d1d5db, transparent);
+  }
+
+  /* ==========================================
+     IMAGES - Responsive with Captions
+     ========================================== */
+
+  .prose img {
+    margin: 2.5rem 0;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+  }
+
+  .prose img:hover {
+    transform: scale(1.02);
+  }
+</style>
+
+<script>
+  // Reading Progress Bar - Simple and CSP-safe
+  window.addEventListener('scroll', () => {
+    const winScroll = document.documentElement.scrollTop;
+    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrolled = (winScroll / height) * 100;
+    const progressBar = document.getElementById('reading-progress');
+    if (progressBar) {
+      progressBar.style.width = scrolled + '%';
+    }
+  });
+</script>

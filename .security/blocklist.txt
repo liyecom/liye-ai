@@ -1,7 +1,12 @@
 # --- Known customer identifiers ---
-TIMO
-timo
-Timo
+# Pattern: match standalone "TIMO" not as part of domain names (timomats.com)
+# These patterns avoid matching "timomats" while catching "TIMO Store", "timo_data", etc.
+TIMO Store
+TIMO Pet
+timo_store
+timo_data
+timo_report
+Timo Brand
 
 # --- Known real ASINs (confirmed) ---
 B08N5WRWNW

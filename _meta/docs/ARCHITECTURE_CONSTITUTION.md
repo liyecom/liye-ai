@@ -1,8 +1,8 @@
 # LiYe OS 架构宪法
 
-> **版本**: 1.5
+> **版本**: 1.8
 > **生效日期**: 2025-12-22
-> **最后修订**: 2026-01-01 (v6.2.0: World Model Gate for Domain Execution)
+> **最后修订**: 2026-01-15 (v1.8: Multi-Site builders/websites Architecture)
 > **状态**: 生效中
 > **修订权限**: 需架构委员会（即你自己）正式评审
 
@@ -133,6 +133,14 @@ LiYe_OS/
 │   ├── claude-skills/        # Claude Code Skills
 │   └── mcp-servers/          # MCP 服务器
 │
+├── builders/                 # 构建工具链（Contract → Artifacts）
+│   ├── theme-factory/        # 主题生成器
+│   ├── adapters/             # Contract 解析适配器
+│   └── INTERFACE.md          # 接口定义（冻结）
+│
+├── websites/                 # 站点工作区（.gitignore）
+│   └── {site-id}/            # Astro 项目实例
+│
 ├── .claude/                  # Claude Code 集成
 │   ├── packs/                # 按需加载上下文
 │   └── scripts/              # 工具脚本
@@ -153,6 +161,9 @@ LiYe_OS/
 | Crew 定义 | `Crews/` | `src/domain/*/crews/` |
 | 方法论 | `Skills/` | 散落的 `.md` 文件 |
 | 架构文档 | `_meta/docs/` | 其他位置的架构说明 |
+| 构建工具链 | `builders/` | `tools/builders/`, `src/builders/` |
+| 站点设计合约 | `themes/sites/{site-id}/` (私仓) | `websites/`, `tracks/` |
+| 主题产物 | `themes/sites/{site-id}/` (私仓) | `websites/`, 内嵌在 Astro |
 
 **运行时加载规则**：
 - `src/domain/*/main.py` 必须从 SSOT 位置加载资源
@@ -198,6 +209,108 @@ LiYe_OS/
 **例外**：
 - 手动创建的配置文件可入库
 - 版本发布的快照可入库
+
+### 第 4.4 条：跨仓库引用规则（Multi-Repo Reference）
+
+**背景**：LiYe OS 工作区涉及多个仓库协作：
+- `liye_os/` (公开仓库) - 平台核心
+- `themes/` (私有仓库) - 客户资产（站点合约、主题产物）
+
+**禁止规则**：
+
+1. **禁止硬编码跨仓库相对路径**
+   - ❌ `@import "../../../../../themes/sites/kuachu/theme.css"`
+   - ❌ `path.resolve(__dirname, '../../../../themes/...')`
+   - ✅ 必须通过环境变量 + Alias 注入
+
+2. **禁止在公开仓库中存储客户资产**
+   - ❌ 客户 CSS、图片、配置存在 `liye_os/`
+   - ✅ 客户资产统一存放在 `themes/` 私仓
+
+**标准引用方式**：
+
+```bash
+# 站点 .env（不入库）
+THEMES_REPO_PATH=/Users/liye/github/themes
+```
+
+```javascript
+// astro.config.mjs 或 vite.config.js
+alias: {
+  "@themes": path.resolve(process.env.THEMES_REPO_PATH, "sites")
+}
+```
+
+```css
+/* 站点 CSS */
+@import "@themes/{site-id}/theme.css";
+```
+
+**数据流规范**：
+```
+UI/UX Skill → Contract (themes/) → builders → Artifacts (themes/) → Astro @import
+```
+
+**验证方式**：
+```bash
+# 检测脆弱路径（不应有输出）
+rg -n '\.{3,}/themes/' websites/
+```
+
+### 第 4.5 条：builders/ 与 websites/ 定位
+
+**builders/**：
+- **性质**：Build-time 工具链（类似编译器）
+- **输入**：Contract（YAML/JSON）
+- **输出**：Artifacts（theme.css, tokens.json, build-manifest.json）
+- **接口**：`builders/INTERFACE.md` 定义接口版本，接口冻结后遵循语义化版本
+
+**websites/**：
+- **性质**：站点工作区（运行时应用）
+- **内容**：Astro 项目实例（消费 builders 产物）
+- **入库规则**：整体 .gitignore（私有），但结构模板可公开
+
+**边界划分**：
+| 关注点 | builders/ | websites/ |
+|--------|-----------|-----------|
+| 职责 | Contract → Artifacts | 消费 Artifacts，承载前端体验 |
+| 运行时机 | 设计时 / CI 构建时 | 开发时 / 部署时 |
+| 产物 | theme.css, tokens.json | HTML, 页面, 资产 |
+| 客户资产 | 不存储 | 不存储（引用 themes/） |
+
+### 第 4.6 条：Live vs Example 站点治理
+
+**定义**：`websites/` 下存在两类站点，必须明确区分：
+
+| 类型 | 标识 | 用途 | 入库 |
+|------|------|------|------|
+| **Example** | `example-site` | 平台验证、模板、回归测试 | ✅ 可入库 |
+| **Live** | `kuachu`, `timomats`, ... | 真实业务站点（客户资产） | ❌ gitignored |
+
+**规则**：
+
+1. **Example 站点允许存在**
+   - `websites/example-site/` 作为平台 smoke test 和模板
+   - 可入库（作为公开参考）
+   - 用于验证 @themes alias、构建流程、Astro 配置
+
+2. **Live 站点禁止用于平台验证**
+   - 真实业务站点（如 `kuachu`）不得被当作平台验证站使用
+   - 避免"改平台顺手把业务站干碎"
+   - Live 站点的变更必须独立评估影响
+
+3. **Site Registry 区分**
+   - `_registry.yaml` 中 `type: example` vs `type: brand_storefront`
+   - CI/CD 可基于此区分部署策略
+
+**验证方式**：
+```bash
+# 平台变更后，先验证 example-site
+cd websites/example-site && npx astro build
+
+# 通过后再验证 Live 站点（可选，按需）
+cd websites/kuachu && npx astro build
+```
 
 ### 第 5 条：层级职责
 
@@ -779,5 +892,57 @@ rg -n '\b[a-z0-9]+(?:-[a-z0-9]+)*-os\b' . \
 
 ---
 
-*宪法版本: 1.7*
-*最后更新: 2026-01-11*
+### Amendment 2026-01-15-G: Multi-Site Architecture (builders/websites/themes)
+
+**版本**: v1.8
+**生效日期**: 2026-01-15
+**关联条款**: 第 4 条、第 4.1 条、第 4.4 条、第 4.5 条
+
+**背景**：
+
+LiYe OS 需要支持多站点管理场景（代运营为客户批量交付独立站）：
+- 同一客户多品牌站群（如 timomats.com, refetone.com, foneyimats.com）
+- 内容中台导流站（如 muddymatsfordogs.com）
+- 未来可规模化复制到其他客户
+
+**内容**：
+
+1. **builders/ 正式承认为一等目录**
+   - 定位：Build-time 工具链（类似编译器）
+   - 职责：读取 Contract → 生成 Artifacts（theme.css, tokens.json）
+   - 接口冻结：`builders/INTERFACE.md` 定义稳定接口
+
+2. **websites/ 正式承认为站点工作区**
+   - 定位：Astro 项目实例（运行时应用）
+   - 入库规则：整体 .gitignore（私有），结构模板可公开
+   - 消费 builders 产物和 themes 私仓资产
+
+3. **跨仓库引用规则（第 4.4 条）**
+   - 禁止硬编码跨仓库相对路径
+   - 必须通过环境变量 + Vite/Astro Alias 注入
+   - 验证命令：`rg -n '\.{3,}/themes/' websites/`
+
+4. **SSOT 映射表扩展**
+   - 构建工具链 SSOT：`builders/`
+   - 站点设计合约 SSOT：`themes/sites/{site-id}/`（私仓）
+   - 主题产物 SSOT：`themes/sites/{site-id}/`（私仓）
+
+**理由**：
+
+- builders/ 已具备独立 package.json 和冻结接口，是成熟的工具链
+- 跨仓库相对路径（如 `../../../../../themes/`）极其脆弱，换机器即失效
+- 多站点规模化要求统一的 Contract → Artifact → Site 数据流
+
+**验证方式**：
+```bash
+# 检测脆弱路径（不应有输出）
+rg -n '\.{3,}/themes/' websites/
+
+# 验证 alias 配置
+grep -r "@themes" websites/*/astro.config.mjs
+```
+
+---
+
+*宪法版本: 1.8*
+*最后更新: 2026-01-15*

@@ -1,0 +1,14 @@
+/* =========================================================
+   Example Site - Platform Smoke Test Template
+   Source: themes/sites/example-site/theme.css
+
+   This is a minimal runnable template for platform validation.
+   DO NOT use for production business sites.
+
+   Note: Uses @themes alias configured in astro.config.mjs
+   Requires THEMES_REPO_PATH in .env (see .env.example)
+   ========================================================= */
+
+@import "@themes/example-site/theme.css";
+
+@import "tailwindcss";

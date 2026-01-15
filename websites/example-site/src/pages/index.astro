@@ -1,0 +1,124 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// 获取所有文章，按日期排序
+const posts = (await getCollection('posts')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+
+// 按分类分组
+const postsByCategory = posts.reduce((acc, post) => {
+  const category = post.data.category;
+  if (!acc[category]) {
+    acc[category] = [];
+  }
+  acc[category].push(post);
+  return acc;
+}, {} as Record<string, typeof posts>);
+---
+
+<BaseLayout
+  title="首页"
+  description="Amazon 优化指南 - 专业的跨境电商运营知识库"
+  keywords={['Amazon', '跨境电商', 'FBA', '运营', '广告优化']}
+>
+  <div class="max-w-5xl mx-auto px-4 py-12">
+    <!-- Hero Section -->
+    <section class="mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">
+        Amazon 优化指南
+      </h1>
+      <p class="text-lg text-gray-600 mb-6">
+        跨境电商运营知识库 · {posts.length} 篇文章 · {Object.keys(postsByCategory).length} 个分类
+      </p>
+    </section>
+
+    <!-- 最新文章 -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">最新文章</h2>
+      <div class="space-y-4">
+        {posts.slice(0, 10).map(post => (
+          <article class="bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 transition-colors">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded">
+                {post.data.category}
+              </span>
+              <time datetime={post.data.pubDate.toISOString()} class="text-sm text-gray-500">
+                {new Intl.DateTimeFormat('zh-CN', {
+                  month: 'numeric',
+                  day: 'numeric'
+                }).format(post.data.pubDate)}
+              </time>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              <a href={`/${post.slug}`} class="hover:text-blue-600">
+                {post.data.title}
+              </a>
+            </h3>
+            <p class="text-gray-600 text-sm mb-3">
+              {post.data.description}
+            </p>
+            <div class="flex items-center justify-between">
+              <div class="flex flex-wrap gap-2">
+                {post.data.keywords.slice(0, 3).map(keyword => (
+                  <span class="px-2 py-1 text-xs text-gray-600 bg-gray-50 rounded">
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+              <a href={`/${post.slug}`} class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                阅读 →
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <!-- 按分类浏览 -->
+    <section id="categories">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">按分类浏览</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        {Object.entries(postsByCategory).map(([category, categoryPosts]) => (
+          <div class="bg-white border border-gray-200 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900">
+                {category}
+              </h3>
+              <span class="text-sm text-gray-500">{categoryPosts.length} 篇</span>
+            </div>
+            <ul class="space-y-2">
+              {categoryPosts.slice(0, 5).map(post => (
+                <li>
+                  <a
+                    href={`/${post.slug}`}
+                    class="text-sm text-gray-700 hover:text-blue-600 line-clamp-1"
+                  >
+                    {post.data.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {categoryPosts.length > 5 && (
+              <div class="mt-3 pt-3 border-t border-gray-100">
+                <span class="text-xs text-gray-500">
+                  +{categoryPosts.length - 5} 篇更多
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
