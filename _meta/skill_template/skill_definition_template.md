@@ -1,3 +1,33 @@
+---
+# SFC v0.1 Required Frontmatter (see: _meta/skill-factory/SKILL_FACTORY_CONTRACT_v0.1.md)
+name: "[skill-name]"
+description: "[只写什么时候用，不写流程摘要]"
+status: "active"                    # active | frozen | deprecated | archived
+skeleton: "workflow"                # workflow | task | reference | capabilities
+version: "1.0.0"
+owner: "human"                      # cc | skill-forge | marketplace | human
+scope:
+  includes: ["..."]
+  excludes: ["..."]
+triggers:
+  commands: ["/..."]
+  patterns: ["..."]
+inputs:
+  required: ["..."]
+  optional: ["..."]
+outputs:
+  artifacts: ["..."]
+failure_modes:
+  - symptom: "..."
+    recovery: "..."
+verification:
+  evidence_required: true
+  how_to_verify: ["..."]
+governance:
+  constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
+  policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
+---
+
 # 🎯 [Skill Name] Skill
 
 **Version**: v1.0

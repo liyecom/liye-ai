@@ -92,7 +92,20 @@ Claude 会自动：
 
 ## 🔧 技能创建工作流程
 
-### Step 0: 获取源材料（自动）
+### 🚨 STEP 0: Read Skill Factory Contract (SFC) v0.1
+
+> **必须先读取**: `_meta/skill-factory/SKILL_FACTORY_CONTRACT_v0.1.md`
+
+创建/改造 Skill 时严格遵循：
+- **4 种骨架先选型**（workflow / task / reference / capabilities）
+- **SKILL.md ≤ 500 行**（超出下沉 references/）
+- **必填元信息**（frontmatter 包含 name, description, skeleton, inputs, outputs, failure_modes, verification）
+- **failure_modes/recovery + verification 必须具备**
+- **引用 Constitution/Policy**，不复述规则
+
+---
+
+### Step 1: 获取源材料（自动）
 当你提供外部资源时，Claude 会自动执行：
 
 **GitHub 仓库**：
@@ -117,19 +130,19 @@ scripts/fetch_source.py --docs https://docs.example.com --name project
 scripts/fetch_source.py --docs /path/to/document.pdf --name manual
 ```
 
-### Step 1: 理解技能用途
+### Step 2: 理解技能用途
 Claude 会通过具体示例了解：
 - 技能应该支持什么功能？
 - 用户会说什么来触发这个技能？
 - 具体的使用场景是什么？
 
-### Step 2: 规划可重用内容
+### Step 3: 规划可重用内容
 识别要打包的资源：
 - **scripts/** - 重复编写的代码（如 `rotate_pdf.py`）
 - **references/** - 需要参考的文档（如 API 文档、数据库模式）
 - **assets/** - 用于输出的文件（如模板、图片、样板代码）
 
-### Step 3: 初始化技能
+### Step 4: 初始化技能
 选择技能安装位置：
 ```
 1. 项目技能 (.claude/skills/) - 仅当前项目可用
@@ -142,7 +155,7 @@ Claude 会通过具体示例了解：
 scripts/init_skill.py <skill-name> --path <user-chosen-path>
 ```
 
-### Step 4: 编辑技能
+### Step 5: 编辑技能
 1. 实现 `scripts/`、`references/`、`assets/` 中的资源
 2. 删除初始化时的示例文件
 3. 编写 SKILL.md 指令（使用祈使语气，而非第二人称）
@@ -154,7 +167,7 @@ scripts/init_skill.py <skill-name> --path <user-chosen-path>
   - `references/api-reference.md` - API 文档
   - `references/advanced.md` - 高级用法
 
-### Step 5: 完成和可选打包
+### Step 6: 完成和可选打包
 技能创建完成后：
 1. ✅ 自动清理临时材料（无需用户操作）
 2. ✅ 自动删除临时辅助脚本
@@ -166,7 +179,24 @@ scripts/init_skill.py <skill-name> --path <user-chosen-path>
 scripts/package_skill.py <path/to/skill-folder>
 ```
 
-### Step 6: 迭代改进
+### Step 7: Run SFC Lint (WARNING-only)
+
+在交付清单中运行 SFC 合规检查：
+
+```bash
+node .claude/scripts/sfc_lint.mjs <NEW_SKILL_DIR>
+```
+
+**输出要求**：
+- 将 lint 输出原样贴进交付清单
+- 若出现 WARNING：**不阻断**，只提示"建议修复项"
+- 若通过：显示 ✅ SFC Lint PASS
+
+> 注：`<NEW_SKILL_DIR>` 为本次生成的 skill 目录路径。
+
+---
+
+### Step 8: 迭代改进
 在实际使用中：
 1. 使用技能完成真实任务
 2. 注意遇到的困难和低效
