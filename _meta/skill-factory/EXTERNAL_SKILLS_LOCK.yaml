@@ -1,0 +1,13 @@
+lock_version: "1.0"
+purpose: "Track external skills as dependencies (audit + pin + rollback)"
+external_skills:
+  - id: "skill-forge"
+    path: "~/.claude/skills/skill-forge"
+    source: "external-plugin"
+    governance:
+      sfc_compliant: true
+      last_audit: "2026-01-16"
+      policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
+      constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
+    notes:
+      - "Do not migrate into repo unless upstream becomes unreliable."
