@@ -1,9 +1,12 @@
-# ADR: Skill Factory Contract (SFC) Production Baseline v0.1
+# ADR-0006: Skill Factory Contract (SFC) Production Baseline v0.1
 
-- Status: Accepted
-- Date: 2026-01-16
-- Owners: LiYe OS Governance
-- Scope: All SKILL.md in repo + external skills when mounted
+- decision_id: ADR-0006
+- domain: governance
+- status: accepted
+- created: 2026-01-16
+- tags: [sfc, governance, skills, baseline, skill-factory]
+- owners: LiYe OS Governance
+- scope: All SKILL.md in repo + external skills when mounted
 
 ## Context
 LiYe OS skill ecosystem grew from multiple sources:
