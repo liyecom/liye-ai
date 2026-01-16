@@ -8,6 +8,27 @@ status: active
 source: awesome-claude-skills
 source_url: https://github.com/ComposioHQ/awesome-claude-skills
 license: Apache-2.0
+# SFC v0.1 Required Fields
+skeleton: "reference"
+triggers:
+  commands: ["/skill-creator", "/create-skill"]
+  patterns: ["create skill", "new skill", "build skill"]
+inputs:
+  required: []
+  optional: ["name", "description", "skeleton", "source_url"]
+outputs:
+  artifacts: ["SKILL.md", "scripts/", "references/"]
+failure_modes:
+  - symptom: "Missing source materials"
+    recovery: "Provide valid URL or local path"
+  - symptom: "Invalid skeleton selection"
+    recovery: "Choose from: workflow | task | reference | capabilities"
+verification:
+  evidence_required: true
+  how_to_verify: ["node .claude/scripts/sfc_lint.mjs <skill_dir>"]
+governance:
+  constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
+  policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
 ---
 
 # Skill Creator

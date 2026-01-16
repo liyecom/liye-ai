@@ -1,3 +1,30 @@
+---
+name: ui-ux
+description: SFC patched skill. Use when "ui-ux" is relevant.
+
+# SFC v0.1 Required Fields
+skeleton: "reference"
+triggers:
+  commands: ["/ui-ux"]
+  patterns: ["ui-ux"]
+inputs:
+  required: []
+  optional: []
+outputs:
+  artifacts: ["SKILL.md"]
+failure_modes:
+  - symptom: "Missing required inputs or context"
+    recovery: "Provide the missing info and retry"
+  - symptom: "Unexpected tool/runtime failure"
+    recovery: "Rerun with minimal steps; escalate after 3 failures"
+verification:
+  evidence_required: true
+  how_to_verify: ["node .claude/scripts/sfc_lint.mjs <skill_dir>"]
+governance:
+  constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
+  policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
+---
+
 # UI/UX Pro Max Skill
 
 > **Version**: 1.0.0

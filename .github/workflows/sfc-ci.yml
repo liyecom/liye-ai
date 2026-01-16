@@ -1,0 +1,20 @@
+name: SFC CI Gate
+
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  sfc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: SFC CI Gate (warn)
+        run: node .claude/scripts/sfc_ci_gate.mjs --root . --mode warn
