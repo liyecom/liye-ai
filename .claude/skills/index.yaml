@@ -1,0 +1,50 @@
+registry_version: "1.0"
+status: "draft"
+purpose: "Unified Skill Registry (sources + namespace + visibility + resolution)"
+skill_id_format: "<namespace>:<skill_name>"
+
+# Source buckets (governance-aware)
+namespaces:
+  liye-os:
+    visibility: private
+    source_bucket: internal
+    roots:
+      - repo: liye_os
+        path: "Skills/"
+        discovery: "sfc_sweep"
+        notes: "Internal skills are patchable and must remain SFC-compliant."
+
+  external:
+    visibility: external
+    source_bucket: external_plugins
+    roots:
+      - path: "~/.claude/skills"
+        discovery: "lockfile+drift"
+        notes: "External plugins are read-only; monitored via lock+drift only."
+
+  amazon:
+    visibility: private
+    source_bucket: peer_repo
+    roots:
+      - repo: amazon-growth-engine
+        path: ".claude/skills/"
+        discovery: "sfc_sweep_multi"
+        notes: "Amazon Growth Engine is a peer repo; local skills patchable, vendored read-only."
+
+# Resolution strategy (router uses this order)
+resolution:
+  priority_order:
+    - liye-os
+    - amazon
+    - external
+
+  scoring:
+    exact_command_match: 100
+    exact_name_match: 60
+    pattern_match: 40
+    fuzzy_contains: 15
+
+# Optional: common aliases (manual override routing)
+aliases:
+  "/create-skill": "liye-os:skill-creator"
+  "/forge-skill": "external:skill-forge"
