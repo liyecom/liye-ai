@@ -13,6 +13,29 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![Stability](https://img.shields.io/badge/stability-contract-orange.svg)](docs/architecture/ARCHITECTURE_CONTRACT.md)
 
+> **说明**：中文版可能滞后，以英文 README 为权威版本（source of truth）。
+
+---
+
+## 从这里开始（选一个）
+
+大多数人不需要读完整仓库。请选择与你的意图一致的入口：
+
+### 1) 📜 架构契约（稳定性边界）
+如果你要复制任何东西，请先读它。
+
+→ **阅读：** [Architecture Contract](docs/start-here/ARCHITECTURE_CONTRACT.md)
+
+### 2) 🧱 治理门禁（CI 执行层）
+如果你想实现「no silent break / no silent relax」，从这里开始。
+
+→ **阅读：** [Governance Gates](docs/start-here/GOVERNANCE_GATES.md)
+
+### 3) 🗺️ 蓝图地图（可复制的目录结构）
+如果你是来抄结构的，这里是最小参考蓝图。
+
+→ **阅读：** [Blueprint Map](docs/start-here/BLUEPRINT_MAP.md)
+
 ---
 
 ## 1 分钟快速入门
@@ -89,10 +112,9 @@ LiYe OS 是用于构建 AI 协作工程系统的**参考实现**，包含：
 **目标**：复用目录结构和架构模式
 
 ```text
-从这里开始：
-├── _meta/docs/ARCHITECTURE_CONSTITUTION.md   # 设计原则
-├── docs/architecture/                         # 架构决策
-└── .github/workflows/*gate*                   # CI 治理门禁
+_meta/docs/ARCHITECTURE_CONSTITUTION.md   # 设计原则
+docs/architecture/                        # 架构决策
+.github/workflows/                        # 治理门禁（CI）
 ```
 
 ### 路径 2：接治理（Governance Stack）
@@ -100,10 +122,9 @@ LiYe OS 是用于构建 AI 协作工程系统的**参考实现**，包含：
 **目标**：把 CI 门禁和契约集成到你的项目
 
 ```text
-从这里开始：
-├── .github/workflows/architecture-gate.yml    # 架构强制检查
-├── .github/workflows/constitution-*-gate.yml  # 宪法检查
-└── docs/architecture/ARCHITECTURE_CONTRACT.md # 稳定性契约
+.github/workflows/architecture-gate.yml        # 架构强制检查
+.github/workflows/constitution-*-gate.yml      # 宪法检查
+docs/architecture/ARCHITECTURE_CONTRACT.md     # 稳定性契约
 ```
 
 ### 路径 3：跑闭环（Minimal Runtime）
@@ -149,20 +170,17 @@ LiYe OS 维护清晰的稳定性边界。详见 [ARCHITECTURE_CONTRACT.md](docs/
 
 ```text
 liye_os/
-├── CLAUDE.md                 # 上下文编译器入口（Claude Code 读取）
-├── .claude/packs/            # 领域知识包（按需加载）
-│
-├── src/kernel/               # 世界模型内核（T1/T2/T3）
-│   ├── t1/                   # 因果推理
-│   ├── t2/                   # 状态评估
-│   └── t3/                   # 动态预测
-│
-├── _meta/governance/         # 治理规则（Frozen）
-├── .github/workflows/        # CI 门禁（Frozen: *gate*，Stable: 其他）
-│
-├── Agents/                   # Agent 定义（Experimental）
-├── Skills/                   # 方法论与 SOP
-└── docs/architecture/        # 架构文档（Stable）
+  CLAUDE.md                   # 上下文编译器入口（Claude Code 读取）
+  .claude/packs/              # 领域知识包（按需加载）
+  src/kernel/                 # 世界模型内核（T1/T2/T3）
+    t1/                       # 因果推理
+    t2/                       # 状态评估
+    t3/                       # 动态预测
+  _meta/governance/           # 治理规则（Frozen）
+  .github/workflows/          # CI 门禁（Frozen: *gate*，Stable: 其他）
+  Agents/                     # Agent 定义（Experimental）
+  Skills/                     # 方法论与 SOP
+  docs/architecture/          # 架构文档（Stable）
 ```
 
 ---
@@ -181,13 +199,14 @@ liye_os/
 
 ---
 
-## 给采用者
+## 给采用者（帮助我们管理 breaking-change 半径）
 
-如果你正在使用 LiYe OS 作为参考或依赖：
+如果你正在使用 LiYe OS 作为参考或依赖（即使是私下使用）：
 
-1. **登记** 在 [ADOPTERS.md](ADOPTERS.md)（公开或匿名）
-2. **关注** 破坏性变更通知
-3. **查阅** [稳定性契约](docs/architecture/ARCHITECTURE_CONTRACT.md) 再决定依赖哪些组件
+- ⭐ **Star 仓库** — 帮助我们估算下游采用与 breaking-change 风险半径
+- 🧾 **登记采用者** — 见 [ADOPTERS.md](ADOPTERS.md)（支持公开或匿名）
+
+谢谢你 — 治理只有在「下游使用可观察」时才真正成立。
 
 ---
 
