@@ -15,6 +15,27 @@ Turn AI outputs into auditable, replayable, and controllable engineering systems
 
 ---
 
+## Start here (pick one)
+
+Most people don't need the whole repo. Choose the entry that matches your intent:
+
+### 1) 📜 Architecture Contract (stability boundaries)
+If you're going to copy anything, copy this first.
+
+→ **Read:** [Architecture Contract](docs/start-here/ARCHITECTURE_CONTRACT.md)
+
+### 2) 🧱 Governance Gates (CI enforcement layer)
+If you want "no silent break / no silent relax", start here.
+
+→ **Browse:** [Governance Gates](docs/start-here/GOVERNANCE_GATES.md)
+
+### 3) 🗺️ Blueprint Map (directory structure you can replicate)
+If you're here for the structure, use this as a reference blueprint.
+
+→ **Read:** [Blueprint Map](docs/start-here/BLUEPRINT_MAP.md)
+
+---
+
 ## 1-Minute Quickstart
 
 ```bash
@@ -88,22 +109,24 @@ Choose your path based on what you need:
 
 **Goal**: Reuse directory structure and architecture patterns
 
-```
-Start here:
-├── _meta/docs/ARCHITECTURE_CONSTITUTION.md  # Design principles
-├── docs/architecture/                        # Architecture decisions
-└── .github/workflows/*gate*                  # CI governance gates
+Start from:
+
+```text
+_meta/docs/ARCHITECTURE_CONSTITUTION.md   # design principles
+docs/architecture/                        # architecture decisions
+.github/workflows/                        # governance gates (CI)
 ```
 
 ### Path 2: Governance Stack (Embed Controls)
 
 **Goal**: Integrate CI gates and contracts into your project
 
-```
-Start here:
-├── .github/workflows/architecture-gate.yml   # Architecture enforcement
-├── .github/workflows/constitution-*-gate.yml # Constitution checks
-└── docs/architecture/ARCHITECTURE_CONTRACT.md # Stability contract
+Start from:
+
+```text
+.github/workflows/architecture-gate.yml        # architecture enforcement
+.github/workflows/constitution-*-gate.yml      # constitution enforcement
+docs/architecture/ARCHITECTURE_CONTRACT.md     # stability contract
 ```
 
 ### Path 3: Minimal Runtime (Run the System)
@@ -181,13 +204,14 @@ The core innovation: **No execution without risk analysis.**
 
 ---
 
-## For Adopters
+## For adopters (helps us manage breaking-change radius)
 
-If you're using LiYe OS as a reference or dependency:
+If you're using LiYe OS as a blueprint or governance stack (even privately):
 
-1. **Register** in [ADOPTERS.md](ADOPTERS.md) (public or anonymous)
-2. **Watch** for breaking change notifications
-3. **Check** the [stability contract](docs/architecture/ARCHITECTURE_CONTRACT.md) before depending on a component
+- ⭐ **Star the repo** — it helps us estimate downstream adoption and breaking-change radius.
+- 🧾 **Register in** [ADOPTERS.md](ADOPTERS.md) (public or anonymous).
+
+Thank you — governance only works when downstream usage is observable.
 
 ---
 
