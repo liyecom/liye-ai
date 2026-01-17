@@ -18,3 +18,9 @@ jobs:
 
       - name: SFC CI Gate (warn)
         run: node .claude/scripts/sfc_ci_gate.mjs --root . --mode warn
+
+      - name: ESS Lint (warning-only)
+        run: node .claude/scripts/ess_lint.mjs || true
+
+      - name: ESS Sweep (warning-only)
+        run: node .claude/scripts/ess_sweep.mjs --top 20 || true
