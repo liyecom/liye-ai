@@ -1,0 +1,35 @@
+ess_version: "0.1"
+purpose: "Executable Skill Specification (placeholder contract for cross-repo workflows)"
+required_fields:
+  - metadata.skill_id
+  - metadata.visibility
+  - trigger.commands
+  - input.schema
+  - execution.type
+  - execution.entry
+  - output.contract
+  - governance.trace_enabled
+
+metadata:
+  skill_id: "<namespace>:<name>"
+  visibility: "public|private|protected"
+  version: "x.y.z"
+
+trigger:
+  commands: ["</slash-command>"]
+  patterns: ["<natural-language patterns>"]
+
+input:
+  schema: "JSON Schema (object)"
+
+execution:
+  type: "prompt|workflow|agent|script|hybrid"
+  entry: "<path>"
+  notes: "<optional>"
+
+output:
+  contract: "<structured output contract>"
+
+governance:
+  trace_enabled: true
+  track_binding: "required|optional|none"
