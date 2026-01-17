@@ -48,3 +48,5 @@ resolution:
 aliases:
   "/create-skill": "liye-os:skill-creator"
   "/forge-skill": "external:skill-forge"
+  "/sfc-sweep": "liye-os:sfc-sweep"
+  "/sfc-lint": "liye-os:sfc-lint"

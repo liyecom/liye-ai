@@ -1,0 +1,39 @@
+ess_version: "0.1"
+
+metadata:
+  skill_id: "liye-os:sfc-sweep"
+  name: "SFC Sweep"
+  visibility: "private"
+  version: "0.1.0"
+
+trigger:
+  commands: ["/sfc-sweep"]
+  patterns: ["sfc sweep", "scan skills", "skill debt report"]
+
+input:
+  schema:
+    type: object
+    required: []
+    properties:
+      root:
+        type: string
+        default: "."
+        description: "Repo root to scan"
+
+execution:
+  type: "script"
+  runtime: "node"
+  entry: ".claude/scripts/sfc_sweep.mjs"
+  args:
+    - "{{root}}"
+
+output:
+  contract:
+    report_dir: "docs/reports/ess/sfc-sweep"
+    report_name: "ESS-SFC-SWEEP-{{timestamp}}.md"
+    trace_path: "traces/ESS-TRACE-{{timestamp}}.yaml"
+
+governance:
+  trace_enabled: true
+  constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
+  policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
