@@ -1,0 +1,24 @@
+{
+  "lock_version": "1.0",
+  "generated_at": "2026-01-17T01:36:49.660Z",
+  "external_root": "/Users/liye/.claude/skills",
+  "total_locked": 2,
+  "items": [
+    {
+      "name": "crewai",
+      "version": "unknown",
+      "skill_dir": "/Users/liye/.claude/skills/crewai",
+      "skill_md_path": "/Users/liye/.claude/skills/crewai/SKILL.md",
+      "skill_md_sha256": "22421e974d7cc6abafdd14c58977b4f5d6cb0183f2142d48d52c7dc4d8e7d4e1",
+      "last_seen_at": "2026-01-17T01:36:49.659Z"
+    },
+    {
+      "name": "skill-forge",
+      "version": "unknown",
+      "skill_dir": "/Users/liye/.claude/skills/skill-forge",
+      "skill_md_path": "/Users/liye/.claude/skills/skill-forge/SKILL.md",
+      "skill_md_sha256": "de0f124a76a0a994f10c26edaf60693006b1abf1494e4a223231886bf0fc0d39",
+      "last_seen_at": "2026-01-17T01:36:49.660Z"
+    }
+  ]
+}
