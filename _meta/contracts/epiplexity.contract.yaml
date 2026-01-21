@@ -1,0 +1,96 @@
+# Epiplexity Contract v0.1
+# Purpose: Define proxy signals and thresholds for "learnable structure" governance
+# Scope: Phase 0-1 observation only (advisory, no enforcement)
+
+type: epiplexity_v0
+version: 0.1
+enforcement: advisory
+
+# =============================================================================
+# Proxy Signals (Phase 0-1 cannot access perplexity/loss)
+# =============================================================================
+signals:
+  vfc:
+    name: "Value-for-Context"
+    description: "Net success improvement per 1000 tokens"
+    formula: "((success_rate(pack) - baseline_success) * (1 - drift_rate(pack))) / (avg_tokens(pack) / 1000)"
+    unit: "success_delta / 1000_tokens"
+
+  drift_risk:
+    name: "Drift Risk"
+    description: "Failure/drift incidence rate when pack is loaded"
+    formula: "count(failure_mode_tags > 0) / count(traces with pack)"
+    unit: "ratio (0-1)"
+
+  reuse_yield:
+    name: "Reuse Yield"
+    description: "Cross-task reuse success proxy (Phase 2 implementation)"
+    formula: "TBD in Phase 2"
+    unit: "ratio (0-1)"
+    status: "future"
+
+# =============================================================================
+# Thresholds (Advisory)
+# =============================================================================
+thresholds:
+  vfc:
+    high: 0.15      # Pack contributes +15% success per 1000 tokens
+    low: 0.02       # Pack contributes <2% success per 1000 tokens
+
+  drift_risk:
+    high: 0.25      # 25%+ tasks with this pack have drift/failure
+    low: 0.05       # <5% drift rate
+
+# =============================================================================
+# Verdicts (Pack Classification)
+# =============================================================================
+verdicts:
+  KEEP:
+    description: "High value, low risk - continue using"
+    rule: "vfc >= thresholds.vfc.high AND drift_risk <= thresholds.drift_risk.low"
+
+  DROP:
+    description: "Low value, high risk - consider removal"
+    rule: "vfc <= thresholds.vfc.low AND drift_risk >= thresholds.drift_risk.high"
+
+  REVIEW:
+    description: "Mixed signals - needs manual review"
+    rule: "otherwise"
+
+# =============================================================================
+# Trace Schema Reference
+# =============================================================================
+trace_schema:
+  location: "data/traces/epiplexity/epiplexity-traces.jsonl"
+  format: "jsonl (one JSON object per line)"
+  required_fields:
+    - trace_id        # string: unique identifier
+    - ts              # ISO8601: timestamp
+    - task_type       # string: amazon|seo|dev|docs|ops|general
+    - packs_loaded    # string[]: list of pack IDs
+    - context_tokens_total  # number: estimated tokens
+    - task_success    # boolean: task outcome
+    - quality_score   # number|null: optional quality metric
+    - strike_count    # number: consecutive failures
+    - failure_mode_tags  # string[]: failure identifiers
+    - duration_ms     # number: execution time
+    - notes           # string: optional notes
+
+# =============================================================================
+# Phase 0-1 Constraints (Hard Rules)
+# =============================================================================
+constraints:
+  - "NO perplexity/token-loss dependency"
+  - "NO new kernel subsystem (src/kernel/epiplexity/ PROHIBITED)"
+  - "NO behavior change to Pack selection or execution"
+  - "NO KPI on epiplexity score (primary KPI = success_rate)"
+  - "2-week hard deadline for Scale/Kill decision"
+
+# =============================================================================
+# Notes
+# =============================================================================
+notes:
+  - "Phase 0-1 uses proxy signals; do NOT depend on perplexity/loss."
+  - "Phase 2 may add reranker but must keep heuristic recall as fallback."
+  - "All verdicts are advisory only - no automatic actions in Phase 0-1."
+  - "See ADR: docs/adr/systems/ADR-EPIPLEXITY-IN-LIYE-OS.md"
