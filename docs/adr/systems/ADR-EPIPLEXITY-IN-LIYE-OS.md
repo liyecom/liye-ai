@@ -1,7 +1,11 @@
 # ADR: Epiplexity Integration in LiYe OS
 
-**Status**: Accepted (Phase 0-1 Only)
-**Date**: 2026-01-21
+- decision_id: ADR-0007
+- domain: systems
+- status: accepted
+- created: 2026-01-21
+- tags: [epiplexity, vfc, observability, phase0]
+
 **Decision Makers**: LiYe
 **Scope**: Observation & Analysis (No Behavior Change)
 
