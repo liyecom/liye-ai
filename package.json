@@ -18,7 +18,11 @@
     "liye-recall": "./tools/recall/recall.js"
   },
   "scripts": {
-    "recall": "node tools/recall/recall.js"
+    "recall": "node tools/recall/recall.js",
+    "mcp:up": "./.claude/scripts/mcp_up.sh start",
+    "mcp:status": "./.claude/scripts/mcp_up.sh status",
+    "mcp:governance": "node src/mcp/server.mjs",
+    "mcp:knowledge": "python3 -m src.runtime.mcp.server_main"
   },
   "dependencies": {
     "ajv": "^8.17.1",

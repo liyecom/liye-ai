@@ -1,0 +1,200 @@
+# MCP Federation CI
+#
+# Validates the MCP Federation Pack v1:
+# - Documentation exists
+# - Demo runs successfully
+# - Evidence package generated
+# - Replay PASS
+
+name: mcp-federation-ci
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'src/mcp/**'
+      - 'src/runtime/mcp/**'
+      - 'src/governance/**'
+      - 'docs/integrations/**'
+      - 'examples/federation/**'
+      - 'docker-compose.mcp.yml'
+      - 'Dockerfile.*'
+      - '.claude/scripts/federation_smoke_test.mjs'
+      - '.github/workflows/mcp-federation-ci.yml'
+  push:
+    branches: ["main"]
+    paths:
+      - 'src/mcp/**'
+      - 'src/runtime/mcp/**'
+      - 'src/governance/**'
+      - 'docs/integrations/**'
+      - 'examples/federation/**'
+
+jobs:
+  federation_smoke_test:
+    name: Federation Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Federation Smoke Test
+        run: node .claude/scripts/federation_smoke_test.mjs
+
+      - name: Upload trace artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: federation-traces
+          path: |
+            .liye/traces/**
+            examples/federation/**/output/**
+          retention-days: 7
+
+  documentation_check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Catalog exists
+        run: |
+          if [ ! -f "docs/integrations/MCP_SERVICE_CATALOG_V1.md" ]; then
+            echo "Missing: docs/integrations/MCP_SERVICE_CATALOG_V1.md"
+            exit 1
+          fi
+          echo "✓ MCP_SERVICE_CATALOG_V1.md exists"
+
+      - name: Check Spec exists
+        run: |
+          if [ ! -f "docs/integrations/GOVERNED_TOOL_CALL_SPEC_V1.md" ]; then
+            echo "Missing: docs/integrations/GOVERNED_TOOL_CALL_SPEC_V1.md"
+            exit 1
+          fi
+          echo "✓ GOVERNED_TOOL_CALL_SPEC_V1.md exists"
+
+      - name: Validate Catalog content
+        run: |
+          grep -q "Governance MCP" docs/integrations/MCP_SERVICE_CATALOG_V1.md || \
+            (echo "Catalog missing Governance MCP section" && exit 1)
+          grep -q "Knowledge MCP" docs/integrations/MCP_SERVICE_CATALOG_V1.md || \
+            (echo "Catalog missing Knowledge MCP section" && exit 1)
+          grep -q "governance_gate" docs/integrations/MCP_SERVICE_CATALOG_V1.md || \
+            (echo "Catalog missing governance_gate tool" && exit 1)
+          echo "✓ Catalog content valid"
+
+      - name: Validate Spec content
+        run: |
+          grep -q "Gate → Execute" docs/integrations/GOVERNED_TOOL_CALL_SPEC_V1.md || \
+            (echo "Spec missing flow pattern" && exit 1)
+          grep -q "governance_replay" docs/integrations/GOVERNED_TOOL_CALL_SPEC_V1.md || \
+            (echo "Spec missing replay step" && exit 1)
+          echo "✓ Spec content valid"
+
+  one_command_up_check:
+    name: One Command Up Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Docker Compose exists
+        run: |
+          if [ ! -f "docker-compose.mcp.yml" ]; then
+            echo "Missing: docker-compose.mcp.yml"
+            exit 1
+          fi
+          echo "✓ docker-compose.mcp.yml exists"
+
+      - name: Check Dockerfiles exist
+        run: |
+          if [ ! -f "Dockerfile.governance" ]; then
+            echo "Missing: Dockerfile.governance"
+            exit 1
+          fi
+          if [ ! -f "Dockerfile.knowledge" ]; then
+            echo "Missing: Dockerfile.knowledge"
+            exit 1
+          fi
+          echo "✓ Dockerfiles exist"
+
+      - name: Validate Docker Compose syntax
+        run: |
+          docker compose -f docker-compose.mcp.yml config --quiet
+          echo "✓ Docker Compose syntax valid"
+
+      - name: Check npm scripts
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            if (!pkg.scripts['mcp:up']) throw new Error('Missing mcp:up script');
+            if (!pkg.scripts['mcp:governance']) throw new Error('Missing mcp:governance script');
+            if (!pkg.scripts['mcp:knowledge']) throw new Error('Missing mcp:knowledge script');
+            console.log('✓ npm scripts configured');
+          "
+
+  demo_check:
+    name: Demo Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check demo files exist
+        run: |
+          if [ ! -f "examples/federation/governed-knowledge-call/input.json" ]; then
+            echo "Missing: input.json"
+            exit 1
+          fi
+          if [ ! -f "examples/federation/governed-knowledge-call/run_demo.mjs" ]; then
+            echo "Missing: run_demo.mjs"
+            exit 1
+          fi
+          echo "✓ Demo files exist"
+
+      - name: Run demo
+        run: node examples/federation/governed-knowledge-call/run_demo.mjs
+
+      - name: Verify evidence package
+        run: |
+          if [ ! -d ".liye/traces" ]; then
+            echo "Missing: .liye/traces directory"
+            exit 1
+          fi
+          TRACE_COUNT=$(ls -1 .liye/traces 2>/dev/null | wc -l)
+          if [ "$TRACE_COUNT" -eq 0 ]; then
+            echo "No traces generated"
+            exit 1
+          fi
+          echo "✓ Evidence package generated ($TRACE_COUNT traces)"
+
+      - name: Upload demo traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-traces
+          path: .liye/traces/**
+          retention-days: 7
