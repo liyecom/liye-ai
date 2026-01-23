@@ -1,0 +1,42 @@
+name: governance-kernel-ci
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  governance_kernel_regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Validate Governance Schemas
+        run: node .claude/scripts/validate_governance_schemas.mjs
+
+      - name: Run Golden Cases (10/10)
+        run: node .claude/scripts/run_golden_all.mjs
+
+      # 如果黄金用例 FAIL，则把 output/latest 打包成 artifact，方便定位
+      - name: Upload Golden Artifacts on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-artifacts
+          path: |
+            golden/10-cases/**/output/latest/**
+            .liye/traces/**/*
+          if-no-files-found: ignore

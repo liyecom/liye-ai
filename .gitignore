@@ -279,6 +279,11 @@ websites/zhangxiang/
 tracks/*/dist/
 
 # ============================================
+# Golden Test Case Outputs (Generated Evidence)
+# ============================================
+golden/10-cases/**/output/
+
+# ============================================
 # Memory System (Generated Diffs)
 # ============================================
 memory/diff/

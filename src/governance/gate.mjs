@@ -16,10 +16,10 @@ import {
  * Dangerous action patterns (deterministic rules)
  */
 const DANGEROUS_PATTERNS = [
-  { pattern: /\bdelete\b/i, severity: Severity.HIGH, id: 'risk-001', rationale: 'Destructive delete operation' },
-  { pattern: /\boverwrite\b/i, severity: Severity.HIGH, id: 'risk-002', rationale: 'Overwrite operation may lose data' },
+  { pattern: /\bdelete\b/i, severity: Severity.CRITICAL, id: 'risk-001', rationale: 'Irreversible destructive operation - hard block required' },
+  { pattern: /\boverwrite\b/i, severity: Severity.CRITICAL, id: 'risk-002', rationale: 'Irreversible data loss risk - hard block required' },
   { pattern: /\btransfer_funds\b/i, severity: Severity.CRITICAL, id: 'risk-003', rationale: 'Financial transfer requires explicit authorization' },
-  { pattern: /\bsend_email\b/i, severity: Severity.MEDIUM, id: 'risk-004', rationale: 'Sending email requires user confirmation' },
+  { pattern: /\bsend_email\b/i, severity: Severity.CRITICAL, id: 'risk-004', rationale: 'Unauthorized external communication - hard block required' },
   { pattern: /\brm\s+-rf\b/i, severity: Severity.CRITICAL, id: 'risk-005', rationale: 'Recursive force delete is extremely dangerous' },
   { pattern: /\bdrop\s+table\b/i, severity: Severity.CRITICAL, id: 'risk-006', rationale: 'Database table drop is irreversible' },
   { pattern: /\btruncate\b/i, severity: Severity.HIGH, id: 'risk-007', rationale: 'Truncate operation deletes all data' }

@@ -1,6 +1,6 @@
 {
   "gate": {
-    "decision": "UNKNOWN"
+    "decision": "BLOCK"
   },
   "enforce": {
     "decision_summary": "ALLOW",
