@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.dev/contracts/governance/v1/verdict.schema.json",
+  "title": "Verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "created_at", "summary", "why", "next_steps"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0.0" },
+    "trace_id": { "type": "string", "minLength": 6 },
+    "created_at": { "type": "string", "format": "date-time" },
+
+    "summary": { "type": "string", "minLength": 1 },
+
+    "why": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+
+    "what_changed": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+
+    "what_blocked": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+
+    "next_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

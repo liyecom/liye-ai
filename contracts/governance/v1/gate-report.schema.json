@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.dev/contracts/governance/v1/gate-report.schema.json",
+  "title": "GateReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "decision", "created_at"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0.0" },
+    "trace_id": { "type": "string", "minLength": 6 },
+    "created_at": { "type": "string", "format": "date-time" },
+
+    "decision": {
+      "type": "string",
+      "enum": ["ALLOW", "BLOCK", "DEGRADE", "UNKNOWN"]
+    },
+
+    "risks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RiskItem" },
+      "default": []
+    },
+
+    "unknowns": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/UnknownItem" },
+      "default": []
+    },
+
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ConstraintItem" },
+      "default": []
+    },
+
+    "recommended_next_actions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+
+    "model_info": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "RiskItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severity", "rationale"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "rationale": { "type": "string", "minLength": 1 },
+        "evidence_required": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        }
+      }
+    },
+    "UnknownItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "question"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "question": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ConstraintItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rule"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "rule": { "type": "string", "minLength": 1 },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"], "default": "medium" }
+      }
+    }
+  }
+}
