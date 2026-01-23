@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "trace_id": "trace-mkqy0fa5-1t9veu",
+  "created_at": "2026-01-23T13:55:04.157Z",
+  "summary": "Task requires clarification. Missing information or evidence needed before proceeding.",
+  "why": [
+    "[UNKNOWN] External tool \"database_query\" requires evidence of authorization"
+  ],
+  "what_changed": [],
+  "what_blocked": [],
+  "next_steps": [
+    "Provide evidence for database_query in context.evidence_provided"
+  ],
+  "confidence": 0.8
+}

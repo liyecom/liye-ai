@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.dev/contracts/governance/v1/trace-event.schema.json",
+  "title": "TraceEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ts", "trace_id", "seq", "type", "payload", "hash_prev", "hash"],
+  "properties": {
+    "ts": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 6 },
+    "span_id": { "type": "string" },
+    "parent_span_id": { "type": "string" },
+
+    "seq": { "type": "integer", "minimum": 0 },
+
+    "type": {
+      "type": "string",
+      "enum": [
+        "gate.start",
+        "gate.end",
+        "contract.load",
+        "enforce.allow",
+        "enforce.block",
+        "action.plan",
+        "action.execute",
+        "action.result",
+        "verdict.emit",
+        "replay.start",
+        "replay.end",
+        "error"
+      ]
+    },
+
+    "payload": { "type": "object" },
+
+    "hash_prev": { "type": "string", "minLength": 8 },
+    "hash": { "type": "string", "minLength": 8 }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "gate": {
+    "decision": "ALLOW"
+  },
+  "enforce": {
+    "decision_summary": "BLOCK",
+    "blocked_rule_ids": ["prod-001"]
+  }
+}

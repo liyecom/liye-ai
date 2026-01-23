@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "trace_id": "trace-mkqy0fa6-w4vnlx",
+  "created_at": "2026-01-23T13:55:04.159Z",
+  "summary": "Task blocked: 1 action(s) violated contract.",
+  "why": [
+    "[CONTRACT] Direct writes to /prod/ are forbidden - use deployment pipeline"
+  ],
+  "what_changed": [],
+  "what_blocked": [
+    "write: Direct writes to /prod/ are forbidden - use deployment pipeline"
+  ],
+  "next_steps": [
+    "Review and address blocking issues before retry"
+  ],
+  "confidence": 1
+}

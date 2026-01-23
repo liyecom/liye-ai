@@ -1,0 +1,9 @@
+{
+  "task": "Process refund for customer order",
+  "context": {
+    "scope": "orders"
+  },
+  "proposed_actions": [
+    { "action_type": "refund", "tool": "payment_gateway", "resource": "order/12345" }
+  ]
+}
