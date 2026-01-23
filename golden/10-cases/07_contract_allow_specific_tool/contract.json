@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "scope": { "name": "search-tools", "owner": "governance" },
+  "rules": [
+    {
+      "id": "search-001",
+      "effect": "ALLOW",
+      "match": { "tool": "search", "action_type": "tool.call" },
+      "rationale": "Search tool is explicitly allowed for documentation queries"
+    }
+  ]
+}

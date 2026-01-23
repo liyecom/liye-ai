@@ -1,0 +1,9 @@
+{
+  "task": "Search for user documentation",
+  "context": {
+    "scope": "search"
+  },
+  "proposed_actions": [
+    { "action_type": "tool.call", "tool": "search", "resource": "docs/*" }
+  ]
+}

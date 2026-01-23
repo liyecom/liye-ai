@@ -1,0 +1,9 @@
+{
+  "task": "Send notification email to all users",
+  "context": {
+    "scope": "notifications"
+  },
+  "proposed_actions": [
+    { "action_type": "send_email", "tool": "email_service", "resource": "users/all" }
+  ]
+}

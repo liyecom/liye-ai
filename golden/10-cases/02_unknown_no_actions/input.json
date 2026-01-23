@@ -1,0 +1,6 @@
+{
+  "task": "Do something useful with the data",
+  "context": {
+    "scope": "general"
+  }
+}

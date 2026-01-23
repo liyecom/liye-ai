@@ -1,0 +1,10 @@
+{
+  "task": "Update production configuration settings",
+  "context": {
+    "scope": "config",
+    "environment": "production"
+  },
+  "proposed_actions": [
+    { "action_type": "write", "resource": "/prod/config.json", "path_prefix": "/prod/" }
+  ]
+}

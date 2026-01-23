@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "trace_id": "trace-mkqy0fac-srfvvk",
+  "created_at": "2026-01-23T13:55:04.164Z",
+  "summary": "Task approved with degradation. High-risk actions require additional safeguards.",
+  "why": [
+    "[HIGH] Destructive delete operation"
+  ],
+  "what_changed": [],
+  "what_blocked": [],
+  "next_steps": [
+    "High risk detected - proceed with caution and additional safeguards",
+    "Request user confirmation for high-risk actions"
+  ],
+  "confidence": 0.8
+}

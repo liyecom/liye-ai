@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "trace_id": "trace-mkqy0fae-sj9kh6",
+  "created_at": "2026-01-23T13:55:04.166Z",
+  "summary": "Task requires clarification. Missing information or evidence needed before proceeding.",
+  "why": [
+    "[MEDIUM] Sending email requires user confirmation",
+    "[UNKNOWN] Action \"send_email\" requires evidence: user_confirmation, backup_verified"
+  ],
+  "what_changed": [],
+  "what_blocked": [],
+  "next_steps": [
+    "Provide evidence (user_confirmation or backup_verified) in context.evidence_provided"
+  ],
+  "confidence": 0.7000000000000001
+}

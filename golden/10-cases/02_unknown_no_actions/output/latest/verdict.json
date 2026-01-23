@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "trace_id": "trace-mkqy0f9z-ov4dqv",
+  "created_at": "2026-01-23T13:55:04.151Z",
+  "summary": "Task requires clarification. Missing information or evidence needed before proceeding.",
+  "why": [
+    "[UNKNOWN] What actions are you planning to take?"
+  ],
+  "what_changed": [],
+  "what_blocked": [],
+  "next_steps": [
+    "Provide proposed_actions array with action_type for each action"
+  ],
+  "confidence": 0.8
+}

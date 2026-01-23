@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "trace_id": "trace-mkqy0fa3-jte7br",
+  "created_at": "2026-01-23T13:55:04.155Z",
+  "summary": "Task approved with degradation. High-risk actions require additional safeguards.",
+  "why": [
+    "[HIGH] Overwrite operation may lose data"
+  ],
+  "what_changed": [],
+  "what_blocked": [],
+  "next_steps": [
+    "High risk detected - proceed with caution and additional safeguards",
+    "Request user confirmation for high-risk actions"
+  ],
+  "confidence": 0.8
+}

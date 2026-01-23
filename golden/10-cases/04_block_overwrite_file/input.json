@@ -1,0 +1,9 @@
+{
+  "task": "Replace existing configuration with new values",
+  "context": {
+    "scope": "config"
+  },
+  "proposed_actions": [
+    { "action_type": "overwrite", "resource": "config/production.json" }
+  ]
+}

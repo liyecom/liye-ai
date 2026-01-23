@@ -1,0 +1,9 @@
+{
+  "task": "Query user information from database",
+  "context": {
+    "scope": "data-access"
+  },
+  "proposed_actions": [
+    { "action_type": "query", "tool": "database_query", "resource": "users" }
+  ]
+}

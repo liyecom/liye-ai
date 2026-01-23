@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "scope": { "name": "payment-operations", "owner": "governance" },
+  "rules": [
+    {
+      "id": "pay-001",
+      "effect": "REQUIRE_EVIDENCE",
+      "match": { "action_type": "refund" },
+      "rationale": "Refund operations require order_id and customer_confirmation evidence",
+      "evidence_required": ["order_id", "customer_confirmation"]
+    }
+  ]
+}

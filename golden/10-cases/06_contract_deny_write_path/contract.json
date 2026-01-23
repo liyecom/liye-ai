@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "scope": { "name": "production-protection", "owner": "governance" },
+  "rules": [
+    {
+      "id": "prod-001",
+      "effect": "DENY",
+      "match": { "path_prefix": "/prod/" },
+      "rationale": "Direct writes to /prod/ are forbidden - use deployment pipeline"
+    }
+  ]
+}

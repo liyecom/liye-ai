@@ -1,0 +1,10 @@
+{
+  "task": "Manage user account state",
+  "context": {
+    "scope": "user-management"
+  },
+  "proposed_actions": [
+    { "action_type": "delete", "resource": "user/123" },
+    { "action_type": "update", "resource": "user/123", "data": { "status": "active" } }
+  ]
+}

@@ -72,12 +72,24 @@ export function gate(input, options = {}) {
 
       for (const { pattern, severity, id, rationale } of DANGEROUS_PATTERNS) {
         if (pattern.test(actionStr)) {
+          const evidence_required = ['user_confirmation', 'backup_verified'];
           risks.push({
             id,
             severity,
             rationale,
-            evidence_required: ['user_confirmation', 'backup_verified']
+            evidence_required
           });
+
+          // Rule 2b: Risks with evidence_required but no evidence → UNKNOWN
+          const providedEvidence = input.context?.evidence_provided || [];
+          const hasRequiredEvidence = evidence_required.some(e => providedEvidence.includes(e));
+          if (!hasRequiredEvidence && severity !== Severity.CRITICAL && severity !== Severity.HIGH) {
+            unknowns.push({
+              id: `unk-evidence-${id}`,
+              question: `Action "${action.action_type || 'unknown'}" requires evidence: ${evidence_required.join(', ')}`
+            });
+            recommended_next_actions.push(`Provide evidence (${evidence_required.join(' or ')}) in context.evidence_provided`);
+          }
         }
       }
     }

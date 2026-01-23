@@ -1,0 +1,11 @@
+{
+  "task": "Read configuration file and display settings",
+  "context": {
+    "scope": "config",
+    "risk_level": "low"
+  },
+  "proposed_actions": [
+    { "action_type": "read", "resource": "config/settings.json" },
+    { "action_type": "read", "resource": "config/defaults.json" }
+  ]
+}

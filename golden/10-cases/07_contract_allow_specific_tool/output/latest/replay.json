@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "trace_id": "trace-mkqy0fa8-njrnbg",
+  "trace_dir": ".liye/traces/trace-mkqy0fa8-njrnbg",
+  "started_at": "2026-01-23T13:55:04.160Z",
+  "ended_at": "2026-01-23T13:55:04.160Z",
+  "event_count": 5,
+  "summary": {
+    "trace_id": "trace-mkqy0fa8-njrnbg",
+    "event_count": 5,
+    "first_ts": "2026-01-23T13:55:04.160Z",
+    "last_ts": "2026-01-23T13:55:04.160Z",
+    "event_types": {
+      "gate.start": 1,
+      "gate.end": 1,
+      "contract.load": 1,
+      "enforce.allow": 1,
+      "verdict.emit": 1
+    },
+    "has_gate_start": true,
+    "has_gate_end": true,
+    "has_verdict": true
+  },
+  "errors": [],
+  "warnings": [],
+  "checks": {
+    "schema_valid": true,
+    "hash_chain_valid": true,
+    "structure_valid": true,
+    "payloads_valid": true
+  }
+}
