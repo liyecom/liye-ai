@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: LiYe Governed Tool Call API
+  description: |
+    Execute tool calls through LiYe Governance Kernel.
+    Every call goes through: Gate → Verdict → Replay → Evidence Package.
+
+    This API is designed for Dify Custom Tool integration.
+    Import this spec via Dify → Tools → Custom → Import via OpenAPI.
+  version: 1.0.0
+  contact:
+    name: LiYe OS
+    url: https://github.com/liyecom/liye-ai
+
+servers:
+  - url: http://localhost:3210
+    description: Local development server
+  - url: "{custom_url}"
+    description: Custom server
+    variables:
+      custom_url:
+        default: http://localhost:3210
+
+paths:
+  /v1/governed_tool_call:
+    post:
+      operationId: governedToolCall
+      summary: Execute a governed tool call
+      description: |
+        Submit a tool call for governance evaluation.
+
+        The call goes through:
+        1. **Gate**: Risk assessment
+        2. **Verdict**: Decision generation
+        3. **Replay**: Deterministic verification
+        4. **Evidence**: Audit trail generation
+
+        Decisions:
+        - ALLOW: Safe to execute
+        - DEGRADE: Execute with caution
+        - BLOCK: Do not execute (high risk)
+        - UNKNOWN: Cannot evaluate (fail closed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GovernedToolCallRequest'
+            examples:
+              allow_case:
+                summary: Safe read operation
+                value:
+                  task: "Search knowledge base for product info"
+                  context: {}
+                  proposed_actions:
+                    - action_type: read
+                      tool: semantic_search
+                      arguments:
+                        query: "ACOS optimization strategies"
+              block_case:
+                summary: High risk operation
+                value:
+                  task: "Delete all files"
+                  context: {}
+                  proposed_actions:
+                    - action_type: delete
+                      tool: filesystem_delete
+                      arguments:
+                        path: "/etc/passwd"
+      responses:
+        '200':
+          description: Governance evaluation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GovernedToolCallResponse'
+              examples:
+                allowed:
+                  summary: Action approved
+                  value:
+                    ok: true
+                    result:
+                      message: "Action approved for execution"
+                    decision: ALLOW
+                    trace_id: trace-1706097600-abc123
+                    evidence_path: ".liye/traces/trace-1706097600-abc123/"
+                    verdict_summary: "Action approved: no risks detected."
+                    replay_status: PASS
+                blocked:
+                  summary: Action blocked
+                  value:
+                    ok: false
+                    error: "Action blocked: dangerous_action. Attempting to delete system file"
+                    decision: BLOCK
+                    trace_id: trace-1706097600-def456
+                    evidence_path: ".liye/traces/trace-1706097600-def456/"
+                    verdict_summary: "Action blocked: dangerous_action. Attempting to delete system file"
+                    replay_status: PASS
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Governance system error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: governed-tool-call-gateway
+
+components:
+  schemas:
+    GovernedToolCallRequest:
+      type: object
+      required:
+        - task
+        - proposed_actions
+      properties:
+        task:
+          type: string
+          description: Human-readable description of what the agent wants to do
+          example: "Search knowledge base for product info"
+        context:
+          type: object
+          description: Optional context for the governance decision
+          additionalProperties: true
+          example: {}
+        proposed_actions:
+          type: array
+          description: List of actions the agent proposes to take
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ProposedAction'
+
+    ProposedAction:
+      type: object
+      required:
+        - action_type
+        - tool
+      properties:
+        action_type:
+          type: string
+          enum: [read, write, delete, send, execute]
+          description: |
+            Category of action:
+            - read: Query/search operations (safest)
+            - write: Create/update operations
+            - delete: Removal operations (dangerous)
+            - send: External communication (email, notify)
+            - execute: General execution
+        tool:
+          type: string
+          description: Name of the tool to execute
+          example: semantic_search
+        server:
+          type: string
+          description: Optional server/service name
+          example: qdrant-knowledge
+        arguments:
+          type: object
+          description: Arguments to pass to the tool
+          additionalProperties: true
+          example:
+            query: "ACOS optimization"
+
+    GovernedToolCallResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Whether the action is approved for execution
+        result:
+          type: object
+          description: Result data (only present if ok=true)
+          nullable: true
+        error:
+          type: string
+          description: Error message (only present if ok=false)
+        decision:
+          type: string
+          enum: [ALLOW, DEGRADE, BLOCK, UNKNOWN]
+          description: |
+            Governance decision:
+            - ALLOW: Safe to execute
+            - DEGRADE: Execute with caution
+            - BLOCK: Do not execute
+            - UNKNOWN: Cannot evaluate (fail closed)
+        trace_id:
+          type: string
+          description: Unique trace ID for audit
+          example: trace-1706097600-abc123
+        evidence_path:
+          type: string
+          description: Path to evidence package
+          example: ".liye/traces/trace-1706097600-abc123/"
+        verdict_summary:
+          type: string
+          description: Human-readable explanation of the decision
+        replay_status:
+          type: string
+          enum: [PASS, FAIL, UNKNOWN]
+          description: Result of deterministic replay verification
+
+    ErrorResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+        decision:
+          type: string
+          example: UNKNOWN
