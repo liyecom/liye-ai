@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.os/contracts/reasoning/evidence.schema.json",
+  "title": "Evidence Schema v0.1",
+  "description": "Schema for evidence used in reasoning and explanation generation",
+  "type": "object",
+  "required": ["evidence_id", "name", "source", "query_ref", "window", "value", "confidence"],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "description": "Unique identifier for this evidence instance"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the evidence"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["GDP", "ENGINE", "MANUAL"],
+      "description": "Source of the evidence data"
+    },
+    "query_ref": {
+      "type": "string",
+      "description": "Reference to the SQL/query or source description"
+    },
+    "window": {
+      "type": "object",
+      "description": "Time window for the evidence",
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dt_range": {
+          "type": "string",
+          "description": "Alternative date range specification (e.g., 'last_7d', 'last_30d')"
+        }
+      }
+    },
+    "value": {
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string" },
+        { "type": "object" }
+      ],
+      "description": "The actual evidence value"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Confidence level of this evidence"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the evidence"
+    }
+  },
+  "additionalProperties": false
+}

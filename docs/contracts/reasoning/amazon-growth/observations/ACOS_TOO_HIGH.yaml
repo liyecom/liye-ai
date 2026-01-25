@@ -1,0 +1,93 @@
+observation_id: ACOS_TOO_HIGH
+version: v0.1
+severity_default: HIGH
+
+definition:
+  summary: "ACoS 超过目标阈值"
+  metric: acos
+  trigger:
+    op: ">"
+    threshold_ref: "targets.max_acos"
+
+cause_candidates:
+  - id: NEW_PRODUCT_PHASE
+    description: "新品期高 ACoS 属正常现象"
+    evidence_requirements:
+      - days_since_launch
+      - review_count
+    decision_logic: "days_since_launch < 90 AND review_count < 30"
+    rationale:
+      - "新品冷启动阶段转化与权重尚未稳定"
+    recommended_actions:
+      - action_id: HOLD_STEADY_OBSERVE
+        risk_level: LOW
+        notes: "继续投放但监控趋势"
+    counterfactuals:
+      - if: "reduce_bid_10pct"
+        expected: "acos_down_small, sales_down_small"
+        risk_level: LOW
+
+  - id: LISTING_LOW_QUALITY
+    description: "Listing 质量弱导致 CTR/CVR 低"
+    evidence_requirements:
+      - ctr
+      - unit_session_pct
+    decision_logic: "ctr < targets.min_ctr OR unit_session_pct < targets.min_unit_session_pct"
+    rationale:
+      - "低 CTR 造成 CPC 结构性偏高"
+      - "低 CVR 导致每单成本上升"
+    recommended_actions:
+      - action_id: IMPROVE_LISTING_ASSETS
+        risk_level: MEDIUM
+    counterfactuals:
+      - if: "improve_main_image"
+        expected: "ctr_up, acos_down"
+        risk_level: LOW
+
+  - id: QUERY_MISMATCH
+    description: "搜索词不相关造成无效点击"
+    evidence_requirements:
+      - wasted_spend_ratio
+      - search_term_relevance_score
+    decision_logic: "wasted_spend_ratio > 0.3 OR search_term_relevance_score < 0.6"
+    rationale:
+      - "宽泛匹配带来低意图流量"
+    recommended_actions:
+      - action_id: ADD_NEGATIVE_KEYWORDS
+        risk_level: LOW
+    counterfactuals:
+      - if: "add_negatives_top20_waste"
+        expected: "spend_down, acos_down"
+        risk_level: LOW
+
+  - id: BID_TOO_HIGH
+    description: "CPC 过高导致 ACoS 偏高"
+    evidence_requirements:
+      - cpc
+      - category_avg_cpc
+    decision_logic: "cpc > category_avg_cpc * 1.5"
+    rationale:
+      - "价格竞争导致点击成本过高"
+    recommended_actions:
+      - action_id: REDUCE_BID
+        risk_level: LOW
+    counterfactuals:
+      - if: "reduce_bid_15pct"
+        expected: "cpc_down, impressions_down_small, acos_down"
+        risk_level: LOW
+
+  - id: OFFER_WEAKNESS
+    description: "产品竞争力不足（评分/价格）"
+    evidence_requirements:
+      - rating
+      - price_percentile
+    decision_logic: "rating < 4.0 OR price_percentile > 0.75"
+    rationale:
+      - "弱 offer 导致 CVR 结构性偏低"
+    recommended_actions:
+      - action_id: REVIEW_PRICING_OR_OFFER
+        risk_level: MEDIUM
+    counterfactuals:
+      - if: "price_down_5pct"
+        expected: "cvr_up, acos_down"
+        risk_level: MEDIUM
