@@ -8,7 +8,7 @@
  */
 
 import { strict as assert } from 'assert';
-import { buildExplanation } from '../../src/domain/amazon-growth/runtime/explanation/build_explanation.mjs';
+import { buildExplanation } from '../../src/reasoning/explanation/build_explanation.mjs';
 
 // Test fixtures
 const FULL_SIGNALS = {

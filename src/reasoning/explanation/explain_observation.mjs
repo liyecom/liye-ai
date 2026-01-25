@@ -1,10 +1,10 @@
 /**
- * explain_observation.mjs - Unified Entry Point for Amazon Growth Observations
+ * explain_observation.mjs - Unified Entry Point for Observations
  *
  * Single point of entry for all explanation generation.
  * Strategies/Rules call this to get explanations for observations.
  *
- * @module amazon-growth/explain_observation
+ * @module reasoning/explain_observation
  * @version v0.1
  */
 

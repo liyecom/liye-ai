@@ -1,10 +1,10 @@
 /**
- * build_explanation.mjs - Explanation Chain Generator for Amazon Growth Engine
+ * build_explanation.mjs - Explanation Chain Generator
  *
  * Pure function that generates explanation JSON from signals, targets, and evidence.
  * Outputs top-3 root causes ranked by evidence satisfaction and confidence.
  *
- * @module amazon-growth/explanation
+ * @module reasoning/explanation
  * @version v0.1
  */
 
@@ -15,8 +15,8 @@ import { parse as parseYaml } from 'yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Path to playbooks (from src/domain/amazon-growth/runtime/explanation/ to docs/contracts/...)
-const PLAYBOOKS_DIR = join(__dirname, '../../../../../docs/contracts/reasoning/amazon-growth/observations');
+// Path to playbooks (from src/reasoning/explanation/ to docs/contracts/...)
+const PLAYBOOKS_DIR = join(__dirname, '../../../docs/contracts/reasoning/amazon-growth/observations');
 
 /**
  * Load observation playbook from YAML

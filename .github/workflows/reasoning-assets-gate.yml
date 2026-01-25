@@ -5,14 +5,14 @@ on:
     branches: ["main"]
     paths:
       - "docs/contracts/reasoning/**"
-      - "src/domain/amazon-growth/runtime/explanation/**"
+      - "src/reasoning/explanation/**"
       - "src/governance/verdict_enricher.mjs"
       - ".claude/scripts/reasoning_assets_gate.mjs"
   push:
     branches: ["main"]
     paths:
       - "docs/contracts/reasoning/**"
-      - "src/domain/amazon-growth/runtime/explanation/**"
+      - "src/reasoning/explanation/**"
       - "src/governance/verdict_enricher.mjs"
       - ".claude/scripts/reasoning_assets_gate.mjs"
 

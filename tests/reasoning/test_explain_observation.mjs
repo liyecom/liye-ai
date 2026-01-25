@@ -8,7 +8,7 @@ import {
   explainObservationMarkdown,
   isObservationSupported,
   getSupportedObservations
-} from '../../src/domain/amazon-growth/runtime/explanation/explain_observation.mjs';
+} from '../../src/reasoning/explanation/explain_observation.mjs';
 
 // Test fixtures
 const VALID_CONTEXT = {
