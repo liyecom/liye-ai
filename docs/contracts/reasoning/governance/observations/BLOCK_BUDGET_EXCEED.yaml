@@ -1,0 +1,36 @@
+observation_id: BLOCK_BUDGET_EXCEED
+version: v0.1
+
+definition:
+  summary: "预算超出治理阈值导致 BLOCK"
+
+violation:
+  contract_ref: "budget_guardrail"
+  constraint: "daily_budget_limit"
+
+impact_analysis:
+  financial_risk: "overspend"
+  operational_risk: "budget_exhaustion"
+  compliance_risk: "exceed_authority"
+
+counterfactuals:
+  - if: "reduce_to_daily_limit"
+    expected_decision: "ALLOW"
+  - if: "split_into_n_days"
+    expected_decision: "ALLOW"
+  - if: "request_approval"
+    expected_decision: "ALLOW_AFTER_APPROVAL"
+
+recommendations:
+  - action_id: REDUCE_AMOUNT
+    params:
+      new_value_ref: "daily_budget_limit"
+    risk_level: LOW
+  - action_id: SPLIT_EXECUTION
+    params:
+      days: 5
+    risk_level: LOW
+  - action_id: REQUEST_APPROVAL
+    params:
+      approver_role: "budget_owner"
+    risk_level: MEDIUM
