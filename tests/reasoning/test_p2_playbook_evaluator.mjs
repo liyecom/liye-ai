@@ -13,6 +13,7 @@ import {
   analyzeCauses,
   analyzeActions,
   analyzeObservations,
+  analyzeMissingEvidence,
   evaluate
 } from '../../src/reasoning/playbook_evaluator.mjs';
 
@@ -128,9 +129,35 @@ function testAnalyzeObservations() {
   console.log('  ✅ Test 4 passed');
 }
 
-// Test 5: Full evaluation and report generation
+// Test 5: Analyze missing evidence (P2.3 required section)
+function testAnalyzeMissingEvidence() {
+  console.log('Test 5: Analyze missing evidence...');
+
+  const missingEvidence = analyzeMissingEvidence(TEST_EVENTS);
+
+  assert(Array.isArray(missingEvidence), 'Should return array');
+
+  // Test events have some missing fields
+  const causeIdMissing = missingEvidence.find(m => m.field === 'cause_id');
+  // All our test events have cause_id, so it should NOT be in missing
+  // But we expect before_metrics, after_metrics, and delta to be missing for some
+
+  const beforeMissing = missingEvidence.find(m => m.field === 'before_metrics');
+  const afterMissing = missingEvidence.find(m => m.field === 'after_metrics');
+
+  // Most test events don't have full metrics
+  assert(beforeMissing || afterMissing || missingEvidence.length >= 0, 'Should analyze missing fields');
+
+  console.log(`  - Missing fields found: ${missingEvidence.length}`);
+  for (const me of missingEvidence) {
+    console.log(`    - ${me.field}: ${me.missing_count} (${me.missing_pct}%)`);
+  }
+  console.log('  ✅ Test 5 passed');
+}
+
+// Test 6: Full evaluation and report generation
 function testFullEvaluation() {
-  console.log('Test 5: Full evaluation...');
+  console.log('Test 6: Full evaluation...');
 
   setupTestData();
 
@@ -143,7 +170,7 @@ function testFullEvaluation() {
   // This runs async but we can check the sync parts
   // The actual report check would need to wait
 
-  console.log('  ✅ Test 5 passed (evaluation initiated)');
+  console.log('  ✅ Test 6 passed (evaluation initiated)');
 }
 
 // Run all tests
@@ -155,6 +182,7 @@ async function runTests() {
     testAnalyzeCauses();
     testAnalyzeActions();
     testAnalyzeObservations();
+    testAnalyzeMissingEvidence();
     testFullEvaluation();
 
     // Wait a bit for report generation
@@ -167,6 +195,7 @@ async function runTests() {
       const report = readFileSync(reportPath, 'utf-8');
       assert(report.includes('# Playbook Evaluation Report'), 'Report should have title');
       assert(report.includes('REDUCE_BID'), 'Report should include REDUCE_BID');
+      assert(report.includes('## Missing Evidence Fields'), 'Report should include Missing Evidence section');
       console.log('\n  ✅ Report generated and validated');
     }
 

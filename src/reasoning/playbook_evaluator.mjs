@@ -228,6 +228,70 @@ function analyzeObservations(events) {
 }
 
 /**
+ * Analyze missing evidence fields (P2.3 required section)
+ *
+ * @param {Array} events - ActionOutcomeEvents
+ * @returns {Array} Missing evidence analysis
+ */
+function analyzeMissingEvidence(events) {
+  const evidenceStats = {};
+
+  for (const event of events) {
+    // Track events without before_metrics
+    if (!event.before_metrics || !event.before_metrics.values) {
+      const key = 'before_metrics';
+      if (!evidenceStats[key]) {
+        evidenceStats[key] = { field: key, missing_count: 0, observations: new Set() };
+      }
+      evidenceStats[key].missing_count++;
+      evidenceStats[key].observations.add(event.observation_id);
+    }
+
+    // Track events without after_metrics
+    if (!event.after_metrics || !event.after_metrics.values) {
+      const key = 'after_metrics';
+      if (!evidenceStats[key]) {
+        evidenceStats[key] = { field: key, missing_count: 0, observations: new Set() };
+      }
+      evidenceStats[key].missing_count++;
+      evidenceStats[key].observations.add(event.observation_id);
+    }
+
+    // Track events without cause_id
+    if (!event.cause_id) {
+      const key = 'cause_id';
+      if (!evidenceStats[key]) {
+        evidenceStats[key] = { field: key, missing_count: 0, observations: new Set() };
+      }
+      evidenceStats[key].missing_count++;
+      evidenceStats[key].observations.add(event.observation_id);
+    }
+
+    // Track events without delta (computed field)
+    if (!event.delta) {
+      const key = 'delta';
+      if (!evidenceStats[key]) {
+        evidenceStats[key] = { field: key, missing_count: 0, observations: new Set() };
+      }
+      evidenceStats[key].missing_count++;
+      evidenceStats[key].observations.add(event.observation_id);
+    }
+  }
+
+  const results = [];
+  for (const [field, stats] of Object.entries(evidenceStats)) {
+    results.push({
+      field: stats.field,
+      missing_count: stats.missing_count,
+      missing_pct: events.length > 0 ? (stats.missing_count / events.length * 100).toFixed(1) : '0.0',
+      affected_observations: Array.from(stats.observations)
+    });
+  }
+
+  return results.sort((a, b) => b.missing_count - a.missing_count);
+}
+
+/**
  * Generate markdown report
  *
  * @param {Object} analysis - Analysis results
@@ -235,7 +299,7 @@ function analyzeObservations(events) {
  * @returns {string} Markdown report
  */
 function generateReport(analysis, days) {
-  const { causes, actions, observations, summary } = analysis;
+  const { causes, actions, observations, missingEvidence, summary } = analysis;
 
   const lines = [
     `# Playbook Evaluation Report`,
@@ -280,6 +344,20 @@ function generateReport(analysis, days) {
 
   for (const obs of observations) {
     lines.push(`| ${obs.observation_id} | ${obs.total} | ${obs.success_rate}% | ${obs.unique_actions} | ${obs.unique_causes} |`);
+  }
+
+  // P2.3 Required: Missing Evidence Section (data collection roadmap)
+  lines.push('', '---', '', '## Missing Evidence Fields', '');
+  lines.push('> This section identifies evidence gaps for data collection prioritization.', '');
+
+  if (missingEvidence && missingEvidence.length > 0) {
+    lines.push('| Field | Missing Count | Missing % | Affected Observations |');
+    lines.push('|-------|---------------|-----------|----------------------|');
+    for (const me of missingEvidence) {
+      lines.push(`| ${me.field} | ${me.missing_count} | ${me.missing_pct}% | ${me.affected_observations.join(', ')} |`);
+    }
+  } else {
+    lines.push('✅ No missing evidence fields detected.');
   }
 
   lines.push('', '---', '', '## Recommendations', '');
@@ -337,6 +415,7 @@ async function evaluate(options = {}) {
   const causes = analyzeCauses(events);
   const actions = analyzeActions(events);
   const observations = analyzeObservations(events);
+  const missingEvidence = analyzeMissingEvidence(events);
 
   // Summary stats
   const summary = {
@@ -348,7 +427,7 @@ async function evaluate(options = {}) {
   };
 
   // Generate report
-  const report = generateReport({ causes, actions, observations, summary }, days);
+  const report = generateReport({ causes, actions, observations, missingEvidence, summary }, days);
 
   // Write report
   if (!existsSync(reportsDir)) {
@@ -366,7 +445,7 @@ async function evaluate(options = {}) {
   console.log(`   Actions: ${summary.uniqueActions}`);
   console.log(`   Causes: ${summary.uniqueCauses}`);
 
-  return { causes, actions, observations, summary, reportPath };
+  return { causes, actions, observations, missingEvidence, summary, reportPath };
 }
 
 // CLI handling
@@ -390,4 +469,4 @@ if (process.argv[1].includes('playbook_evaluator')) {
   evaluate(options);
 }
 
-export { evaluate, loadOutcomeEvents, analyzeCauses, analyzeActions, analyzeObservations };
+export { evaluate, loadOutcomeEvents, analyzeCauses, analyzeActions, analyzeObservations, analyzeMissingEvidence };
