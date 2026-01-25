@@ -12,11 +12,17 @@ import { buildExplanation, formatExplanationMarkdown } from './build_explanation
 
 // Supported observation types (must have corresponding playbook)
 const SUPPORTED_OBSERVATIONS = new Set([
-  'ACOS_TOO_HIGH'
-  // Add new observations here as playbooks are created:
-  // 'CVR_TOO_LOW',
-  // 'CTR_TOO_LOW',
-  // etc.
+  // P0 observations
+  'ACOS_TOO_HIGH',
+  // P1 observations (8 common operational issues)
+  'SPEND_TOO_HIGH_WITH_LOW_SALES',
+  'SEARCH_TERM_WASTE_HIGH',
+  'CTR_TOO_LOW',
+  'CVR_TOO_LOW',
+  'BUDGET_EXHAUST_EARLY',
+  'IMPRESSIONS_TOO_LOW',
+  'RANKING_DECLINING',
+  'COMPETITOR_PRICE_UNDERCUT'
 ]);
 
 /**
