@@ -1,0 +1,148 @@
+# Evidence Fetch Map v0.1
+#
+# Maps evidence fields to their data sources.
+# This makes reasoning assets executable knowledge, not just documentation.
+#
+# source: GDP (Google Data Platform) | ENGINE (Amazon Growth Engine internal) | MANUAL
+# query_ref: SQL file reference or DuckDB query name
+# fallback: none | approx | manual (what to do if source unavailable)
+
+version: v0.1
+updated_at: 2026-01-25
+
+evidence_sources:
+
+  # === ACoS & Performance Metrics ===
+
+  acos:
+    source: ENGINE
+    query_ref: metrics.get_campaign_acos
+    fallback: manual
+    description: Advertising Cost of Sales = ad_spend / ad_sales
+    unit: ratio
+    refresh: daily
+
+  ctr:
+    source: ENGINE
+    query_ref: metrics.get_ad_ctr
+    fallback: manual
+    description: Click-Through Rate = clicks / impressions
+    unit: ratio
+    refresh: daily
+
+  unit_session_pct:
+    source: ENGINE
+    query_ref: metrics.get_listing_cvr
+    fallback: approx
+    description: Listing CVR = units / sessions
+    unit: ratio
+    refresh: daily
+    note: Not the same as AD_CVR
+
+  # === Product Lifecycle ===
+
+  days_since_launch:
+    source: ENGINE
+    query_ref: products.get_days_since_launch
+    fallback: manual
+    description: Days since product first appeared on Amazon
+    unit: days
+    refresh: daily
+
+  review_count:
+    source: ENGINE
+    query_ref: products.get_review_count
+    fallback: approx
+    description: Total number of customer reviews
+    unit: count
+    refresh: daily
+
+  rating:
+    source: ENGINE
+    query_ref: products.get_rating
+    fallback: approx
+    description: Average customer rating (1-5 stars)
+    unit: stars
+    refresh: daily
+
+  # === Keyword & Search Metrics ===
+
+  wasted_spend_ratio:
+    source: ENGINE
+    query_ref: keywords.get_wasted_spend_ratio
+    fallback: approx
+    description: Ratio of spend on non-converting search terms
+    unit: ratio
+    refresh: weekly
+
+  search_term_relevance_score:
+    source: ENGINE
+    query_ref: keywords.get_relevance_score
+    fallback: none
+    description: Semantic relevance between search term and product
+    unit: score_0_1
+    refresh: weekly
+    note: Requires ML pipeline
+
+  # === Bidding & Cost Metrics ===
+
+  cpc:
+    source: ENGINE
+    query_ref: campaigns.get_avg_cpc
+    fallback: approx
+    description: Average Cost Per Click
+    unit: currency
+    refresh: daily
+
+  category_avg_cpc:
+    source: GDP
+    query_ref: benchmarks/category_cpc.sql
+    fallback: approx
+    description: Category average CPC from GDP benchmarks
+    unit: currency
+    refresh: weekly
+
+  # === Competitive Intelligence ===
+
+  price_percentile:
+    source: ENGINE
+    query_ref: products.get_price_percentile
+    fallback: approx
+    description: Price position within category (0=cheapest, 1=most expensive)
+    unit: percentile
+    refresh: daily
+
+  # === Budget Governance ===
+
+  proposed_amount:
+    source: ENGINE
+    query_ref: context.proposed_spend
+    fallback: none
+    description: The amount being proposed in the current action
+    unit: currency
+    refresh: realtime
+
+  limit_value:
+    source: ENGINE
+    query_ref: contracts.get_budget_limit
+    fallback: none
+    description: The configured budget limit from governance contract
+    unit: currency
+    refresh: realtime
+
+# === Fallback Strategies ===
+
+fallback_strategies:
+  none:
+    description: No fallback available - evidence marked as MISSING
+    action: return_null
+
+  approx:
+    description: Use approximate value or category average
+    action: return_estimate
+    confidence_penalty: -0.2
+
+  manual:
+    description: Prompt user for manual input
+    action: prompt_user
+    confidence_penalty: -0.1

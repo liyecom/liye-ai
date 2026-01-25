@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * reasoning_assets_gate.mjs - CI Gate for Reasoning Assets
+ * reasoning_assets_gate.mjs - CI Gate for Reasoning Assets (v0.2)
  *
  * Validates that all reasoning playbooks conform to schema requirements:
  * 1. YAML files must contain required fields
  * 2. JSON schemas must be valid
- * 3. Playbooks must have observation_id, version, cause_candidates/impact_analysis, recommendations, counterfactuals
+ * 3. Playbooks must have observation_id, version, cause_candidates/impact_analysis
+ * 4. [v0.2] Rationale must be non-empty for each cause
+ * 5. [v0.2] Evidence requirements must be defined for each cause
  *
  * Exit codes:
  *   0 - All validations passed
@@ -30,11 +32,14 @@ const REQUIRED_CONTENT_FIELDS = [
   ['cause_candidates', 'impact_analysis']  // observation OR governance style
 ];
 
-// Recommended fields (warn if missing)
+// Recommended fields (warn if missing) - for governance-style playbooks
 const RECOMMENDED_FIELDS = [
   'counterfactuals',
   'recommendations'
 ];
+
+// For observation playbooks with cause_candidates, check nested fields
+// cause_candidates[].recommended_actions and cause_candidates[].counterfactuals
 
 let errors = [];
 let warnings = [];
@@ -66,6 +71,23 @@ function findYamlFiles(dir) {
 }
 
 /**
+ * Check if file is an observation playbook (vs concept/mapping file)
+ */
+function isObservationPlaybook(filePath, playbook) {
+  // Must be in an observations directory
+  if (!filePath.includes('/observations/')) {
+    return false;
+  }
+
+  // Must have observation_id field
+  if (!playbook?.observation_id) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Validate a single playbook YAML file
  */
 function validatePlaybook(filePath) {
@@ -75,9 +97,13 @@ function validatePlaybook(filePath) {
     const content = readFileSync(filePath, 'utf-8');
     const playbook = parseYaml(content);
 
-    if (!playbook || typeof playbook !== 'object') {
-      errors.push(`${relativePath}: Invalid YAML structure`);
-      return;
+    // Skip non-observation files (concepts.yaml, evidence_fetch_map.yaml, etc.)
+    if (!isObservationPlaybook(filePath, playbook)) {
+      // Just validate YAML is parseable
+      if (!playbook || typeof playbook !== 'object') {
+        errors.push(`${relativePath}: Invalid YAML structure`);
+      }
+      return; // Skip observation-specific validation
     }
 
     // Check required fields
@@ -96,9 +122,17 @@ function validatePlaybook(filePath) {
     }
 
     // Check recommended fields (warnings only)
-    for (const field of RECOMMENDED_FIELDS) {
-      if (!playbook[field]) {
-        warnings.push(`${relativePath}: Missing recommended field '${field}'`);
+    // For cause_candidates style: check nested fields
+    // For impact_analysis style: check top-level fields
+    if (playbook.cause_candidates) {
+      // Observation-style playbook - recommended fields are nested in causes
+      // Skip top-level check, will check nested fields below
+    } else {
+      // Governance-style playbook - check top-level fields
+      for (const field of RECOMMENDED_FIELDS) {
+        if (!playbook[field]) {
+          warnings.push(`${relativePath}: Missing recommended field '${field}'`);
+        }
       }
     }
 
@@ -111,6 +145,26 @@ function validatePlaybook(filePath) {
         }
         if (!cause.description) {
           errors.push(`${relativePath}: cause_candidates[${i}] missing 'description'`);
+        }
+
+        // [v0.2] Rationale must be non-empty
+        if (!cause.rationale || !Array.isArray(cause.rationale) || cause.rationale.length === 0) {
+          errors.push(`${relativePath}: cause_candidates[${i}] (${cause.id || 'unknown'}) missing or empty 'rationale' - system cannot explain "why"`);
+        }
+
+        // [v0.2] Evidence requirements must be defined
+        if (!cause.evidence_requirements || !Array.isArray(cause.evidence_requirements) || cause.evidence_requirements.length === 0) {
+          errors.push(`${relativePath}: cause_candidates[${i}] (${cause.id || 'unknown'}) missing 'evidence_requirements' - cannot validate cause without evidence`);
+        }
+
+        // [v0.2] Check nested recommended_actions (warn if missing)
+        if (!cause.recommended_actions || !Array.isArray(cause.recommended_actions) || cause.recommended_actions.length === 0) {
+          warnings.push(`${relativePath}: cause_candidates[${i}] (${cause.id || 'unknown'}) missing 'recommended_actions'`);
+        }
+
+        // [v0.2] Check nested counterfactuals (warn if missing)
+        if (!cause.counterfactuals || !Array.isArray(cause.counterfactuals) || cause.counterfactuals.length === 0) {
+          warnings.push(`${relativePath}: cause_candidates[${i}] (${cause.id || 'unknown'}) missing 'counterfactuals'`);
         }
       }
     }

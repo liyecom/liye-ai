@@ -1,0 +1,165 @@
+# Amazon Growth Concepts Dictionary v0.1
+#
+# Canonical definitions for domain concepts.
+# Playbooks MUST reference concept_id, NOT raw field names like "cvr".
+#
+# This eliminates the "多义性炸弹" (polysemy bomb) where the same term
+# means different things in different contexts.
+
+version: v0.1
+updated_at: 2026-01-25
+
+concepts:
+
+  # === Conversion Rate Family (The Most Dangerous Polysemy) ===
+
+  AD_CVR:
+    concept_id: AD_CVR
+    canonical_name: "广告转化率 / Ad Conversion Rate"
+    formula: orders / clicks
+    unit: ratio
+    scope: advertising
+    description: |
+      How many clicks from ads turn into orders.
+      This is the advertising-specific conversion rate.
+    disambiguation: |
+      Do NOT confuse with LISTING_CVR (units/sessions).
+      AD_CVR uses orders (paid transactions), not units (items sold).
+      AD_CVR uses clicks (ad interactions), not sessions (store visits).
+    aliases:
+      - ad_cvr
+      - advertising_cvr
+      - ppc_cvr
+    evidence_ref: orders_per_click
+
+  LISTING_CVR:
+    concept_id: LISTING_CVR
+    canonical_name: "商品页转化率 / Listing Conversion Rate"
+    formula: units / sessions
+    unit: ratio
+    scope: listing_performance
+    description: |
+      Amazon's standard Unit Session Percentage.
+      How many store sessions result in a unit sale.
+    disambiguation: |
+      Do NOT confuse with AD_CVR (orders/clicks).
+      LISTING_CVR uses units (items sold), not orders.
+      LISTING_CVR uses sessions (store visits), not clicks.
+      One order can have multiple units. One session can have multiple clicks.
+    aliases:
+      - listing_cvr
+      - unit_session_pct
+      - unit_session_percentage
+      - cvr  # DEPRECATED - use explicit concept_id
+    evidence_ref: unit_session_pct
+    note: This is what Amazon calls "Unit Session Percentage" in reports
+
+  KEYWORD_PURCHASE_RATE:
+    concept_id: KEYWORD_PURCHASE_RATE
+    canonical_name: "关键词购买率 / Keyword Purchase Rate"
+    formula: purchases / search_volume
+    unit: ratio
+    scope: keyword_performance
+    description: |
+      What percentage of searches for this keyword result in a purchase.
+      Used to evaluate keyword commercial intent.
+    disambiguation: |
+      This is market-level data, not your specific product's conversion.
+      High keyword purchase rate = high commercial intent keyword.
+    aliases:
+      - kpr
+      - keyword_cvr
+      - search_purchase_rate
+    evidence_ref: keyword_purchase_rate
+    source: GDP
+
+  # === Cost Metrics ===
+
+  ACOS:
+    concept_id: ACOS
+    canonical_name: "广告销售成本比 / Advertising Cost of Sales"
+    formula: ad_spend / ad_sales
+    unit: ratio
+    scope: advertising
+    description: |
+      What percentage of ad-attributed sales goes to ad spend.
+      Lower is better (more efficient advertising).
+    disambiguation: |
+      ad_sales = sales attributed to ads (not total sales)
+      ACOS = 1/ROAS when expressed as ratio
+    aliases:
+      - acos
+      - advertising_cost_of_sales
+    evidence_ref: acos
+
+  TACOS:
+    concept_id: TACOS
+    canonical_name: "总广告销售成本比 / Total Advertising Cost of Sales"
+    formula: ad_spend / total_sales
+    unit: ratio
+    scope: business_health
+    description: |
+      What percentage of TOTAL sales (ad + organic) goes to ad spend.
+      Better indicator of business health than ACOS.
+    disambiguation: |
+      total_sales = ad_sales + organic_sales
+      TACOS is always lower than ACOS (bigger denominator)
+    aliases:
+      - tacos
+      - total_acos
+    evidence_ref: tacos
+
+  # === Click & Traffic Metrics ===
+
+  CTR:
+    concept_id: CTR
+    canonical_name: "点击率 / Click-Through Rate"
+    formula: clicks / impressions
+    unit: ratio
+    scope: advertising
+    description: |
+      How many ad impressions result in a click.
+      Indicates ad relevance and creative appeal.
+    aliases:
+      - ctr
+      - click_through_rate
+    evidence_ref: ctr
+
+  CPC:
+    concept_id: CPC
+    canonical_name: "单次点击成本 / Cost Per Click"
+    formula: ad_spend / clicks
+    unit: currency
+    scope: advertising
+    description: |
+      How much each click costs on average.
+    aliases:
+      - cpc
+      - cost_per_click
+    evidence_ref: cpc
+
+# === Concept Validation Rules ===
+
+validation_rules:
+  - rule_id: CVR_MUST_BE_QUALIFIED
+    description: "Raw 'cvr' without prefix is ambiguous and blocked"
+    pattern: "^cvr$"
+    action: REJECT
+    message: "Use AD_CVR, LISTING_CVR, or KEYWORD_PURCHASE_RATE instead of 'cvr'"
+
+  - rule_id: CONCEPT_REF_REQUIRED
+    description: "Playbooks must reference concept_id, not raw field names"
+    applies_to: playbooks/*.yaml
+    action: WARN
+
+# === Migration Guide ===
+
+migration:
+  deprecated_terms:
+    cvr:
+      reason: "Ambiguous - could mean AD_CVR, LISTING_CVR, or KEYWORD_PURCHASE_RATE"
+      replace_with: "Use the specific concept_id"
+
+    conversion_rate:
+      reason: "Too generic"
+      replace_with: "Use AD_CVR, LISTING_CVR, or KEYWORD_PURCHASE_RATE"
