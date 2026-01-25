@@ -4,8 +4,13 @@
  * Pure function that generates explanation JSON from signals, targets, and evidence.
  * Outputs top-3 root causes ranked by evidence satisfaction and confidence.
  *
+ * P2.1: Added presentation fields for dashboard consumption:
+ * - executive_summary: one-sentence diagnosis
+ * - next_best_actions: top 1-3 recommended actions
+ * - confidence_overall: high/medium/low
+ *
  * @module reasoning/explanation
- * @version v0.1
+ * @version v0.2
  */
 
 import { readFileSync } from 'fs';
@@ -209,6 +214,15 @@ export function buildExplanation(observationId, signals, targets, options = {}) 
     ? playbook.severity_default || 'HIGH'
     : 'MEDIUM';
 
+  // P2.1: Generate presentation fields for dashboard consumption
+  const presentation = generatePresentationFields(
+    observationId,
+    playbook,
+    topCauses,
+    recommendations,
+    hasHighConfidenceCause
+  );
+
   // Build final explanation
   const explanation = {
     observation_id: observationId,
@@ -218,7 +232,9 @@ export function buildExplanation(observationId, signals, targets, options = {}) 
     recommendations,
     counterfactuals,
     rule_version: `${observationId}.yaml@${playbook.version || 'v0.1'}`,
-    generated_at: new Date().toISOString()
+    generated_at: new Date().toISOString(),
+    // P2.1: Presentation fields (optional, for dashboard consumption)
+    ...presentation
   };
 
   if (trace_id) {
@@ -226,6 +242,66 @@ export function buildExplanation(observationId, signals, targets, options = {}) 
   }
 
   return explanation;
+}
+
+/**
+ * Generate presentation fields for dashboard consumption (P2.1)
+ *
+ * @param {string} observationId - Observation ID
+ * @param {Object} playbook - Loaded playbook
+ * @param {Array} topCauses - Evaluated top causes
+ * @param {Array} recommendations - Collected recommendations
+ * @param {boolean} hasHighConfidenceCause - Whether any high confidence cause exists
+ * @returns {Object} Presentation fields
+ */
+function generatePresentationFields(observationId, playbook, topCauses, recommendations, hasHighConfidenceCause) {
+  // executive_summary: one-sentence diagnosis
+  const primaryCause = topCauses[0];
+  const executive_summary = primaryCause
+    ? `${formatObservationName(observationId)} detected. Primary cause: ${primaryCause.description} (${primaryCause.confidence} confidence).`
+    : `${formatObservationName(observationId)} detected, but no causes could be determined with available evidence.`;
+
+  // next_best_actions: top 1-3 recommended actions with risk
+  const next_best_actions = recommendations.slice(0, 3).map(rec => ({
+    action_id: rec.action_id,
+    risk_level: rec.risk_level,
+    notes: rec.notes || null
+  }));
+
+  // confidence_overall: aggregate confidence level
+  let confidence_overall = 'low';
+  if (hasHighConfidenceCause) {
+    confidence_overall = 'high';
+  } else if (topCauses.some(c => c.confidence === 'medium')) {
+    confidence_overall = 'medium';
+  }
+
+  return {
+    executive_summary,
+    next_best_actions,
+    confidence_overall
+  };
+}
+
+/**
+ * Format observation ID into human-readable name
+ *
+ * @param {string} observationId - e.g., 'ACOS_TOO_HIGH'
+ * @returns {string} e.g., 'ACoS Too High'
+ */
+function formatObservationName(observationId) {
+  return observationId
+    .split('_')
+    .map(word => {
+      // Special cases
+      if (word === 'ACOS') return 'ACoS';
+      if (word === 'CTR') return 'CTR';
+      if (word === 'CVR') return 'CVR';
+      if (word === 'CPC') return 'CPC';
+      // Normal case: capitalize first letter
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
 }
 
 /**

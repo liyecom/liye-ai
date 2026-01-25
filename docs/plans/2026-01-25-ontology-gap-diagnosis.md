@@ -314,5 +314,67 @@ src/
 
 ---
 
-**报告版本**: v1.1
+**报告版本**: v1.2
 **优化完成时间**: 2026-01-25
+
+---
+
+## 12. P1 Done（执行记录）
+
+> **完成日期**: 2026-01-25
+> **Tag**: `reasoning-assets-p1`
+> **PR**: [#77](https://github.com/liyecom/liye-ai/pull/77)
+
+### 12.1 交付成果
+
+#### Playbooks (12 total)
+
+| Phase | Observation | Causes | Status |
+|-------|-------------|--------|--------|
+| P0 | `ACOS_TOO_HIGH` | 5 | ✅ |
+| P0 | `BLOCK_BUDGET_EXCEED` | 3 | ✅ |
+| P1 | `SPEND_TOO_HIGH_WITH_LOW_SALES` | 4 | ✅ |
+| P1 | `SEARCH_TERM_WASTE_HIGH` | 4 | ✅ |
+| P1 | `CTR_TOO_LOW` | 5 | ✅ |
+| P1 | `CVR_TOO_LOW` | 5 | ✅ |
+| P1 | `BUDGET_EXHAUST_EARLY` | 4 | ✅ |
+| P1 | `IMPRESSIONS_TOO_LOW` | 5 | ✅ |
+| P1 | `RANKING_DECLINING` | 5 | ✅ |
+| P1 | `COMPETITOR_PRICE_UNDERCUT` | 5 | ✅ |
+
+#### Assets Updated
+
+| Asset | Version | Changes |
+|-------|---------|---------|
+| `concepts.yaml` | v0.2 | +10 concepts (ORGANIC_RANK, WASTED_SPEND_RATIO, BUDGET_PACING, etc.) |
+| `evidence_fetch_map.yaml` | v0.2 | +50 evidence fields with sources |
+| `explain_observation.mjs` | - | Register 8 P1 observations |
+
+#### Test Coverage
+
+```
+Gate v0.2:        12 playbooks validated  ✅
+ACOS tests:        5 passed               ✅
+explain tests:     6 passed               ✅
+P1 snapshot tests: 56 passed              ✅
+---
+Total:            67 tests passing
+```
+
+### 12.2 P1 约束遵守确认
+
+- ❌ 无新增服务/数据库/平台
+- ❌ 无图数据库/OWL reasoner
+- ❌ 无 GDP/T1 Truth schema 变更
+- ✅ 只新增 Contracts (YAML) + snapshot tests
+- ✅ 所有推理可审计回放：`rule_version` + `evidence_ref`
+- ✅ 缺失 evidence 严格降级：`confidence=low`
+
+### 12.3 P1 → P2 过渡
+
+P1 已验证 Ontology-lite Overlay 方案可行，P2 将聚焦：
+
+1. **P2.1**: 解释展示对象 (`executive_summary`, `next_best_actions`, `confidence_overall`)
+2. **P2.2**: 效果验证事件 (`ActionOutcomeEvent`)
+3. **P2.3**: Playbook 评估器 (`playbook_evaluator.mjs`)
+4. **P2.4**: 安全执行模式 (`execution_mode`, `write_guardrail_ref`)

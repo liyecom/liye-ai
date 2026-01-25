@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action_outcome_event.schema.json",
+  "title": "ActionOutcomeEvent",
+  "description": "Event recording the outcome of executing a recommended action from a reasoning playbook. Used for feedback loop and playbook evaluation.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "trace_id",
+    "observation_id",
+    "action_id",
+    "timestamp",
+    "success"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique identifier for this outcome event"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Trace ID linking back to the original explanation"
+    },
+    "observation_id": {
+      "type": "string",
+      "description": "The observation that triggered the recommendation (e.g., ACOS_TOO_HIGH)"
+    },
+    "cause_id": {
+      "type": "string",
+      "description": "The cause that led to this action recommendation"
+    },
+    "action_id": {
+      "type": "string",
+      "description": "The action that was executed (e.g., REDUCE_BID)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the action was executed"
+    },
+    "before_metrics": {
+      "type": "object",
+      "description": "Metric values before action execution",
+      "properties": {
+        "window": {
+          "type": "string",
+          "description": "Time window for before metrics (e.g., 7d, 14d)"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "after_metrics": {
+      "type": "object",
+      "description": "Metric values after action execution",
+      "properties": {
+        "window": {
+          "type": "string",
+          "description": "Time window for after metrics"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "delta": {
+      "type": "object",
+      "description": "Calculated change in metrics",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "success": {
+      "type": "boolean",
+      "description": "Whether the action achieved the expected outcome"
+    },
+    "expected_outcome": {
+      "type": "string",
+      "description": "What was expected to happen (from counterfactual)"
+    },
+    "actual_outcome": {
+      "type": "string",
+      "description": "What actually happened"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional context or observations"
+    },
+    "evaluator": {
+      "type": "string",
+      "enum": ["auto", "manual"],
+      "description": "How the outcome was evaluated"
+    }
+  }
+}
