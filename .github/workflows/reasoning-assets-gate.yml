@@ -1,0 +1,44 @@
+name: reasoning-assets-gate
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "docs/contracts/reasoning/**"
+      - "src/domain/amazon-growth/runtime/explanation/**"
+      - "src/governance/verdict_enricher.mjs"
+      - ".claude/scripts/reasoning_assets_gate.mjs"
+  push:
+    branches: ["main"]
+    paths:
+      - "docs/contracts/reasoning/**"
+      - "src/domain/amazon-growth/runtime/explanation/**"
+      - "src/governance/verdict_enricher.mjs"
+      - ".claude/scripts/reasoning_assets_gate.mjs"
+
+jobs:
+  reasoning_assets_gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run Reasoning Assets Gate
+        run: node .claude/scripts/reasoning_assets_gate.mjs
+
+      - name: Run Snapshot Tests - ACOS
+        run: node tests/reasoning/test_acos_too_high_snapshot.mjs
+
+      - name: Run Snapshot Tests - Verdict Enrichment
+        run: node tests/governance/test_verdict_enrichment_snapshot.mjs
