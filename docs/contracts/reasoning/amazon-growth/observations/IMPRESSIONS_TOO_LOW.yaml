@@ -1,0 +1,143 @@
+observation_id: IMPRESSIONS_TOO_LOW
+version: v0.1
+severity_default: MEDIUM
+
+definition:
+  summary: "广告展示量过低"
+  metric: impressions
+  trigger:
+    op: "<"
+    threshold_ref: "targets.min_daily_impressions"
+  note: "展示量是漏斗顶端，低展示意味着广告无法触达用户"
+
+cause_candidates:
+  - id: BIDS_TOO_LOW
+    description: "出价过低无法竞争广告位"
+    evidence_requirements:
+      - bid
+      - suggested_bid
+      - category_avg_cpc
+      - impression_share
+    decision_logic: "bid < suggested_bid * 0.5 OR impression_share < 0.1"
+    rationale:
+      - "出价低于 Amazon 建议出价"
+      - "无法赢得广告位竞价"
+      - "展示份额过低"
+    recommended_actions:
+      - action_id: INCREASE_BIDS_TO_SUGGESTED
+        risk_level: LOW
+        notes: "将出价提高到建议出价附近"
+      - action_id: REVIEW_BID_STRATEGY
+        risk_level: LOW
+        notes: "评估是否使用动态出价提高"
+    counterfactuals:
+      - if: "increase_bids_50pct"
+        expected: "impressions_up, cpc_up, need_monitor_acos"
+        risk_level: MEDIUM
+      - if: "use_suggested_bids"
+        expected: "impressions_up_significant, costs_up"
+        risk_level: MEDIUM
+
+  - id: BUDGET_TOO_LOW
+    description: "日预算限制了展示"
+    evidence_requirements:
+      - daily_budget
+      - budget_utilization_rate
+      - budget_exhaust_time
+    decision_logic: "budget_utilization_rate >= 0.95 AND budget_exhaust_time < 18"
+    rationale:
+      - "预算在一天内耗尽"
+      - "剩余时间无法展示"
+      - "预算成为瓶颈"
+    recommended_actions:
+      - action_id: INCREASE_BUDGET
+        risk_level: LOW
+        notes: "提高日预算以覆盖更多时段"
+      - action_id: OPTIMIZE_BEFORE_SCALING
+        risk_level: LOW
+        notes: "在加预算前优化花费效率"
+    counterfactuals:
+      - if: "double_budget"
+        expected: "impressions_up, full_day_coverage"
+        risk_level: MEDIUM
+      - if: "increase_budget_30pct"
+        expected: "moderate_impression_increase"
+        risk_level: LOW
+
+  - id: KEYWORD_VOLUME_LOW
+    description: "投放关键词搜索量太低"
+    evidence_requirements:
+      - keyword_search_volume_avg
+      - keyword_count
+      - keyword_coverage_rate
+    decision_logic: "keyword_search_volume_avg < 1000 OR keyword_count < 20"
+    rationale:
+      - "投放的都是小众长尾词"
+      - "关键词列表太短"
+      - "市场需求有限"
+    recommended_actions:
+      - action_id: EXPAND_KEYWORD_LIST
+        risk_level: LOW
+        notes: "添加更多相关关键词"
+      - action_id: ADD_HIGH_VOLUME_KEYWORDS
+        risk_level: MEDIUM
+        notes: "添加高搜索量核心关键词"
+    counterfactuals:
+      - if: "add_50_new_keywords"
+        expected: "impressions_up, keyword_diversity_up"
+        risk_level: LOW
+      - if: "target_category_head_terms"
+        expected: "impressions_up_significant, competition_high"
+        risk_level: MEDIUM
+
+  - id: TARGETING_TOO_NARROW
+    description: "投放设置过于狭窄"
+    evidence_requirements:
+      - match_type_distribution
+      - asin_targeting_only
+      - auto_campaign_enabled
+    decision_logic: "exact_match_pct > 0.8 OR asin_targeting_only == true"
+    rationale:
+      - "只使用精准匹配限制了触达"
+      - "仅 ASIN 定向范围太小"
+      - "没有 Auto 广告发现新流量"
+    recommended_actions:
+      - action_id: ADD_PHRASE_BROAD_MATCH
+        risk_level: LOW
+        notes: "添加词组和宽泛匹配扩大覆盖"
+      - action_id: ENABLE_AUTO_CAMPAIGN
+        risk_level: LOW
+        notes: "开启 Auto 广告发现新流量"
+    counterfactuals:
+      - if: "add_phrase_match_keywords"
+        expected: "impressions_up_30pct, may_need_negatives"
+        risk_level: LOW
+      - if: "enable_auto_campaign"
+        expected: "discovery_enabled, some_waste_expected"
+        risk_level: LOW
+
+  - id: LISTING_SUPPRESSED
+    description: "Listing 被抑制或状态异常"
+    evidence_requirements:
+      - listing_status
+      - suppression_reason
+      - buybox_eligible
+    decision_logic: "listing_status != 'active' OR buybox_eligible == false"
+    rationale:
+      - "Listing 被 Amazon 抑制"
+      - "品牌/类目问题导致不展示"
+      - "无 BuyBox 资格无法投广告"
+    recommended_actions:
+      - action_id: CHECK_LISTING_HEALTH
+        risk_level: LOW
+        notes: "检查 Listing 状态和健康度"
+      - action_id: RESOLVE_SUPPRESSION
+        risk_level: MEDIUM
+        notes: "解决导致抑制的问题"
+    counterfactuals:
+      - if: "fix_listing_suppression"
+        expected: "listing_restored, impressions_recover"
+        risk_level: LOW
+      - if: "win_back_buybox"
+        expected: "ads_can_run, impressions_possible"
+        risk_level: MEDIUM
