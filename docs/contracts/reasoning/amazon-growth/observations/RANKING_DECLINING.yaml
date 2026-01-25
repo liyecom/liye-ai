@@ -1,0 +1,143 @@
+observation_id: RANKING_DECLINING
+version: v0.1
+severity_default: HIGH
+
+definition:
+  summary: "自然排名持续下降"
+  metric: organic_rank
+  trigger:
+    op: "TREND_DOWN"
+    window: "7d"
+    threshold: 10
+  note: "organic_rank 数值变大表示排名下降（位置更靠后）"
+
+cause_candidates:
+  - id: SALES_VELOCITY_DROP
+    description: "销售速度下降影响排名"
+    evidence_requirements:
+      - sales_velocity_7d
+      - sales_velocity_30d
+      - sales_velocity_trend
+    decision_logic: "sales_velocity_7d < sales_velocity_30d * 0.7"
+    rationale:
+      - "Amazon A9 算法重视销售速度"
+      - "近期销量下降导致权重降低"
+      - "竞品销量增长相对超越"
+    recommended_actions:
+      - action_id: BOOST_SALES_TEMPORARILY
+        risk_level: MEDIUM
+        notes: "通过促销/广告短期提升销量"
+      - action_id: RUN_LIGHTNING_DEAL
+        risk_level: MEDIUM
+        notes: "参与限时秒杀提升销售速度"
+    counterfactuals:
+      - if: "increase_ad_spend_50pct_7days"
+        expected: "sales_up, rank_may_recover"
+        risk_level: MEDIUM
+      - if: "run_coupon_promotion"
+        expected: "sales_velocity_up, margin_down_temporarily"
+        risk_level: LOW
+
+  - id: COMPETITOR_MOMENTUM
+    description: "竞品势能增强"
+    evidence_requirements:
+      - competitor_rank_change
+      - competitor_review_velocity
+      - competitor_price_change
+    decision_logic: "competitor_rank_change < -5"
+    rationale:
+      - "竞品正在快速上升"
+      - "竞品可能在大力投放或促销"
+      - "相对竞争力下降"
+    recommended_actions:
+      - action_id: ANALYZE_COMPETITOR_STRATEGY
+        risk_level: LOW
+        notes: "分析竞品近期动作"
+      - action_id: DIFFERENTIATE_OR_COMPETE
+        risk_level: MEDIUM
+        notes: "选择差异化或直接竞争策略"
+    counterfactuals:
+      - if: "match_competitor_price"
+        expected: "competitive_but_margin_down"
+        risk_level: MEDIUM
+      - if: "increase_review_velocity"
+        expected: "social_proof_up, long_term_benefit"
+        risk_level: LOW
+
+  - id: STOCKOUT_HISTORY
+    description: "近期断货影响权重"
+    evidence_requirements:
+      - stockout_days_30d
+      - current_inventory_days
+      - inventory_health_score
+    decision_logic: "stockout_days_30d > 3"
+    rationale:
+      - "断货导致销售记录中断"
+      - "Amazon 降低不稳定卖家权重"
+      - "恢复库存后需要时间恢复排名"
+    recommended_actions:
+      - action_id: PREVENT_FUTURE_STOCKOUTS
+        risk_level: MEDIUM
+        notes: "建立安全库存机制"
+      - action_id: AGGRESSIVE_RELAUNCH
+        risk_level: MEDIUM
+        notes: "断货恢复后大力推广重获动量"
+    counterfactuals:
+      - if: "maintain_30_day_safety_stock"
+        expected: "no_stockout, stable_ranking"
+        risk_level: LOW
+      - if: "run_relaunch_campaign"
+        expected: "ranking_recovery_accelerated"
+        risk_level: MEDIUM
+
+  - id: LISTING_QUALITY_DEGRADED
+    description: "Listing 质量下降"
+    evidence_requirements:
+      - listing_quality_score
+      - keyword_index_status
+      - content_change_log
+    decision_logic: "listing_quality_score_trend < 0 OR keyword_index_status == 'deindexed'"
+    rationale:
+      - "Listing 内容变更影响索引"
+      - "关键词被反索引"
+      - "A+ 内容被移除或更改"
+    recommended_actions:
+      - action_id: AUDIT_LISTING_CHANGES
+        risk_level: LOW
+        notes: "检查近期 Listing 变更"
+      - action_id: RESTORE_LISTING_QUALITY
+        risk_level: MEDIUM
+        notes: "恢复或优化 Listing 内容"
+    counterfactuals:
+      - if: "revert_recent_changes"
+        expected: "indexing_restored, rank_may_recover"
+        risk_level: LOW
+      - if: "optimize_backend_keywords"
+        expected: "keyword_coverage_up"
+        risk_level: LOW
+
+  - id: REVIEW_QUALITY_DECLINE
+    description: "评论质量下降"
+    evidence_requirements:
+      - rating
+      - rating_trend_30d
+      - recent_negative_reviews
+    decision_logic: "rating < 4.0 OR rating_trend_30d < -0.2"
+    rationale:
+      - "差评增加拉低整体评分"
+      - "低评分影响转化和排名"
+      - "可能存在产品质量问题"
+    recommended_actions:
+      - action_id: ANALYZE_NEGATIVE_REVIEWS
+        risk_level: LOW
+        notes: "分析差评找出根本原因"
+      - action_id: ADDRESS_PRODUCT_ISSUES
+        risk_level: MEDIUM
+        notes: "解决导致差评的产品问题"
+    counterfactuals:
+      - if: "fix_product_defect"
+        expected: "fewer_negatives, rating_stabilize"
+        risk_level: MEDIUM
+      - if: "improve_packaging"
+        expected: "damage_complaints_down"
+        risk_level: LOW

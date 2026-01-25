@@ -1,0 +1,142 @@
+observation_id: CTR_TOO_LOW
+version: v0.1
+severity_default: HIGH
+
+definition:
+  summary: "点击率低于品类基准"
+  metric: ctr
+  trigger:
+    op: "<"
+    threshold_ref: "targets.min_ctr"
+  note: "CTR = clicks / impressions. 低 CTR 意味着广告展示但用户不点击"
+
+cause_candidates:
+  - id: MAIN_IMAGE_WEAK
+    description: "主图吸引力不足"
+    evidence_requirements:
+      - main_image_score
+      - image_a_plus_enabled
+      - competitor_image_benchmark
+    decision_logic: "main_image_score < 0.6 OR main_image_score < competitor_image_benchmark"
+    rationale:
+      - "主图是用户第一眼看到的内容"
+      - "低质量主图导致用户直接跳过"
+      - "与竞品主图对比缺乏差异化"
+    recommended_actions:
+      - action_id: UPGRADE_MAIN_IMAGE
+        risk_level: LOW
+        notes: "使用专业产品摄影，突出产品特点"
+      - action_id: A_B_TEST_IMAGES
+        risk_level: LOW
+        notes: "使用 Manage Experiments 测试不同主图"
+    counterfactuals:
+      - if: "replace_main_image_professional"
+        expected: "ctr_up_20_50pct, impressions_same"
+        risk_level: LOW
+      - if: "add_lifestyle_context"
+        expected: "ctr_up, emotional_appeal_up"
+        risk_level: LOW
+
+  - id: TITLE_NOT_COMPELLING
+    description: "标题缺乏吸引力"
+    evidence_requirements:
+      - title_length
+      - title_keyword_coverage
+      - title_readability_score
+    decision_logic: "title_length < 80 OR title_keyword_coverage < 0.5 OR title_readability_score < 0.6"
+    rationale:
+      - "标题过短缺乏关键信息"
+      - "重要关键词未在标题中出现"
+      - "标题格式杂乱难以阅读"
+    recommended_actions:
+      - action_id: OPTIMIZE_TITLE_STRUCTURE
+        risk_level: LOW
+        notes: "采用 Brand + Product + Key Feature + Size/Color 格式"
+      - action_id: INCLUDE_TOP_KEYWORDS_IN_TITLE
+        risk_level: LOW
+        notes: "将高搜索量关键词自然融入标题"
+    counterfactuals:
+      - if: "rewrite_title_with_keywords"
+        expected: "ctr_up_10_30pct, relevance_up"
+        risk_level: LOW
+      - if: "shorten_title_for_clarity"
+        expected: "readability_up, keyword_coverage_may_drop"
+        risk_level: LOW
+
+  - id: PRICE_NOT_COMPETITIVE
+    description: "价格缺乏竞争力"
+    evidence_requirements:
+      - price_percentile
+      - category_avg_price
+      - buybox_win_rate
+    decision_logic: "price_percentile > 0.75 OR buybox_win_rate < 0.8"
+    rationale:
+      - "用户在搜索结果中比价"
+      - "高价产品需要更强的价值证明"
+      - "失去 BuyBox 严重影响 CTR"
+    recommended_actions:
+      - action_id: REVIEW_PRICING_STRATEGY
+        risk_level: MEDIUM
+        notes: "分析竞品定价，考虑调整价格"
+      - action_id: ADD_COUPON_FOR_VISIBILITY
+        risk_level: LOW
+        notes: "添加优惠券增加搜索结果中的价格吸引力"
+    counterfactuals:
+      - if: "reduce_price_10pct"
+        expected: "ctr_up, margin_down, need_volume_compensation"
+        risk_level: MEDIUM
+      - if: "add_15pct_coupon"
+        expected: "ctr_up_15pct, effective_price_down"
+        risk_level: LOW
+
+  - id: TARGETING_IRRELEVANT_KEYWORDS
+    description: "投放关键词与产品不相关"
+    evidence_requirements:
+      - search_term_relevance_score
+      - keyword_product_match_rate
+      - irrelevant_impression_pct
+    decision_logic: "search_term_relevance_score < 0.5 OR irrelevant_impression_pct > 0.3"
+    rationale:
+      - "在不相关搜索中展示自然 CTR 低"
+      - "用户搜索意图与产品不匹配"
+      - "浪费展示机会"
+    recommended_actions:
+      - action_id: REFINE_KEYWORD_TARGETING
+        risk_level: LOW
+        notes: "删除不相关关键词，聚焦高相关词"
+      - action_id: SWITCH_TO_PHRASE_EXACT_MATCH
+        risk_level: LOW
+        notes: "减少 Broad 匹配，增加 Phrase/Exact"
+    counterfactuals:
+      - if: "remove_irrelevant_keywords"
+        expected: "impressions_down, ctr_up, overall_efficiency_up"
+        risk_level: LOW
+      - if: "focus_on_top_20_keywords"
+        expected: "impressions_concentrated, ctr_up, discovery_down"
+        risk_level: MEDIUM
+
+  - id: REVIEWS_INSUFFICIENT
+    description: "评论数量或质量不足"
+    evidence_requirements:
+      - review_count
+      - rating
+      - review_velocity
+    decision_logic: "review_count < 30 OR rating < 4.0"
+    rationale:
+      - "用户在搜索结果中能看到评论数和星级"
+      - "低评论数缺乏社会证明"
+      - "低星级导致用户不敢点击"
+    recommended_actions:
+      - action_id: ACCELERATE_REVIEW_COLLECTION
+        risk_level: LOW
+        notes: "使用 Request a Review，Vine 计划"
+      - action_id: ADDRESS_NEGATIVE_REVIEWS
+        risk_level: MEDIUM
+        notes: "分析差评原因，改进产品或 Listing"
+    counterfactuals:
+      - if: "get_50_more_reviews"
+        expected: "ctr_up_10pct, trust_increased"
+        risk_level: LOW
+      - if: "improve_rating_to_4.5"
+        expected: "ctr_up_significant, conversion_up"
+        risk_level: MEDIUM

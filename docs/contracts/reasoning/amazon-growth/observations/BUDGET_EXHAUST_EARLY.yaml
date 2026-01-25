@@ -1,0 +1,116 @@
+observation_id: BUDGET_EXHAUST_EARLY
+version: v0.1
+severity_default: MEDIUM
+
+definition:
+  summary: "广告预算过早耗尽"
+  metric: budget_pacing
+  trigger:
+    op: ">"
+    threshold_ref: "targets.max_early_exhaust_hours"
+  note: "预算在一天中过早花完，错失后续流量"
+
+cause_candidates:
+  - id: BUDGET_TOO_LOW
+    description: "日预算设置过低"
+    evidence_requirements:
+      - daily_budget
+      - avg_daily_spend_potential
+      - market_demand
+    decision_logic: "daily_budget < avg_daily_spend_potential * 0.5"
+    rationale:
+      - "预算无法覆盖正常流量需求"
+      - "过低预算导致全天只能运行几小时"
+      - "错失高流量时段"
+    recommended_actions:
+      - action_id: INCREASE_DAILY_BUDGET
+        risk_level: LOW
+        notes: "根据市场需求提高日预算"
+      - action_id: EVALUATE_SPEND_EFFICIENCY_FIRST
+        risk_level: LOW
+        notes: "在加预算前确认花费效率"
+    counterfactuals:
+      - if: "double_daily_budget"
+        expected: "full_day_coverage, more_impressions, need_monitor_acos"
+        risk_level: MEDIUM
+      - if: "increase_budget_50pct"
+        expected: "extended_coverage, moderate_risk"
+        risk_level: LOW
+
+  - id: BIDS_TOO_HIGH
+    description: "出价过高导致预算快速消耗"
+    evidence_requirements:
+      - cpc
+      - category_avg_cpc
+      - bid_vs_budget_ratio
+    decision_logic: "cpc > category_avg_cpc * 1.5 OR bid_vs_budget_ratio > 0.1"
+    rationale:
+      - "高出价导致每次点击成本过高"
+      - "预算被少数高价点击耗尽"
+      - "出价策略不匹配预算规模"
+    recommended_actions:
+      - action_id: REDUCE_BIDS
+        risk_level: LOW
+        notes: "降低出价到品类均值水平"
+      - action_id: USE_DYNAMIC_BIDDING_DOWN_ONLY
+        risk_level: LOW
+        notes: "使用仅降低动态出价策略"
+    counterfactuals:
+      - if: "reduce_bids_25pct"
+        expected: "cpc_down, budget_lasts_longer, impressions_may_shift"
+        risk_level: LOW
+      - if: "switch_to_down_only_bidding"
+        expected: "cpc_controlled, budget_pacing_improved"
+        risk_level: LOW
+
+  - id: HIGH_TRAFFIC_KEYWORDS_DOMINANT
+    description: "高流量关键词消耗了大部分预算"
+    evidence_requirements:
+      - top_5_keyword_spend_pct
+      - keyword_spend_distribution
+      - long_tail_keyword_coverage
+    decision_logic: "top_5_keyword_spend_pct > 0.7"
+    rationale:
+      - "少数大词吃掉大部分预算"
+      - "长尾词无预算展示"
+      - "预算集中度过高"
+    recommended_actions:
+      - action_id: BALANCE_KEYWORD_BUDGETS
+        risk_level: MEDIUM
+        notes: "为高流量词设置单独预算上限"
+      - action_id: CREATE_SEPARATE_CAMPAIGNS
+        risk_level: MEDIUM
+        notes: "大词和长尾词分开广告活动"
+    counterfactuals:
+      - if: "cap_top_keywords_at_50pct_budget"
+        expected: "more_coverage, big_keywords_less_dominant"
+        risk_level: MEDIUM
+      - if: "separate_campaigns_by_keyword_size"
+        expected: "better_budget_control, more_management_work"
+        risk_level: MEDIUM
+
+  - id: PEAK_HOUR_CONCENTRATION
+    description: "流量集中在早间高峰"
+    evidence_requirements:
+      - hourly_spend_distribution
+      - budget_exhaust_hour
+      - peak_vs_offpeak_cpc
+    decision_logic: "budget_exhaust_hour < 14"
+    rationale:
+      - "早间竞争激烈 CPC 高"
+      - "预算在下午前耗尽"
+      - "错失下午和晚间流量"
+    recommended_actions:
+      - action_id: USE_DAYPARTING
+        risk_level: MEDIUM
+        notes: "设置时段出价调整"
+      - action_id: REDUCE_MORNING_BIDS
+        risk_level: LOW
+        notes: "降低早间高峰时段出价"
+    counterfactuals:
+      - if: "reduce_morning_bids_30pct"
+        expected: "budget_lasts_longer, morning_impressions_down"
+        risk_level: LOW
+      - if: "pause_ads_until_noon"
+        expected: "afternoon_evening_coverage, morning_zero"
+        risk_level: MEDIUM
