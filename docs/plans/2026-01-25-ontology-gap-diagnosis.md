@@ -378,3 +378,58 @@ P1 已验证 Ontology-lite Overlay 方案可行，P2 将聚焦：
 2. **P2.2**: 效果验证事件 (`ActionOutcomeEvent`)
 3. **P2.3**: Playbook 评估器 (`playbook_evaluator.mjs`)
 4. **P2.4**: 安全执行模式 (`execution_mode`, `write_guardrail_ref`)
+
+---
+
+## 13. P4 Done（执行记录）
+
+> **完成日期**: 2026-01-29
+> **Tag**: `reasoning-assets-p4`
+> **PR**: [#82](https://github.com/liyecom/liye-ai/pull/82)
+
+### 13.1 交付成果
+
+#### Threshold Profiles v0.2
+
+| Profile | wasted_spend_ratio | clicks | spend | orders | 用途 |
+|---------|-------------------|--------|-------|--------|------|
+| **conservative** | ≥0.35 | ≥25 | ≥$20 | =0 | 高门槛，低误判风险 |
+| **balanced** (默认) | ≥0.30 | ≥20 | ≥$15 | =0 | 推荐默认，覆盖率与准确率平衡 |
+| **aggressive** | ≥0.25 | ≥15 | ≥$10 | =0 | 低门槛，高覆盖，需监控误判 |
+
+#### Calibration Fixtures (12 samples)
+
+| Group | 数量 | 用途 | 期望状态 |
+|-------|------|------|----------|
+| **A** | 4 | 应 auto-execute | AUTO_EXECUTED / DRY_RUN |
+| **B** | 4 | 应降级 (eligibility fail) | SUGGEST_ONLY |
+| **C** | 4 | 应阻断/拒绝 | BLOCKED / DENY |
+
+#### Assets
+
+| Asset | Path | Description |
+|-------|------|-------------|
+| Action Playbook v0.2 | `docs/contracts/reasoning/amazon-growth/actions/ADD_NEGATIVE_KEYWORDS.yaml` | 新增 profiles + active_profile |
+| Calibration Samples | `tests/fixtures/reasoning/p4/calibration_samples.json` | 12 个确定性样本 |
+| Evaluator | `src/reasoning/auto_eligibility_evaluator.mjs` | 生成校准报告 |
+| Test Matrix | `tests/execution/test_p4_threshold_calibration_matrix.mjs` | 17 个测试 |
+| Calibration Report | `docs/reasoning/reports/P4_AUTO_ELIGIBILITY_CALIBRATION_2026-01-29.md` | 可复现报告 |
+
+### 13.2 校准结论
+
+| Profile | A 组 Eligible | B 组 Degrade | 风险评估 |
+|---------|--------------|--------------|----------|
+| Conservative | 3/4 (75%) | 4/4 ✅ | 太严格，漏边界 case |
+| **Balanced** | **4/4 (100%)** | **4/4 ✅** | **推荐默认** |
+| Aggressive | 4/4 (100%) | 3/4 ⚠️ | **B 组出现误判风险** |
+
+**结论**: `balanced` 作为 `active_profile` 默认值
+
+### 13.3 P4 约束遵守确认
+
+- ❌ 无新增服务/数据库/队列
+- ❌ 无图数据库/OWL
+- ❌ 无 GDP/T1 Truth schema 变更
+- ✅ 只新增 Contracts + Fixtures + Evaluator
+- ✅ 所有样本确定性输入 → 确定性输出
+- ✅ Kill switch 默认关闭，演练时才临时开启
