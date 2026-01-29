@@ -299,7 +299,8 @@ async function testExecutionModeDegradation() {
     {}
   );
 
-  assert(result.status === ExecutionStatus.SUGGEST_ONLY, 'Non-whitelisted action should be SUGGEST_ONLY');
+  // Patch-1: Non-whitelisted actions now return DENY_UNSUPPORTED_ACTION instead of SUGGEST_ONLY
+  assert(result.status === ExecutionStatus.DENY_UNSUPPORTED_ACTION, 'Non-whitelisted action should be DENY_UNSUPPORTED_ACTION');
 
   console.log(`  - Auto execution enabled: ${flags.auto_execution.enabled}`);
   console.log(`  - Allow list: ${flags.auto_execution.allow_actions.join(', ')}`);
