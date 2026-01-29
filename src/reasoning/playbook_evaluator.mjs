@@ -292,6 +292,187 @@ function analyzeMissingEvidence(events) {
 }
 
 /**
+ * Analyze auto execution effectiveness (P3 required section)
+ *
+ * @param {Array} events - ActionOutcomeEvents
+ * @returns {Object} Auto execution analysis
+ */
+function analyzeAutoExecution(events) {
+  const stats = {
+    total_proposals: 0,        // Events with execution_mode field
+    auto_executed: 0,          // execution_mode = 'auto_executed'
+    dry_run: 0,                // execution_mode = 'dry_run'
+    suggest_only: 0,           // execution_mode = 'suggest_only' or undefined
+    auto_success: 0,
+    auto_failure: 0,
+    dry_run_success: 0,
+    dry_run_failure: 0,
+    failure_reasons: {},       // Count by failure reason
+    by_action: {},             // Stats by action_id
+    metric_deltas: {           // Average metric changes
+      wasted_spend_ratio: [],
+      acos: []
+    }
+  };
+
+  for (const event of events) {
+    const mode = event.execution_mode || 'suggest_only';
+    stats.total_proposals++;
+
+    if (mode === 'auto_executed') {
+      stats.auto_executed++;
+      if (event.success) {
+        stats.auto_success++;
+      } else {
+        stats.auto_failure++;
+        // Track failure reason
+        const reason = event.actual_outcome || event.notes || 'Unknown';
+        stats.failure_reasons[reason] = (stats.failure_reasons[reason] || 0) + 1;
+      }
+    } else if (mode === 'dry_run') {
+      stats.dry_run++;
+      if (event.success) {
+        stats.dry_run_success++;
+      } else {
+        stats.dry_run_failure++;
+      }
+    } else {
+      stats.suggest_only++;
+    }
+
+    // Track by action
+    const actionId = event.action_id;
+    if (!stats.by_action[actionId]) {
+      stats.by_action[actionId] = {
+        total: 0,
+        auto_executed: 0,
+        dry_run: 0,
+        success: 0,
+        failure: 0
+      };
+    }
+    stats.by_action[actionId].total++;
+    if (mode === 'auto_executed') {
+      stats.by_action[actionId].auto_executed++;
+      if (event.success) stats.by_action[actionId].success++;
+      else stats.by_action[actionId].failure++;
+    } else if (mode === 'dry_run') {
+      stats.by_action[actionId].dry_run++;
+    }
+
+    // Track metric deltas
+    if (event.delta) {
+      if (event.delta.wasted_spend_ratio !== undefined) {
+        stats.metric_deltas.wasted_spend_ratio.push(event.delta.wasted_spend_ratio);
+      }
+      if (event.delta.acos !== undefined) {
+        stats.metric_deltas.acos.push(event.delta.acos);
+      }
+    }
+  }
+
+  // Calculate averages
+  const avgDelta = {};
+  for (const [metric, values] of Object.entries(stats.metric_deltas)) {
+    if (values.length > 0) {
+      avgDelta[metric] = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(4);
+    }
+  }
+
+  // Convert failure reasons to sorted array
+  const topFailureReasons = Object.entries(stats.failure_reasons)
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  return {
+    total_proposals: stats.total_proposals,
+    auto_executed_count: stats.auto_executed,
+    dry_run_count: stats.dry_run,
+    suggest_only_count: stats.suggest_only,
+    auto_success_rate: stats.auto_executed > 0
+      ? (stats.auto_success / stats.auto_executed * 100).toFixed(1)
+      : '0.0',
+    auto_success: stats.auto_success,
+    auto_failure: stats.auto_failure,
+    dry_run_success_rate: stats.dry_run > 0
+      ? (stats.dry_run_success / stats.dry_run * 100).toFixed(1)
+      : '0.0',
+    top_failure_reasons: topFailureReasons,
+    by_action: stats.by_action,
+    avg_metric_deltas: avgDelta
+  };
+}
+
+/**
+ * Generate P3 auto execution effectiveness report
+ *
+ * @param {Object} autoExecStats - Auto execution analysis
+ * @param {number} days - Days analyzed
+ * @returns {string} Markdown report
+ */
+function generateAutoExecReport(autoExecStats, days) {
+  const lines = [
+    '# P3 Auto Execution Effectiveness Report',
+    '',
+    `> **Generated:** ${new Date().toISOString()}`,
+    `> **Period:** Last ${days} days`,
+    '',
+    '---',
+    '',
+    '## Executive Summary',
+    '',
+    `- **Total Proposals:** ${autoExecStats.total_proposals}`,
+    `- **Auto Executed:** ${autoExecStats.auto_executed_count}`,
+    `- **Dry Run:** ${autoExecStats.dry_run_count}`,
+    `- **Suggest Only:** ${autoExecStats.suggest_only_count}`,
+    '',
+    `### Auto Execution Success Rate: ${autoExecStats.auto_success_rate}%`,
+    '',
+    `- Successes: ${autoExecStats.auto_success}`,
+    `- Failures: ${autoExecStats.auto_failure}`,
+    '',
+    '---',
+    '',
+    '## Metric Impact',
+    ''
+  ];
+
+  if (Object.keys(autoExecStats.avg_metric_deltas).length > 0) {
+    lines.push('| Metric | Average Delta |');
+    lines.push('|--------|---------------|');
+    for (const [metric, delta] of Object.entries(autoExecStats.avg_metric_deltas)) {
+      const sign = parseFloat(delta) >= 0 ? '+' : '';
+      lines.push(`| ${metric} | ${sign}${delta} |`);
+    }
+  } else {
+    lines.push('No metric deltas recorded yet.');
+  }
+
+  lines.push('', '---', '', '## By Action', '');
+  lines.push('| Action | Total | Auto Executed | Dry Run | Success | Failure |');
+  lines.push('|--------|-------|---------------|---------|---------|---------|');
+
+  for (const [actionId, stats] of Object.entries(autoExecStats.by_action)) {
+    lines.push(`| ${actionId} | ${stats.total} | ${stats.auto_executed} | ${stats.dry_run} | ${stats.success} | ${stats.failure} |`);
+  }
+
+  if (autoExecStats.top_failure_reasons.length > 0) {
+    lines.push('', '---', '', '## Top Failure Reasons', '');
+    lines.push('| Reason | Count |');
+    lines.push('|--------|-------|');
+    for (const { reason, count } of autoExecStats.top_failure_reasons) {
+      const truncatedReason = reason.length > 60 ? reason.slice(0, 57) + '...' : reason;
+      lines.push(`| ${truncatedReason} | ${count} |`);
+    }
+  }
+
+  lines.push('', '---', '', '*Report generated by playbook_evaluator.mjs (P3)*');
+
+  return lines.join('\n');
+}
+
+/**
  * Generate markdown report
  *
  * @param {Object} analysis - Analysis results
@@ -299,7 +480,7 @@ function analyzeMissingEvidence(events) {
  * @returns {string} Markdown report
  */
 function generateReport(analysis, days) {
-  const { causes, actions, observations, missingEvidence, summary } = analysis;
+  const { causes, actions, observations, missingEvidence, autoExecution, summary } = analysis;
 
   const lines = [
     `# Playbook Evaluation Report`,
@@ -360,6 +541,25 @@ function generateReport(analysis, days) {
     lines.push('✅ No missing evidence fields detected.');
   }
 
+  // P3: Auto Execution Effectiveness Section
+  if (autoExecution && autoExecution.auto_executed_count > 0) {
+    lines.push('', '---', '', '## Auto Execution Effectiveness (P3)', '');
+    lines.push(`> Auto execution is ${autoExecution.auto_executed_count > 0 ? 'ACTIVE' : 'INACTIVE'}`, '');
+    lines.push(`- **Total Proposals:** ${autoExecution.total_proposals}`);
+    lines.push(`- **Auto Executed:** ${autoExecution.auto_executed_count} (${autoExecution.auto_success_rate}% success)`);
+    lines.push(`- **Dry Run:** ${autoExecution.dry_run_count}`);
+    lines.push(`- **Suggest Only:** ${autoExecution.suggest_only_count}`);
+    lines.push('');
+
+    if (autoExecution.top_failure_reasons.length > 0) {
+      lines.push('### Top Failure Reasons');
+      for (const { reason, count } of autoExecution.top_failure_reasons.slice(0, 3)) {
+        lines.push(`- ${reason}: ${count}`);
+      }
+      lines.push('');
+    }
+  }
+
   lines.push('', '---', '', '## Recommendations', '');
 
   // Low success rate actions
@@ -416,6 +616,7 @@ async function evaluate(options = {}) {
   const actions = analyzeActions(events);
   const observations = analyzeObservations(events);
   const missingEvidence = analyzeMissingEvidence(events);
+  const autoExecution = analyzeAutoExecution(events);
 
   // Summary stats
   const summary = {
@@ -427,7 +628,7 @@ async function evaluate(options = {}) {
   };
 
   // Generate report
-  const report = generateReport({ causes, actions, observations, missingEvidence, summary }, days);
+  const report = generateReport({ causes, actions, observations, missingEvidence, autoExecution, summary }, days);
 
   // Write report
   if (!existsSync(reportsDir)) {
@@ -438,14 +639,26 @@ async function evaluate(options = {}) {
   const reportPath = join(reportsDir, `PLAYBOOK_EVAL_${date}.md`);
   writeFileSync(reportPath, report);
 
+  // P3: Generate auto execution effectiveness report if there are auto executions
+  let autoExecReportPath = null;
+  if (autoExecution.auto_executed_count > 0 || autoExecution.dry_run_count > 0) {
+    const autoExecReport = generateAutoExecReport(autoExecution, days);
+    autoExecReportPath = join(reportsDir, `P3_AUTO_EXEC_EFFECT_${date}.md`);
+    writeFileSync(autoExecReportPath, autoExecReport);
+    console.log(`\n✅ P3 Auto Exec Report: ${autoExecReportPath}`);
+  }
+
   console.log(`\n✅ Report generated: ${reportPath}`);
   console.log(`\n📈 Summary:`);
   console.log(`   Success Rate: ${summary.overallSuccessRate}%`);
   console.log(`   Observations: ${summary.uniqueObservations}`);
   console.log(`   Actions: ${summary.uniqueActions}`);
   console.log(`   Causes: ${summary.uniqueCauses}`);
+  if (autoExecution.auto_executed_count > 0) {
+    console.log(`   Auto Executed: ${autoExecution.auto_executed_count} (${autoExecution.auto_success_rate}% success)`);
+  }
 
-  return { causes, actions, observations, missingEvidence, summary, reportPath };
+  return { causes, actions, observations, missingEvidence, autoExecution, summary, reportPath, autoExecReportPath };
 }
 
 // CLI handling
@@ -469,4 +682,13 @@ if (process.argv[1].includes('playbook_evaluator')) {
   evaluate(options);
 }
 
-export { evaluate, loadOutcomeEvents, analyzeCauses, analyzeActions, analyzeObservations, analyzeMissingEvidence };
+export {
+  evaluate,
+  loadOutcomeEvents,
+  analyzeCauses,
+  analyzeActions,
+  analyzeObservations,
+  analyzeMissingEvidence,
+  analyzeAutoExecution,
+  generateAutoExecReport
+};
