@@ -107,6 +107,29 @@ eligibility:
       spend_gte: 15
 ```
 
+## Reproducibility
+
+**Run Command:**
+```bash
+node src/reasoning/auto_eligibility_evaluator.mjs
+```
+
+**Input Files:**
+- Samples: `tests/fixtures/reasoning/p4/calibration_samples.json`
+- Playbook: `docs/contracts/reasoning/amazon-growth/actions/ADD_NEGATIVE_KEYWORDS.yaml`
+
+**Output:**
+- This report: `docs/reasoning/reports/P4_AUTO_ELIGIBILITY_CALIBRATION_YYYY-MM-DD.md`
+
+**Statistics Definition:**
+| Metric | Definition |
+|--------|------------|
+| Eligible | checkEligibility() returns eligible=true |
+| Auto/DryRun | executeAction() returns AUTO_EXECUTED or DRY_RUN |
+| Suggest | executeAction() returns SUGGEST_ONLY |
+| Blocked | executeAction() returns BLOCKED |
+| Deny | executeAction() returns DENY_UNSUPPORTED_ACTION |
+
 ## Next Steps
 
 1. Monitor auto-execution rates with balanced profile
