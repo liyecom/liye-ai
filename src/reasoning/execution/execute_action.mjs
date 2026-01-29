@@ -33,11 +33,12 @@ export function registerAction(actionId, implementation) {
  * Execution result types
  */
 export const ExecutionStatus = {
-  SUGGEST_ONLY: 'SUGGEST_ONLY',       // Not eligible for auto execution
-  DRY_RUN: 'DRY_RUN',                 // Would execute but dry_run mode
-  AUTO_EXECUTED: 'AUTO_EXECUTED',     // Actually executed
-  FAILED: 'FAILED',                   // Execution attempted but failed
-  BLOCKED: 'BLOCKED'                  // Blocked by safety limits
+  SUGGEST_ONLY: 'SUGGEST_ONLY',                     // Not eligible for auto execution
+  DRY_RUN: 'DRY_RUN',                               // Would execute but dry_run mode
+  AUTO_EXECUTED: 'AUTO_EXECUTED',                   // Actually executed
+  FAILED: 'FAILED',                                 // Execution attempted but failed
+  BLOCKED: 'BLOCKED',                               // Blocked by safety limits
+  DENY_UNSUPPORTED_ACTION: 'DENY_UNSUPPORTED_ACTION' // Action not in whitelist
 };
 
 /**
@@ -81,16 +82,34 @@ export async function executeAction(proposal, params, signals, state = {}, optio
       return finishResult(result, startTime);
     }
 
-    // Step 2: Check if auto execution is enabled globally
-    if (!flags.auto_execution?.enabled) {
-      result.notes.push('Auto execution is disabled globally');
+    // Step 2: Check if action is in whitelist (BEFORE kill switch - for audit trail)
+    // This ensures we can track "denied" vs "disabled" in reports
+    const allowList = flags.auto_execution?.allow_actions || [];
+    if (!allowList.includes(proposal.action_id)) {
+      result.status = ExecutionStatus.DENY_UNSUPPORTED_ACTION;
+      result.notes.push(`Action ${proposal.action_id} not in allow list (DENY_UNSUPPORTED_ACTION)`);
+
+      // Record outcome event for denied actions (for audit)
+      try {
+        result.outcome_event = await createAndRecordOutcome(
+          proposal,
+          params,
+          options.before_metrics,
+          null,
+          null,  // success=null for denied (not attempted)
+          false,
+          `Action denied: ${proposal.action_id} not in whitelist [${allowList.join(', ')}]`
+        );
+      } catch (outcomeError) {
+        result.notes.push(`Failed to record deny outcome: ${outcomeError.message}`);
+      }
+
       return finishResult(result, startTime);
     }
 
-    // Step 3: Check if action is in whitelist
-    const allowList = flags.auto_execution?.allow_actions || [];
-    if (!allowList.includes(proposal.action_id)) {
-      result.notes.push(`Action ${proposal.action_id} not in allow list`);
+    // Step 3: Check if auto execution is enabled globally (kill switch)
+    if (!flags.auto_execution?.enabled) {
+      result.notes.push('Auto execution is disabled globally');
       return finishResult(result, startTime);
     }
 

@@ -18,10 +18,23 @@ import { registerAction } from '../execute_action.mjs';
  * @param {Object} policy - Selection policy from playbook
  * @param {Object} limits - Safety limits from playbook
  * @param {Object} state - Current state (brand_terms, existing_negatives)
- * @returns {Array} Selected keywords
+ * @param {Object} options - Options
+ * @param {boolean} options.returnDiagnostics - Return diagnostics object instead of array
+ * @returns {Array|Object} Selected keywords (or diagnostics object if returnDiagnostics=true)
  */
-export function selectCandidates(searchTerms, policy, limits, state = {}) {
+export function selectCandidates(searchTerms, policy, limits, state = {}, options = {}) {
   const candidates = [];
+
+  // Filtering diagnostics (Patch-2: audit/observability)
+  const diagnostics = {
+    candidates_before: searchTerms.length,
+    filtered_too_short: [],
+    filtered_brand_terms: [],
+    filtered_asin_terms: [],
+    filtered_dedupe: [],
+    final_candidates: 0,
+    filter_summary: ''
+  };
 
   // Sort by waste (strategy: top_waste_terms)
   const sorted = [...searchTerms].sort((a, b) => {
@@ -56,21 +69,25 @@ export function selectCandidates(searchTerms, policy, limits, state = {}) {
 
     // Check min length
     if (limits.min_term_length && keyword.length < limits.min_term_length) {
+      diagnostics.filtered_too_short.push(keyword);
       continue;
     }
 
     // Check brand terms
     if (limits.forbid_brand_terms && brandTermsLower.some(bt => keyword.includes(bt))) {
+      diagnostics.filtered_brand_terms.push(keyword);
       continue;
     }
 
     // Check ASIN terms
     if (limits.forbid_asin_terms && asinPattern.test(keyword)) {
+      diagnostics.filtered_asin_terms.push(keyword);
       continue;
     }
 
     // Check dedupe
     if (policy.dedupe && existingNegatives.has(keyword)) {
+      diagnostics.filtered_dedupe.push(keyword);
       continue;
     }
 
@@ -82,7 +99,54 @@ export function selectCandidates(searchTerms, policy, limits, state = {}) {
     }
   }
 
+  // Update diagnostics
+  diagnostics.final_candidates = candidates.length;
+
+  // Generate filter summary for audit notes
+  const filters = [];
+  if (diagnostics.filtered_too_short.length > 0) {
+    filters.push(`too_short=${diagnostics.filtered_too_short.length}`);
+  }
+  if (diagnostics.filtered_brand_terms.length > 0) {
+    filters.push(`brand_terms=${diagnostics.filtered_brand_terms.length}`);
+  }
+  if (diagnostics.filtered_asin_terms.length > 0) {
+    filters.push(`asin_terms=${diagnostics.filtered_asin_terms.length}`);
+  }
+  if (diagnostics.filtered_dedupe.length > 0) {
+    filters.push(`dedupe=${diagnostics.filtered_dedupe.length}`);
+  }
+
+  if (candidates.length === 0 && candidatePool.length > 0) {
+    diagnostics.filter_summary = `All ${candidatePool.length} candidates filtered: ${filters.join(', ')}`;
+  } else if (filters.length > 0) {
+    diagnostics.filter_summary = `Filtered: ${filters.join(', ')}; Final: ${candidates.length}`;
+  } else {
+    diagnostics.filter_summary = `No filtering applied; Final: ${candidates.length}`;
+  }
+
+  // Return based on options
+  if (options.returnDiagnostics) {
+    return {
+      candidates,
+      diagnostics
+    };
+  }
+
   return candidates;
+}
+
+/**
+ * Select candidates with full diagnostics (convenience wrapper)
+ *
+ * @param {Array} searchTerms - Search term data
+ * @param {Object} policy - Selection policy
+ * @param {Object} limits - Safety limits
+ * @param {Object} state - Current state
+ * @returns {Object} { candidates: Array, diagnostics: Object }
+ */
+export function selectCandidatesWithDiagnostics(searchTerms, policy, limits, state = {}) {
+  return selectCandidates(searchTerms, policy, limits, state, { returnDiagnostics: true });
 }
 
 /**
@@ -280,5 +344,6 @@ registerAction('ADD_NEGATIVE_KEYWORDS', addNegativeKeywordsAction);
 export default {
   addNegativeKeywordsAction,
   selectCandidates,
+  selectCandidatesWithDiagnostics,
   rollbackAddNegativeKeywords
 };
