@@ -71,7 +71,16 @@ async function routeToAgeMcp(tool, args, traceId) {
       throw new Error(`AGE MCP returned ${resp.status}`);
     }
     const data = await resp.json();
-    return { ok: true, data, mock_used: false };
+    // HF5: Real AGE response - origin_proof=true, mock_used=false
+    return {
+      ok: true,
+      data: {
+        ...data,
+        origin_proof: true,  // HF5: Proves real AGE call
+        mock_used: false
+      },
+      mock_used: false
+    };
   } catch (err) {
     clearTimeout(timeout);
     console.error(`[AGE MCP] Failed: ${err.message}`);
@@ -79,10 +88,13 @@ async function routeToAgeMcp(tool, args, traceId) {
   }
 }
 
-// HF1: Mock fallback response (DEGRADE, not BLOCK)
+// HF1 + HF5: Mock fallback response (DEGRADE, not BLOCK)
+// HF5: origin="liye_os.mock", origin_proof=false when mock
 function createMockFallbackResponse(tool, args, traceId, error) {
   return {
-    origin: 'amazon-growth-engine',
+    // HF5: Mock origin - clearly different from real AGE
+    origin: 'liye_os.mock',
+    origin_proof: false,
     phase0_only: true,
     trace_id: traceId,
     tool: tool,
@@ -240,6 +252,7 @@ async function handleGovernedToolCall(req, res) {
     const decision = mockUsed ? 'DEGRADE' : (result.gateReport?.decision || 'UNKNOWN');
 
     // Build response
+    // HF5: origin_proof signals whether real AGE was reached
     const response = {
       ok: decision === 'ALLOW' || decision === 'DEGRADE',
       result: decision === 'ALLOW' || decision === 'DEGRADE'
@@ -249,6 +262,9 @@ async function handleGovernedToolCall(req, res) {
           }
         : null,
       decision,
+      // HF5: Consistent origin/mock signals
+      origin: mockUsed ? 'liye_os.mock' : 'amazon-growth-engine',
+      origin_proof: !mockUsed,  // true = real AGE, false = mock
       mock_used: mockUsed,
       trace_id: finalTraceId,
       evidence_path: `.liye/traces/${finalTraceId}/`,
