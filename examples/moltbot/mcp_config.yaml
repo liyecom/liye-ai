@@ -1,0 +1,19 @@
+# Phase 0: Validation
+# Moltbot consumes LiYe Governed Tool Call Gateway as MCP Federation Hub
+#
+# 单一大脑原则: LiYe 是唯一决策大脑，Moltbot 仅加载并执行路由策略
+
+mcp:
+  hub:
+    # 复用现有的 Governed Tool Call Gateway（HTTP/OpenAPI）
+    base_url: ${LIYE_GOV_GATEWAY_URL}
+    # 强制携带版本，便于回放/审计
+    policy_version: moltbot-routing-v1
+
+tools_allowlist:
+  - amazon://strategy/campaign-audit
+  - amazon://strategy/wasted-spend-detect
+  - amazon://execution/dry-run
+
+trace:
+  mode: trace_lite   # read-only phase: trace_lite (记录但不阻塞)

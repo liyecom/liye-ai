@@ -1,0 +1,55 @@
+# Moltbot Routing Policy v1
+# 单一大脑原则：LiYe 是唯一决策大脑，Moltbot 仅加载并执行此策略
+#
+# 此文件由 LiYe OS 维护，Moltbot Gateway 在启动时拉取并缓存
+# Moltbot 不做推理决策，只按此策略执行路由
+
+policy_version: moltbot-routing-v1
+created: 2026-01-29
+principle: "LiYe 是唯一决策大脑，Pi Agent 只负责呈现/格式化"
+
+rules:
+  # 读操作 - LiYe Executor + trace_lite
+  # 记录但不阻塞，保证审计链不断裂
+  - match:
+      action_type: read
+      risk_level: low
+    route_to: liye_executor
+    governance: trace_lite
+    allow_tools:
+      - amazon://strategy/campaign-audit
+      - amazon://strategy/wasted-spend-detect
+      - amazon://execution/dry-run
+
+  # 分析操作 - LiYe Executor + T1/T2/T3 检查
+  - match:
+      action_type: analyze
+    route_to: liye_executor
+    governance: t1_t2_t3_check
+    allow_tools:
+      - amazon://strategy/campaign-audit
+      - amazon://strategy/wasted-spend-detect
+
+  # 写/删/发送/执行 - LiYe P3 Gate + 完整证据链
+  - match:
+      action_type: [write, delete, send, execute]
+    route_to: liye_p3_gate
+    governance: full_evidence_chain
+    # Phase 0 不开放写操作工具
+    allow_tools: []
+
+fallback:
+  on_governance_error: block_and_notify
+  on_timeout: degrade_to_readonly
+
+# Pi Agent 职责边界（明确排除）
+pi_agent_scope:
+  allowed:
+    - presentation_formatting
+    - canvas_rendering
+    - message_display
+  forbidden:
+    - tool_selection
+    - risk_assessment
+    - routing_decision
+    - action_approval
