@@ -1,9 +1,9 @@
 # ADD_NEGATIVE_KEYWORDS Action Playbook
-# P3: First auto-executable action with full safety controls
-# Version: v0.1
+# P4: Threshold Calibration with Profile Support
+# Version: v0.2
 
 action_id: ADD_NEGATIVE_KEYWORDS
-version: v0.1
+version: v0.2
 execution_mode_default: suggest_only
 
 definition:
@@ -14,11 +14,37 @@ definition:
 
 eligibility:  # 触发门槛（必须全部满足才允许 auto_if_safe）
   required_observation: SEARCH_TERM_WASTE_HIGH
+
+  # P4: Threshold profiles for calibration
+  profiles:
+    conservative:
+      description: "保守策略 - 高门槛，低误判风险"
+      wasted_spend_ratio_gte: 0.35   # 浪费消耗比例 >= 35%
+      clicks_gte: 25                  # 点击数 >= 25
+      orders_eq: 0                    # 订单数 = 0（完全无转化）
+      spend_gte: 20                   # 消耗 >= $20 USD
+    balanced:
+      description: "平衡策略 - 默认推荐，覆盖率与准确率平衡"
+      wasted_spend_ratio_gte: 0.30   # 浪费消耗比例 >= 30%
+      clicks_gte: 20                  # 点击数 >= 20
+      orders_eq: 0                    # 订单数 = 0
+      spend_gte: 15                   # 消耗 >= $15 USD
+    aggressive:
+      description: "激进策略 - 低门槛，高覆盖，需监控误判"
+      wasted_spend_ratio_gte: 0.25   # 浪费消耗比例 >= 25%
+      clicks_gte: 15                  # 点击数 >= 15
+      orders_eq: 0                    # 订单数 = 0
+      spend_gte: 10                   # 消耗 >= $10 USD
+
+  active_profile: balanced           # 当前激活的 profile
+
+  # Legacy thresholds (backward compatible, mirrors active_profile)
   thresholds:
-    wasted_spend_ratio_gte: 0.30   # 浪费消耗比例 >= 30%
-    clicks_gte: 20                  # 点击数 >= 20
-    orders_eq: 0                    # 订单数 = 0（完全无转化）
-    spend_gte: 15                   # 消耗 >= $15 USD
+    wasted_spend_ratio_gte: 0.30
+    clicks_gte: 20
+    orders_eq: 0
+    spend_gte: 15
+
   cooldown:
     per_campaign_hours: 24          # 同一 campaign 24h 内只允许一次自动执行
 
@@ -82,3 +108,14 @@ api_hints:
   method: "createNegativeKeywords"
   batch_size: 100
   rate_limit_per_minute: 30
+
+# P4 Calibration metadata
+calibration:
+  last_calibrated: "2026-01-29"
+  calibration_version: "p4-v0.1"
+  recommendation: "balanced"
+  rationale: |
+    Based on P4 calibration with 12 synthetic samples:
+    - conservative: 3/4 A-group eligible (75%), may miss boundary cases
+    - balanced: 4/4 A-group eligible (100%), recommended default
+    - aggressive: 7/8 B-group would pass (87.5%), high false positive risk

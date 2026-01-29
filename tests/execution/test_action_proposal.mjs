@@ -68,7 +68,7 @@ function testLoadActionPlaybook() {
 
   assert(playbook, 'Should load ADD_NEGATIVE_KEYWORDS playbook');
   assert(playbook.action_id === 'ADD_NEGATIVE_KEYWORDS', 'action_id should match');
-  assert(playbook.version === 'v0.1', 'version should be v0.1');
+  assert(playbook.version === 'v0.2', 'version should be v0.2 (P4 profiles)');
   assert(playbook.execution_mode_default === 'suggest_only', 'default mode should be suggest_only');
   assert(playbook.eligibility, 'Should have eligibility section');
   assert(playbook.safety_limits, 'Should have safety_limits section');

@@ -234,9 +234,11 @@ export function buildProposalsFromExplanation(explanation, options = {}) {
  *
  * @param {Object} proposal - Action proposal
  * @param {Object} signals - Current signal values
- * @returns {Object} { eligible: boolean, reasons: string[] }
+ * @param {Object} options - Options
+ * @param {string} options.profile - Override profile (conservative/balanced/aggressive)
+ * @returns {Object} { eligible: boolean, reasons: string[], profile: string }
  */
-export function checkEligibility(proposal, signals) {
+export function checkEligibility(proposal, signals, options = {}) {
   const reasons = [];
   let eligible = true;
 
@@ -244,7 +246,7 @@ export function checkEligibility(proposal, signals) {
   if (proposal.execution_mode !== 'auto_if_safe') {
     eligible = false;
     reasons.push(`Execution mode is ${proposal.execution_mode}, not auto_if_safe`);
-    return { eligible, reasons };
+    return { eligible, reasons, profile: null };
   }
 
   // Load action playbook for eligibility rules
@@ -252,14 +254,14 @@ export function checkEligibility(proposal, signals) {
   if (!playbook) {
     eligible = false;
     reasons.push(`No action playbook found for ${proposal.action_id}`);
-    return { eligible, reasons };
+    return { eligible, reasons, profile: null };
   }
 
   const eligibility = playbook.eligibility;
   if (!eligibility) {
     eligible = false;
     reasons.push('No eligibility rules defined in playbook');
-    return { eligible, reasons };
+    return { eligible, reasons, profile: null };
   }
 
   // Check required observation
@@ -268,8 +270,26 @@ export function checkEligibility(proposal, signals) {
     reasons.push(`Required observation ${eligibility.required_observation}, got ${proposal.observation_id}`);
   }
 
+  // P4: Get thresholds from active profile or use legacy thresholds
+  const profileName = options.profile || eligibility.active_profile || 'balanced';
+  let thresholds;
+
+  if (eligibility.profiles && eligibility.profiles[profileName]) {
+    // Use profile-based thresholds (P4)
+    const profile = eligibility.profiles[profileName];
+    thresholds = {};
+    // Extract threshold keys from profile (skip 'description')
+    for (const [key, value] of Object.entries(profile)) {
+      if (key !== 'description') {
+        thresholds[key] = value;
+      }
+    }
+  } else {
+    // Fallback to legacy thresholds
+    thresholds = eligibility.thresholds || {};
+  }
+
   // Check thresholds
-  const thresholds = eligibility.thresholds || {};
   for (const [key, value] of Object.entries(thresholds)) {
     const [field, op] = parseThresholdKey(key);
     const signalValue = signals[field];
@@ -287,7 +307,7 @@ export function checkEligibility(proposal, signals) {
     }
   }
 
-  return { eligible, reasons };
+  return { eligible, reasons, profile: profileName };
 }
 
 /**
