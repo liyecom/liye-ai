@@ -4,7 +4,7 @@
  * P3: Converts reasoning explanation into executable action proposals.
  * This is the bridge between Reasoning (P1/P2) and Execution (P3).
  *
- * @module amazon-growth/runtime/execution
+ * @module reasoning/execution
  * @version v0.1
  */
 
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { parse as parseYaml } from 'yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '../../../../..');
+const PROJECT_ROOT = join(__dirname, '../../..');
 
 // Paths to contracts
 const ACTION_PLAYBOOKS_DIR = join(PROJECT_ROOT, 'docs/contracts/reasoning/amazon-growth/actions');

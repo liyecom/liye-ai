@@ -17,17 +17,17 @@ import {
   checkSafetyLimits,
   loadActionPlaybook,
   loadExecutionFlags
-} from '../../src/domain/amazon-growth/runtime/execution/build_action_proposal.mjs';
+} from '../../src/reasoning/execution/build_action_proposal.mjs';
 import {
   executeAction,
   ExecutionStatus
-} from '../../src/domain/amazon-growth/runtime/execution/execute_action.mjs';
+} from '../../src/reasoning/execution/execute_action.mjs';
 // Import to register the action
-import '../../src/domain/amazon-growth/runtime/execution/actions/add_negative_keywords.mjs';
+import '../../src/reasoning/execution/actions/add_negative_keywords.mjs';
 import {
   selectCandidates,
   rollbackAddNegativeKeywords
-} from '../../src/domain/amazon-growth/runtime/execution/actions/add_negative_keywords.mjs';
+} from '../../src/reasoning/execution/actions/add_negative_keywords.mjs';
 
 // Test fixtures
 const ELIGIBLE_SIGNALS = {

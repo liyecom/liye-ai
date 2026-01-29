@@ -12,7 +12,7 @@ import {
   checkSafetyLimits,
   loadActionPlaybook,
   loadExecutionFlags
-} from '../../src/domain/amazon-growth/runtime/execution/build_action_proposal.mjs';
+} from '../../src/reasoning/execution/build_action_proposal.mjs';
 
 // Test fixtures
 const MOCK_EXPLANATION = {

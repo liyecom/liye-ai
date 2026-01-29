@@ -4,7 +4,7 @@
  * P3: Main entry point for action execution.
  * Validates eligibility, checks safety limits, and delegates to action implementations.
  *
- * @module amazon-growth/runtime/execution
+ * @module reasoning/execution
  * @version v0.1
  */
 
@@ -14,7 +14,7 @@ import {
   checkEligibility,
   checkSafetyLimits
 } from './build_action_proposal.mjs';
-import { createActionOutcomeEvent, recordActionOutcome } from '../../../../reasoning/feedback/action_outcome.mjs';
+import { createActionOutcomeEvent, recordActionOutcome } from '../feedback/action_outcome.mjs';
 
 // Action implementations registry
 const ACTION_IMPLEMENTATIONS = {};

@@ -4,7 +4,7 @@
  * P3: First auto-executable action with full safety controls.
  * Supports dry-run mode and generates complete rollback payloads.
  *
- * @module amazon-growth/runtime/execution/actions
+ * @module reasoning/execution/actions
  * @version v0.1
  */
 
