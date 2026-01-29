@@ -1,0 +1,1146 @@
+{
+  "meta": {
+    "generated_at": "2026-01-29T15:59:39.706Z",
+    "profile": "balanced",
+    "total_cases": 12,
+    "force_dry_run": true,
+    "writes_attempted": 0,
+    "writes_blocked_by": "force_dry_run"
+  },
+  "stats": {
+    "dry_run": 4,
+    "suggest_only": 4,
+    "blocked": 3,
+    "deny": 1
+  },
+  "by_group": {
+    "A": [
+      {
+        "case_id": "A1_boundary_eligible",
+        "scenario": "Boundary values - just meets thresholds",
+        "group": "A",
+        "expected_class": "A",
+        "status": "DRY_RUN",
+        "why_not_executed": null,
+        "candidates_before": 3,
+        "final_candidates": 3,
+        "filtering_summary": [],
+        "rollback_payload_present": true,
+        "outcome_event_written": true,
+        "outcome_event": {
+          "event_id": "aoe_40042d2a",
+          "trace_id": "trace-p4-A1",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "timestamp": "2026-01-29T15:59:39.670Z",
+          "success": true,
+          "evaluator": "auto",
+          "cause_id": "DEMO_CAUSE",
+          "actual_outcome": "Action completed",
+          "notes": "[DRY RUN] Dry run - simulated success",
+          "execution_mode": "dry_run",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "params_summary": {
+            "action_id": "ADD_NEGATIVE_KEYWORDS",
+            "items_count": 3
+          }
+        },
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 15,
+        "proposal": {
+          "proposal_id": "demo-A1_boundary_eligible-1769702379655",
+          "trace_id": "trace-p4-A1",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Dry run mode - would have executed"
+        ]
+      },
+      {
+        "case_id": "A2_high_waste",
+        "scenario": "High waste - clearly eligible",
+        "group": "A",
+        "expected_class": "A",
+        "status": "DRY_RUN",
+        "why_not_executed": null,
+        "candidates_before": 5,
+        "final_candidates": 5,
+        "filtering_summary": [],
+        "rollback_payload_present": true,
+        "outcome_event_written": true,
+        "outcome_event": {
+          "event_id": "aoe_f8b2968b",
+          "trace_id": "trace-p4-A2",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "timestamp": "2026-01-29T15:59:39.676Z",
+          "success": true,
+          "evaluator": "auto",
+          "cause_id": "DEMO_CAUSE",
+          "actual_outcome": "Action completed",
+          "notes": "[DRY RUN] Dry run - simulated success",
+          "execution_mode": "dry_run",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "params_summary": {
+            "action_id": "ADD_NEGATIVE_KEYWORDS",
+            "items_count": 5
+          }
+        },
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 5,
+        "proposal": {
+          "proposal_id": "demo-A2_high_waste-1769702379671",
+          "trace_id": "trace-p4-A2",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Dry run mode - would have executed"
+        ]
+      },
+      {
+        "case_id": "A3_max_keywords",
+        "scenario": "Exactly max_negatives_per_run keywords",
+        "group": "A",
+        "expected_class": "A",
+        "status": "DRY_RUN",
+        "why_not_executed": null,
+        "candidates_before": 10,
+        "final_candidates": 10,
+        "filtering_summary": [],
+        "rollback_payload_present": true,
+        "outcome_event_written": true,
+        "outcome_event": {
+          "event_id": "aoe_9c800f2e",
+          "trace_id": "trace-p4-A3",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "timestamp": "2026-01-29T15:59:39.680Z",
+          "success": true,
+          "evaluator": "auto",
+          "cause_id": "DEMO_CAUSE",
+          "actual_outcome": "Action completed",
+          "notes": "[DRY RUN] Dry run - simulated success",
+          "execution_mode": "dry_run",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "params_summary": {
+            "action_id": "ADD_NEGATIVE_KEYWORDS",
+            "items_count": 10
+          }
+        },
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 4,
+        "proposal": {
+          "proposal_id": "demo-A3_max_keywords-1769702379676",
+          "trace_id": "trace-p4-A3",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Dry run mode - would have executed"
+        ]
+      },
+      {
+        "case_id": "A4_cooldown_not_triggered",
+        "scenario": "Cooldown elapsed - can execute",
+        "group": "A",
+        "expected_class": "A",
+        "status": "DRY_RUN",
+        "why_not_executed": null,
+        "candidates_before": 2,
+        "final_candidates": 2,
+        "filtering_summary": [],
+        "rollback_payload_present": true,
+        "outcome_event_written": true,
+        "outcome_event": {
+          "event_id": "aoe_970e7953",
+          "trace_id": "trace-p4-A4",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "timestamp": "2026-01-29T15:59:39.683Z",
+          "success": true,
+          "evaluator": "auto",
+          "cause_id": "DEMO_CAUSE",
+          "actual_outcome": "Action completed",
+          "notes": "[DRY RUN] Dry run - simulated success",
+          "execution_mode": "dry_run",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "params_summary": {
+            "action_id": "ADD_NEGATIVE_KEYWORDS",
+            "items_count": 2
+          }
+        },
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 4,
+        "proposal": {
+          "proposal_id": "demo-A4_cooldown_not_triggered-1769702379680",
+          "trace_id": "trace-p4-A4",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Dry run mode - would have executed"
+        ]
+      }
+    ],
+    "B": [
+      {
+        "case_id": "B1_spend_below",
+        "scenario": "Spend below threshold",
+        "group": "B",
+        "expected_class": "B",
+        "status": "SUGGEST_ONLY",
+        "why_not_executed": "Eligibility failed: Threshold not met: spend gte 15 (actual: 10)",
+        "candidates_before": 2,
+        "final_candidates": 2,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": false,
+          "reasons": [
+            "Threshold not met: spend gte 15 (actual: 10)"
+          ],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 3,
+        "proposal": {
+          "proposal_id": "demo-B1_spend_below-1769702379684",
+          "trace_id": "trace-p4-B1",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Eligibility check failed: Threshold not met: spend gte 15 (actual: 10)"
+        ]
+      },
+      {
+        "case_id": "B2_clicks_below",
+        "scenario": "Clicks below threshold",
+        "group": "B",
+        "expected_class": "B",
+        "status": "SUGGEST_ONLY",
+        "why_not_executed": "Eligibility failed: Threshold not met: clicks gte 20 (actual: 10)",
+        "candidates_before": 1,
+        "final_candidates": 1,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": false,
+          "reasons": [
+            "Threshold not met: clicks gte 20 (actual: 10)"
+          ],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 3,
+        "proposal": {
+          "proposal_id": "demo-B2_clicks_below-1769702379687",
+          "trace_id": "trace-p4-B2",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Eligibility check failed: Threshold not met: clicks gte 20 (actual: 10)"
+        ]
+      },
+      {
+        "case_id": "B3_has_orders",
+        "scenario": "Has orders - not pure waste",
+        "group": "B",
+        "expected_class": "B",
+        "status": "SUGGEST_ONLY",
+        "why_not_executed": "Eligibility failed: Threshold not met: orders eq 0 (actual: 2)",
+        "candidates_before": 2,
+        "final_candidates": 2,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": false,
+          "reasons": [
+            "Threshold not met: orders eq 0 (actual: 2)"
+          ],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 2,
+        "proposal": {
+          "proposal_id": "demo-B3_has_orders-1769702379690",
+          "trace_id": "trace-p4-B3",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Eligibility check failed: Threshold not met: orders eq 0 (actual: 2)"
+        ]
+      },
+      {
+        "case_id": "B4_waste_ratio_below",
+        "scenario": "Waste ratio below threshold",
+        "group": "B",
+        "expected_class": "B",
+        "status": "SUGGEST_ONLY",
+        "why_not_executed": "Eligibility failed: Threshold not met: wasted_spend_ratio gte 0.3 (actual: 0.2)",
+        "candidates_before": 1,
+        "final_candidates": 1,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": false,
+          "reasons": [
+            "Threshold not met: wasted_spend_ratio gte 0.3 (actual: 0.2)"
+          ],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 3,
+        "proposal": {
+          "proposal_id": "demo-B4_waste_ratio_below-1769702379692",
+          "trace_id": "trace-p4-B4",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Eligibility check failed: Threshold not met: wasted_spend_ratio gte 0.3 (actual: 0.2)"
+        ]
+      }
+    ],
+    "C": [
+      {
+        "case_id": "C1_exceeds_max_keywords",
+        "scenario": "Exceeds max_negatives_per_run",
+        "group": "C",
+        "expected_class": "C",
+        "status": "BLOCKED",
+        "why_not_executed": "Safety violation: Exceeds max_negatives_per_run: 15 > 10",
+        "candidates_before": 15,
+        "final_candidates": 15,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": false,
+          "violations": [
+            "Exceeds max_negatives_per_run: 15 > 10"
+          ]
+        },
+        "execution_time_ms": 4,
+        "proposal": {
+          "proposal_id": "demo-C1_exceeds_max_keywords-1769702379695",
+          "trace_id": "trace-p4-C1",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Safety check failed: Exceeds max_negatives_per_run: 15 > 10"
+        ]
+      },
+      {
+        "case_id": "C2_cooldown_active",
+        "scenario": "Cooldown still active",
+        "group": "C",
+        "expected_class": "C",
+        "status": "BLOCKED",
+        "why_not_executed": "Kill switch disabled",
+        "candidates_before": 2,
+        "final_candidates": 2,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 3,
+        "proposal": {
+          "proposal_id": "demo-C2_cooldown_active-1769702379699",
+          "trace_id": "trace-p4-C2",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Cooldown not elapsed: 1680 minutes remaining"
+        ]
+      },
+      {
+        "case_id": "C3_all_filtered",
+        "scenario": "All candidates filtered by brand/asin/too_short",
+        "group": "C",
+        "expected_class": "C",
+        "status": "BLOCKED",
+        "why_not_executed": "Safety violation: Term too short: \"ab\" (min: 3), Brand term detected: \"mybrand product\", ASIN-like term detected: \"B08XYZABC1\"",
+        "candidates_before": 3,
+        "final_candidates": 0,
+        "filtering_summary": [
+          "Term too short: \"ab\" (min: 3)",
+          "Brand term detected: \"mybrand product\"",
+          "ASIN-like term detected: \"B08XYZABC1\""
+        ],
+        "rollback_payload_present": false,
+        "outcome_event_written": false,
+        "outcome_event": null,
+        "eligibility": {
+          "eligible": true,
+          "reasons": [],
+          "profile": "balanced"
+        },
+        "safety": {
+          "safe": false,
+          "violations": [
+            "Term too short: \"ab\" (min: 3)",
+            "Brand term detected: \"mybrand product\"",
+            "ASIN-like term detected: \"B08XYZABC1\""
+          ]
+        },
+        "execution_time_ms": 4,
+        "proposal": {
+          "proposal_id": "demo-C3_all_filtered-1769702379702",
+          "trace_id": "trace-p4-C3",
+          "observation_id": "SEARCH_TERM_WASTE_HIGH",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Demo mode: bypassing kill switch (force_dry_run still active)",
+          "Safety check failed: Term too short: \"ab\" (min: 3); Brand term detected: \"mybrand product\"; ASIN-like term detected: \"B08XYZABC1\""
+        ]
+      },
+      {
+        "case_id": "C4_non_whitelisted",
+        "scenario": "Non-whitelisted action_id",
+        "group": "C",
+        "expected_class": "C",
+        "status": "DENY_UNSUPPORTED_ACTION",
+        "why_not_executed": "Action not in whitelist",
+        "candidates_before": 0,
+        "final_candidates": 0,
+        "filtering_summary": [],
+        "rollback_payload_present": false,
+        "outcome_event_written": true,
+        "outcome_event": {
+          "event_id": "aoe_0f6db630",
+          "trace_id": "trace-p4-C4",
+          "observation_id": "SOME_OTHER_OBSERVATION",
+          "action_id": "UNSUPPORTED_ACTION_XYZ",
+          "timestamp": "2026-01-29T15:59:39.706Z",
+          "success": null,
+          "evaluator": "auto",
+          "cause_id": "DEMO_CAUSE",
+          "actual_outcome": "Action denied: UNSUPPORTED_ACTION_XYZ not in whitelist [ADD_NEGATIVE_KEYWORDS]",
+          "notes": "Action denied: UNSUPPORTED_ACTION_XYZ not in whitelist [ADD_NEGATIVE_KEYWORDS]",
+          "execution_mode": "auto_executed",
+          "rule_version": "OTHER.yaml@v0.1",
+          "params_summary": {
+            "action_id": "UNSUPPORTED_ACTION_XYZ",
+            "items_count": 0
+          }
+        },
+        "eligibility": {
+          "eligible": false,
+          "reasons": [
+            "No action playbook found for UNSUPPORTED_ACTION_XYZ"
+          ],
+          "profile": null
+        },
+        "safety": {
+          "safe": true,
+          "violations": []
+        },
+        "execution_time_ms": 0,
+        "proposal": {
+          "proposal_id": "demo-C4_non_whitelisted-1769702379706",
+          "trace_id": "trace-p4-C4",
+          "observation_id": "SOME_OTHER_OBSERVATION",
+          "cause_id": "DEMO_CAUSE",
+          "action_id": "UNSUPPORTED_ACTION_XYZ",
+          "rule_version": "OTHER.yaml@v0.1",
+          "execution_mode": "auto_if_safe",
+          "risk_level": "LOW"
+        },
+        "notes": [
+          "Action UNSUPPORTED_ACTION_XYZ not in allow list (DENY_UNSUPPORTED_ACTION)"
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "case_id": "A1_boundary_eligible",
+      "scenario": "Boundary values - just meets thresholds",
+      "group": "A",
+      "expected_class": "A",
+      "status": "DRY_RUN",
+      "why_not_executed": null,
+      "candidates_before": 3,
+      "final_candidates": 3,
+      "filtering_summary": [],
+      "rollback_payload_present": true,
+      "outcome_event_written": true,
+      "outcome_event": {
+        "event_id": "aoe_40042d2a",
+        "trace_id": "trace-p4-A1",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "timestamp": "2026-01-29T15:59:39.670Z",
+        "success": true,
+        "evaluator": "auto",
+        "cause_id": "DEMO_CAUSE",
+        "actual_outcome": "Action completed",
+        "notes": "[DRY RUN] Dry run - simulated success",
+        "execution_mode": "dry_run",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "params_summary": {
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "items_count": 3
+        }
+      },
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 15,
+      "proposal": {
+        "proposal_id": "demo-A1_boundary_eligible-1769702379655",
+        "trace_id": "trace-p4-A1",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Dry run mode - would have executed"
+      ]
+    },
+    {
+      "case_id": "A2_high_waste",
+      "scenario": "High waste - clearly eligible",
+      "group": "A",
+      "expected_class": "A",
+      "status": "DRY_RUN",
+      "why_not_executed": null,
+      "candidates_before": 5,
+      "final_candidates": 5,
+      "filtering_summary": [],
+      "rollback_payload_present": true,
+      "outcome_event_written": true,
+      "outcome_event": {
+        "event_id": "aoe_f8b2968b",
+        "trace_id": "trace-p4-A2",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "timestamp": "2026-01-29T15:59:39.676Z",
+        "success": true,
+        "evaluator": "auto",
+        "cause_id": "DEMO_CAUSE",
+        "actual_outcome": "Action completed",
+        "notes": "[DRY RUN] Dry run - simulated success",
+        "execution_mode": "dry_run",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "params_summary": {
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "items_count": 5
+        }
+      },
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 5,
+      "proposal": {
+        "proposal_id": "demo-A2_high_waste-1769702379671",
+        "trace_id": "trace-p4-A2",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Dry run mode - would have executed"
+      ]
+    },
+    {
+      "case_id": "A3_max_keywords",
+      "scenario": "Exactly max_negatives_per_run keywords",
+      "group": "A",
+      "expected_class": "A",
+      "status": "DRY_RUN",
+      "why_not_executed": null,
+      "candidates_before": 10,
+      "final_candidates": 10,
+      "filtering_summary": [],
+      "rollback_payload_present": true,
+      "outcome_event_written": true,
+      "outcome_event": {
+        "event_id": "aoe_9c800f2e",
+        "trace_id": "trace-p4-A3",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "timestamp": "2026-01-29T15:59:39.680Z",
+        "success": true,
+        "evaluator": "auto",
+        "cause_id": "DEMO_CAUSE",
+        "actual_outcome": "Action completed",
+        "notes": "[DRY RUN] Dry run - simulated success",
+        "execution_mode": "dry_run",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "params_summary": {
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "items_count": 10
+        }
+      },
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 4,
+      "proposal": {
+        "proposal_id": "demo-A3_max_keywords-1769702379676",
+        "trace_id": "trace-p4-A3",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Dry run mode - would have executed"
+      ]
+    },
+    {
+      "case_id": "A4_cooldown_not_triggered",
+      "scenario": "Cooldown elapsed - can execute",
+      "group": "A",
+      "expected_class": "A",
+      "status": "DRY_RUN",
+      "why_not_executed": null,
+      "candidates_before": 2,
+      "final_candidates": 2,
+      "filtering_summary": [],
+      "rollback_payload_present": true,
+      "outcome_event_written": true,
+      "outcome_event": {
+        "event_id": "aoe_970e7953",
+        "trace_id": "trace-p4-A4",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "timestamp": "2026-01-29T15:59:39.683Z",
+        "success": true,
+        "evaluator": "auto",
+        "cause_id": "DEMO_CAUSE",
+        "actual_outcome": "Action completed",
+        "notes": "[DRY RUN] Dry run - simulated success",
+        "execution_mode": "dry_run",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "params_summary": {
+          "action_id": "ADD_NEGATIVE_KEYWORDS",
+          "items_count": 2
+        }
+      },
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 4,
+      "proposal": {
+        "proposal_id": "demo-A4_cooldown_not_triggered-1769702379680",
+        "trace_id": "trace-p4-A4",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Dry run mode - would have executed"
+      ]
+    },
+    {
+      "case_id": "B1_spend_below",
+      "scenario": "Spend below threshold",
+      "group": "B",
+      "expected_class": "B",
+      "status": "SUGGEST_ONLY",
+      "why_not_executed": "Eligibility failed: Threshold not met: spend gte 15 (actual: 10)",
+      "candidates_before": 2,
+      "final_candidates": 2,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": false,
+        "reasons": [
+          "Threshold not met: spend gte 15 (actual: 10)"
+        ],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 3,
+      "proposal": {
+        "proposal_id": "demo-B1_spend_below-1769702379684",
+        "trace_id": "trace-p4-B1",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Eligibility check failed: Threshold not met: spend gte 15 (actual: 10)"
+      ]
+    },
+    {
+      "case_id": "B2_clicks_below",
+      "scenario": "Clicks below threshold",
+      "group": "B",
+      "expected_class": "B",
+      "status": "SUGGEST_ONLY",
+      "why_not_executed": "Eligibility failed: Threshold not met: clicks gte 20 (actual: 10)",
+      "candidates_before": 1,
+      "final_candidates": 1,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": false,
+        "reasons": [
+          "Threshold not met: clicks gte 20 (actual: 10)"
+        ],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 3,
+      "proposal": {
+        "proposal_id": "demo-B2_clicks_below-1769702379687",
+        "trace_id": "trace-p4-B2",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Eligibility check failed: Threshold not met: clicks gte 20 (actual: 10)"
+      ]
+    },
+    {
+      "case_id": "B3_has_orders",
+      "scenario": "Has orders - not pure waste",
+      "group": "B",
+      "expected_class": "B",
+      "status": "SUGGEST_ONLY",
+      "why_not_executed": "Eligibility failed: Threshold not met: orders eq 0 (actual: 2)",
+      "candidates_before": 2,
+      "final_candidates": 2,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": false,
+        "reasons": [
+          "Threshold not met: orders eq 0 (actual: 2)"
+        ],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 2,
+      "proposal": {
+        "proposal_id": "demo-B3_has_orders-1769702379690",
+        "trace_id": "trace-p4-B3",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Eligibility check failed: Threshold not met: orders eq 0 (actual: 2)"
+      ]
+    },
+    {
+      "case_id": "B4_waste_ratio_below",
+      "scenario": "Waste ratio below threshold",
+      "group": "B",
+      "expected_class": "B",
+      "status": "SUGGEST_ONLY",
+      "why_not_executed": "Eligibility failed: Threshold not met: wasted_spend_ratio gte 0.3 (actual: 0.2)",
+      "candidates_before": 1,
+      "final_candidates": 1,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": false,
+        "reasons": [
+          "Threshold not met: wasted_spend_ratio gte 0.3 (actual: 0.2)"
+        ],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 3,
+      "proposal": {
+        "proposal_id": "demo-B4_waste_ratio_below-1769702379692",
+        "trace_id": "trace-p4-B4",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Eligibility check failed: Threshold not met: wasted_spend_ratio gte 0.3 (actual: 0.2)"
+      ]
+    },
+    {
+      "case_id": "C1_exceeds_max_keywords",
+      "scenario": "Exceeds max_negatives_per_run",
+      "group": "C",
+      "expected_class": "C",
+      "status": "BLOCKED",
+      "why_not_executed": "Safety violation: Exceeds max_negatives_per_run: 15 > 10",
+      "candidates_before": 15,
+      "final_candidates": 15,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": false,
+        "violations": [
+          "Exceeds max_negatives_per_run: 15 > 10"
+        ]
+      },
+      "execution_time_ms": 4,
+      "proposal": {
+        "proposal_id": "demo-C1_exceeds_max_keywords-1769702379695",
+        "trace_id": "trace-p4-C1",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Safety check failed: Exceeds max_negatives_per_run: 15 > 10"
+      ]
+    },
+    {
+      "case_id": "C2_cooldown_active",
+      "scenario": "Cooldown still active",
+      "group": "C",
+      "expected_class": "C",
+      "status": "BLOCKED",
+      "why_not_executed": "Kill switch disabled",
+      "candidates_before": 2,
+      "final_candidates": 2,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 3,
+      "proposal": {
+        "proposal_id": "demo-C2_cooldown_active-1769702379699",
+        "trace_id": "trace-p4-C2",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Cooldown not elapsed: 1680 minutes remaining"
+      ]
+    },
+    {
+      "case_id": "C3_all_filtered",
+      "scenario": "All candidates filtered by brand/asin/too_short",
+      "group": "C",
+      "expected_class": "C",
+      "status": "BLOCKED",
+      "why_not_executed": "Safety violation: Term too short: \"ab\" (min: 3), Brand term detected: \"mybrand product\", ASIN-like term detected: \"B08XYZABC1\"",
+      "candidates_before": 3,
+      "final_candidates": 0,
+      "filtering_summary": [
+        "Term too short: \"ab\" (min: 3)",
+        "Brand term detected: \"mybrand product\"",
+        "ASIN-like term detected: \"B08XYZABC1\""
+      ],
+      "rollback_payload_present": false,
+      "outcome_event_written": false,
+      "outcome_event": null,
+      "eligibility": {
+        "eligible": true,
+        "reasons": [],
+        "profile": "balanced"
+      },
+      "safety": {
+        "safe": false,
+        "violations": [
+          "Term too short: \"ab\" (min: 3)",
+          "Brand term detected: \"mybrand product\"",
+          "ASIN-like term detected: \"B08XYZABC1\""
+        ]
+      },
+      "execution_time_ms": 4,
+      "proposal": {
+        "proposal_id": "demo-C3_all_filtered-1769702379702",
+        "trace_id": "trace-p4-C3",
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "ADD_NEGATIVE_KEYWORDS",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Demo mode: bypassing kill switch (force_dry_run still active)",
+        "Safety check failed: Term too short: \"ab\" (min: 3); Brand term detected: \"mybrand product\"; ASIN-like term detected: \"B08XYZABC1\""
+      ]
+    },
+    {
+      "case_id": "C4_non_whitelisted",
+      "scenario": "Non-whitelisted action_id",
+      "group": "C",
+      "expected_class": "C",
+      "status": "DENY_UNSUPPORTED_ACTION",
+      "why_not_executed": "Action not in whitelist",
+      "candidates_before": 0,
+      "final_candidates": 0,
+      "filtering_summary": [],
+      "rollback_payload_present": false,
+      "outcome_event_written": true,
+      "outcome_event": {
+        "event_id": "aoe_0f6db630",
+        "trace_id": "trace-p4-C4",
+        "observation_id": "SOME_OTHER_OBSERVATION",
+        "action_id": "UNSUPPORTED_ACTION_XYZ",
+        "timestamp": "2026-01-29T15:59:39.706Z",
+        "success": null,
+        "evaluator": "auto",
+        "cause_id": "DEMO_CAUSE",
+        "actual_outcome": "Action denied: UNSUPPORTED_ACTION_XYZ not in whitelist [ADD_NEGATIVE_KEYWORDS]",
+        "notes": "Action denied: UNSUPPORTED_ACTION_XYZ not in whitelist [ADD_NEGATIVE_KEYWORDS]",
+        "execution_mode": "auto_executed",
+        "rule_version": "OTHER.yaml@v0.1",
+        "params_summary": {
+          "action_id": "UNSUPPORTED_ACTION_XYZ",
+          "items_count": 0
+        }
+      },
+      "eligibility": {
+        "eligible": false,
+        "reasons": [
+          "No action playbook found for UNSUPPORTED_ACTION_XYZ"
+        ],
+        "profile": null
+      },
+      "safety": {
+        "safe": true,
+        "violations": []
+      },
+      "execution_time_ms": 0,
+      "proposal": {
+        "proposal_id": "demo-C4_non_whitelisted-1769702379706",
+        "trace_id": "trace-p4-C4",
+        "observation_id": "SOME_OTHER_OBSERVATION",
+        "cause_id": "DEMO_CAUSE",
+        "action_id": "UNSUPPORTED_ACTION_XYZ",
+        "rule_version": "OTHER.yaml@v0.1",
+        "execution_mode": "auto_if_safe",
+        "risk_level": "LOW"
+      },
+      "notes": [
+        "Action UNSUPPORTED_ACTION_XYZ not in allow list (DENY_UNSUPPORTED_ACTION)"
+      ]
+    }
+  ]
+}
