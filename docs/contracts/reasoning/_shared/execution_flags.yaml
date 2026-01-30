@@ -1,14 +1,26 @@
 # Execution Flags Configuration
 # P3: Feature flags for safe auto execution
-# Version: v0.1
+# P6-A: Added global_mode.readonly for read-only environment enforcement
+# Version: v0.2
 #
 # CRITICAL: This is the "kill switch" for auto execution.
 # Set auto_execution.enabled to false to immediately disable all auto execution.
+# Set global_mode.readonly to true to block ALL write operations (P6-A default).
 #
-# Environment variable override: REASONING_AUTO_EXECUTION=false
+# Environment variable overrides:
+#   REASONING_AUTO_EXECUTION=false
+#   DENY_READONLY_ENV=true
 
-version: v0.1
-last_updated: "2026-01-25"
+version: v0.2
+last_updated: "2026-01-30"
+
+# === P6-A Global Mode (Read-only Lock - Layer 2) ===
+# This is the configuration layer lock for readonly enforcement.
+# When readonly=true, ALL write actions are blocked with DENY_READONLY_ENV,
+# even if they are in the allow_actions whitelist.
+global_mode:
+  readonly: true  # P6-A default: true (read-only environment)
+  # Environment override: DENY_READONLY_ENV=true/false
 
 auto_execution:
   # Master switch - default is OFF for safety
@@ -41,16 +53,25 @@ fallback:
 #   REASONING_ENV=production -> uses production settings
 #   REASONING_AUTO_EXECUTION=true -> enables auto execution
 #   REASONING_DRY_RUN=true -> enables dry run mode
+#   DENY_READONLY_ENV=true -> P6-A readonly mode
 environments:
   development:
     auto_execution_enabled: false
     dry_run: true
+    readonly: false
   staging:
     auto_execution_enabled: false
     dry_run: true
+    readonly: false
   production:
     auto_execution_enabled: false  # MUST be explicitly enabled
     dry_run: false
+    readonly: false
+  # P6-A pilot environment: readonly + dry_run both active
+  p6a_pilot:
+    auto_execution_enabled: false
+    dry_run: true
+    readonly: true  # All writes blocked with DENY_READONLY_ENV
 
 # Dry run mode (for testing without side effects)
 dry_run:

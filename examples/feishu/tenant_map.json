@@ -1,0 +1,6 @@
+{
+  "default": {
+    "tenant_id": "default",
+    "allowed_chat_ids": ["*"]
+  }
+}

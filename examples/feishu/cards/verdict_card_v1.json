@@ -1,0 +1,52 @@
+{
+  "config": {
+    "wide_screen_mode": true,
+    "enable_forward": true
+  },
+  "header": {
+    "title": {
+      "tag": "plain_text",
+      "content": "LiYe Verdict · {{decision_badge}}"
+    },
+    "template": "{{header_template}}"
+  },
+  "elements": [
+    {
+      "tag": "markdown",
+      "content": "**Trace ID**：`{{trace_id}}`\n\n**Decision**：**{{decision}}**\n\n**Origin**：`{{origin}}`  ·  **Origin Proof**：`{{origin_proof}}`\n\n**Mock Used**：`{{mock_used}}`{{fallback_reason_block}}\n\n**Policy**：`{{policy_version}}`"
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
+      "content": "{{summary_md}}"
+    },
+    {
+      "tag": "action",
+      "actions": [
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "打开 Trace" },
+          "type": "primary",
+          "url": "{{trace_url}}"
+        },
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "复制 Trace ID" },
+          "type": "default",
+          "value": { "action": "copy_trace_id", "trace_id": "{{trace_id}}" }
+        }
+      ]
+    },
+    {
+      "tag": "note",
+      "elements": [
+        {
+          "tag": "plain_text",
+          "content": "Thin-Agent：飞书侧仅转发与展示；所有决策与治理在 LiYe OS 内完成。"
+        }
+      ]
+    }
+  ]
+}

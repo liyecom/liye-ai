@@ -1,14 +1,19 @@
-# Evidence Fetch Map v0.2
+# Evidence Fetch Map v0.3
 #
-# Maps evidence fields to their data sources.
+# P6-A: Maps evidence fields to their data sources with explicit unavailability tracking.
 # This makes reasoning assets executable knowledge, not just documentation.
 #
-# source: GDP (Google Data Platform) | ENGINE (Amazon Growth Engine internal) | MANUAL
+# source: GDP (Google Data Platform) | ENGINE (Amazon Growth Engine internal) | MANUAL | T1_TRUTH
 # query_ref: SQL file reference or DuckDB query name
-# fallback: none | approx | manual (what to do if source unavailable)
+# fallback: none | approx | manual | strict_degrade (P6-A: forces low confidence)
+# status: available | unavailable (P6-A: explicit unavailability tracking)
+# degrade_reason: Why field is unavailable (required when status=unavailable)
+#
+# P6-A Coverage Target: ≥70% of playbook evidence_requirements mapped
+# Fields from t1_ad_search_term_daily / t1_ad_campaign_daily are prioritized.
 
-version: v0.2
-updated_at: 2026-01-25
+version: v0.3
+updated_at: 2026-01-30
 
 evidence_sources:
 
@@ -537,6 +542,585 @@ evidence_sources:
     unit: currency
     refresh: realtime
 
+# =============================================================================
+# P6-A: T1 Truth Derivable Fields (from t1_ad_search_term_daily / t1_ad_campaign_daily)
+# =============================================================================
+# These fields can be derived from real Amazon Ads data in T1 Truth tables.
+
+  # --- Core T1 Truth Fields (Direct from table) ---
+
+  impressions:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_impressions.sql
+    fallback: none
+    description: Total ad impressions from t1_ad_search_term_daily
+    unit: count
+    refresh: daily
+    status: available
+
+  clicks:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_clicks.sql
+    fallback: none
+    description: Total ad clicks from t1_ad_search_term_daily
+    unit: count
+    refresh: daily
+    status: available
+
+  cost:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_cost.sql
+    fallback: none
+    description: Total ad spend from t1_ad_search_term_daily
+    unit: currency
+    refresh: daily
+    status: available
+
+  attributed_sales_7d:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_sales.sql
+    fallback: none
+    description: 7-day attributed sales from t1_ad_search_term_daily
+    unit: currency
+    refresh: daily
+    status: available
+
+  attributed_conversions_7d:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_conversions.sql
+    fallback: none
+    description: 7-day conversion count from t1_ad_search_term_daily
+    unit: count
+    refresh: daily
+    status: available
+
+  campaign_budget:
+    source: T1_TRUTH
+    query_ref: t1_truth/campaign_budget.sql
+    fallback: manual
+    description: Campaign daily budget from t1_ad_campaign_daily
+    unit: currency
+    refresh: daily
+    status: available
+
+  campaign_status:
+    source: T1_TRUTH
+    query_ref: t1_truth/campaign_status.sql
+    fallback: manual
+    description: Campaign status (ENABLED/PAUSED/ARCHIVED)
+    unit: enum
+    refresh: daily
+    status: available
+
+  match_type:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_match_type.sql
+    fallback: none
+    description: Keyword match type from t1_ad_search_term_daily
+    unit: enum
+    refresh: daily
+    status: available
+
+  # --- Derived Metrics (Computed from T1 Truth) ---
+
+  cvr:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/cvr.sql
+    fallback: approx
+    description: Conversion rate = attributed_conversions_7d / clicks
+    unit: ratio
+    refresh: daily
+    status: available
+    note: Derived from t1_ad_search_term_daily
+
+  roas:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/roas.sql
+    fallback: approx
+    description: Return on Ad Spend = attributed_sales_7d / cost
+    unit: ratio
+    refresh: daily
+    status: available
+    note: Derived from t1_ad_search_term_daily
+
+  # --- Aggregated Metrics (Computed from T1 Truth) ---
+
+  total_spend_7d:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/total_spend_7d.sql
+    fallback: approx
+    description: Total spend over 7 days aggregated from t1_ad_search_term_daily
+    unit: currency
+    refresh: daily
+    status: available
+
+  campaign_spend_distribution:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/campaign_spend_distribution.sql
+    fallback: approx
+    description: Spend distribution across campaigns
+    unit: distribution
+    refresh: daily
+    status: available
+
+  search_term_performance:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/search_term_performance.sql
+    fallback: none
+    description: Performance metrics grouped by search term
+    unit: aggregate
+    refresh: daily
+    status: available
+
+  zero_conversion_terms:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/zero_conversion_terms.sql
+    fallback: none
+    description: Search terms with clicks but zero conversions
+    unit: list
+    refresh: daily
+    status: available
+    note: Core input for ADD_NEGATIVE_KEYWORDS action
+
+  high_spend_low_roas_terms:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/high_spend_low_roas.sql
+    fallback: none
+    description: Terms with high spend but low ROAS
+    unit: list
+    refresh: daily
+    status: available
+
+  # --- ADD_NEGATIVE_KEYWORDS Action Evidence ---
+
+  search_term_report:
+    source: T1_TRUTH
+    query_ref: t1_truth/search_term_report.sql
+    fallback: none
+    description: Full search term report from t1_ad_search_term_daily
+    unit: report
+    refresh: daily
+    status: available
+    note: Core input for ADD_NEGATIVE_KEYWORDS action
+
+  wasted_spend_by_term:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/wasted_spend_by_term.sql
+    fallback: none
+    description: Spend on terms with zero conversions grouped by term
+    unit: aggregate
+    refresh: daily
+    status: available
+    note: Identifies negative keyword candidates
+
+  campaign_negatives:
+    source: ENGINE
+    query_ref: campaigns.get_negative_keywords
+    fallback: manual
+    description: Current negative keyword list for campaign
+    unit: list
+    refresh: daily
+    status: available
+    note: Prevents duplicate negative keyword additions
+
+  brand_terms:
+    source: ENGINE
+    query_ref: config.get_brand_terms
+    fallback: manual
+    description: Protected brand terms that should not be negatived
+    unit: list
+    refresh: daily
+    status: available
+    note: Safety filter for ADD_NEGATIVE_KEYWORDS
+
+# =============================================================================
+# P6-A: Unavailable Fields (Require External Sources or New Pipelines)
+# =============================================================================
+# These fields are referenced in playbooks but cannot be fetched from current
+# t1_* tables. They are explicitly marked as unavailable with degrade_reason.
+
+unavailable_fields:
+
+  avg_daily_spend_potential:
+    status: unavailable
+    degrade_reason: requires_market_intelligence_pipeline
+    fallback: strict_degrade
+    description: Potential daily spend based on market demand
+    note: Would require integration with Amazon Ads forecasting API
+
+  market_demand:
+    status: unavailable
+    degrade_reason: requires_external_market_data
+    fallback: strict_degrade
+    description: Market demand indicator for product category
+    note: Requires external market research data source
+
+  competitor_inventory_estimate:
+    status: unavailable
+    degrade_reason: requires_competitor_scraping
+    fallback: strict_degrade
+    description: Estimated competitor inventory levels
+    note: Requires third-party competitive intelligence
+
+  competitor_review_trend:
+    status: unavailable
+    degrade_reason: requires_competitor_monitoring
+    fallback: strict_degrade
+    description: Trend of competitor review velocity
+    note: Requires historical competitor data tracking
+
+  image_vs_product_similarity:
+    status: unavailable
+    degrade_reason: requires_ml_image_analysis
+    fallback: strict_degrade
+    description: Similarity score between main image and actual product
+    note: Requires image ML pipeline
+
+  negative_review_content_mismatch_pct:
+    status: unavailable
+    degrade_reason: requires_nlp_review_analysis
+    fallback: strict_degrade
+    description: Percentage of negative reviews citing content mismatch
+    note: Requires NLP pipeline for review sentiment analysis
+
+  title_readability_score:
+    status: unavailable
+    degrade_reason: requires_nlp_text_analysis
+    fallback: strict_degrade
+    description: Readability score of product title
+    note: Requires NLP text analysis pipeline
+
+  content_change_log:
+    status: unavailable
+    degrade_reason: requires_event_sourcing_system
+    fallback: strict_degrade
+    description: Log of content changes to listing
+    note: Requires listing change tracking system
+
+  keyword_index_status:
+    status: unavailable
+    degrade_reason: requires_seller_central_integration
+    fallback: strict_degrade
+    description: Whether keyword is indexed for organic search
+    note: Requires Seller Central API or scraping
+
+  last_price_change_date:
+    status: unavailable
+    degrade_reason: requires_price_history_tracking
+    fallback: strict_degrade
+    description: Date of last price change
+    note: Requires price history event tracking
+
+  our_price_history:
+    status: unavailable
+    degrade_reason: requires_price_history_tracking
+    fallback: strict_degrade
+    description: Historical price series for our product
+    note: Requires price history event tracking
+
+  our_price_vs_category_percentile:
+    status: unavailable
+    degrade_reason: requires_category_benchmark_data
+    fallback: strict_degrade
+    description: Our price position vs category
+    note: Requires category benchmark data
+
+  image_a_plus_enabled:
+    status: unavailable
+    degrade_reason: requires_listing_api
+    fallback: manual
+    description: Whether A+ images are enabled
+    note: Requires Seller Central or SP-API catalog
+
+  backend_keywords_filled:
+    status: unavailable
+    degrade_reason: requires_listing_api
+    fallback: manual
+    description: Whether backend keywords are populated
+    note: Requires SP-API catalog access
+
+  suppression_reason:
+    status: unavailable
+    degrade_reason: requires_listing_api
+    fallback: manual
+    description: Reason for listing suppression
+    note: Requires SP-API notifications
+
+  rating_trend_30d:
+    status: unavailable
+    degrade_reason: requires_rating_history
+    fallback: approx
+    description: Rating change over 30 days
+    note: Requires historical rating tracking
+
+  recent_negative_reviews:
+    status: unavailable
+    degrade_reason: requires_review_monitoring
+    fallback: approx
+    description: Count of recent negative reviews
+    note: Requires review monitoring system
+
+  competitor_origin_country:
+    status: unavailable
+    degrade_reason: requires_competitor_profiling
+    fallback: strict_degrade
+    description: Country of origin for competitor products
+    note: Requires third-party competitive intelligence
+
+  competitor_product_weight:
+    status: unavailable
+    degrade_reason: requires_competitor_catalog
+    fallback: strict_degrade
+    description: Weight of competitor products (for shipping cost estimation)
+    note: Requires competitor catalog data
+
+  competitor_fulfillment_type:
+    status: unavailable
+    degrade_reason: requires_competitor_monitoring
+    fallback: strict_degrade
+    description: FBA vs FBM for competitor
+    note: Requires Buy Box monitoring
+
+  top_10_competitor_price_trend:
+    status: unavailable
+    degrade_reason: requires_competitor_price_tracking
+    fallback: strict_degrade
+    description: Price trend of top 10 competitors
+    note: Requires competitor price history
+
+  category_demand_trend:
+    status: unavailable
+    degrade_reason: requires_market_data
+    fallback: approx
+    description: Trend of category demand over time
+    note: Would require Amazon market research data
+
+  hourly_spend_distribution:
+    status: unavailable
+    degrade_reason: requires_hourly_granularity
+    fallback: approx
+    description: Spend distribution by hour of day
+    note: T1 Truth has daily granularity only
+
+  peak_vs_offpeak_cpc:
+    status: unavailable
+    degrade_reason: requires_hourly_granularity
+    fallback: approx
+    description: CPC comparison between peak and off-peak hours
+    note: T1 Truth has daily granularity only
+
+  long_tail_keyword_coverage:
+    status: unavailable
+    degrade_reason: requires_keyword_classification
+    fallback: approx
+    description: Coverage of long-tail keywords
+    note: Requires keyword taxonomy classification
+
+  auto_to_manual_harvest_rate:
+    status: unavailable
+    degrade_reason: requires_campaign_history_tracking
+    fallback: approx
+    description: Rate of promoting terms from auto to manual campaigns
+    note: Requires campaign change tracking
+
+  recurring_waste_terms:
+    status: unavailable
+    degrade_reason: requires_historical_analysis
+    fallback: approx
+    description: Terms that repeatedly waste spend
+    note: Requires multi-period historical analysis
+
+  semantic_similarity_avg:
+    status: unavailable
+    degrade_reason: requires_ml_semantic_analysis
+    fallback: strict_degrade
+    description: Average semantic similarity of search terms to product
+    note: Requires ML semantic analysis pipeline
+
+  # --- Additional Missing Fields (from playbook scan) ---
+
+  bid_vs_budget_ratio:
+    status: unavailable
+    degrade_reason: requires_computed_metric
+    fallback: approx
+    description: Ratio of bid to daily budget
+    note: Can be derived from bid and daily_budget if both available
+
+  keyword_spend_distribution:
+    status: unavailable
+    degrade_reason: requires_aggregation_query
+    fallback: approx
+    description: Spend distribution across keywords
+    note: Requires aggregated query from t1_ad_search_term_daily
+
+  competitor_review_count:
+    status: unavailable
+    degrade_reason: requires_competitor_monitoring
+    fallback: strict_degrade
+    description: Number of reviews for competitor products
+    note: Requires third-party competitive intelligence
+
+  competitor_price_vs_category:
+    status: unavailable
+    degrade_reason: requires_competitor_monitoring
+    fallback: strict_degrade
+    description: Competitor price relative to category average
+    note: Requires competitor price data + category benchmarks
+
+  competitor_image_benchmark:
+    status: unavailable
+    degrade_reason: requires_ml_image_analysis
+    fallback: strict_degrade
+    description: Image quality benchmark from competitors
+    note: Requires image analysis ML pipeline
+
+  keyword_product_match_rate:
+    status: unavailable
+    degrade_reason: requires_ml_semantic_analysis
+    fallback: strict_degrade
+    description: Match rate between keywords and product
+    note: Requires semantic similarity analysis
+
+  irrelevant_impression_pct:
+    status: unavailable
+    degrade_reason: requires_relevance_scoring
+    fallback: approx
+    description: Percentage of impressions from irrelevant terms
+    note: Requires search term relevance classification
+
+  estimated_delivery_days:
+    status: unavailable
+    degrade_reason: requires_fulfillment_api
+    fallback: manual
+    description: Estimated delivery time for product
+    note: Requires SP-API fulfillment data
+
+  budget_exhaust_time:
+    status: unavailable
+    degrade_reason: requires_hourly_granularity
+    fallback: approx
+    description: Time when budget was exhausted
+    note: T1 Truth has daily granularity only
+
+  keyword_coverage_rate:
+    status: unavailable
+    degrade_reason: requires_keyword_taxonomy
+    fallback: approx
+    description: Coverage rate of target keywords
+    note: Requires keyword taxonomy definition
+
+  match_type_distribution:
+    status: unavailable
+    degrade_reason: requires_aggregation_query
+    fallback: approx
+    description: Distribution of spend across match types
+    note: Can be derived from t1_ad_search_term_daily aggregation
+
+  asin_targeting_only:
+    status: unavailable
+    degrade_reason: requires_campaign_structure_api
+    fallback: manual
+    description: Whether campaign uses ASIN targeting exclusively
+    note: Requires campaign targeting configuration
+
+  auto_campaign_enabled:
+    status: unavailable
+    degrade_reason: requires_campaign_structure_api
+    fallback: manual
+    description: Whether auto campaigns are enabled
+    note: Requires campaign configuration data
+
+  buybox_eligible:
+    status: unavailable
+    degrade_reason: requires_catalog_api
+    fallback: manual
+    description: BuyBox eligibility status
+    note: Requires SP-API catalog data
+
+  sales_velocity_trend:
+    status: unavailable
+    degrade_reason: requires_time_series_analysis
+    fallback: approx
+    description: Trend direction of sales velocity
+    note: Can be computed from sales_velocity_7d vs sales_velocity_30d
+
+  competitor_review_velocity:
+    status: unavailable
+    degrade_reason: requires_competitor_monitoring
+    fallback: strict_degrade
+    description: Rate of new reviews for competitors
+    note: Requires competitor review tracking
+
+  competitor_price_change:
+    status: unavailable
+    degrade_reason: requires_competitor_price_tracking
+    fallback: strict_degrade
+    description: Recent price change by competitors
+    note: Requires competitor price history
+
+  inventory_health_score:
+    status: unavailable
+    degrade_reason: requires_inventory_api
+    fallback: approx
+    description: Overall inventory health score
+    note: Requires FBA inventory health data
+
+  bid_adjustment_enabled:
+    status: unavailable
+    degrade_reason: requires_campaign_structure_api
+    fallback: manual
+    description: Whether dynamic bidding is enabled
+    note: Requires campaign bidding configuration
+
+  placement_performance:
+    status: unavailable
+    degrade_reason: requires_placement_report
+    fallback: approx
+    description: Performance metrics by ad placement
+    note: Requires placement-level report data
+
+  auto_vs_manual_spend_ratio:
+    status: unavailable
+    degrade_reason: requires_campaign_classification
+    fallback: approx
+    description: Ratio of auto to manual campaign spend
+    note: Requires campaign type classification
+
+  acos:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/acos.sql
+    fallback: approx
+    description: Advertising Cost of Sales = cost / attributed_sales_7d
+    unit: ratio
+    refresh: daily
+    status: available
+    note: Derived from t1_ad_search_term_daily
+
+  organic_rank:
+    status: unavailable
+    degrade_reason: requires_serp_tracking
+    fallback: strict_degrade
+    description: Organic search ranking position
+    note: Requires SERP tracking service
+
+  budget_pacing:
+    source: ENGINE
+    query_ref: campaigns.get_budget_pacing
+    fallback: approx
+    description: Current spend rate vs ideal even pacing
+    unit: ratio
+    refresh: hourly
+    status: available
+
+  top_of_search_share:
+    source: ENGINE
+    query_ref: campaigns.get_tos_impression_share
+    fallback: approx
+    description: Share of top-of-search ad impressions
+    unit: ratio
+    refresh: daily
+    status: available
+
 # === Fallback Strategies ===
 
 fallback_strategies:
@@ -553,3 +1137,10 @@ fallback_strategies:
     description: Prompt user for manual input
     action: prompt_user
     confidence_penalty: -0.1
+
+  # P6-A: Strict degrade for unavailable fields
+  strict_degrade:
+    description: Field unavailable - force low confidence in explanation
+    action: return_null_with_reason
+    confidence_penalty: -0.5
+    forces_degrade: true

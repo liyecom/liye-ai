@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.os/contracts/phase1/GOV_TOOL_CALL_RESPONSE_V1.json",
+  "title": "Governed Tool Call Response v1",
+  "description": "Gateway response schema with HF1-HF5 enforcement. Phase 1 frozen contract.",
+  "type": "object",
+  "required": [
+    "ok",
+    "decision",
+    "origin",
+    "origin_proof",
+    "mock_used",
+    "policy_version",
+    "trace_id"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "True if decision is ALLOW or DEGRADE"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["ALLOW", "BLOCK", "DEGRADE", "UNKNOWN"],
+      "description": "Governance decision"
+    },
+    "origin": {
+      "type": "string",
+      "description": "Data origin identifier"
+    },
+    "origin_proof": {
+      "type": "boolean",
+      "description": "True if origin is verified (real AGE call)"
+    },
+    "mock_used": {
+      "type": "boolean",
+      "description": "True if mock fallback was used"
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of routing policy applied"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^trace-[a-z0-9-]+$",
+      "description": "Trace identifier for audit"
+    },
+    "evidence_path": {
+      "type": "string",
+      "description": "Path to trace evidence directory"
+    },
+    "verdict_summary": {
+      "type": "string",
+      "description": "Human-readable verdict explanation"
+    },
+    "replay_status": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "UNKNOWN"],
+      "description": "Replay verification status"
+    },
+    "fallback_reason": {
+      "type": "string",
+      "description": "Required when mock_used=true"
+    },
+    "result": {
+      "type": ["object", "null"],
+      "description": "Tool execution result (null if blocked)"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message when decision is BLOCK or UNKNOWN"
+    }
+  },
+  "allOf": [
+    {
+      "description": "HF5: When mock_used=true, origin must be liye_os.mock and origin_proof must be false",
+      "if": {
+        "properties": {
+          "mock_used": { "const": true }
+        },
+        "required": ["mock_used"]
+      },
+      "then": {
+        "properties": {
+          "origin": { "const": "liye_os.mock" },
+          "origin_proof": { "const": false },
+          "decision": { "const": "DEGRADE" }
+        },
+        "required": ["fallback_reason"]
+      }
+    },
+    {
+      "description": "HF5: When origin=amazon-growth-engine, origin_proof must be true and mock_used must be false",
+      "if": {
+        "properties": {
+          "origin": { "const": "amazon-growth-engine" }
+        },
+        "required": ["origin"]
+      },
+      "then": {
+        "properties": {
+          "origin_proof": { "const": true },
+          "mock_used": { "const": false }
+        }
+      }
+    },
+    {
+      "description": "ok must be true when decision is ALLOW or DEGRADE",
+      "if": {
+        "properties": {
+          "decision": { "enum": ["ALLOW", "DEGRADE"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "ok": { "const": true }
+        }
+      }
+    },
+    {
+      "description": "ok must be false when decision is BLOCK or UNKNOWN",
+      "if": {
+        "properties": {
+          "decision": { "enum": ["BLOCK", "UNKNOWN"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "ok": { "const": false }
+        }
+      }
+    }
+  ],
+  "_meta": {
+    "version": "1.0.0",
+    "frozen_at": "2026-01-30",
+    "hf_coverage": {
+      "HF1": "mock fallback on AGE unavailable -> decision=DEGRADE",
+      "HF2": "phase0_only flag in AGE responses",
+      "HF3": "dry-run GUARANTEE with write_calls_attempted=0",
+      "HF4": "origin field for multi-source telemetry",
+      "HF5": "origin/mock_used consistency rules"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.os/contracts/phase1/GOV_TOOL_CALL_REQUEST_V1.json",
+  "title": "Governed Tool Call Request v1",
+  "description": "Gateway request schema for governed tool calls. Phase 1 frozen contract.",
+  "type": "object",
+  "required": ["task", "proposed_actions", "tenant_id"],
+  "properties": {
+    "task": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable task description"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tenant identifier (required for multi-tenancy)"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^trace-[a-z0-9-]+$",
+      "description": "Optional upstream trace_id for propagation"
+    },
+    "context": {
+      "type": "object",
+      "description": "Additional context for governance evaluation"
+    },
+    "proposed_actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ProposedAction"
+      }
+    }
+  },
+  "$defs": {
+    "ProposedAction": {
+      "type": "object",
+      "required": ["action_type", "tool"],
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "enum": ["read", "analyze", "write", "delete", "send", "execute"],
+          "description": "Action classification for governance routing"
+        },
+        "tool": {
+          "type": "string",
+          "description": "Tool URI",
+          "oneOf": [
+            {
+              "enum": [
+                "amazon://strategy/campaign-audit",
+                "amazon://strategy/wasted-spend-detect",
+                "amazon://execution/dry-run"
+              ],
+              "description": "Phase 1 allowlist: AGE MCP tools only"
+            }
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "description": "Tool-specific arguments"
+        }
+      }
+    }
+  },
+  "_meta": {
+    "version": "1.0.0",
+    "frozen_at": "2026-01-30",
+    "compatible_with": ["HF1", "HF2", "HF3", "HF4", "HF5"]
+  }
+}
