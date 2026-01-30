@@ -2,10 +2,23 @@
  * execute_action.mjs - Action Executor
  *
  * P3: Main entry point for action execution.
+ * P6-A: Added DENY_READONLY_ENV gate (Step 0) for read-only environment enforcement.
+ *
  * Validates eligibility, checks safety limits, and delegates to action implementations.
  *
+ * Gate Order:
+ *   Step 0: DENY_READONLY_ENV (P6-A - blocks ALL writes when readonly=true)
+ *   Step 1: Execution mode check
+ *   Step 2: Action whitelist check
+ *   Step 3: Kill switch check
+ *   Step 4: Eligibility check
+ *   Step 5: Safety limits check
+ *   Step 6: Cooldown check
+ *   Step 7: Dry run mode
+ *   Step 8+: Implementation & execution
+ *
  * @module reasoning/execution
- * @version v0.1
+ * @version v0.2
  */
 
 import {
@@ -38,7 +51,8 @@ export const ExecutionStatus = {
   AUTO_EXECUTED: 'AUTO_EXECUTED',                   // Actually executed
   FAILED: 'FAILED',                                 // Execution attempted but failed
   BLOCKED: 'BLOCKED',                               // Blocked by safety limits
-  DENY_UNSUPPORTED_ACTION: 'DENY_UNSUPPORTED_ACTION' // Action not in whitelist
+  DENY_UNSUPPORTED_ACTION: 'DENY_UNSUPPORTED_ACTION', // Action not in whitelist
+  DENY_READONLY_ENV: 'DENY_READONLY_ENV'            // P6-A: Blocked by readonly environment
 };
 
 /**
@@ -76,6 +90,31 @@ export async function executeAction(proposal, params, signals, state = {}, optio
   };
 
   try {
+    // Step 0: P6-A Read-only Environment Check (Layer 3 - Runtime Gate)
+    // This is the runtime layer lock - blocks ALL write actions when readonly=true
+    const isReadonlyEnv = isReadonlyEnvironment(flags);
+    if (isReadonlyEnv) {
+      result.status = ExecutionStatus.DENY_READONLY_ENV;
+      result.notes.push('P6-A: Read-only environment - all write actions blocked');
+
+      // Record outcome event for audit trail (readonly denial)
+      try {
+        result.outcome_event = await createAndRecordOutcome(
+          proposal,
+          params,
+          options.before_metrics,
+          null,
+          null,  // success=null for denied (not attempted)
+          false,
+          'DENY_READONLY_ENV: Read-only environment blocks all writes'
+        );
+      } catch (outcomeError) {
+        result.notes.push(`Failed to record readonly deny outcome: ${outcomeError.message}`);
+      }
+
+      return finishResult(result, startTime);
+    }
+
     // Step 1: Check execution mode
     if (proposal.execution_mode !== 'auto_if_safe') {
       result.notes.push(`Execution mode is ${proposal.execution_mode}, returning SUGGEST_ONLY`);
@@ -317,6 +356,41 @@ async function createAndRecordOutcome(proposal, params, beforeMetrics, afterMetr
 }
 
 /**
+ * Check if current environment is read-only (P6-A Layer 3 Runtime Gate)
+ *
+ * Priority order:
+ * 1. Environment variable DENY_READONLY_ENV=true (highest)
+ * 2. execution_flags.yaml global_mode.readonly (config layer)
+ * 3. Environment-specific override (e.g., p6a_pilot)
+ *
+ * @param {Object} flags - Loaded execution flags
+ * @returns {boolean} True if readonly mode is active
+ */
+function isReadonlyEnvironment(flags) {
+  // Priority 1: Environment variable override (highest priority)
+  if (process.env.DENY_READONLY_ENV === 'true') {
+    return true;
+  }
+  if (process.env.DENY_READONLY_ENV === 'false') {
+    return false;
+  }
+
+  // Priority 2: Global mode from config
+  if (flags.global_mode?.readonly === true) {
+    return true;
+  }
+
+  // Priority 3: Environment-specific override
+  const env = process.env.REASONING_ENV || 'development';
+  const envConfig = flags.environments?.[env];
+  if (envConfig?.readonly === true) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Execute action in suggestion mode only (returns proposal for manual review)
  *
  * @param {Object} proposal - Action proposal
@@ -340,10 +414,14 @@ export function suggestAction(proposal, params, signals) {
   };
 }
 
+// Export isReadonlyEnvironment for testing
+export { isReadonlyEnvironment };
+
 // Default export
 export default {
   executeAction,
   suggestAction,
   registerAction,
-  ExecutionStatus
+  ExecutionStatus,
+  isReadonlyEnvironment
 };
