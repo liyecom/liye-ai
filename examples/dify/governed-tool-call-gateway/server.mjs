@@ -15,6 +15,9 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { appendFileSync, mkdirSync, existsSync } from 'fs';
 
+// Feishu Thin-Agent adapter
+import { handleFeishuEvent } from '../../feishu/feishu_adapter.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GOVERNANCE_ROOT = join(__dirname, '..', '..', '..', 'src', 'governance');
 const PORT = process.env.PORT || 3210;
@@ -363,13 +366,20 @@ const server = createServer((req, res) => {
 
   if (url.pathname === '/v1/governed_tool_call') {
     handleGovernedToolCall(req, res);
+  } else if (url.pathname === '/v1/feishu/events') {
+    // Feishu Thin-Agent event handler
+    handleFeishuEvent(req, res, {
+      gatewayUrl: `http://localhost:${PORT}`,
+      traceBaseDir: '.liye/traces'
+    });
   } else if (url.pathname === '/health') {
     res.writeHead(200);
     res.end(JSON.stringify({
       status: 'ok',
       service: 'governed-tool-call-gateway',
       policy_version: POLICY_VERSION,
-      contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1']
+      contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1'],
+      integrations: ['feishu']
     }));
   } else {
     res.writeHead(404);
@@ -377,6 +387,7 @@ const server = createServer((req, res) => {
       error: 'Not found',
       endpoints: {
         'POST /v1/governed_tool_call': 'Execute governed tool call',
+        'POST /v1/feishu/events': 'Feishu event webhook (Thin-Agent)',
         'GET /health': 'Health check'
       }
     }));
@@ -386,14 +397,16 @@ const server = createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║  Governed Tool Call Gateway for Dify (Phase 1 Contract)       ║
+║  Governed Tool Call Gateway (Phase 1 Contract)                ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Endpoint: http://localhost:${PORT}/v1/governed_tool_call       ║
+║  Feishu:   http://localhost:${PORT}/v1/feishu/events            ║
 ║  Health:   http://localhost:${PORT}/health                      ║
 ║  Policy:   ${POLICY_VERSION}                                ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Contracts: GOV_TOOL_CALL_RESPONSE_V1, TRACE_REQUIRED_FIELDS  ║
 ║  HF1-HF5:   Enforced                                          ║
+║  Week2:     Feishu Thin-Agent (Interactive Card)              ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 });
