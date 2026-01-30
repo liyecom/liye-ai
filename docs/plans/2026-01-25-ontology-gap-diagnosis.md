@@ -433,3 +433,85 @@ P1 已验证 Ontology-lite Overlay 方案可行，P2 将聚焦：
 - ✅ 只新增 Contracts + Fixtures + Evaluator
 - ✅ 所有样本确定性输入 → 确定性输出
 - ✅ Kill switch 默认关闭，演练时才临时开启
+
+---
+
+## 14. P5-A Done（执行记录）
+
+> **完成日期**: 2026-01-29
+> **Tag**: `reasoning-assets-p5`
+> **PR**: [#84](https://github.com/liyecom/liye-ai/pull/84)
+
+### 14.1 交付成果
+
+#### Demo Runner
+
+| 命令 | 描述 |
+|------|------|
+| `pnpm demo:reasoning` | 一键运行，默认 balanced profile |
+| `pnpm demo:reasoning --profile=conservative` | 指定 profile |
+| `pnpm demo:reasoning --cases=A1_boundary_eligible,B1_spend_below` | 指定 cases |
+
+#### 输出资产
+
+| 文件 | 描述 |
+|------|------|
+| `demo_summary.json` | 机器可读执行摘要 |
+| `DEMO_REPORT_<date>.md` | 人可读 6 板块报告 |
+| `EVALUATOR_REPORT_<date>.md` | 链接的评估器报告 |
+
+#### Demo 报告 6 板块
+
+1. **What it does** - 可控自动化 + 审计价值说明
+2. **Inputs** - Profile/Cases/阈值配置
+3. **Results table** - 每个 case 的状态/原因/候选词/回滚/事件
+4. **Deep dives** - 1 个 DRY_RUN + 1 个 SUGGEST_ONLY 详细流程
+5. **Safety proof** - `force_dry_run=true`, `writes_attempted=0`
+6. **Next steps** - Expansion criteria 清单
+
+### 14.2 强制安全保障
+
+| 检查项 | 保障 |
+|--------|------|
+| `force_dry_run` | `true` (硬编码，无法覆盖) |
+| `writes_attempted` | `0` (测试 + CI 验证) |
+| Real API calls | 无 - 数据来自合成 fixtures |
+| `demo_mode` | 绕过 kill switch，但保持 force_dry_run |
+
+### 14.3 CI 集成
+
+| 触发方式 | 配置 |
+|----------|------|
+| 手动触发 | `.github/workflows/reasoning-demo.yml` (workflow_dispatch) |
+| PR Label | 添加 `demo` label |
+| Artifact | 上传并保留 30 天 |
+
+### 14.4 测试覆盖
+
+```
+Demo Runner Tests:        7 tests passing  ✅
+- FORCE_DRY_RUN constant
+- Load samples structure
+- Execute single case
+- ZERO WRITES verification
+- Deep dive case selection
+- Snapshot stability
+- Full demo run
+```
+
+### 14.5 资产治理
+
+| 规则 | 实现 |
+|------|------|
+| 示例输出 | `docs/reasoning/demo_runs/2026-01-29/` (已提交) |
+| 本地输出 | `.gitignore` 排除新运行输出 |
+| 使用规范 | `docs/reasoning/README.md` (演示使用指南) |
+
+### 14.6 P5-A 约束遵守确认
+
+- ❌ 无新增服务/数据库/队列
+- ❌ 无 GDP schema 变更
+- ✅ Demo 默认 dry-run（`FORCE_DRY_RUN=true` 硬编码）
+- ✅ Demo 可复现（固定 fixtures 输入）
+- ✅ Demo 产出"可对外展示"报告（无敏感字段）
+- ✅ CI workflow 可手动触发并产出 artifact
