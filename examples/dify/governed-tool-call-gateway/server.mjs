@@ -8,20 +8,40 @@
  * Endpoint: POST /v1/governed_tool_call
  *
  * Contract: src/contracts/phase1/GOV_TOOL_CALL_RESPONSE_V1.json
+ *
+ * Week3: Added /v1/feishu/actions and /trace/:id/:file endpoints
+ * Week4: Added WRITE_ENABLED gate and extended file whitelist
  */
 
 import { createServer } from 'http';
-import { dirname, join } from 'path';
+import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
-import { appendFileSync, mkdirSync, existsSync } from 'fs';
+import { appendFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
 
-// Feishu Thin-Agent adapter
+// Feishu Thin-Agent adapters
 import { handleFeishuEvent } from '../../feishu/feishu_adapter.mjs';
+import { handleFeishuAction } from '../../feishu/feishu_actions.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GOVERNANCE_ROOT = join(__dirname, '..', '..', '..', 'src', 'governance');
+const TRACE_BASE_DIR = '.liye/traces';
 const PORT = process.env.PORT || 3210;
 const POLICY_VERSION = process.env.POLICY_VERSION || 'phase1-v1.0.0';
+
+// Week4: WRITE_ENABLED gate (default: 0 = disabled)
+const WRITE_ENABLED = process.env.WRITE_ENABLED === '1';
+
+// Week3+4: Allowed evidence files for static serving (security: whitelist only)
+const ALLOWED_EVIDENCE_FILES = [
+  'evidence_package.md',
+  'dry_run_plan.md',
+  'verdict.md',
+  'verdict.json',
+  'replay.json',
+  'action_plan.md',    // Week4
+  'action_plan.json',  // Week4
+  'approval.json'      // Week4 (optional exposure)
+];
 
 // ============================================
 // HF1: AGE MCP Routing + Mock Fallback
@@ -176,6 +196,36 @@ function writeGatewayResponseEvent(traceDir, meta) {
   }
 }
 
+// Week4: Check if action type requires write gate
+function isWriteAction(actionType) {
+  return ['write', 'delete', 'execute', 'send'].includes(actionType);
+}
+
+// Week4: Apply write gate to actions
+function applyWriteGate(actions) {
+  if (WRITE_ENABLED) {
+    return { actions, write_blocked: false };
+  }
+
+  // Block or degrade write actions
+  const gatedActions = actions.map(action => {
+    if (isWriteAction(action.action_type)) {
+      return {
+        ...action,
+        dry_run_only: true,
+        write_gate_blocked: true
+      };
+    }
+    return action;
+  });
+
+  const hasWriteActions = actions.some(a => isWriteAction(a.action_type));
+  return {
+    actions: gatedActions,
+    write_blocked: hasWriteActions
+  };
+}
+
 // Handle governed tool call
 async function handleGovernedToolCall(req, res) {
   // CORS headers for Dify
@@ -249,6 +299,9 @@ async function handleGovernedToolCall(req, res) {
     // Generate trace_id early for AGE routing
     const traceId = `trace-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+    // Week4: Apply write gate
+    const { actions: gatedActions, write_blocked } = applyWriteGate(proposed_actions);
+
     // HF1: Route AGE tools through AGE MCP first (default path)
     let ageResults = [];
     let mockUsed = false;
@@ -256,7 +309,7 @@ async function handleGovernedToolCall(req, res) {
     let primaryTool = null;
     let primaryActionType = null;
 
-    for (const action of proposed_actions) {
+    for (const action of gatedActions) {
       if (!primaryTool) {
         primaryTool = action.tool;
         primaryActionType = action.action_type || 'read';
@@ -280,14 +333,23 @@ async function handleGovernedToolCall(req, res) {
     const result = await runGovernanceCycle({
       task,
       context: { ...context, age_results: ageResults, mock_used: mockUsed, tenant_id: tenantId },
-      proposed_actions
+      proposed_actions: gatedActions
     }, {
-      baseDir: '.liye/traces'
+      baseDir: TRACE_BASE_DIR
     });
 
     // Use governance trace_id if available, otherwise use our generated one
     const finalTraceId = result.trace_id || traceId;
-    const decision = mockUsed ? 'DEGRADE' : (result.gateReport?.decision || 'UNKNOWN');
+
+    // Week4: Degrade if write blocked
+    let decision = result.gateReport?.decision || 'UNKNOWN';
+    if (write_blocked && decision === 'ALLOW') {
+      decision = 'DEGRADE';
+      fallbackReason = fallbackReason || 'WRITE_ENABLED=0: Write operations blocked';
+    }
+    if (mockUsed) {
+      decision = 'DEGRADE';
+    }
 
     // HF5: Consistent origin/mock signals
     const origin = mockUsed ? 'liye_os.mock' : 'amazon-growth-engine';
@@ -314,8 +376,12 @@ async function handleGovernedToolCall(req, res) {
         ? `AGE MCP unavailable - using mock fallback. ${generateVerdictSummary(result.gateReport, result.verdict)}`
         : generateVerdictSummary(result.gateReport, result.verdict),
       replay_status: result.replayResult?.status || 'UNKNOWN',
+      // Week4: Write gate info
+      write_enabled: WRITE_ENABLED,
+      write_calls_attempted: 0,  // Week4 GUARANTEE
       // Conditional fields
-      ...(mockUsed && { fallback_reason: fallbackReason })
+      ...(mockUsed && { fallback_reason: fallbackReason }),
+      ...(write_blocked && { write_gate_reason: 'WRITE_ENABLED=0' })
     };
 
     // Add error for BLOCK/UNKNOWN
@@ -355,8 +421,56 @@ async function handleGovernedToolCall(req, res) {
       trace_id: null,
       evidence_path: null,
       verdict_summary: 'Governance system error - action blocked for safety.',
-      fallback_reason: e.message
+      fallback_reason: e.message,
+      write_enabled: WRITE_ENABLED,
+      write_calls_attempted: 0
     }));
+  }
+}
+
+// Week3: Handle static evidence file serving (read-only)
+function handleTraceFileRequest(req, res, traceId, fileName) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+  // Security: Validate file name against whitelist
+  const cleanFileName = basename(fileName);
+  if (!ALLOWED_EVIDENCE_FILES.includes(cleanFileName)) {
+    res.writeHead(403);
+    res.end(`Forbidden: File not in whitelist. Allowed: ${ALLOWED_EVIDENCE_FILES.join(', ')}`);
+    return;
+  }
+
+  // Security: Prevent path traversal
+  if (traceId.includes('..') || traceId.includes('/') || traceId.includes('\\')) {
+    res.writeHead(400);
+    res.end('Bad Request: Invalid trace_id');
+    return;
+  }
+
+  const filePath = join(TRACE_BASE_DIR, traceId, cleanFileName);
+
+  if (!existsSync(filePath)) {
+    res.writeHead(404);
+    res.end(`Not Found: ${cleanFileName} for trace ${traceId}`);
+    return;
+  }
+
+  try {
+    const content = readFileSync(filePath, 'utf-8');
+
+    // Set appropriate content type
+    if (cleanFileName.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json');
+    } else if (cleanFileName.endsWith('.md')) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    }
+
+    res.writeHead(200);
+    res.end(content);
+  } catch (e) {
+    console.error(`[TraceFile] Failed to read ${filePath}: ${e.message}`);
+    res.writeHead(500);
+    res.end(`Error reading file: ${e.message}`);
   }
 }
 
@@ -367,27 +481,49 @@ const server = createServer((req, res) => {
   if (url.pathname === '/v1/governed_tool_call') {
     handleGovernedToolCall(req, res);
   } else if (url.pathname === '/v1/feishu/events') {
-    // Feishu Thin-Agent event handler
+    // Feishu Thin-Agent event handler (Week2)
     handleFeishuEvent(req, res, {
       gatewayUrl: `http://localhost:${PORT}`,
-      traceBaseDir: '.liye/traces'
+      traceBaseDir: TRACE_BASE_DIR
     });
+  } else if (url.pathname === '/v1/feishu/actions') {
+    // Feishu Thin-Agent action handler (Week3+4)
+    handleFeishuAction(req, res, {
+      traceBaseDir: TRACE_BASE_DIR,
+      traceViewerBaseUrl: `http://localhost:${PORT}/trace`
+    });
+  } else if (url.pathname.startsWith('/trace/')) {
+    // Week3: Static evidence file serving
+    const parts = url.pathname.slice(7).split('/');  // Remove '/trace/'
+    if (parts.length === 2) {
+      const [traceId, fileName] = parts;
+      handleTraceFileRequest(req, res, traceId, fileName);
+    } else {
+      res.writeHead(400);
+      res.setHeader('Content-Type', 'text/plain');
+      res.end('Bad Request: Use /trace/{trace_id}/{file_name}');
+    }
   } else if (url.pathname === '/health') {
+    res.setHeader('Content-Type', 'application/json');
     res.writeHead(200);
     res.end(JSON.stringify({
       status: 'ok',
       service: 'governed-tool-call-gateway',
       policy_version: POLICY_VERSION,
-      contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1'],
-      integrations: ['feishu']
+      contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1', 'ACTION_PLAN_V1', 'APPROVAL_STATE_V1'],
+      integrations: ['feishu'],
+      write_enabled: WRITE_ENABLED
     }));
   } else {
+    res.setHeader('Content-Type', 'application/json');
     res.writeHead(404);
     res.end(JSON.stringify({
       error: 'Not found',
       endpoints: {
         'POST /v1/governed_tool_call': 'Execute governed tool call',
-        'POST /v1/feishu/events': 'Feishu event webhook (Thin-Agent)',
+        'POST /v1/feishu/events': 'Feishu event webhook (Thin-Agent, Week2)',
+        'POST /v1/feishu/actions': 'Feishu action callback (Week3+4)',
+        'GET /trace/:id/:file': 'Static evidence file serving (Week3+4)',
         'GET /health': 'Health check'
       }
     }));
@@ -397,16 +533,22 @@ const server = createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║  Governed Tool Call Gateway (Phase 1 Contract)                ║
+║  Governed Tool Call Gateway (Phase 1 Week4)                   ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Endpoint: http://localhost:${PORT}/v1/governed_tool_call       ║
 ║  Feishu:   http://localhost:${PORT}/v1/feishu/events            ║
+║  Actions:  http://localhost:${PORT}/v1/feishu/actions           ║
+║  Trace:    http://localhost:${PORT}/trace/{id}/{file}           ║
 ║  Health:   http://localhost:${PORT}/health                      ║
 ║  Policy:   ${POLICY_VERSION}                                ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  Contracts: GOV_TOOL_CALL_RESPONSE_V1, TRACE_REQUIRED_FIELDS  ║
+║  Contracts: GOV_TOOL_CALL_RESPONSE_V1, ACTION_PLAN_V1         ║
 ║  HF1-HF5:   Enforced                                          ║
 ║  Week2:     Feishu Thin-Agent (Interactive Card)              ║
+║  Week3:     Evidence Package + Dry-run Plan                   ║
+║  Week4:     Approval Shell + Write Gate                       ║
+╠═══════════════════════════════════════════════════════════════╣
+║  WRITE_ENABLED: ${WRITE_ENABLED ? 'ON (DANGER)' : 'OFF (Safe)'}                                      ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 });
