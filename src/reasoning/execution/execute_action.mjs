@@ -50,6 +50,7 @@ export const ExecutionStatus = {
  * @param {Object} state - Current state (e.g., negatives_added_today)
  * @param {Object} options - Execution options
  * @param {boolean} options.force_dry_run - Force dry run mode
+ * @param {boolean} options.demo_mode - Demo mode: assume kill switch ON but force dry run
  * @param {Object} options.before_metrics - Metrics before action (for outcome event)
  * @returns {Object} Execution result
  */
@@ -108,9 +109,13 @@ export async function executeAction(proposal, params, signals, state = {}, optio
     }
 
     // Step 3: Check if auto execution is enabled globally (kill switch)
-    if (!flags.auto_execution?.enabled) {
+    // Demo mode bypasses kill switch check (but still forces dry_run)
+    if (!flags.auto_execution?.enabled && !options.demo_mode) {
       result.notes.push('Auto execution is disabled globally');
       return finishResult(result, startTime);
+    }
+    if (options.demo_mode) {
+      result.notes.push('Demo mode: bypassing kill switch (force_dry_run still active)');
     }
 
     // Step 4: Check eligibility

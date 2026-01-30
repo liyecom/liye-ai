@@ -1,0 +1,120 @@
+name: Reasoning Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Threshold profile'
+        required: false
+        default: 'balanced'
+        type: choice
+        options:
+          - conservative
+          - balanced
+          - aggressive
+      cases:
+        description: 'Comma-separated case IDs (leave empty for all)'
+        required: false
+        default: ''
+        type: string
+  pull_request:
+    types: [labeled]
+
+jobs:
+  run-demo:
+    # Run on workflow_dispatch OR when PR has 'demo' label
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'demo')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Reasoning Demo
+        id: demo
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'balanced' }}"
+          CASES="${{ github.event.inputs.cases || '' }}"
+          DATE=$(date +%Y-%m-%d)
+          OUT_DIR="docs/reasoning/demo_runs/${DATE}"
+
+          echo "Running demo with profile: ${PROFILE}"
+
+          if [ -n "$CASES" ]; then
+            node src/reasoning/demo/run_demo.mjs --profile="${PROFILE}" --cases="${CASES}" --out_dir="${OUT_DIR}"
+          else
+            node src/reasoning/demo/run_demo.mjs --profile="${PROFILE}" --out_dir="${OUT_DIR}"
+          fi
+
+          echo "out_dir=${OUT_DIR}" >> $GITHUB_OUTPUT
+          echo "date=${DATE}" >> $GITHUB_OUTPUT
+
+      - name: Verify ZERO WRITES
+        run: |
+          OUT_DIR="${{ steps.demo.outputs.out_dir }}"
+
+          # Check demo_summary.json for ZERO WRITES proof
+          if [ -f "${OUT_DIR}/demo_summary.json" ]; then
+            WRITES=$(jq -r '.meta.writes_attempted' "${OUT_DIR}/demo_summary.json")
+            FORCE_DRY_RUN=$(jq -r '.meta.force_dry_run' "${OUT_DIR}/demo_summary.json")
+
+            if [ "$WRITES" != "0" ]; then
+              echo "❌ ZERO WRITES violation: writes_attempted=$WRITES"
+              exit 1
+            fi
+
+            if [ "$FORCE_DRY_RUN" != "true" ]; then
+              echo "❌ force_dry_run not enabled"
+              exit 1
+            fi
+
+            echo "✅ ZERO WRITES verified: force_dry_run=$FORCE_DRY_RUN, writes_attempted=$WRITES"
+          else
+            echo "❌ demo_summary.json not found"
+            exit 1
+          fi
+
+      - name: Upload Demo Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reasoning-demo-${{ steps.demo.outputs.date }}
+          path: ${{ steps.demo.outputs.out_dir }}
+          retention-days: 30
+
+      - name: Post Summary
+        run: |
+          OUT_DIR="${{ steps.demo.outputs.out_dir }}"
+          DATE="${{ steps.demo.outputs.date }}"
+
+          echo "## 🎯 Reasoning Demo Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: ${DATE}" >> $GITHUB_STEP_SUMMARY
+          echo "**Profile**: ${{ github.event.inputs.profile || 'balanced' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "${OUT_DIR}/demo_summary.json" ]; then
+            echo "### Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| DRY_RUN | $(jq -r '.stats.dry_run' "${OUT_DIR}/demo_summary.json") |" >> $GITHUB_STEP_SUMMARY
+            echo "| SUGGEST_ONLY | $(jq -r '.stats.suggest_only' "${OUT_DIR}/demo_summary.json") |" >> $GITHUB_STEP_SUMMARY
+            echo "| BLOCKED | $(jq -r '.stats.blocked' "${OUT_DIR}/demo_summary.json") |" >> $GITHUB_STEP_SUMMARY
+            echo "| DENY | $(jq -r '.stats.deny' "${OUT_DIR}/demo_summary.json") |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Safety Proof" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **ZERO WRITES**: force_dry_run=true, writes_attempted=0" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Artifacts uploaded: reasoning-demo-${DATE}" >> $GITHUB_STEP_SUMMARY

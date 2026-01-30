@@ -290,6 +290,14 @@ memory/diff/
 !memory/diff/.gitkeep
 
 # ============================================
+# Reasoning Demo Runs (P5-A: Keep only official example)
+# ============================================
+# Local demo runs should not pollute main branch
+# Only the official example (2026-01-29) is committed
+docs/reasoning/demo_runs/*
+!docs/reasoning/demo_runs/2026-01-29/
+
+# ============================================
 # Legacy Symlinks (local only, removed from git tracking v6.3.0)
 # ============================================
 # These symlinks existed for backward compatibility but caused
