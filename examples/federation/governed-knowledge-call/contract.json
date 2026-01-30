@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "scope": {
+    "name": "knowledge-access-policy"
+  },
+  "rules": [
+    {
+      "id": "allow-read-knowledge",
+      "effect": "ALLOW",
+      "match": {
+        "action_type": "read"
+      },
+      "rationale": "Read operations on knowledge base are permitted"
+    },
+    {
+      "id": "deny-write-knowledge",
+      "effect": "DENY",
+      "match": {
+        "action_type": "write"
+      },
+      "rationale": "Write operations on knowledge base require elevated permissions"
+    }
+  ]
+}

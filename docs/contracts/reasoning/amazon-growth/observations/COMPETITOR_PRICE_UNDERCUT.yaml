@@ -1,0 +1,142 @@
+observation_id: COMPETITOR_PRICE_UNDERCUT
+version: v0.1
+severity_default: HIGH
+
+definition:
+  summary: "竞品大幅降价/价格战"
+  metric: competitor_price_gap
+  trigger:
+    op: "<"
+    threshold_ref: "targets.min_price_gap_tolerance"
+  note: "competitor_price_gap = (our_price - competitor_price) / our_price"
+
+cause_candidates:
+  - id: COMPETITOR_CLEARANCE
+    description: "竞品清仓甩货"
+    evidence_requirements:
+      - competitor_price_history
+      - competitor_inventory_estimate
+      - competitor_review_trend
+    decision_logic: "competitor_price_drop_pct > 0.3 AND competitor_inventory_estimate == 'declining'"
+    rationale:
+      - "竞品可能在清库存"
+      - "价格大幅下降但非长期策略"
+      - "清仓结束后价格可能恢复"
+    recommended_actions:
+      - action_id: HOLD_PRICE_MONITOR
+        risk_level: LOW
+        notes: "保持价格，密切监控竞品动向"
+      - action_id: FOCUS_ON_NON_PRICE_VALUE
+        risk_level: LOW
+        notes: "强调产品差异化优势"
+    counterfactuals:
+      - if: "wait_2_weeks"
+        expected: "competitor_may_restock_at_normal_price"
+        risk_level: LOW
+      - if: "match_clearance_price"
+        expected: "margin_destroyed, may_not_be_needed"
+        risk_level: HIGH
+
+  - id: NEW_COMPETITOR_ENTRY
+    description: "新竞品低价入场"
+    evidence_requirements:
+      - competitor_days_on_market
+      - competitor_review_count
+      - competitor_price_vs_category
+    decision_logic: "competitor_days_on_market < 90 AND competitor_price_vs_category < 0.7"
+    rationale:
+      - "新卖家用低价获取市场份额"
+      - "新品评论少需要低价吸引"
+      - "可能是不可持续的策略"
+    recommended_actions:
+      - action_id: EVALUATE_THREAT_LEVEL
+        risk_level: LOW
+        notes: "评估新竞品的产品质量和持久力"
+      - action_id: EMPHASIZE_ESTABLISHED_TRUST
+        risk_level: LOW
+        notes: "突出老品牌的评论和信任优势"
+    counterfactuals:
+      - if: "ignore_new_competitor"
+        expected: "may_lose_some_share, save_margin"
+        risk_level: MEDIUM
+      - if: "temporary_price_match"
+        expected: "defend_share, margin_down_temporarily"
+        risk_level: MEDIUM
+
+  - id: MARKET_PRICE_RESET
+    description: "品类整体价格下行"
+    evidence_requirements:
+      - category_avg_price_trend
+      - top_10_competitor_price_trend
+      - category_demand_trend
+    decision_logic: "category_avg_price_trend < -0.1"
+    rationale:
+      - "整个品类在打价格战"
+      - "可能是季节性或市场饱和"
+      - "需要重新评估定位"
+    recommended_actions:
+      - action_id: ANALYZE_CATEGORY_DYNAMICS
+        risk_level: LOW
+        notes: "分析品类价格趋势原因"
+      - action_id: CONSIDER_REPOSITIONING
+        risk_level: HIGH
+        notes: "考虑产品线升级或差异化"
+    counterfactuals:
+      - if: "follow_market_price"
+        expected: "maintain_share, margin_compressed"
+        risk_level: MEDIUM
+      - if: "premium_positioning"
+        expected: "lose_volume, maintain_margin, need_justification"
+        risk_level: HIGH
+
+  - id: COMPETITOR_COST_ADVANTAGE
+    description: "竞品有成本优势"
+    evidence_requirements:
+      - competitor_origin_country
+      - competitor_product_weight
+      - competitor_fulfillment_type
+    decision_logic: "competitor_origin_country == 'CN' AND our_origin_country != 'CN'"
+    rationale:
+      - "供应链成本差异"
+      - "FBM vs FBA 成本差异"
+      - "产品设计导致成本差异"
+    recommended_actions:
+      - action_id: REVIEW_COST_STRUCTURE
+        risk_level: MEDIUM
+        notes: "分析自身成本结构优化空间"
+      - action_id: JUSTIFY_PREMIUM
+        risk_level: LOW
+        notes: "通过品牌故事证明溢价合理性"
+    counterfactuals:
+      - if: "optimize_supply_chain"
+        expected: "cost_down, room_for_price_competition"
+        risk_level: MEDIUM
+      - if: "accept_smaller_market_share"
+        expected: "focus_on_premium_segment"
+        risk_level: MEDIUM
+
+  - id: OUR_PRICE_DRIFTED_UP
+    description: "自身价格偏离市场"
+    evidence_requirements:
+      - our_price_history
+      - our_price_vs_category_percentile
+      - last_price_change_date
+    decision_logic: "our_price_vs_category_percentile > 0.8 AND last_price_change_date < -90"
+    rationale:
+      - "价格很久未调整"
+      - "市场在变化但我们没跟上"
+      - "已经处于高价区间"
+    recommended_actions:
+      - action_id: MARKET_PRICE_AUDIT
+        risk_level: LOW
+        notes: "全面审核当前市场价格分布"
+      - action_id: ADJUST_TO_MARKET
+        risk_level: MEDIUM
+        notes: "根据定位调整价格"
+    counterfactuals:
+      - if: "reduce_price_to_median"
+        expected: "competitive_again, margin_down"
+        risk_level: MEDIUM
+      - if: "bundle_to_add_value"
+        expected: "maintain_price, higher_perceived_value"
+        risk_level: LOW

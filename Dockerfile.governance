@@ -1,0 +1,27 @@
+# LiYe Governance MCP Server
+#
+# Minimal Node.js container for the Governance MCP (Control Plane).
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --production
+
+# Copy source files
+COPY src/mcp/ ./src/mcp/
+COPY src/governance/ ./src/governance/
+COPY contracts/ ./contracts/
+
+# Create trace directory
+RUN mkdir -p .liye/traces
+
+# Set user (non-root)
+USER node
+
+# Default command
+CMD ["node", "src/mcp/server.mjs"]

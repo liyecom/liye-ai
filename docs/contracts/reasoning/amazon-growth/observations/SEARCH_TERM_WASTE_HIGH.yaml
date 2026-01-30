@@ -1,0 +1,116 @@
+observation_id: SEARCH_TERM_WASTE_HIGH
+version: v0.1
+severity_default: HIGH
+
+definition:
+  summary: "搜索词浪费占比过高"
+  metric: wasted_spend_ratio
+  trigger:
+    op: ">"
+    threshold_ref: "targets.max_wasted_spend_ratio"
+  note: "wasted_spend_ratio = spend_on_zero_order_terms / total_ad_spend"
+
+cause_candidates:
+  - id: BROAD_MATCH_OVERUSE
+    description: "过度依赖宽泛匹配"
+    evidence_requirements:
+      - broad_match_spend_pct
+      - exact_match_spend_pct
+      - phrase_match_spend_pct
+    decision_logic: "broad_match_spend_pct > 0.6"
+    rationale:
+      - "宽泛匹配吸引大量不相关搜索词"
+      - "Amazon 算法探索性过强"
+      - "缺乏精准匹配限制"
+    recommended_actions:
+      - action_id: SHIFT_BUDGET_TO_EXACT
+        risk_level: LOW
+        notes: "将预算向精准匹配倾斜"
+      - action_id: HARVEST_TOP_CONVERTING_TERMS
+        risk_level: LOW
+        notes: "从宽泛匹配中提取转化词到精准匹配"
+    counterfactuals:
+      - if: "reduce_broad_match_budget_50pct"
+        expected: "wasted_spend_down, impressions_down, roas_up"
+        risk_level: LOW
+      - if: "pause_all_broad_match"
+        expected: "impressions_down_significant, control_up, discovery_down"
+        risk_level: MEDIUM
+
+  - id: INSUFFICIENT_NEGATIVE_KEYWORDS
+    description: "否定关键词覆盖不足"
+    evidence_requirements:
+      - negative_keyword_count
+      - recurring_waste_terms
+      - negative_to_positive_ratio
+    decision_logic: "negative_keyword_count < 50 OR negative_to_positive_ratio < 0.3"
+    rationale:
+      - "否定词列表过短"
+      - "相同无效词反复花费"
+      - "缺乏系统性否定词管理"
+    recommended_actions:
+      - action_id: BUILD_NEGATIVE_LIST_FROM_SEARCH_TERMS
+        risk_level: LOW
+        notes: "从搜索词报告构建否定词列表"
+      - action_id: ADD_CATEGORY_NEGATIVE_LIST
+        risk_level: LOW
+        notes: "添加品类通用否定词（如竞品词、无关词）"
+    counterfactuals:
+      - if: "add_100_negative_keywords"
+        expected: "wasted_spend_down_30pct, acos_down"
+        risk_level: LOW
+      - if: "implement_weekly_negative_review"
+        expected: "continuous_optimization, waste_controlled"
+        risk_level: LOW
+
+  - id: AUTO_CAMPAIGN_UNCONSTRAINED
+    description: "Auto 广告缺乏约束"
+    evidence_requirements:
+      - auto_campaign_spend_pct
+      - auto_campaign_acos
+      - auto_to_manual_harvest_rate
+    decision_logic: "auto_campaign_spend_pct > 0.4 AND auto_campaign_acos > targets.max_acos * 1.5"
+    rationale:
+      - "Auto 广告预算占比过高"
+      - "Auto 广告 ACoS 远超目标"
+      - "未将 Auto 发现的好词迁移到 Manual"
+    recommended_actions:
+      - action_id: CAP_AUTO_BUDGET
+        risk_level: LOW
+        notes: "将 Auto 预算控制在总预算 20-30%"
+      - action_id: HARVEST_AUTO_TO_MANUAL
+        risk_level: LOW
+        notes: "定期将 Auto 中转化词迁移到 Manual"
+    counterfactuals:
+      - if: "reduce_auto_budget_to_20pct"
+        expected: "more_control, less_waste, discovery_rate_down"
+        risk_level: LOW
+      - if: "pause_auto_campaigns"
+        expected: "waste_eliminated, new_keyword_discovery_stopped"
+        risk_level: MEDIUM
+
+  - id: PRODUCT_KEYWORD_MISMATCH
+    description: "产品与关键词语义不匹配"
+    evidence_requirements:
+      - search_term_relevance_score
+      - category_mismatch_rate
+      - semantic_similarity_avg
+    decision_logic: "search_term_relevance_score < 0.5 OR category_mismatch_rate > 0.2"
+    rationale:
+      - "投放关键词与产品类目不符"
+      - "用户搜索意图与产品功能不匹配"
+      - "Listing 标题/关键词设置有误"
+    recommended_actions:
+      - action_id: AUDIT_KEYWORD_TARGETING
+        risk_level: LOW
+        notes: "审核所有投放关键词与产品相关性"
+      - action_id: OPTIMIZE_LISTING_FOR_RELEVANCE
+        risk_level: MEDIUM
+        notes: "优化 Listing 以提高与目标关键词的相关性"
+    counterfactuals:
+      - if: "remove_low_relevance_keywords"
+        expected: "impressions_down, relevance_up, cvr_up"
+        risk_level: LOW
+      - if: "rewrite_listing_copy"
+        expected: "organic_rank_change, relevance_improved, takes_time"
+        risk_level: MEDIUM

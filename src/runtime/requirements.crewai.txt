@@ -1,0 +1,4 @@
+# CrewAI optional dependencies for LiYe OS
+# Install with: pip install -r src/runtime/requirements.crewai.txt
+
+crewai==1.7.0

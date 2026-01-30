@@ -1,0 +1,352 @@
+# Amazon Growth Concepts Dictionary v0.2
+#
+# Canonical definitions for domain concepts.
+# Playbooks MUST reference concept_id, NOT raw field names like "cvr".
+#
+# This eliminates the "多义性炸弹" (polysemy bomb) where the same term
+# means different things in different contexts.
+
+version: v0.2
+updated_at: 2026-01-25
+
+concepts:
+
+  # === Conversion Rate Family (The Most Dangerous Polysemy) ===
+
+  AD_CVR:
+    concept_id: AD_CVR
+    canonical_name: "广告转化率 / Ad Conversion Rate"
+    formula: orders / clicks
+    unit: ratio
+    scope: advertising
+    description: |
+      How many clicks from ads turn into orders.
+      This is the advertising-specific conversion rate.
+    disambiguation: |
+      Do NOT confuse with LISTING_CVR (units/sessions).
+      AD_CVR uses orders (paid transactions), not units (items sold).
+      AD_CVR uses clicks (ad interactions), not sessions (store visits).
+    aliases:
+      - ad_cvr
+      - advertising_cvr
+      - ppc_cvr
+    evidence_ref: orders_per_click
+
+  LISTING_CVR:
+    concept_id: LISTING_CVR
+    canonical_name: "商品页转化率 / Listing Conversion Rate"
+    formula: units / sessions
+    unit: ratio
+    scope: listing_performance
+    description: |
+      Amazon's standard Unit Session Percentage.
+      How many store sessions result in a unit sale.
+    disambiguation: |
+      Do NOT confuse with AD_CVR (orders/clicks).
+      LISTING_CVR uses units (items sold), not orders.
+      LISTING_CVR uses sessions (store visits), not clicks.
+      One order can have multiple units. One session can have multiple clicks.
+    aliases:
+      - listing_cvr
+      - unit_session_pct
+      - unit_session_percentage
+      - cvr  # DEPRECATED - use explicit concept_id
+    evidence_ref: unit_session_pct
+    note: This is what Amazon calls "Unit Session Percentage" in reports
+
+  KEYWORD_PURCHASE_RATE:
+    concept_id: KEYWORD_PURCHASE_RATE
+    canonical_name: "关键词购买率 / Keyword Purchase Rate"
+    formula: purchases / search_volume
+    unit: ratio
+    scope: keyword_performance
+    description: |
+      What percentage of searches for this keyword result in a purchase.
+      Used to evaluate keyword commercial intent.
+    disambiguation: |
+      This is market-level data, not your specific product's conversion.
+      High keyword purchase rate = high commercial intent keyword.
+    aliases:
+      - kpr
+      - keyword_cvr
+      - search_purchase_rate
+    evidence_ref: keyword_purchase_rate
+    source: GDP
+
+  # === Cost Metrics ===
+
+  ACOS:
+    concept_id: ACOS
+    canonical_name: "广告销售成本比 / Advertising Cost of Sales"
+    formula: ad_spend / ad_sales
+    unit: ratio
+    scope: advertising
+    description: |
+      What percentage of ad-attributed sales goes to ad spend.
+      Lower is better (more efficient advertising).
+    disambiguation: |
+      ad_sales = sales attributed to ads (not total sales)
+      ACOS = 1/ROAS when expressed as ratio
+    aliases:
+      - acos
+      - advertising_cost_of_sales
+    evidence_ref: acos
+
+  TACOS:
+    concept_id: TACOS
+    canonical_name: "总广告销售成本比 / Total Advertising Cost of Sales"
+    formula: ad_spend / total_sales
+    unit: ratio
+    scope: business_health
+    description: |
+      What percentage of TOTAL sales (ad + organic) goes to ad spend.
+      Better indicator of business health than ACOS.
+    disambiguation: |
+      total_sales = ad_sales + organic_sales
+      TACOS is always lower than ACOS (bigger denominator)
+    aliases:
+      - tacos
+      - total_acos
+    evidence_ref: tacos
+
+  # === Click & Traffic Metrics ===
+
+  CTR:
+    concept_id: CTR
+    canonical_name: "点击率 / Click-Through Rate"
+    formula: clicks / impressions
+    unit: ratio
+    scope: advertising
+    description: |
+      How many ad impressions result in a click.
+      Indicates ad relevance and creative appeal.
+    aliases:
+      - ctr
+      - click_through_rate
+    evidence_ref: ctr
+
+  CPC:
+    concept_id: CPC
+    canonical_name: "单次点击成本 / Cost Per Click"
+    formula: ad_spend / clicks
+    unit: currency
+    scope: advertising
+    description: |
+      How much each click costs on average.
+    aliases:
+      - cpc
+      - cost_per_click
+    evidence_ref: cpc
+
+  CATEGORY_AVG_CPC:
+    concept_id: CATEGORY_AVG_CPC
+    canonical_name: "品类平均 CPC / Category Average CPC"
+    formula: category_total_ad_spend / category_total_clicks
+    unit: currency
+    scope: benchmark
+    description: |
+      The average cost per click across all products in the category.
+      Used as a benchmark to evaluate your CPC competitiveness.
+    source: GDP
+    query_ref: benchmarks/category_cpc.sql
+    disambiguation: |
+      This is market-level data from GDP, not your specific CPC.
+      CPC > CATEGORY_AVG_CPC * 1.5 indicates high bid pressure.
+    aliases:
+      - category_cpc
+      - market_cpc
+    evidence_ref: category_avg_cpc
+
+  # === Ranking & Position Metrics ===
+
+  ORGANIC_RANK:
+    concept_id: ORGANIC_RANK
+    canonical_name: "自然排名 / Organic Search Rank"
+    formula: null
+    unit: position
+    scope: search_visibility
+    description: |
+      The product's organic (non-paid) position in search results.
+      Lower number = better position (1 = top of page 1).
+    disambiguation: |
+      CRITICAL: Understand special values:
+      - 0: Not ranked / not indexed for this keyword
+      - null/NA: Data unavailable / keyword not tracked
+      - 999: Ranked beyond page 10 (effectively not visible)
+
+      Rank 1-10 = Page 1 (high visibility)
+      Rank 11-20 = Page 2 (low visibility)
+      Rank > 48 = Beyond page 4 (negligible organic traffic)
+    special_values:
+      0: "Not indexed"
+      null: "Not tracked"
+      999: "Beyond page 10"
+    aliases:
+      - organic_position
+      - natural_rank
+      - search_rank
+    evidence_ref: organic_rank
+    note: "数值变大 = 排名下降 = 位置更靠后"
+
+  TOP_OF_SEARCH_SHARE:
+    concept_id: TOP_OF_SEARCH_SHARE
+    canonical_name: "搜索首位占有率 / Top of Search Impression Share"
+    formula: top_of_search_impressions / total_top_of_search_impressions
+    unit: ratio
+    scope: advertising
+    description: |
+      Percentage of time your ad appears at the very top of search results
+      (first ad position) compared to all available impressions.
+    disambiguation: |
+      This is ad impression share, NOT organic rank.
+      High TOS share + low organic rank = paid visibility only.
+    aliases:
+      - tos_share
+      - top_of_search_is
+    evidence_ref: top_of_search_share
+
+  # === Spend & Waste Metrics ===
+
+  WASTED_SPEND_RATIO:
+    concept_id: WASTED_SPEND_RATIO
+    canonical_name: "浪费花费比例 / Wasted Spend Ratio"
+    formula: spend_on_zero_order_terms / total_ad_spend
+    unit: ratio
+    scope: advertising_efficiency
+    description: |
+      What percentage of ad spend went to search terms that
+      generated zero orders/conversions.
+    disambiguation: |
+      This is spend-weighted, not impression-weighted.
+      wasted_spend_ratio > 0.3 = serious targeting problem.
+      Includes: misspellings, irrelevant queries, competitor terms.
+    thresholds:
+      healthy: "< 0.2"
+      warning: "0.2 - 0.4"
+      critical: "> 0.4"
+    aliases:
+      - waste_ratio
+      - non_converting_spend_pct
+    evidence_ref: wasted_spend_ratio
+
+  # === Budget & Pacing Metrics ===
+
+  BUDGET_PACING:
+    concept_id: BUDGET_PACING
+    canonical_name: "预算节奏 / Budget Pacing"
+    formula: current_spend / (daily_budget * hours_elapsed / 24)
+    unit: ratio
+    scope: campaign_management
+    description: |
+      How fast the campaign is spending relative to ideal even pacing.
+      Pacing > 1 = spending faster than ideal
+      Pacing < 1 = spending slower than ideal
+    disambiguation: |
+      Ideal pacing = 1.0 (spending evenly throughout the day)
+      Pacing = 2.0 at noon means budget will exhaust by 3pm
+      Pacing = 0.5 at noon means only 25% of budget used
+    interpretation:
+      overpacing: "Budget will exhaust early, missing later traffic"
+      underpacing: "Budget underutilized, missing impression opportunity"
+    aliases:
+      - spend_pacing
+      - budget_velocity
+    evidence_ref: budget_pacing
+
+  BUDGET_EXHAUST_HOUR:
+    concept_id: BUDGET_EXHAUST_HOUR
+    canonical_name: "预算耗尽时间 / Budget Exhaust Hour"
+    formula: null
+    unit: hour_of_day
+    scope: campaign_management
+    description: |
+      The hour of day (0-23) when the daily budget was exhausted.
+      null = budget not exhausted that day.
+    disambiguation: |
+      exhaust_hour < 12 = very early (bad)
+      exhaust_hour 12-18 = early (concerning)
+      exhaust_hour 18-24 = healthy
+      exhaust_hour = null = budget not exhausted
+    thresholds:
+      critical: "< 12"
+      warning: "12 - 16"
+      healthy: "> 16 or null"
+    evidence_ref: budget_exhaust_hour
+
+  # === Product Lifecycle Metrics ===
+
+  DAYS_SINCE_LAUNCH:
+    concept_id: DAYS_SINCE_LAUNCH
+    canonical_name: "上市天数 / Days Since Launch"
+    formula: today - first_available_date
+    unit: days
+    scope: product_lifecycle
+    description: |
+      Number of days since the product was first available on Amazon.
+    phases:
+      launch: "0-30 days (honeymoon, algorithm testing)"
+      growth: "31-90 days (establishing velocity)"
+      mature: "90-365 days (stable)"
+      established: "> 365 days"
+    evidence_ref: days_since_launch
+
+  # === Inventory Metrics ===
+
+  IN_STOCK_RATE:
+    concept_id: IN_STOCK_RATE
+    canonical_name: "有货率 / In-Stock Rate"
+    formula: in_stock_days / total_days
+    unit: ratio
+    scope: inventory
+    description: |
+      Percentage of time the product was in stock over a period.
+    thresholds:
+      healthy: "> 0.95"
+      warning: "0.85 - 0.95"
+      critical: "< 0.85"
+    evidence_ref: in_stock_rate
+
+  # === Competitive Metrics ===
+
+  PRICE_PERCENTILE:
+    concept_id: PRICE_PERCENTILE
+    canonical_name: "价格百分位 / Price Percentile"
+    formula: percentile_rank(our_price, category_prices)
+    unit: percentile
+    scope: competitive
+    description: |
+      Where your price falls in the category price distribution.
+      0 = cheapest, 1 = most expensive.
+    disambiguation: |
+      price_percentile > 0.8 = premium pricing (top 20% expensive)
+      price_percentile < 0.2 = value pricing (bottom 20%)
+    aliases:
+      - price_position
+      - competitive_price_rank
+    evidence_ref: price_percentile
+
+# === Concept Validation Rules ===
+
+validation_rules:
+  - rule_id: CVR_MUST_BE_QUALIFIED
+    description: "Raw 'cvr' without prefix is ambiguous and blocked"
+    pattern: "^cvr$"
+    action: REJECT
+    message: "Use AD_CVR, LISTING_CVR, or KEYWORD_PURCHASE_RATE instead of 'cvr'"
+
+  - rule_id: CONCEPT_REF_REQUIRED
+    description: "Playbooks must reference concept_id, not raw field names"
+    applies_to: playbooks/*.yaml
+    action: WARN
+
+# === Migration Guide ===
+
+migration:
+  deprecated_terms:
+    cvr:
+      reason: "Ambiguous - could mean AD_CVR, LISTING_CVR, or KEYWORD_PURCHASE_RATE"
+      replace_with: "Use the specific concept_id"
+
+    conversion_rate:
+      reason: "Too generic"
+      replace_with: "Use AD_CVR, LISTING_CVR, or KEYWORD_PURCHASE_RATE"
