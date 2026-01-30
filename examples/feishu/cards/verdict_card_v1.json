@@ -20,7 +20,21 @@
     },
     {
       "tag": "markdown",
+      "content": "### Why\n{{why_md}}"
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
       "content": "{{summary_md}}"
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
+      "content": "{{evidence_status_md}}"
     },
     {
       "tag": "action",
@@ -33,9 +47,15 @@
         },
         {
           "tag": "button",
-          "text": { "tag": "plain_text", "content": "复制 Trace ID" },
+          "text": { "tag": "plain_text", "content": "生成 Dry-run 计划" },
           "type": "default",
-          "value": { "action": "copy_trace_id", "trace_id": "{{trace_id}}" }
+          "value": { "action": "run_dry_plan", "trace_id": "{{trace_id}}" }
+        },
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "生成 Evidence Package" },
+          "type": "default",
+          "value": { "action": "generate_evidence", "trace_id": "{{trace_id}}" }
         }
       ]
     },

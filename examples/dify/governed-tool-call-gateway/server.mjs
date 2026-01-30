@@ -5,23 +5,40 @@
  * Phase 1 Contract-Aligned Implementation
  * Implements HF1-HF5 with full contract compliance.
  *
- * Endpoint: POST /v1/governed_tool_call
+ * Endpoints:
+ * - POST /v1/governed_tool_call - Execute governed tool call
+ * - POST /v1/feishu/events - Feishu event webhook (Week2)
+ * - POST /v1/feishu/actions - Feishu card action callback (Week3)
+ * - GET /trace/:trace_id/:file - Read-only evidence files (Week3)
  *
  * Contract: src/contracts/phase1/GOV_TOOL_CALL_RESPONSE_V1.json
  */
 
 import { createServer } from 'http';
-import { dirname, join } from 'path';
+import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
-import { appendFileSync, mkdirSync, existsSync } from 'fs';
+import { appendFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
 
-// Feishu Thin-Agent adapter
+// Feishu Thin-Agent adapters
 import { handleFeishuEvent } from '../../feishu/feishu_adapter.mjs';
+import { handleFeishuAction } from '../../feishu/feishu_actions.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GOVERNANCE_ROOT = join(__dirname, '..', '..', '..', 'src', 'governance');
 const PORT = process.env.PORT || 3210;
 const POLICY_VERSION = process.env.POLICY_VERSION || 'phase1-v1.0.0';
+const TRACE_BASE_DIR = process.env.TRACE_BASE_DIR || '.liye/traces';
+
+// ============================================
+// Week3: Evidence file whitelist (security)
+// ============================================
+const ALLOWED_EVIDENCE_FILES = [
+  'evidence_package.md',
+  'dry_run_plan.md',
+  'verdict.md',
+  'verdict.json',
+  'replay.json'
+];
 
 // ============================================
 // HF1: AGE MCP Routing + Mock Fallback
@@ -282,7 +299,7 @@ async function handleGovernedToolCall(req, res) {
       context: { ...context, age_results: ageResults, mock_used: mockUsed, tenant_id: tenantId },
       proposed_actions
     }, {
-      baseDir: '.liye/traces'
+      baseDir: TRACE_BASE_DIR
     });
 
     // Use governance trace_id if available, otherwise use our generated one
@@ -360,6 +377,70 @@ async function handleGovernedToolCall(req, res) {
   }
 }
 
+// ============================================
+// Week3: Read-only evidence file server
+// ============================================
+function handleTraceFileRead(req, res, traceId, fileName) {
+  // Security: Only allow whitelisted files
+  if (!ALLOWED_EVIDENCE_FILES.includes(fileName)) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(403);
+    res.end(JSON.stringify({
+      error: 'Forbidden: File not in whitelist',
+      allowed_files: ALLOWED_EVIDENCE_FILES
+    }));
+    return;
+  }
+
+  // Security: Validate trace_id format (prevent path traversal)
+  if (!traceId.match(/^trace-[a-z0-9-]+$/)) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(400);
+    res.end(JSON.stringify({ error: 'Invalid trace_id format' }));
+    return;
+  }
+
+  const filePath = join(TRACE_BASE_DIR, traceId, fileName);
+
+  // Security: Ensure path is within trace directory (prevent traversal)
+  const normalizedPath = join(TRACE_BASE_DIR, traceId, basename(fileName));
+  if (normalizedPath !== filePath) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(403);
+    res.end(JSON.stringify({ error: 'Path traversal detected' }));
+    return;
+  }
+
+  if (!existsSync(filePath)) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(404);
+    res.end(JSON.stringify({
+      error: 'File not found',
+      trace_id: traceId,
+      file: fileName
+    }));
+    return;
+  }
+
+  try {
+    const content = readFileSync(filePath, 'utf-8');
+    const contentType = fileName.endsWith('.json') ? 'application/json' : 'text/markdown; charset=utf-8';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(200);
+    res.end(content);
+  } catch (e) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.writeHead(500);
+    res.end(JSON.stringify({ error: `Failed to read file: ${e.message}` }));
+  }
+}
+
 // Create HTTP server
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -367,27 +448,53 @@ const server = createServer((req, res) => {
   if (url.pathname === '/v1/governed_tool_call') {
     handleGovernedToolCall(req, res);
   } else if (url.pathname === '/v1/feishu/events') {
-    // Feishu Thin-Agent event handler
+    // Feishu Thin-Agent event handler (Week2)
     handleFeishuEvent(req, res, {
       gatewayUrl: `http://localhost:${PORT}`,
-      traceBaseDir: '.liye/traces'
+      traceBaseDir: TRACE_BASE_DIR
     });
+  } else if (url.pathname === '/v1/feishu/actions') {
+    // Feishu card action callback (Week3)
+    handleFeishuAction(req, res, {
+      traceBaseDir: TRACE_BASE_DIR,
+      traceViewerBaseUrl: process.env.TRACE_VIEWER_BASE_URL || `http://localhost:${PORT}/trace`
+    });
+  } else if (url.pathname.startsWith('/trace/')) {
+    // Week3: Read-only evidence file server
+    // Pattern: /trace/:trace_id/:file
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    if (pathParts.length === 3) {
+      const [_, traceId, fileName] = pathParts;
+      handleTraceFileRead(req, res, traceId, fileName);
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+      res.writeHead(400);
+      res.end(JSON.stringify({
+        error: 'Invalid path',
+        expected: '/trace/:trace_id/:file'
+      }));
+    }
   } else if (url.pathname === '/health') {
+    res.setHeader('Content-Type', 'application/json');
     res.writeHead(200);
     res.end(JSON.stringify({
       status: 'ok',
       service: 'governed-tool-call-gateway',
       policy_version: POLICY_VERSION,
       contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1'],
-      integrations: ['feishu']
+      integrations: ['feishu'],
+      week3_features: ['actions_callback', 'evidence_files']
     }));
   } else {
+    res.setHeader('Content-Type', 'application/json');
     res.writeHead(404);
     res.end(JSON.stringify({
       error: 'Not found',
       endpoints: {
         'POST /v1/governed_tool_call': 'Execute governed tool call',
-        'POST /v1/feishu/events': 'Feishu event webhook (Thin-Agent)',
+        'POST /v1/feishu/events': 'Feishu event webhook (Week2)',
+        'POST /v1/feishu/actions': 'Feishu card action callback (Week3)',
+        'GET /trace/:trace_id/:file': 'Read evidence files (Week3)',
         'GET /health': 'Health check'
       }
     }));
@@ -401,12 +508,14 @@ server.listen(PORT, () => {
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Endpoint: http://localhost:${PORT}/v1/governed_tool_call       ║
 ║  Feishu:   http://localhost:${PORT}/v1/feishu/events            ║
+║  Actions:  http://localhost:${PORT}/v1/feishu/actions           ║
+║  Evidence: http://localhost:${PORT}/trace/:id/:file             ║
 ║  Health:   http://localhost:${PORT}/health                      ║
 ║  Policy:   ${POLICY_VERSION}                                ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Contracts: GOV_TOOL_CALL_RESPONSE_V1, TRACE_REQUIRED_FIELDS  ║
 ║  HF1-HF5:   Enforced                                          ║
-║  Week2:     Feishu Thin-Agent (Interactive Card)              ║
+║  Week3:     Interactive Actions + Evidence Package            ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 });

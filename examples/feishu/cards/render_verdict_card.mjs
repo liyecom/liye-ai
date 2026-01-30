@@ -3,6 +3,8 @@
  *
  * Renders GOV_TOOL_CALL_RESPONSE_V1 into Feishu Interactive Card.
  * Thin-Agent principle: render only, no decision logic.
+ *
+ * Week3: Added why_md and evidence_status_md support.
  */
 
 import { readFileSync } from 'fs';
@@ -59,12 +61,72 @@ const SUMMARY_MESSAGES = {
   UNKNOWN: '无法确定决策，请检查系统状态。'
 };
 
+// Why messages (1-3 bullet points per decision type)
+const WHY_MESSAGES = {
+  ALLOW: [
+    '通过治理检查（read-only）',
+    '可生成 dry-run 计划用于复核'
+  ],
+  BLOCK: [
+    '风险或不确定性过高',
+    '已阻止执行，需补充信息或调整请求'
+  ],
+  DEGRADE: [
+    'AGE 不可达，已降级 mock fallback',
+    '结果可用但受限（建议稍后重试）'
+  ],
+  UNKNOWN: [
+    '无法确定决策状态',
+    '请检查系统配置或稍后重试'
+  ]
+};
+
+/**
+ * Generate why_md content based on decision
+ * Returns 1-3 bullet points
+ */
+function generateWhyMd(decision, fallbackReason) {
+  const points = WHY_MESSAGES[decision] || WHY_MESSAGES.UNKNOWN;
+  let bullets = points.map(p => `- ${p}`);
+
+  // Add fallback reason as additional bullet if present
+  if (decision === 'DEGRADE' && fallbackReason) {
+    bullets.push(`- 原因：${fallbackReason}`);
+  }
+
+  // Limit to 3 bullets
+  return bullets.slice(0, 3).join('\\n');
+}
+
+/**
+ * Generate evidence_status_md content
+ * @param {Object} opts - Options
+ * @param {string} opts.status - 'pending' | 'generating' | 'generated'
+ * @param {string} opts.evidenceUrl - URL to evidence package
+ */
+function generateEvidenceStatusMd(opts = {}) {
+  const status = opts.status || 'pending';
+  const evidenceUrl = opts.evidenceUrl || '';
+
+  switch (status) {
+    case 'generating':
+      return '**Evidence**：生成中…';
+    case 'generated':
+      return `**Evidence**：已生成 ✅ [打开](${evidenceUrl})`;
+    case 'pending':
+    default:
+      return '**Evidence**：未生成';
+  }
+}
+
 /**
  * Render a verdict response into a Feishu Interactive Card
  *
  * @param {Object} response - GOV_TOOL_CALL_RESPONSE_V1 compliant response
  * @param {Object} opts - Options
  * @param {string} opts.traceViewerBaseUrl - Base URL for trace viewer (default: env or placeholder)
+ * @param {string} opts.evidenceStatus - 'pending' | 'generating' | 'generated'
+ * @param {string} opts.evidenceUrl - URL to evidence package (when generated)
  * @returns {Object} Feishu interactive card JSON
  */
 export function renderVerdictCard(response, opts = {}) {
@@ -74,7 +136,7 @@ export function renderVerdictCard(response, opts = {}) {
 
   // Handle missing template gracefully
   if (!cardTemplate) {
-    return createFallbackTextCard(response);
+    return createFallbackTextCard(response, opts);
   }
 
   try {
@@ -93,6 +155,13 @@ export function renderVerdictCard(response, opts = {}) {
     const fallbackReason = sanitizeForJson(response.fallback_reason || '');
     const verdictSummary = sanitizeForJson(response.verdict_summary || SUMMARY_MESSAGES[decision]);
 
+    // Week3: Generate why_md and evidence_status_md
+    const whyMd = generateWhyMd(decision, response.fallback_reason);
+    const evidenceStatusMd = generateEvidenceStatusMd({
+      status: opts.evidenceStatus || 'pending',
+      evidenceUrl: opts.evidenceUrl || `${traceViewerBaseUrl}/${traceId}/evidence_package.md`
+    });
+
     // Build replacement map
     // Note: \n in JSON strings must be \\n when doing string replacement
     const replacements = {
@@ -108,7 +177,9 @@ export function renderVerdictCard(response, opts = {}) {
         : '',
       '{{policy_version}}': policyVersion,
       '{{summary_md}}': verdictSummary,
-      '{{trace_url}}': `${traceViewerBaseUrl}/${traceId}`
+      '{{trace_url}}': `${traceViewerBaseUrl}/${traceId}`,
+      '{{why_md}}': whyMd,
+      '{{evidence_status_md}}': evidenceStatusMd
     };
 
     // Apply replacements
@@ -120,15 +191,73 @@ export function renderVerdictCard(response, opts = {}) {
     return JSON.parse(renderedString);
   } catch (e) {
     console.error('[VerdictCard] Render error:', e.message);
-    return createFallbackTextCard(response);
+    return createFallbackTextCard(response, opts);
   }
+}
+
+/**
+ * Render an evidence status update card (for action callbacks)
+ */
+export function renderEvidenceStatusCard(traceId, status, evidenceUrl, opts = {}) {
+  const traceViewerBaseUrl = opts.traceViewerBaseUrl ||
+    process.env.TRACE_VIEWER_BASE_URL ||
+    'https://liye.os/.liye/traces';
+
+  const statusText = status === 'generated'
+    ? `Evidence Package 已生成 ✅`
+    : status === 'generating'
+      ? 'Evidence Package 生成中…'
+      : 'Evidence Package 准备中…';
+
+  const elements = [
+    {
+      tag: 'markdown',
+      content: `**Trace ID**：\`${traceId}\`\n\n**状态**：${statusText}`
+    }
+  ];
+
+  if (status === 'generated' && evidenceUrl) {
+    elements.push({
+      tag: 'action',
+      actions: [
+        {
+          tag: 'button',
+          text: { tag: 'plain_text', content: '打开 Evidence Package' },
+          type: 'primary',
+          url: evidenceUrl
+        },
+        {
+          tag: 'button',
+          text: { tag: 'plain_text', content: '打开 Trace' },
+          type: 'default',
+          url: `${traceViewerBaseUrl}/${traceId}`
+        }
+      ]
+    });
+  }
+
+  elements.push({
+    tag: 'note',
+    elements: [
+      { tag: 'plain_text', content: 'Thin-Agent：仅生成文件，不执行写操作。' }
+    ]
+  });
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `Evidence · ${traceId.slice(0, 20)}...` },
+      template: status === 'generated' ? 'green' : 'blue'
+    },
+    elements
+  };
 }
 
 /**
  * Create fallback text card when template rendering fails
  * Ensures at minimum: trace_id, decision, origin, mock_used are always shown
  */
-function createFallbackTextCard(response) {
+function createFallbackTextCard(response, opts = {}) {
   const decision = response.decision || 'UNKNOWN';
   const traceId = response.trace_id || 'unknown';
   const origin = response.origin || 'unknown';
@@ -149,7 +278,10 @@ function createFallbackTextCard(response) {
           `**Decision**：**${decision}**`,
           `**Origin**：\`${origin}\``,
           `**Mock Used**：\`${mockUsed}\``,
-          `**Policy**：\`${policyVersion}\``
+          `**Policy**：\`${policyVersion}\``,
+          '',
+          '### Why',
+          ...WHY_MESSAGES[decision].map(p => `- ${p}`)
         ].join('\n\n')
       },
       {
@@ -175,4 +307,4 @@ export function createFallbackTextMessage(response) {
   return `LiYe Verdict: ${decision}\nTrace: ${traceId}\nOrigin: ${origin}\nMock: ${mockUsed}`;
 }
 
-export default { renderVerdictCard, createFallbackTextMessage };
+export default { renderVerdictCard, renderEvidenceStatusCard, createFallbackTextMessage };
