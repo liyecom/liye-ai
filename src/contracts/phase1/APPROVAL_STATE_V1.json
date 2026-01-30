@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.ai/contracts/phase1/APPROVAL_STATE_V1.json",
+  "title": "APPROVAL_STATE_V1",
+  "description": "Approval State schema for Phase1 Week4 - approval workflow state machine",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "plan_id",
+    "status",
+    "audit_log"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "description": "Associated trace identifier"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^plan-[a-zA-Z0-9-]+$",
+      "description": "Associated plan identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "EXECUTED"],
+      "description": "Current approval status"
+    },
+    "submitted_by": {
+      "type": "string",
+      "description": "Feishu user_id who submitted the approval request"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of submission"
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "reviewed_by": {
+          "type": "string",
+          "description": "Feishu user_id of the reviewer"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of review"
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["APPROVE", "REJECT"],
+          "description": "Review decision"
+        },
+        "comment": {
+          "type": "string",
+          "description": "Optional review comment"
+        }
+      },
+      "required": ["reviewed_by", "reviewed_at", "decision"],
+      "description": "Review details (present when status is APPROVED or REJECTED)"
+    },
+    "audit_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ts", "actor", "event"],
+        "properties": {
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of this event"
+          },
+          "actor": {
+            "type": "string",
+            "description": "User or system that triggered this event"
+          },
+          "event": {
+            "type": "string",
+            "enum": ["created", "submitted", "approved", "rejected", "executed"],
+            "description": "Event type"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "message_id": {
+                "type": "string",
+                "description": "Feishu message_id if applicable"
+              },
+              "chat_id": {
+                "type": "string",
+                "description": "Feishu chat_id if applicable"
+              }
+            },
+            "description": "Additional metadata for this event"
+          }
+        }
+      },
+      "description": "Audit log of all status changes"
+    }
+  },
+  "additionalProperties": false
+}
