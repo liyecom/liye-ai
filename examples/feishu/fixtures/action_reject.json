@@ -1,0 +1,16 @@
+{
+  "type": "card_action",
+  "token": "test_verification_token",
+  "action": {
+    "value": {
+      "action": "reject",
+      "trace_id": "trace-test-001",
+      "comment": "需要补充更多信息"
+    },
+    "tag": "button"
+  },
+  "open_id": "ou_test_approver_002",
+  "user_id": "ou_test_approver_002",
+  "open_message_id": "om_test_message_003",
+  "open_chat_id": "oc_test_chat_001"
+}
