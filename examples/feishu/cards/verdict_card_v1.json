@@ -23,6 +23,20 @@
       "content": "{{summary_md}}"
     },
     {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
+      "content": "### 📋 Why\n\n{{why_md}}"
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "markdown",
+      "content": "### 📄 Approval Status\n\n{{approval_status_md}}\n\n{{plan_status_md}}"
+    },
+    {
       "tag": "action",
       "actions": [
         {
@@ -33,9 +47,49 @@
         },
         {
           "tag": "button",
-          "text": { "tag": "plain_text", "content": "复制 Trace ID" },
+          "text": { "tag": "plain_text", "content": "查看计划" },
           "type": "default",
-          "value": { "action": "copy_trace_id", "trace_id": "{{trace_id}}" }
+          "url": "{{plan_url}}"
+        }
+      ]
+    },
+    {
+      "tag": "action",
+      "actions": [
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "生成 Dry-run 计划" },
+          "type": "default",
+          "value": { "action": "run_dry_plan", "trace_id": "{{trace_id}}" }
+        },
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "生成 Evidence" },
+          "type": "default",
+          "value": { "action": "generate_evidence", "trace_id": "{{trace_id}}" }
+        }
+      ]
+    },
+    {
+      "tag": "action",
+      "actions": [
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "提交审批" },
+          "type": "primary",
+          "value": { "action": "submit_approval", "trace_id": "{{trace_id}}" }
+        },
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "批准" },
+          "type": "default",
+          "value": { "action": "approve", "trace_id": "{{trace_id}}" }
+        },
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "驳回" },
+          "type": "danger",
+          "value": { "action": "reject", "trace_id": "{{trace_id}}" }
         }
       ]
     },
@@ -44,7 +98,7 @@
       "elements": [
         {
           "tag": "plain_text",
-          "content": "Thin-Agent：飞书侧仅转发与展示；所有决策与治理在 LiYe OS 内完成。"
+          "content": "Thin-Agent：飞书侧仅转发与展示；所有决策与治理在 LiYe OS 内完成。Week4: 写操作已禁用。"
         }
       ]
     }

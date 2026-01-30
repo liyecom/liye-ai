@@ -1,0 +1,10 @@
+{
+  "default": {
+    "approver_user_ids": [
+      "ou_test_approver_001",
+      "ou_test_approver_002"
+    ],
+    "description": "Default approver list for Phase1 Week4"
+  },
+  "_comment": "Week4 RBAC: Only listed user_ids can approve/reject. Update this file to add approvers."
+}
