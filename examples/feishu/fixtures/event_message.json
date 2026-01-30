@@ -1,0 +1,17 @@
+{
+  "type": "event_callback",
+  "token": "test_verification_token",
+  "event": {
+    "message": {
+      "message_id": "om_test_message_001",
+      "chat_id": "oc_test_chat_001",
+      "message_type": "text",
+      "content": "{\"text\":\"查询本周 ACOS\"}"
+    },
+    "sender": {
+      "sender_id": {
+        "user_id": "ou_test_user_001"
+      }
+    }
+  }
+}
