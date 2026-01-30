@@ -1,0 +1,380 @@
+{
+  "version": "p4-v0.1",
+  "description": "P4 Threshold Calibration Sample Set - 12 samples covering auto/degrade/block scenarios",
+  "samples": [
+    {
+      "id": "A1_boundary_eligible",
+      "group": "A",
+      "scenario": "Boundary values - just meets thresholds",
+      "expected_status": "AUTO_EXECUTED",
+      "expected_eligible": true,
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-A1",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.30,
+        "clicks": 20,
+        "orders": 0,
+        "spend": 15
+      },
+      "params": {
+        "negative_keywords": ["waste term 1", "waste term 2", "waste term 3"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-A1"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "A2_high_waste",
+      "group": "A",
+      "scenario": "High waste - clearly eligible",
+      "expected_status": "AUTO_EXECUTED",
+      "expected_eligible": true,
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-A2",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.55,
+        "clicks": 100,
+        "orders": 0,
+        "spend": 80
+      },
+      "params": {
+        "negative_keywords": ["high waste 1", "high waste 2", "high waste 3", "high waste 4", "high waste 5"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-A2"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "A3_max_keywords",
+      "group": "A",
+      "scenario": "Exactly max_negatives_per_run keywords",
+      "expected_status": "AUTO_EXECUTED",
+      "expected_eligible": true,
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-A3",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.40,
+        "clicks": 50,
+        "orders": 0,
+        "spend": 30
+      },
+      "params": {
+        "negative_keywords": ["kw1", "kw2", "kw3", "kw4", "kw5", "kw6", "kw7", "kw8", "kw9", "kw10"],
+        "match_type": "EXACT",
+        "campaign_id": "camp-A3"
+      },
+      "state": {
+        "negatives_added_today": 5,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "A4_cooldown_not_triggered",
+      "group": "A",
+      "scenario": "Cooldown elapsed - can execute",
+      "expected_status": "AUTO_EXECUTED",
+      "expected_eligible": true,
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-A4",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.35,
+        "clicks": 30,
+        "orders": 0,
+        "spend": 20
+      },
+      "params": {
+        "negative_keywords": ["cooldown test 1", "cooldown test 2"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-A4"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": [],
+        "last_execution_time": "2026-01-27T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "B1_spend_below",
+      "group": "B",
+      "scenario": "Spend below threshold",
+      "expected_status": "SUGGEST_ONLY",
+      "expected_eligible": false,
+      "expected_reason": "spend_gte",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-B1",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.40,
+        "clicks": 30,
+        "orders": 0,
+        "spend": 10
+      },
+      "params": {
+        "negative_keywords": ["low spend term 1", "low spend term 2"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-B1"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "B2_clicks_below",
+      "group": "B",
+      "scenario": "Clicks below threshold",
+      "expected_status": "SUGGEST_ONLY",
+      "expected_eligible": false,
+      "expected_reason": "clicks_gte",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-B2",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.45,
+        "clicks": 10,
+        "orders": 0,
+        "spend": 25
+      },
+      "params": {
+        "negative_keywords": ["low clicks term 1"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-B2"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "B3_has_orders",
+      "group": "B",
+      "scenario": "Has orders - not pure waste",
+      "expected_status": "SUGGEST_ONLY",
+      "expected_eligible": false,
+      "expected_reason": "orders_eq",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-B3",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.35,
+        "clicks": 50,
+        "orders": 2,
+        "spend": 40
+      },
+      "params": {
+        "negative_keywords": ["has orders term 1", "has orders term 2"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-B3"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "B4_waste_ratio_below",
+      "group": "B",
+      "scenario": "Waste ratio below threshold",
+      "expected_status": "SUGGEST_ONLY",
+      "expected_eligible": false,
+      "expected_reason": "wasted_spend_ratio_gte",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-B4",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.20,
+        "clicks": 40,
+        "orders": 0,
+        "spend": 30
+      },
+      "params": {
+        "negative_keywords": ["low waste term 1"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-B4"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "C1_exceeds_max_keywords",
+      "group": "C",
+      "scenario": "Exceeds max_negatives_per_run",
+      "expected_status": "BLOCKED",
+      "expected_eligible": true,
+      "expected_blocked_reason": "max_negatives_per_run",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-C1",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.45,
+        "clicks": 60,
+        "orders": 0,
+        "spend": 50
+      },
+      "params": {
+        "negative_keywords": ["too many 1", "too many 2", "too many 3", "too many 4", "too many 5", "too many 6", "too many 7", "too many 8", "too many 9", "too many 10", "too many 11", "too many 12", "too many 13", "too many 14", "too many 15"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-C1"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "C2_cooldown_active",
+      "group": "C",
+      "scenario": "Cooldown still active",
+      "expected_status": "BLOCKED",
+      "expected_eligible": true,
+      "expected_blocked_reason": "cooldown",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-C2",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.40,
+        "clicks": 40,
+        "orders": 0,
+        "spend": 25
+      },
+      "params": {
+        "negative_keywords": ["cooldown active 1", "cooldown active 2"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-C2"
+      },
+      "state": {
+        "negatives_added_today": 5,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": [],
+        "last_execution_time": "2026-01-29T20:00:00.000Z"
+      }
+    },
+    {
+      "id": "C3_all_filtered",
+      "group": "C",
+      "scenario": "All candidates filtered by brand/asin/too_short",
+      "expected_status": "BLOCKED",
+      "expected_eligible": true,
+      "expected_blocked_reason": "all_filtered",
+      "observation": {
+        "observation_id": "SEARCH_TERM_WASTE_HIGH",
+        "trace_id": "trace-p4-C3",
+        "rule_version": "SEARCH_TERM_WASTE_HIGH.yaml@v0.2"
+      },
+      "signals": {
+        "wasted_spend_ratio": 0.50,
+        "clicks": 70,
+        "orders": 0,
+        "spend": 60
+      },
+      "params": {
+        "negative_keywords": ["mybrand product", "B08XYZABC1", "ab"],
+        "match_type": "PHRASE",
+        "campaign_id": "camp-C3"
+      },
+      "state": {
+        "negatives_added_today": 0,
+        "brand_terms": ["mybrand"],
+        "existing_negatives": []
+      }
+    },
+    {
+      "id": "C4_non_whitelisted",
+      "group": "C",
+      "scenario": "Non-whitelisted action_id",
+      "expected_status": "DENY_UNSUPPORTED_ACTION",
+      "expected_eligible": false,
+      "expected_reason": "not_in_whitelist",
+      "observation": {
+        "observation_id": "SOME_OTHER_OBSERVATION",
+        "trace_id": "trace-p4-C4",
+        "rule_version": "OTHER.yaml@v0.1"
+      },
+      "action_id_override": "UNSUPPORTED_ACTION_XYZ",
+      "signals": {
+        "wasted_spend_ratio": 0.50,
+        "clicks": 80,
+        "orders": 0,
+        "spend": 70
+      },
+      "params": {
+        "some_param": "value"
+      },
+      "state": {}
+    }
+  ],
+  "profile_test_matrix": {
+    "description": "Expected eligibility by profile",
+    "conservative": {
+      "thresholds": {
+        "wasted_spend_ratio_gte": 0.35,
+        "clicks_gte": 25,
+        "orders_eq": 0,
+        "spend_gte": 20
+      },
+      "expected_eligible_samples": ["A2_high_waste", "A3_max_keywords", "A4_cooldown_not_triggered"],
+      "expected_ineligible_samples": ["A1_boundary_eligible", "B1_spend_below", "B2_clicks_below", "B3_has_orders", "B4_waste_ratio_below"]
+    },
+    "balanced": {
+      "thresholds": {
+        "wasted_spend_ratio_gte": 0.30,
+        "clicks_gte": 20,
+        "orders_eq": 0,
+        "spend_gte": 15
+      },
+      "expected_eligible_samples": ["A1_boundary_eligible", "A2_high_waste", "A3_max_keywords", "A4_cooldown_not_triggered"],
+      "expected_ineligible_samples": ["B1_spend_below", "B2_clicks_below", "B3_has_orders", "B4_waste_ratio_below"]
+    },
+    "aggressive": {
+      "thresholds": {
+        "wasted_spend_ratio_gte": 0.25,
+        "clicks_gte": 15,
+        "orders_eq": 0,
+        "spend_gte": 10
+      },
+      "expected_eligible_samples": ["A1_boundary_eligible", "A2_high_waste", "A3_max_keywords", "A4_cooldown_not_triggered", "B1_spend_below", "B2_clicks_below", "B4_waste_ratio_below"],
+      "expected_ineligible_samples": ["B3_has_orders"]
+    }
+  }
+}

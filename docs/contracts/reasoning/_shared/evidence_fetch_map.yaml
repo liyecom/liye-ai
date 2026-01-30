@@ -1,0 +1,555 @@
+# Evidence Fetch Map v0.2
+#
+# Maps evidence fields to their data sources.
+# This makes reasoning assets executable knowledge, not just documentation.
+#
+# source: GDP (Google Data Platform) | ENGINE (Amazon Growth Engine internal) | MANUAL
+# query_ref: SQL file reference or DuckDB query name
+# fallback: none | approx | manual (what to do if source unavailable)
+
+version: v0.2
+updated_at: 2026-01-25
+
+evidence_sources:
+
+  # === ACoS & Performance Metrics ===
+
+  acos:
+    source: ENGINE
+    query_ref: metrics.get_campaign_acos
+    fallback: manual
+    description: Advertising Cost of Sales = ad_spend / ad_sales
+    unit: ratio
+    refresh: daily
+
+  ctr:
+    source: ENGINE
+    query_ref: metrics.get_ad_ctr
+    fallback: manual
+    description: Click-Through Rate = clicks / impressions
+    unit: ratio
+    refresh: daily
+
+  unit_session_pct:
+    source: ENGINE
+    query_ref: metrics.get_listing_cvr
+    fallback: approx
+    description: Listing CVR = units / sessions
+    unit: ratio
+    refresh: daily
+    note: Not the same as AD_CVR
+
+  # === Product Lifecycle ===
+
+  days_since_launch:
+    source: ENGINE
+    query_ref: products.get_days_since_launch
+    fallback: manual
+    description: Days since product first appeared on Amazon
+    unit: days
+    refresh: daily
+
+  review_count:
+    source: ENGINE
+    query_ref: products.get_review_count
+    fallback: approx
+    description: Total number of customer reviews
+    unit: count
+    refresh: daily
+
+  rating:
+    source: ENGINE
+    query_ref: products.get_rating
+    fallback: approx
+    description: Average customer rating (1-5 stars)
+    unit: stars
+    refresh: daily
+
+  # === Keyword & Search Metrics ===
+
+  wasted_spend_ratio:
+    source: ENGINE
+    query_ref: keywords.get_wasted_spend_ratio
+    fallback: approx
+    description: Ratio of spend on non-converting search terms
+    unit: ratio
+    refresh: weekly
+
+  search_term_relevance_score:
+    source: ENGINE
+    query_ref: keywords.get_relevance_score
+    fallback: none
+    description: Semantic relevance between search term and product
+    unit: score_0_1
+    refresh: weekly
+    note: Requires ML pipeline
+
+  # === Bidding & Cost Metrics ===
+
+  cpc:
+    source: ENGINE
+    query_ref: campaigns.get_avg_cpc
+    fallback: approx
+    description: Average Cost Per Click
+    unit: currency
+    refresh: daily
+
+  category_avg_cpc:
+    source: GDP
+    query_ref: benchmarks/category_cpc.sql
+    fallback: approx
+    description: Category average CPC from GDP benchmarks
+    unit: currency
+    refresh: weekly
+
+  # === Competitive Intelligence ===
+
+  price_percentile:
+    source: ENGINE
+    query_ref: products.get_price_percentile
+    fallback: approx
+    description: Price position within category (0=cheapest, 1=most expensive)
+    unit: percentile
+    refresh: daily
+
+  category_avg_price:
+    source: GDP
+    query_ref: benchmarks/category_price.sql
+    fallback: approx
+    description: Average price in the product category
+    unit: currency
+    refresh: weekly
+
+  # === Match Type & Targeting ===
+
+  broad_match_spend_pct:
+    source: ENGINE
+    query_ref: campaigns.get_match_type_spend_distribution
+    fallback: approx
+    description: Percentage of ad spend on broad match keywords
+    unit: ratio
+    refresh: daily
+
+  exact_match_spend_pct:
+    source: ENGINE
+    query_ref: campaigns.get_match_type_spend_distribution
+    fallback: approx
+    description: Percentage of ad spend on exact match keywords
+    unit: ratio
+    refresh: daily
+
+  phrase_match_spend_pct:
+    source: ENGINE
+    query_ref: campaigns.get_match_type_spend_distribution
+    fallback: approx
+    description: Percentage of ad spend on phrase match keywords
+    unit: ratio
+    refresh: daily
+
+  # === Negative Keywords ===
+
+  negative_keyword_count:
+    source: ENGINE
+    query_ref: campaigns.get_negative_keyword_count
+    fallback: approx
+    description: Total number of negative keywords across campaigns
+    unit: count
+    refresh: daily
+
+  negative_to_positive_ratio:
+    source: ENGINE
+    query_ref: campaigns.get_negative_positive_ratio
+    fallback: approx
+    description: Ratio of negative keywords to positive keywords
+    unit: ratio
+    refresh: daily
+
+  # === Auto Campaign Metrics ===
+
+  auto_campaign_spend_pct:
+    source: ENGINE
+    query_ref: campaigns.get_auto_spend_percentage
+    fallback: approx
+    description: Percentage of total ad spend on auto campaigns
+    unit: ratio
+    refresh: daily
+
+  auto_campaign_acos:
+    source: ENGINE
+    query_ref: campaigns.get_auto_campaign_acos
+    fallback: approx
+    description: ACoS specifically for auto campaigns
+    unit: ratio
+    refresh: daily
+
+  # === Search Term Analysis ===
+
+  search_term_count:
+    source: ENGINE
+    query_ref: search_terms.get_unique_count
+    fallback: approx
+    description: Number of unique search terms triggering ads
+    unit: count
+    refresh: weekly
+
+  irrelevant_term_pct:
+    source: ENGINE
+    query_ref: search_terms.get_irrelevant_percentage
+    fallback: approx
+    description: Percentage of search terms deemed irrelevant
+    unit: ratio
+    refresh: weekly
+    note: Requires relevance scoring
+
+  category_mismatch_rate:
+    source: ENGINE
+    query_ref: search_terms.get_category_mismatch_rate
+    fallback: none
+    description: Rate of search terms from wrong product categories
+    unit: ratio
+    refresh: weekly
+
+  # === Listing Quality ===
+
+  listing_quality_score:
+    source: ENGINE
+    query_ref: listings.get_quality_score
+    fallback: approx
+    description: Overall listing quality score (0-100)
+    unit: score
+    refresh: daily
+
+  bullet_point_count:
+    source: ENGINE
+    query_ref: listings.get_bullet_count
+    fallback: manual
+    description: Number of bullet points in listing
+    unit: count
+    refresh: daily
+
+  a_plus_content_enabled:
+    source: ENGINE
+    query_ref: listings.has_a_plus
+    fallback: manual
+    description: Whether A+ Content is enabled
+    unit: boolean
+    refresh: daily
+
+  description_length:
+    source: ENGINE
+    query_ref: listings.get_description_length
+    fallback: manual
+    description: Character count of product description
+    unit: count
+    refresh: daily
+
+  title_length:
+    source: ENGINE
+    query_ref: listings.get_title_length
+    fallback: manual
+    description: Character count of product title
+    unit: count
+    refresh: daily
+
+  title_keyword_coverage:
+    source: ENGINE
+    query_ref: listings.get_title_keyword_coverage
+    fallback: approx
+    description: Ratio of target keywords present in title
+    unit: ratio
+    refresh: weekly
+
+  main_image_score:
+    source: ENGINE
+    query_ref: listings.get_main_image_score
+    fallback: none
+    description: Quality score of main product image (0-1)
+    unit: score_0_1
+    refresh: weekly
+    note: Requires image analysis
+
+  # === Inventory & Stock ===
+
+  in_stock_rate:
+    source: ENGINE
+    query_ref: inventory.get_in_stock_rate
+    fallback: approx
+    description: Percentage of time product was in stock
+    unit: ratio
+    refresh: daily
+
+  stockout_days_30d:
+    source: ENGINE
+    query_ref: inventory.get_stockout_days
+    fallback: approx
+    description: Number of days out of stock in last 30 days
+    unit: days
+    refresh: daily
+
+  current_inventory_days:
+    source: ENGINE
+    query_ref: inventory.get_days_of_supply
+    fallback: approx
+    description: Estimated days of inventory remaining
+    unit: days
+    refresh: daily
+
+  # === BuyBox & Eligibility ===
+
+  buybox_win_rate:
+    source: ENGINE
+    query_ref: products.get_buybox_win_rate
+    fallback: approx
+    description: Percentage of time winning the Buy Box
+    unit: ratio
+    refresh: daily
+
+  prime_eligible:
+    source: ENGINE
+    query_ref: products.is_prime_eligible
+    fallback: manual
+    description: Whether product is Prime eligible
+    unit: boolean
+    refresh: daily
+
+  listing_status:
+    source: ENGINE
+    query_ref: listings.get_status
+    fallback: manual
+    description: Current listing status (active/suppressed/etc)
+    unit: enum
+    refresh: daily
+
+  # === Budget & Pacing ===
+
+  daily_budget:
+    source: ENGINE
+    query_ref: campaigns.get_daily_budget
+    fallback: manual
+    description: Configured daily budget for campaign
+    unit: currency
+    refresh: daily
+
+  budget_pacing:
+    source: ENGINE
+    query_ref: campaigns.get_budget_pacing
+    fallback: approx
+    description: Current spend rate vs ideal even pacing
+    unit: ratio
+    refresh: hourly
+
+  budget_exhaust_hour:
+    source: ENGINE
+    query_ref: campaigns.get_budget_exhaust_hour
+    fallback: approx
+    description: Hour of day when budget was exhausted (0-23)
+    unit: hour
+    refresh: daily
+
+  budget_utilization_rate:
+    source: ENGINE
+    query_ref: campaigns.get_budget_utilization
+    fallback: approx
+    description: Percentage of daily budget spent
+    unit: ratio
+    refresh: daily
+
+  # === Keyword Volume & Coverage ===
+
+  keyword_search_volume_avg:
+    source: GDP
+    query_ref: keywords/search_volume.sql
+    fallback: approx
+    description: Average monthly search volume of targeted keywords
+    unit: count
+    refresh: monthly
+
+  keyword_count:
+    source: ENGINE
+    query_ref: campaigns.get_keyword_count
+    fallback: manual
+    description: Total number of keywords being targeted
+    unit: count
+    refresh: daily
+
+  impression_share:
+    source: ENGINE
+    query_ref: campaigns.get_impression_share
+    fallback: approx
+    description: Share of total available impressions won
+    unit: ratio
+    refresh: daily
+
+  suggested_bid:
+    source: ENGINE
+    query_ref: keywords.get_suggested_bid
+    fallback: approx
+    description: Amazon's suggested bid for keyword
+    unit: currency
+    refresh: daily
+
+  bid:
+    source: ENGINE
+    query_ref: keywords.get_current_bid
+    fallback: manual
+    description: Current bid amount for keyword
+    unit: currency
+    refresh: realtime
+
+  # === Sales Velocity & Ranking ===
+
+  sales_velocity_7d:
+    source: ENGINE
+    query_ref: products.get_sales_velocity_7d
+    fallback: approx
+    description: Average daily units sold over last 7 days
+    unit: units_per_day
+    refresh: daily
+
+  sales_velocity_30d:
+    source: ENGINE
+    query_ref: products.get_sales_velocity_30d
+    fallback: approx
+    description: Average daily units sold over last 30 days
+    unit: units_per_day
+    refresh: daily
+
+  organic_rank:
+    source: ENGINE
+    query_ref: keywords.get_organic_rank
+    fallback: none
+    description: Organic search rank for keyword (1=best)
+    unit: position
+    refresh: daily
+
+  review_velocity:
+    source: ENGINE
+    query_ref: products.get_review_velocity
+    fallback: approx
+    description: Rate of new reviews per week
+    unit: count_per_week
+    refresh: weekly
+
+  # === Competitor Metrics ===
+
+  competitor_rank_change:
+    source: ENGINE
+    query_ref: competitors.get_rank_change
+    fallback: none
+    description: Change in competitor's rank over period
+    unit: delta
+    refresh: daily
+
+  competitor_price_history:
+    source: ENGINE
+    query_ref: competitors.get_price_history
+    fallback: none
+    description: Historical price data for competitor
+    unit: currency_series
+    refresh: daily
+
+  competitor_days_on_market:
+    source: ENGINE
+    query_ref: competitors.get_days_on_market
+    fallback: approx
+    description: Days since competitor product launched
+    unit: days
+    refresh: daily
+
+  category_avg_price_trend:
+    source: GDP
+    query_ref: benchmarks/category_price_trend.sql
+    fallback: approx
+    description: Trend of average category price over time
+    unit: trend
+    refresh: weekly
+
+  # === Campaign Structure ===
+
+  campaign_count:
+    source: ENGINE
+    query_ref: campaigns.get_active_count
+    fallback: manual
+    description: Number of active campaigns for product
+    unit: count
+    refresh: daily
+
+  keyword_overlap_ratio:
+    source: ENGINE
+    query_ref: campaigns.get_keyword_overlap
+    fallback: approx
+    description: Ratio of keywords appearing in multiple campaigns
+    unit: ratio
+    refresh: weekly
+
+  top_5_keyword_spend_pct:
+    source: ENGINE
+    query_ref: keywords.get_top5_spend_share
+    fallback: approx
+    description: Percentage of spend consumed by top 5 keywords
+    unit: ratio
+    refresh: daily
+
+  # === Return & Quality Issues ===
+
+  return_rate:
+    source: ENGINE
+    query_ref: products.get_return_rate
+    fallback: approx
+    description: Percentage of units returned
+    unit: ratio
+    refresh: weekly
+
+  bounce_rate:
+    source: ENGINE
+    query_ref: listings.get_bounce_rate
+    fallback: none
+    description: Rate of visitors leaving without action
+    unit: ratio
+    refresh: daily
+    note: Requires Brand Analytics
+
+  # === Top of Search ===
+
+  top_of_search_share:
+    source: ENGINE
+    query_ref: campaigns.get_tos_impression_share
+    fallback: approx
+    description: Share of top-of-search ad impressions
+    unit: ratio
+    refresh: daily
+
+  # === Budget Governance ===
+
+  proposed_amount:
+    source: ENGINE
+    query_ref: context.proposed_spend
+    fallback: none
+    description: The amount being proposed in the current action
+    unit: currency
+    refresh: realtime
+
+  limit_value:
+    source: ENGINE
+    query_ref: contracts.get_budget_limit
+    fallback: none
+    description: The configured budget limit from governance contract
+    unit: currency
+    refresh: realtime
+
+# === Fallback Strategies ===
+
+fallback_strategies:
+  none:
+    description: No fallback available - evidence marked as MISSING
+    action: return_null
+
+  approx:
+    description: Use approximate value or category average
+    action: return_estimate
+    confidence_penalty: -0.2
+
+  manual:
+    description: Prompt user for manual input
+    action: prompt_user
+    confidence_penalty: -0.1

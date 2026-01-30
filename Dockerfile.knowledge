@@ -1,0 +1,31 @@
+# LiYe Knowledge MCP Server
+#
+# Minimal Python container for the Knowledge MCP (Data Plane).
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements if exists (optional dependencies)
+COPY requirements*.txt ./
+RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+
+# Copy source files
+COPY src/runtime/mcp/ ./src/runtime/mcp/
+
+# Create trace directory
+RUN mkdir -p .liye/traces
+
+# Make src a package
+RUN touch src/__init__.py src/runtime/__init__.py
+
+# Set user (non-root)
+RUN useradd -m appuser
+USER appuser
+
+# Default command
+CMD ["python", "-m", "src.runtime.mcp.server_main"]

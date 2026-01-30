@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "execution_mode.schema.json",
+  "title": "ExecutionMode",
+  "description": "Defines how a recommended action should be executed. P2.4 safety upgrade.",
+  "type": "object",
+  "properties": {
+    "execution_mode": {
+      "type": "string",
+      "enum": ["suggest_only", "auto_if_safe", "requires_approval"],
+      "description": "How the action should be executed",
+      "default": "suggest_only"
+    },
+    "write_guardrail_ref": {
+      "type": "string",
+      "description": "Reference to the Write Capability Matrix contract that governs this action"
+    }
+  },
+  "definitions": {
+    "execution_modes": {
+      "suggest_only": {
+        "description": "Action is only suggested, never auto-executed. Default for P2.",
+        "requires_approval": true,
+        "auto_executable": false
+      },
+      "auto_if_safe": {
+        "description": "Action may be auto-executed if safety conditions met. Future capability.",
+        "requires_approval": false,
+        "auto_executable": true,
+        "safety_conditions": [
+          "Budget impact < daily_limit * 0.1",
+          "No irreversible changes",
+          "Within approved action types"
+        ]
+      },
+      "requires_approval": {
+        "description": "Action requires explicit user approval before execution.",
+        "requires_approval": true,
+        "auto_executable": false
+      }
+    }
+  },
+  "examples": [
+    {
+      "action_id": "REDUCE_BID",
+      "risk_level": "LOW",
+      "execution_mode": "auto_if_safe",
+      "write_guardrail_ref": "contracts/amazon-growth/bid_adjustment.yaml"
+    },
+    {
+      "action_id": "PAUSE_CAMPAIGN",
+      "risk_level": "HIGH",
+      "execution_mode": "requires_approval",
+      "write_guardrail_ref": "contracts/amazon-growth/campaign_control.yaml"
+    }
+  ]
+}

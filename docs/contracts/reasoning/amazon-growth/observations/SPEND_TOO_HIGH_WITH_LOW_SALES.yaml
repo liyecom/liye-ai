@@ -1,0 +1,119 @@
+observation_id: SPEND_TOO_HIGH_WITH_LOW_SALES
+version: v0.1
+severity_default: CRITICAL
+
+definition:
+  summary: "广告花费高但销售额低"
+  metric: roas
+  trigger:
+    op: "<"
+    threshold_ref: "targets.min_roas"
+  alternative_trigger:
+    logic: "ad_spend > targets.daily_budget_warning AND ad_sales < targets.min_daily_ad_sales"
+
+cause_candidates:
+  - id: TARGETING_TOO_BROAD
+    description: "投放定向过于宽泛，流量质量差"
+    evidence_requirements:
+      - wasted_spend_ratio
+      - search_term_count
+      - irrelevant_term_pct
+    decision_logic: "wasted_spend_ratio > 0.4 OR irrelevant_term_pct > 0.3"
+    rationale:
+      - "宽泛匹配吸引大量无购买意图用户"
+      - "搜索词报告显示高比例不相关词"
+      - "花费分散在低意图关键词上"
+    recommended_actions:
+      - action_id: REVIEW_SEARCH_TERM_REPORT
+        risk_level: LOW
+        notes: "导出最近 30 天搜索词报告，标记低转化词"
+      - action_id: ADD_NEGATIVE_KEYWORDS_BATCH
+        risk_level: LOW
+        notes: "批量添加不相关搜索词为否定词"
+    counterfactuals:
+      - if: "add_top_50_negative_keywords"
+        expected: "spend_down_20pct, roas_up"
+        risk_level: LOW
+      - if: "switch_to_exact_match_only"
+        expected: "impressions_down_50pct, spend_down_30pct, roas_up"
+        risk_level: MEDIUM
+
+  - id: PRODUCT_MARKET_FIT_WEAK
+    description: "产品本身竞争力不足"
+    evidence_requirements:
+      - rating
+      - review_count
+      - price_percentile
+      - listing_quality_score
+    decision_logic: "rating < 4.0 OR review_count < 30 OR price_percentile > 0.8"
+    rationale:
+      - "低评分导致用户不敢购买"
+      - "评论太少缺乏社会证明"
+      - "价格过高失去竞争力"
+    recommended_actions:
+      - action_id: PAUSE_ADS_OPTIMIZE_PRODUCT
+        risk_level: MEDIUM
+        notes: "暂停广告，先优化产品本身"
+      - action_id: REQUEST_REVIEWS
+        risk_level: LOW
+        notes: "使用 Request a Review 功能"
+    counterfactuals:
+      - if: "reduce_price_10pct"
+        expected: "cvr_up, roas_up, margin_down"
+        risk_level: MEDIUM
+      - if: "pause_ads_30_days"
+        expected: "spend_zero, focus_on_product_improvement"
+        risk_level: HIGH
+
+  - id: BID_STRATEGY_INEFFICIENT
+    description: "出价策略导致成本过高"
+    evidence_requirements:
+      - cpc
+      - category_avg_cpc
+      - bid_adjustment_enabled
+      - placement_performance
+    decision_logic: "cpc > category_avg_cpc * 1.8 OR bid_adjustment_enabled AND top_of_search_cpc > cpc * 2"
+    rationale:
+      - "出价远高于品类均值"
+      - "Placement 加价导致部分点击成本过高"
+      - "动态出价策略不适合当前阶段"
+    recommended_actions:
+      - action_id: REDUCE_BIDS_20PCT
+        risk_level: LOW
+        notes: "全局降低出价 20%"
+      - action_id: REVIEW_PLACEMENT_ADJUSTMENTS
+        risk_level: LOW
+        notes: "检查并降低 Placement 加价比例"
+    counterfactuals:
+      - if: "reduce_bids_20pct"
+        expected: "cpc_down, impressions_down_small, roas_up"
+        risk_level: LOW
+      - if: "remove_placement_adjustments"
+        expected: "top_of_search_impressions_down, cpc_down_30pct"
+        risk_level: MEDIUM
+
+  - id: CAMPAIGN_STRUCTURE_MESS
+    description: "广告结构混乱，相互抢量"
+    evidence_requirements:
+      - campaign_count
+      - keyword_overlap_ratio
+      - auto_vs_manual_spend_ratio
+    decision_logic: "campaign_count > 10 AND keyword_overlap_ratio > 0.5"
+    rationale:
+      - "多个广告活动竞争相同关键词"
+      - "Auto 和 Manual 广告相互抢量"
+      - "预算分配不合理"
+    recommended_actions:
+      - action_id: CONSOLIDATE_CAMPAIGNS
+        risk_level: MEDIUM
+        notes: "合并重复广告活动"
+      - action_id: IMPLEMENT_NEGATIVE_TARGETING_BETWEEN_CAMPAIGNS
+        risk_level: LOW
+        notes: "在 Auto 广告中否定 Manual 广告已投放的词"
+    counterfactuals:
+      - if: "consolidate_to_3_campaigns"
+        expected: "management_easier, spend_more_focused"
+        risk_level: MEDIUM
+      - if: "pause_overlapping_campaigns"
+        expected: "internal_competition_eliminated, cpc_down"
+        risk_level: MEDIUM

@@ -1,0 +1,121 @@
+# ADD_NEGATIVE_KEYWORDS Action Playbook
+# P4: Threshold Calibration with Profile Support
+# Version: v0.2
+
+action_id: ADD_NEGATIVE_KEYWORDS
+version: v0.2
+execution_mode_default: suggest_only
+
+definition:
+  summary: "自动添加否定关键词以降低无效消耗"
+  scope: "campaign/ad_group"   # 允许 campaign 或 ad_group 级别
+  category: "ppc_optimization"
+  risk_level: LOW
+
+eligibility:  # 触发门槛（必须全部满足才允许 auto_if_safe）
+  required_observation: SEARCH_TERM_WASTE_HIGH
+
+  # P4: Threshold profiles for calibration
+  profiles:
+    conservative:
+      description: "保守策略 - 高门槛，低误判风险"
+      wasted_spend_ratio_gte: 0.35   # 浪费消耗比例 >= 35%
+      clicks_gte: 25                  # 点击数 >= 25
+      orders_eq: 0                    # 订单数 = 0（完全无转化）
+      spend_gte: 20                   # 消耗 >= $20 USD
+    balanced:
+      description: "平衡策略 - 默认推荐，覆盖率与准确率平衡"
+      wasted_spend_ratio_gte: 0.30   # 浪费消耗比例 >= 30%
+      clicks_gte: 20                  # 点击数 >= 20
+      orders_eq: 0                    # 订单数 = 0
+      spend_gte: 15                   # 消耗 >= $15 USD
+    aggressive:
+      description: "激进策略 - 低门槛，高覆盖，需监控误判"
+      wasted_spend_ratio_gte: 0.25   # 浪费消耗比例 >= 25%
+      clicks_gte: 15                  # 点击数 >= 15
+      orders_eq: 0                    # 订单数 = 0
+      spend_gte: 10                   # 消耗 >= $10 USD
+
+  active_profile: balanced           # 当前激活的 profile
+
+  # Legacy thresholds (backward compatible, mirrors active_profile)
+  thresholds:
+    wasted_spend_ratio_gte: 0.30
+    clicks_gte: 20
+    orders_eq: 0
+    spend_gte: 15
+
+  cooldown:
+    per_campaign_hours: 24          # 同一 campaign 24h 内只允许一次自动执行
+
+safety_limits:  # 安全限额（必须强制执行）
+  max_negatives_per_run: 10                    # 单次最多添加 10 个否词
+  max_negatives_per_campaign_per_day: 20       # 每 campaign 每天最多 20 个
+  match_types_allowed: ["PHRASE", "EXACT"]     # 禁止 BROAD 否词
+  forbid_brand_terms: true                     # 禁止把品牌词加否词
+  forbid_asin_terms: true                      # 禁止把 ASIN/SKU 相关词加否词（避免误伤）
+  min_term_length: 3                           # 最小词长度
+
+selection_policy:
+  strategy: "top_waste_terms"       # 选择浪费最高的词
+  top_n_candidates: 50              # 候选池大小
+  dedupe: true                      # 去重
+  normalize:
+    lowercase: true
+    trim_whitespace: true
+
+rollback:
+  supported: true
+  method: "remove_negatives"
+  ttl_hours: 168                    # 7 天内可回滚
+  payload_required_fields:
+    - campaign_id
+    - ad_group_id
+    - negative_keywords_added
+    - match_types
+    - timestamp
+    - executor_id
+
+expected_outcome:
+  primary_metrics:
+    - wasted_spend_ratio_down
+    - acos_down
+  secondary_metrics:
+    - cpc_down_small
+    - impressions_down_small
+  evaluation_window_days: 7
+  success_criteria:
+    wasted_spend_ratio_delta_lte: -0.05   # 浪费比例下降至少 5%
+    acos_delta_lte: 0.05                  # ACoS 不升超过 5%
+
+audit:
+  must_emit_action_outcome_event: true
+  must_link_rule_version: true
+  must_record_before_after_metrics: true
+  retention_days: 90
+
+# Evidence mapping for proposal building
+evidence_requirements:
+  - search_term_report        # 搜索词报告
+  - wasted_spend_by_term      # 按词维度的浪费消耗
+  - campaign_negatives        # 现有否词列表（用于去重）
+  - brand_terms               # 品牌词列表（用于过滤）
+
+# API integration hints (for executor implementation)
+api_hints:
+  service: "amazon_ads_api"
+  endpoint: "negativeKeywords"
+  method: "createNegativeKeywords"
+  batch_size: 100
+  rate_limit_per_minute: 30
+
+# P4 Calibration metadata
+calibration:
+  last_calibrated: "2026-01-29"
+  calibration_version: "p4-v0.1"
+  recommendation: "balanced"
+  rationale: |
+    Based on P4 calibration with 12 synthetic samples:
+    - conservative: 3/4 A-group eligible (75%), may miss boundary cases
+    - balanced: 4/4 A-group eligible (100%), recommended default
+    - aggressive: 7/8 B-group would pass (87.5%), high false positive risk

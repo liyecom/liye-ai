@@ -1,0 +1,144 @@
+observation_id: CVR_TOO_LOW
+version: v0.1
+severity_default: HIGH
+
+definition:
+  summary: "转化率低于品类基准"
+  metric: unit_session_pct
+  trigger:
+    op: "<"
+    threshold_ref: "targets.min_unit_session_pct"
+  note: "使用 LISTING_CVR (units/sessions) 而非 AD_CVR (orders/clicks)"
+
+cause_candidates:
+  - id: LISTING_CONTENT_INCOMPLETE
+    description: "Listing 内容不完整"
+    evidence_requirements:
+      - bullet_point_count
+      - a_plus_content_enabled
+      - description_length
+      - backend_keywords_filled
+    decision_logic: "bullet_point_count < 5 OR a_plus_content_enabled == false OR description_length < 500"
+    rationale:
+      - "五点描述不完整无法充分说明产品"
+      - "没有 A+ 内容缺少视觉说服力"
+      - "用户缺乏足够信息做购买决策"
+    recommended_actions:
+      - action_id: COMPLETE_LISTING_CONTENT
+        risk_level: LOW
+        notes: "填满五点描述，补充后台关键词"
+      - action_id: CREATE_A_PLUS_CONTENT
+        risk_level: LOW
+        notes: "创建 A+ 图文内容提升转化"
+    counterfactuals:
+      - if: "add_a_plus_content"
+        expected: "cvr_up_5_10pct, bounce_rate_down"
+        risk_level: LOW
+      - if: "rewrite_bullet_points"
+        expected: "cvr_up, time_on_page_up"
+        risk_level: LOW
+
+  - id: OFFER_NOT_COMPELLING
+    description: "产品 Offer 缺乏竞争力"
+    evidence_requirements:
+      - price_percentile
+      - rating
+      - review_count
+      - prime_eligible
+    decision_logic: "price_percentile > 0.7 OR rating < 4.0 OR prime_eligible == false"
+    rationale:
+      - "价格偏高失去性价比优势"
+      - "评分低影响购买信心"
+      - "非 Prime 配送体验差"
+    recommended_actions:
+      - action_id: OPTIMIZE_OFFER_COMPETITIVENESS
+        risk_level: MEDIUM
+        notes: "综合评估价格、评分、配送策略"
+      - action_id: ENROLL_IN_FBA
+        risk_level: MEDIUM
+        notes: "使用 FBA 获得 Prime 标识"
+    counterfactuals:
+      - if: "reduce_price_15pct"
+        expected: "cvr_up_20pct, margin_down"
+        risk_level: MEDIUM
+      - if: "switch_to_fba"
+        expected: "cvr_up_significant, fulfillment_cost_up"
+        risk_level: MEDIUM
+
+  - id: TRAFFIC_QUALITY_POOR
+    description: "流量质量差，进来的都是不买的"
+    evidence_requirements:
+      - search_term_relevance_score
+      - bounce_rate
+      - wasted_spend_ratio
+    decision_logic: "search_term_relevance_score < 0.6 OR bounce_rate > 0.7 OR wasted_spend_ratio > 0.4"
+    rationale:
+      - "搜索词与产品不匹配"
+      - "用户进来发现不是想要的就离开"
+      - "广告吸引了错误的受众"
+    recommended_actions:
+      - action_id: CLEAN_SEARCH_TERMS
+        risk_level: LOW
+        notes: "否定不相关搜索词"
+      - action_id: FOCUS_ON_HIGH_INTENT_KEYWORDS
+        risk_level: LOW
+        notes: "聚焦购买意图强的长尾词"
+    counterfactuals:
+      - if: "remove_low_relevance_keywords"
+        expected: "traffic_down, cvr_up, better_unit_economics"
+        risk_level: LOW
+      - if: "shift_to_exact_match"
+        expected: "impressions_down_30pct, cvr_up_20pct"
+        risk_level: MEDIUM
+
+  - id: MAIN_IMAGE_MISLEADING
+    description: "主图与实物不符"
+    evidence_requirements:
+      - return_rate
+      - negative_review_content_mismatch_pct
+      - image_vs_product_similarity
+    decision_logic: "return_rate > 0.1 OR negative_review_content_mismatch_pct > 0.2"
+    rationale:
+      - "主图过度美化或误导"
+      - "用户到详情页发现与预期不符"
+      - "差评中频繁提到与图片不符"
+    recommended_actions:
+      - action_id: AUDIT_IMAGE_ACCURACY
+        risk_level: LOW
+        notes: "确保主图真实反映产品"
+      - action_id: ADD_PRODUCT_DIMENSIONS
+        risk_level: LOW
+        notes: "在图片中标注产品尺寸"
+    counterfactuals:
+      - if: "use_realistic_images"
+        expected: "ctr_may_drop, cvr_up, returns_down"
+        risk_level: LOW
+      - if: "add_size_reference_image"
+        expected: "expectation_aligned, returns_down"
+        risk_level: LOW
+
+  - id: STOCK_OR_DELIVERY_ISSUES
+    description: "库存或配送问题"
+    evidence_requirements:
+      - in_stock_rate
+      - estimated_delivery_days
+      - buybox_win_rate
+    decision_logic: "in_stock_rate < 0.95 OR estimated_delivery_days > 5 OR buybox_win_rate < 0.8"
+    rationale:
+      - "缺货导致丢失 BuyBox"
+      - "配送时间长影响购买决策"
+      - "无 BuyBox 的产品转化极低"
+    recommended_actions:
+      - action_id: OPTIMIZE_INVENTORY
+        risk_level: MEDIUM
+        notes: "确保库存充足，避免断货"
+      - action_id: REVIEW_FBA_INVENTORY_LEVELS
+        risk_level: MEDIUM
+        notes: "检查 FBA 库存，提前补货"
+    counterfactuals:
+      - if: "maintain_100pct_stock"
+        expected: "buybox_stable, cvr_stable"
+        risk_level: LOW
+      - if: "reduce_delivery_to_2_days"
+        expected: "cvr_up_significant"
+        risk_level: MEDIUM

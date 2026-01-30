@@ -1,0 +1,59 @@
+# Execution Flags Configuration
+# P3: Feature flags for safe auto execution
+# Version: v0.1
+#
+# CRITICAL: This is the "kill switch" for auto execution.
+# Set auto_execution.enabled to false to immediately disable all auto execution.
+#
+# Environment variable override: REASONING_AUTO_EXECUTION=false
+
+version: v0.1
+last_updated: "2026-01-25"
+
+auto_execution:
+  # Master switch - default is OFF for safety
+  enabled: false
+
+  # Actions allowed for auto execution (whitelist)
+  # Only actions in this list AND with execution_mode: auto_if_safe can auto-execute
+  allow_actions:
+    - ADD_NEGATIVE_KEYWORDS
+
+  # Global rate limits (on top of per-action limits)
+  global_limits:
+    max_actions_per_hour: 100
+    max_actions_per_day: 500
+
+  # Audit requirements
+  audit:
+    log_all_proposals: true
+    log_execution_decisions: true
+    alert_on_failure: true
+
+# Fallback behavior when auto_execution is disabled
+fallback:
+  mode: "suggest_only"
+  emit_proposal: true        # Still emit proposals for manual review
+  log_would_have_executed: true  # Log what would have been auto-executed
+
+# Environment-specific overrides
+# These can be set via environment variables:
+#   REASONING_ENV=production -> uses production settings
+#   REASONING_AUTO_EXECUTION=true -> enables auto execution
+#   REASONING_DRY_RUN=true -> enables dry run mode
+environments:
+  development:
+    auto_execution_enabled: false
+    dry_run: true
+  staging:
+    auto_execution_enabled: false
+    dry_run: true
+  production:
+    auto_execution_enabled: false  # MUST be explicitly enabled
+    dry_run: false
+
+# Dry run mode (for testing without side effects)
+dry_run:
+  enabled: true              # Default to dry run in P3
+  log_would_execute: true
+  simulate_outcome: true     # Generate simulated outcome events

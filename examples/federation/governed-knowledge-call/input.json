@@ -1,0 +1,15 @@
+{
+  "task": "Query knowledge base for ACOS optimization strategies",
+  "context": {
+    "user": "operator",
+    "environment": "production",
+    "purpose": "research"
+  },
+  "proposed_actions": [
+    {
+      "action_type": "read",
+      "tool": "semantic_search",
+      "resource": "qdrant://amazon_knowledge_base"
+    }
+  ]
+}

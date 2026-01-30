@@ -1,0 +1,52 @@
+# LiYe MCP Federation - Docker Compose
+#
+# Starts both MCP servers (Control Plane + Data Plane) with one command.
+#
+# Usage:
+#   docker compose -f docker-compose.mcp.yml up
+#
+# Note: Both servers use stdio transport, so they stay running in foreground.
+# The shared trace volume ensures evidence packages are accessible from both.
+
+services:
+  # Governance MCP (Control Plane)
+  mcp_governance:
+    build:
+      context: .
+      dockerfile: Dockerfile.governance
+    container_name: liye-governance-mcp
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./.liye/traces:/app/.liye/traces
+      - ./contracts:/app/contracts:ro
+    working_dir: /app
+    command: ["node", "src/mcp/server.mjs"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('ok')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Knowledge MCP (Data Plane)
+  mcp_knowledge:
+    build:
+      context: .
+      dockerfile: Dockerfile.knowledge
+    container_name: liye-knowledge-mcp
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./.liye/traces:/app/.liye/traces
+      - ./data:/app/data:ro
+    working_dir: /app
+    command: ["python", "-m", "src.runtime.mcp.server_main"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('ok')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  traces:
+    driver: local
