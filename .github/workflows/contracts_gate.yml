@@ -1,0 +1,105 @@
+name: Contracts Gate
+
+on:
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - 'src/contracts/**'
+      - 'examples/dify/governed-tool-call-gateway/**'
+      - 'examples/moltbot/**'
+      - 'docs/contracts/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/contracts/**'
+      - 'examples/dify/governed-tool-call-gateway/**'
+      - 'examples/moltbot/**'
+      - 'docs/contracts/**'
+
+jobs:
+  contracts-gate:
+    runs-on: ubuntu-latest
+    name: Phase 1 Contracts Validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Validate JSON Schemas
+        run: |
+          echo "=== Validating JSON Schemas ==="
+          for schema in src/contracts/phase1/*.json; do
+            echo "Checking: $schema"
+            node -e "JSON.parse(require('fs').readFileSync('$schema', 'utf8'))"
+            echo "✅ Valid JSON: $schema"
+          done
+
+      - name: Check Schema Structure
+        run: |
+          echo "=== Checking Schema Structure ==="
+          for schema in src/contracts/phase1/*.json; do
+            echo "Checking \$schema field in: $schema"
+            node -e "
+              const s = JSON.parse(require('fs').readFileSync('$schema', 'utf8'));
+              if (!s['\$schema']) {
+                console.error('Missing \$schema field');
+                process.exit(1);
+              }
+              console.log('✅ Has \$schema:', s['\$schema']);
+            "
+          done
+
+      - name: Verify HF5 Conditions in Response Schema
+        run: |
+          echo "=== Verifying HF5 Conditions ==="
+          node -e "
+            const schema = JSON.parse(require('fs').readFileSync('src/contracts/phase1/GOV_TOOL_CALL_RESPONSE_V1.json', 'utf8'));
+
+            // Check required fields
+            const required = schema.required || [];
+            const expectedRequired = ['ok', 'decision', 'origin', 'origin_proof', 'mock_used', 'policy_version', 'trace_id'];
+            for (const field of expectedRequired) {
+              if (!required.includes(field)) {
+                console.error('Missing required field:', field);
+                process.exit(1);
+              }
+            }
+            console.log('✅ All required fields present');
+
+            // Check allOf conditions exist (HF5)
+            if (!schema.allOf || schema.allOf.length < 2) {
+              console.error('Missing HF5 if/then/else conditions');
+              process.exit(1);
+            }
+            console.log('✅ HF5 conditional rules present');
+          "
+
+      - name: Start Gateway for E2E Test
+        run: |
+          echo "=== Starting Gateway ==="
+          PORT=3210 node examples/dify/governed-tool-call-gateway/server.mjs &
+          sleep 5
+          curl -s http://localhost:3210/health | jq .
+
+      - name: Run E2E Contract Validation (FORCE_FALLBACK)
+        run: |
+          echo "=== E2E Contract Validation ==="
+          LIYE_GOV_GATEWAY_URL=http://localhost:3210 FORCE_FALLBACK=1 \
+            bash examples/moltbot/scripts/validate_e2e.sh
+
+      - name: Verify Contract Frozen Doc Exists
+        run: |
+          if [[ -f "docs/contracts/PHASE1_CONTRACTS_FROZEN_V1.md" ]]; then
+            echo "✅ Contract frozen doc exists"
+          else
+            echo "❌ Missing: docs/contracts/PHASE1_CONTRACTS_FROZEN_V1.md"
+            exit 1
+          fi
