@@ -44,7 +44,7 @@ IF mock_used = true THEN:
 
 **Rule 2: Real AGE Scenario**
 ```
-IF origin = "amazon-growth-engine" THEN:
+IF origin = "AGE" THEN:
   - origin_proof MUST be true
   - mock_used MUST be false
 ```

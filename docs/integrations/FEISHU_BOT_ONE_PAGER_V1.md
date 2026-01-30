@@ -71,7 +71,7 @@ Expected output:
   "ok": true,
   "decision": "ALLOW" | "DEGRADE",
   "trace_id": "trace-xxx",
-  "origin": "amazon-growth-engine" | "liye_os.mock",
+  "origin": "AGE" | "liye_os.mock",
   "mock_used": false | true
 }
 ```
@@ -126,7 +126,7 @@ LiYe Verdict · ALLOW
 ─────────────────────
 Trace ID: trace-xxx
 Decision: ALLOW
-Origin: amazon-growth-engine · Origin Proof: true
+Origin: AGE · Origin Proof: true
 Mock Used: false
 Policy: phase1-v1.0.0
 ─────────────────────
@@ -208,12 +208,12 @@ The adapter writes these events to `.liye/traces/<trace_id>/events.ndjson`:
 Card must display these required fields:
 - `trace_id` (always)
 - `decision` (ALLOW/BLOCK/DEGRADE/UNKNOWN)
-- `origin` (amazon-growth-engine or liye_os.mock)
+- `origin` (AGE or liye_os.mock)
 - `mock_used` (boolean)
 
 HF5 rules enforced:
 - `mock_used=true` → `origin=liye_os.mock`, `origin_proof=false`, `decision=DEGRADE`
-- `origin=amazon-growth-engine` → `origin_proof=true`, `mock_used=false`
+- `origin=AGE` → `origin_proof=true`, `mock_used=false`
 
 ## Thin-Agent Constraints
 
