@@ -21,7 +21,7 @@
     },
     "customer": {
       "type": "string",
-      "description": "Customer identifier (e.g., timo)"
+      "description": "Customer identifier (e.g., demo)"
     },
     "market": {
       "type": "string",
