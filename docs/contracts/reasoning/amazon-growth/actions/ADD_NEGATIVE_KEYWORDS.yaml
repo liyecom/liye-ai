@@ -111,11 +111,23 @@ api_hints:
 
 # P4 Calibration metadata
 calibration:
-  last_calibrated: "2026-01-29"
-  calibration_version: "p4-v0.1"
+  last_calibrated: "2026-01-31"
+  calibration_version: "p6b-v0.1"
   recommendation: "balanced"
   rationale: |
-    Based on P4 calibration with 12 synthetic samples:
-    - conservative: 3/4 A-group eligible (75%), may miss boundary cases
-    - balanced: 4/4 A-group eligible (100%), recommended default
-    - aggressive: 7/8 B-group would pass (87.5%), high false positive risk
+    P6-B recalibration with real Demo US 14d data (1,382 search terms):
+
+    Evidence from P6B_BASELINE_DISTRIBUTION_DEMO_US_14D.md:
+    - P50 waste_ratio = 0.85 → 0.30 threshold catches clear waste
+    - P95 clicks = 9 → clicks_gte=20 ensures statistical significance (2x P95)
+    - 77.4% zero-order rate in $15-30 spend bucket → spend_gte=15 appropriate
+    - Current thresholds yield 12 eligible proposals (0.87% of terms)
+
+    Calibration decision: NO CHANGES to balanced profile.
+    Reason: Thresholds match data distribution well, any relaxation would
+    increase false positive risk without clear benefit.
+
+    False positive risk assessment:
+    - Lowering clicks_gte to 15: +8 proposals, 40% may lack significance
+    - Lowering spend_gte to 10: +4 proposals, low-value terms included
+    - Lowering wasted_spend_ratio to 0.25: +0 proposals (all already > 0.30)
