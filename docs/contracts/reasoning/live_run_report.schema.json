@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LiveRunReport",
+  "description": "P6-C Live Run Report - generated immediately after write for audit trail",
+  "type": "object",
+  "required": [
+    "report_id",
+    "trace_id",
+    "spec_id",
+    "write_content",
+    "api_response",
+    "action_outcome_event",
+    "rollback_status",
+    "guards_triggered",
+    "generated_at"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "pattern": "^lrr-[a-z0-9]+$",
+      "description": "Unique Live Run Report identifier"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Trace identifier linking to the execution context"
+    },
+    "spec_id": {
+      "type": "string",
+      "pattern": "^lrs-[a-z0-9]{8}$",
+      "description": "Reference to the LiveRunSpec that authorized this write"
+    },
+    "write_content": {
+      "type": "object",
+      "description": "What was actually written to the external system",
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "description": "Type of action executed"
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Keywords that were written",
+          "items": {
+            "type": "object",
+            "properties": {
+              "keyword": { "type": "string" },
+              "match_type": { "type": "string" }
+            }
+          }
+        },
+        "target": {
+          "type": "object",
+          "description": "Target entity (campaign, ad group, etc.)"
+        }
+      }
+    },
+    "api_response": {
+      "type": "object",
+      "description": "Raw API response from Amazon Ads",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the API call succeeded"
+        },
+        "status_code": {
+          "type": "integer",
+          "description": "HTTP status code"
+        },
+        "response_body": {
+          "type": "object",
+          "description": "Raw response body from API"
+        },
+        "request_id": {
+          "type": "string",
+          "description": "Amazon request ID for tracing"
+        }
+      }
+    },
+    "action_outcome_event": {
+      "type": "object",
+      "description": "ActionOutcomeEvent per P6-C requirement",
+      "required": ["event_type", "timestamp", "payload"],
+      "properties": {
+        "event_type": {
+          "type": "string",
+          "const": "ACTION_OUTCOME",
+          "description": "Event type identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the action completed"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["action_type", "success", "items_affected"],
+          "properties": {
+            "action_type": {
+              "type": "string",
+              "description": "Type of action that was executed"
+            },
+            "success": {
+              "type": "boolean",
+              "description": "Whether the action succeeded"
+            },
+            "items_affected": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of items affected by this action"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Error message if action failed"
+            }
+          }
+        }
+      }
+    },
+    "rollback_status": {
+      "type": "string",
+      "enum": ["READY", "NOT_AVAILABLE", "EXECUTED"],
+      "description": "Status of rollback capability"
+    },
+    "rollback_action": {
+      "type": ["object", "null"],
+      "description": "Rollback action details if available",
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "description": "Type of rollback action"
+        },
+        "payload": {
+          "type": "object",
+          "description": "Data needed to execute rollback"
+        }
+      }
+    },
+    "guards_triggered": {
+      "type": "array",
+      "description": "List of guard identifiers that were triggered during execution",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when this report was generated"
+    }
+  },
+  "additionalProperties": false
+}
