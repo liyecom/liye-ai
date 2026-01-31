@@ -619,3 +619,49 @@ Demo Runner Tests:        7 tests passing  ✅
 - ✅ 基线报告已归档
 - ✅ 稳定性测试全绿
 - ✅ 校准决策有证据支持
+
+---
+
+## 17. P6-C Done (执行记录)
+
+> **完成日期**: 2026-01-31
+> **PR-C1**: Infrastructure
+> **PR-C2**: Supervised Live Run
+
+### 17.1 PR-C1 交付成果
+
+#### 四钥匙 ALL-of
+| Key | Env Var | Required Value |
+|-----|---------|----------------|
+| OAuth | ADS_OAUTH_MODE | write |
+| Config | DENY_READONLY_ENV | false |
+| Runtime | ALLOW_LIVE_WRITES | true |
+| Master | WRITE_ENABLED | 1 |
+
+#### 写入额度
+- MAX_LIVE_WRITES_PER_DAY = 1
+- MAX_NEGATIVE_KEYWORDS_PER_ACTION = 5
+
+#### Kill Switch
+- KILL_SWITCH=true blocks: suggest, live_write, retry, replay
+
+### 17.2 PR-C2 交付成果
+
+#### Live Run Spec
+- Schema: `docs/contracts/reasoning/live_run_spec.schema.json`
+- Writer: `src/runtime/evidence/live_run_spec_writer.mjs`
+
+#### Human Approval SOP
+- SOP: `docs/sops/P6C_HUMAN_APPROVAL_SOP.md`
+- Checklist: Why / Evidence / Risk
+
+#### Live Run Report
+- Schema: `docs/contracts/reasoning/live_run_report.schema.json`
+- Writer: `src/runtime/evidence/live_run_report_writer.mjs`
+
+### 17.3 P6-C 成功判定
+
+- ✅ 写入只在明确授权下发生
+- ✅ 每一次写入都能回答: Why / Based on what / Who approved
+- ✅ 出问题时: 可在分钟级回滚
+- ✅ 团队对系统行为有信心

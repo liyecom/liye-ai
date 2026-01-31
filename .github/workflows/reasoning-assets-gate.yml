@@ -51,3 +51,18 @@ jobs:
 
       - name: Run P6-B Cause Ranking Stability Tests
         run: node tests/reasoning/p6b/test_cause_ranking_stability.mjs
+
+      - name: Run P6-C Four-Key Gate Tests
+        run: node tests/runtime/execution/test_four_key_gate.mjs
+
+      - name: Run P6-C Quota Gate Tests
+        run: node tests/runtime/execution/test_quota_gate.mjs
+
+      - name: Run P6-C Kill Switch Tests
+        run: node tests/runtime/execution/test_kill_switch.mjs
+
+      - name: Run P6-C Write Gate Integration Tests
+        run: node tests/runtime/execution/test_write_gate_p6c.mjs
+
+      - name: Run P6-C E2E Rollback Tests
+        run: node tests/runtime/e2e/test_rollback_e2e.mjs

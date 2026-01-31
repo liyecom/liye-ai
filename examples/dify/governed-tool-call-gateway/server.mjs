@@ -33,6 +33,11 @@ const POLICY_VERSION = process.env.POLICY_VERSION || 'phase1-v1.0.0';
 // Week4: WRITE_ENABLED gate (default: 0 = disabled)
 const WRITE_ENABLED = process.env.WRITE_ENABLED === '1';
 
+// API Key authentication (required for public deployment)
+const API_KEY = process.env.LIYE_API_KEY || null;
+const API_KEY_REQUIRED = process.env.LIYE_API_KEY_REQUIRED !== '0'; // Default: required
+
+
 // Week3+4+5+Phase2: Allowed evidence files for static serving (security: whitelist only)
 const ALLOWED_EVIDENCE_FILES = [
   'evidence_package.md',
@@ -245,6 +250,26 @@ async function handleGovernedToolCall(req, res) {
     res.writeHead(204);
     res.end();
     return;
+  }
+
+  // API Key verification (skip for health check via main handler)
+  if (API_KEY && API_KEY_REQUIRED) {
+    const providedKey = req.headers['x-liye-api-key'] ||
+                        req.headers['authorization']?.replace(/^Bearer\s+/i, '');
+    if (providedKey !== API_KEY) {
+      res.writeHead(401);
+      res.end(JSON.stringify({
+        ok: false,
+        error: 'Unauthorized: Invalid or missing API key',
+        decision: 'UNKNOWN',
+        origin: 'liye_os.gateway',
+        origin_proof: false,
+        mock_used: false,
+        policy_version: POLICY_VERSION,
+        trace_id: null
+      }));
+      return;
+    }
   }
 
   if (req.method !== 'POST') {

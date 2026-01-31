@@ -15,6 +15,11 @@ import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
+// P6-C Gate imports
+import { checkFourKeyGate } from './four_key_gate.mjs';
+import { checkKillSwitch } from './kill_switch.mjs';
+import { checkQuotaGate } from './quota_gate.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Load write gray policy
@@ -355,8 +360,87 @@ export function buildRollbackAction(action, response) {
   return null;
 }
 
+// --- P6-C Integration ---
+
+/**
+ * P6-C Enhanced Write Gate
+ *
+ * Combines all P6-C gates in fail-fast order:
+ * 1. Kill Switch (if active, immediate DENY)
+ * 2. Four-Key ALL-of (all 4 env vars must match)
+ * 3. Quota Gate (daily limit + keyword count)
+ * 4. Original write gate (tool/scope/threshold)
+ *
+ * @param {Object} action - The action to validate
+ * @param {Object} opts - Options
+ * @param {string} opts.stateDir - Directory for quota state
+ * @returns {Object} Combined gate result
+ */
+export function checkWriteGateP6C(action, opts = {}) {
+  const { stateDir } = opts;
+  const gates = {};
+
+  // Gate 1: Kill Switch (highest priority - immediate block if active)
+  const killResult = checkKillSwitch();
+  gates.kill_switch = { passed: !killResult.active, ...killResult };
+  if (killResult.active) {
+    return {
+      allowed: false,
+      blocked_by: 'kill_switch',
+      reason: 'KILL_SWITCH active',
+      gates
+    };
+  }
+
+  // Gate 2: Four-Key ALL-of (all 4 env vars must match)
+  const fourKeyResult = checkFourKeyGate();
+  gates.four_key = { passed: fourKeyResult.allowed, ...fourKeyResult };
+  if (!fourKeyResult.allowed) {
+    return {
+      allowed: false,
+      blocked_by: 'four_key',
+      reason: fourKeyResult.reason,
+      gates
+    };
+  }
+
+  // Gate 3: Quota Gate (daily limit + keyword count)
+  const keywords = action.arguments?.keywords || [];
+  const keywordCount = Array.isArray(keywords) ? keywords.length : 0;
+  const quotaResult = checkQuotaGate({ keyword_count: keywordCount, stateDir });
+  gates.quota = { passed: quotaResult.allowed, ...quotaResult };
+  if (!quotaResult.allowed) {
+    return {
+      allowed: false,
+      blocked_by: 'quota',
+      reason: quotaResult.reason,
+      gates
+    };
+  }
+
+  // Gate 4: Original write gate (tool/scope/threshold)
+  const originalResult = checkWriteGate(action);
+  gates.original = { passed: originalResult.allowed, ...originalResult };
+  if (!originalResult.allowed) {
+    return {
+      allowed: false,
+      blocked_by: originalResult.blocked_at,
+      reason: originalResult.reason,
+      gates
+    };
+  }
+
+  return {
+    allowed: true,
+    blocked_by: null,
+    reason: 'All P6-C gates passed',
+    gates
+  };
+}
+
 export default {
   checkWriteGate,
+  checkWriteGateP6C,
   getRollbackTool,
   buildRollbackAction
 };

@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LiveRunSpec",
+  "description": "P6-C Live Run Specification - must be explicitly declared before any live write",
+  "type": "object",
+  "required": [
+    "spec_id",
+    "customer",
+    "market",
+    "action_type",
+    "reason_summary",
+    "evidence_snapshot",
+    "proposed_keywords",
+    "created_at"
+  ],
+  "properties": {
+    "spec_id": {
+      "type": "string",
+      "pattern": "^lrs-[a-z0-9]{8}$",
+      "description": "Unique Live Run Spec identifier"
+    },
+    "customer": {
+      "type": "string",
+      "description": "Customer identifier (e.g., demo)"
+    },
+    "market": {
+      "type": "string",
+      "enum": ["US", "CA", "UK", "DE", "FR", "IT", "ES", "JP"],
+      "description": "Target marketplace"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": ["ADD_NEGATIVE_KEYWORDS"],
+      "description": "Type of action to execute"
+    },
+    "reason_summary": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Auto-generated summary of why this action is being taken"
+    },
+    "evidence_snapshot": {
+      "type": "object",
+      "description": "Reference to evidence data supporting this action",
+      "required": ["hash", "file_path"],
+      "properties": {
+        "hash": {
+          "type": "string",
+          "description": "SHA-256 hash (first 16 chars) of evidence file"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Path to evidence file"
+        }
+      }
+    },
+    "proposed_keywords": {
+      "type": "array",
+      "maxItems": 5,
+      "description": "Keywords to add as negatives (P6-C limit: max 5)",
+      "items": {
+        "type": "object",
+        "required": ["keyword", "match_type"],
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "description": "The keyword text"
+          },
+          "match_type": {
+            "type": "string",
+            "enum": ["EXACT", "PHRASE"],
+            "description": "Match type for negative keyword"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when spec was created"
+    }
+  },
+  "additionalProperties": false
+}

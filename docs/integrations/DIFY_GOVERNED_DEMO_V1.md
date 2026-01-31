@@ -92,7 +92,16 @@ http://your-server:3210/v1/governed_tool_call
 
 在 Dify Custom Tool 配置中，设置 Server URL：
 - 本地开发：`http://localhost:3210`
-- 生产环境：`https://your-gateway-domain.com`
+- 生产环境：`https://gateway.liye.ai`
+
+### Step 2.5: 配置 API Key 认证 (生产必须)
+
+1. 点击 **Authorization method** 旁的设置图标
+2. 选择 **Header**
+3. Auth Type: **Custom**
+4. Key: `X-LIYE-API-KEY`
+5. Value: 你的 API Key
+6. 点击 **Save**
 
 ### Step 3: 测试 Tool
 
@@ -254,4 +263,5 @@ ls -la .liye/traces/
 
 ## 版本历史
 
+- v1.1.0 (2026-01-31): 添加生产环境配置 (gateway.liye.ai) + API Key 认证
 - v1.0.0 (2026-01-24): 初始版本，实现 HTTP Gateway + OpenAPI Schema
