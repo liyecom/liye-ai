@@ -350,11 +350,13 @@ export function renderApprovalStatusCard(traceId, approval, opts = {}) {
 }
 
 /**
- * Week5: Render execution status card (for execute_dry_run action callbacks)
+ * Week5 + Phase2: Render execution status card (for execute_dry_run and execute_real action callbacks)
  *
  * @param {string} traceId - Trace identifier
  * @param {Object} executionResult - Execution result object
  * @param {Object} opts - Options
+ * @param {string} opts.mode - 'dry_run' or 'real_write'
+ * @param {boolean} opts.isRollback - If true, render as rollback plan card
  * @returns {Object} Feishu interactive card JSON
  */
 export function renderExecutionStatusCard(traceId, executionResult, opts = {}) {
@@ -362,16 +364,28 @@ export function renderExecutionStatusCard(traceId, executionResult, opts = {}) {
     process.env.TRACE_VIEWER_BASE_URL ||
     'http://localhost:3210/trace';
 
+  // Phase2 Week1: Handle rollback plan display
+  if (opts.isRollback) {
+    return renderRollbackPlanCard(traceId, executionResult, opts);
+  }
+
+  const isRealWrite = opts.mode === 'real_write' || executionResult?.mode === 'real_write';
   const isSuccess = executionResult?.summary != null;
-  const headerColor = isSuccess ? 'green' : 'red';
+  const headerColor = isSuccess ? (isRealWrite ? 'blue' : 'green') : 'red';
   const statusEmoji = isSuccess ? '✅' : '❌';
   const statusText = isSuccess ? '已执行' : '执行失败';
+  const modeText = isRealWrite ? 'Real Write' : 'Dry-run';
+  const modeEmoji = isRealWrite ? '⚡' : '🔒';
 
   // Build summary if available
   let summaryInfo = '';
   if (executionResult?.summary) {
     const s = executionResult.summary;
-    summaryInfo = `\\n\\n**摘要**：${s.simulated_actions} 模拟 / ${s.blocked_actions} 阻止 / ${s.total_actions} 总计`;
+    if (isRealWrite) {
+      summaryInfo = `\\n\\n**摘要**：${s.executed_actions || 0} 执行 / ${s.blocked_actions || 0} 阻止 / ${s.total_actions || 0} 总计`;
+    } else {
+      summaryInfo = `\\n\\n**摘要**：${s.simulated_actions || 0} 模拟 / ${s.blocked_actions || 0} 阻止 / ${s.total_actions || 0} 总计`;
+    }
     if (s.notes) {
       summaryInfo += `\\n> ${sanitizeForJson(s.notes)}`;
     }
@@ -381,35 +395,111 @@ export function renderExecutionStatusCard(traceId, executionResult, opts = {}) {
   let guaranteeInfo = '';
   if (executionResult?.GUARANTEE) {
     const g = executionResult.GUARANTEE;
-    guaranteeInfo = `\\n\\n**保证**：no_real_write=${g.no_real_write}, write_calls_attempted=${g.write_calls_attempted}`;
+    if (isRealWrite) {
+      guaranteeInfo = `\\n\\n**保证**：write_calls_attempted=${g.write_calls_attempted}, write_calls_succeeded=${g.write_calls_succeeded || 0}`;
+    } else {
+      guaranteeInfo = `\\n\\n**保证**：no_real_write=${g.no_real_write}, write_calls_attempted=${g.write_calls_attempted}`;
+    }
   }
 
   const executionUrl = `${traceViewerBaseUrl}/${traceId}/execution_result.md`;
+  const rollbackUrl = `${traceViewerBaseUrl}/${traceId}/rollback_plan.md`;
+
+  // Build action buttons
+  const actionButtons = [];
+  if (isSuccess) {
+    actionButtons.push({
+      tag: 'button',
+      text: { tag: 'plain_text', content: '查看执行结果' },
+      type: 'primary',
+      url: executionUrl
+    });
+    // Phase2 Week1: Add rollback button for real writes
+    if (isRealWrite && executionResult?.rollback_actions?.length > 0) {
+      actionButtons.push({
+        tag: 'button',
+        text: { tag: 'plain_text', content: '查看回滚计划' },
+        type: 'default',
+        url: rollbackUrl
+      });
+    }
+  }
 
   return {
     config: { wide_screen_mode: true },
     header: {
-      title: { tag: 'plain_text', content: `Execution ${statusEmoji} ${statusText} (Dry-run)` },
+      title: { tag: 'plain_text', content: `Execution ${statusEmoji} ${statusText} (${modeText})` },
       template: headerColor
     },
     elements: [
       {
         tag: 'markdown',
-        content: `**Trace ID**：\`${traceId}\`\n\n**模式**：🔒 Dry-run（无真实写入）${summaryInfo}${guaranteeInfo}`
+        content: `**Trace ID**：\`${traceId}\`\n\n**模式**：${modeEmoji} ${modeText}${isRealWrite ? '' : '（无真实写入）'}${summaryInfo}${guaranteeInfo}`
       },
-      ...(isSuccess ? [{
+      ...(actionButtons.length > 0 ? [{
+        tag: 'action',
+        actions: actionButtons
+      }] : []),
+      {
+        tag: 'note',
+        elements: [
+          { tag: 'plain_text', content: isRealWrite
+            ? 'Phase2 Week1: 真实写入已启用。回滚计划已自动生成。'
+            : 'Week5: 所有执行均为 Dry-run，未执行真实 API 调用。'
+          }
+        ]
+      }
+    ]
+  };
+}
+
+/**
+ * Phase2 Week1: Render rollback plan card
+ *
+ * @param {string} traceId - Trace identifier
+ * @param {Object} rollbackPlan - Rollback plan object
+ * @param {Object} opts - Options
+ * @returns {Object} Feishu interactive card JSON
+ */
+export function renderRollbackPlanCard(traceId, rollbackPlan, opts = {}) {
+  const traceViewerBaseUrl = opts.traceViewerBaseUrl ||
+    process.env.TRACE_VIEWER_BASE_URL ||
+    'http://localhost:3210/trace';
+
+  const actionsCount = rollbackPlan?.actions_count || 0;
+  const validityUntil = rollbackPlan?.validity_until || 'Unknown';
+  const isReady = rollbackPlan?.rollback_plan_id != null;
+
+  const headerColor = isReady ? 'orange' : 'red';
+  const statusEmoji = isReady ? '🔄' : '❌';
+  const statusText = isReady ? '已生成' : '生成失败';
+
+  const rollbackUrl = `${traceViewerBaseUrl}/${traceId}/rollback_plan.md`;
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `Rollback Plan ${statusEmoji} ${statusText}` },
+      template: headerColor
+    },
+    elements: [
+      {
+        tag: 'markdown',
+        content: `**Trace ID**：\`${traceId}\`\n\n**回滚操作**：${actionsCount} 个\n\n**有效期至**：${validityUntil}`
+      },
+      ...(isReady ? [{
         tag: 'action',
         actions: [{
           tag: 'button',
-          text: { tag: 'plain_text', content: '查看执行结果' },
+          text: { tag: 'plain_text', content: '查看回滚计划' },
           type: 'primary',
-          url: executionUrl
+          url: rollbackUrl
         }]
       }] : []),
       {
         tag: 'note',
         elements: [
-          { tag: 'plain_text', content: 'Week5: 所有执行均为 Dry-run，未执行真实 API 调用。' }
+          { tag: 'plain_text', content: 'Phase2 Week1: 回滚计划已就绪。Week2 将支持一键执行回滚。' }
         ]
       }
     ]
@@ -472,5 +562,6 @@ export default {
   renderEvidenceStatusCard,
   renderApprovalStatusCard,
   renderExecutionStatusCard,
+  renderRollbackPlanCard,
   createFallbackTextMessage
 };
