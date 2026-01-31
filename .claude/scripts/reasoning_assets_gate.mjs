@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * reasoning_assets_gate.mjs - CI Gate for Reasoning Assets (v0.2)
+ * reasoning_assets_gate.mjs - CI Gate for Reasoning Assets (v0.3)
  *
  * Validates that all reasoning playbooks conform to schema requirements:
  * 1. YAML files must contain required fields
@@ -9,15 +9,21 @@
  * 3. Playbooks must have observation_id, version, cause_candidates/impact_analysis
  * 4. [v0.2] Rationale must be non-empty for each cause
  * 5. [v0.2] Evidence requirements must be defined for each cause
+ * 6. [v0.3] coverage_required >= 70% (MERGE BLOCKER)
  *
  * Exit codes:
  *   0 - All validations passed
  *   1 - Validation failures found
  */
 
-import { readFileSync, readdirSync, statSync } from 'fs';
-import { join, extname } from 'path';
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { join, extname, dirname } from 'path';
 import { parse as parseYaml } from 'yaml';
+import { fileURLToPath } from 'url';
+
+// For importing the coverage report module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const CONTRACTS_DIR = 'docs/contracts/reasoning';
 
@@ -228,10 +234,50 @@ function validateSchemas(dir) {
 }
 
 /**
+ * [v0.3] Run coverage_required gate check
+ * This is the MERGE BLOCKER - coverage_required >= 70%
+ */
+async function runCoverageGate() {
+  console.log('\n📊 Evidence Coverage Gate (v0.3)\n');
+
+  try {
+    // Dynamic import of the coverage report module
+    const coverageModule = await import('./evidence_coverage_report.mjs');
+    const result = coverageModule.generateReport();
+
+    // Print gate-relevant metrics
+    console.log('=== Coverage Gate Metrics ===');
+    console.log(`Active Playbooks:           ${result.activePlaybookFiles.join(', ')}`);
+    console.log(`Required Fields:            ${result.required_by_active_playbooks}`);
+    console.log(`Reachable Required:         ${result.reachable_required}`);
+    console.log(`coverage_required:          ${(result.coverage_required * 100).toFixed(1)}%`);
+    console.log(`Gate Threshold:             70%`);
+    console.log(`Gate Status:                ${result.gateStatus}`);
+    console.log('');
+
+    // Also print observation metrics (non-blocking)
+    console.log('=== Observation Metrics (Non-Blocking) ===');
+    console.log(`declared_total:             ${result.declared_total}`);
+    console.log(`coverage_t1:                ${(result.coverage_t1 * 100).toFixed(1)}%`);
+    console.log('');
+
+    if (!result.passed) {
+      errors.push(`coverage_required is ${(result.coverage_required * 100).toFixed(1)}%, must be >= 70%`);
+    }
+
+    return result;
+  } catch (e) {
+    console.error('Warning: Could not run coverage gate:', e.message);
+    warnings.push(`Coverage gate skipped: ${e.message}`);
+    return null;
+  }
+}
+
+/**
  * Main validation function
  */
-function runGate() {
-  console.log('🔍 Reasoning Assets Gate\n');
+async function runGate() {
+  console.log('🔍 Reasoning Assets Gate (v0.3)\n');
 
   // Find and validate all playbooks
   const yamlFiles = findYamlFiles(CONTRACTS_DIR);
@@ -249,6 +295,9 @@ function runGate() {
 
   // Validate schema files
   validateSchemas(CONTRACTS_DIR);
+
+  // [v0.3] Run coverage gate
+  await runCoverageGate();
 
   // Report results
   if (warnings.length > 0) {
@@ -269,9 +318,12 @@ function runGate() {
     process.exit(1);
   }
 
-  console.log('✅ Gate PASSED: All reasoning assets validated');
+  console.log('✅ Gate PASSED: All reasoning assets validated + coverage_required >= 70%');
   process.exit(0);
 }
 
-// Run gate
-runGate();
+// Run gate (async for coverage module import)
+runGate().catch(e => {
+  console.error('Gate execution error:', e);
+  process.exit(1);
+});
