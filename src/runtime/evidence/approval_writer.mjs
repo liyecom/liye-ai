@@ -274,6 +274,69 @@ export function reject({ trace_id, actor, meta = {}, comment, baseDir }) {
 }
 
 /**
+ * Mark approval as executed (dry-run completed)
+ *
+ * Week5: APPROVED → EXECUTED
+ *
+ * @param {Object} params
+ * @param {string} params.trace_id - Trace identifier
+ * @param {string} params.actor - User/system that executed
+ * @param {Object} params.meta - Additional metadata
+ * @param {string} params.baseDir - Base directory for traces
+ * @returns {Object} { success, approval, error }
+ */
+export function markExecuted({ trace_id, actor, meta = {}, baseDir }) {
+  const traceBaseDir = baseDir || TRACE_BASE_DIR;
+  const traceDir = join(traceBaseDir, trace_id);
+
+  try {
+    const approval = loadApproval(traceDir);
+    if (!approval) {
+      return { success: false, error: 'Approval not found' };
+    }
+
+    // Validate transition
+    if (!VALID_TRANSITIONS[approval.status]?.includes('EXECUTED')) {
+      return {
+        success: false,
+        error: `Cannot mark executed from status: ${approval.status}. Must be APPROVED first.`
+      };
+    }
+
+    const now = new Date().toISOString();
+
+    // Update approval
+    approval.status = 'EXECUTED';
+    approval.executed_by = actor;
+    approval.executed_at = now;
+    approval.audit_log.push({
+      ts: now,
+      actor,
+      event: 'executed',
+      meta
+    });
+
+    saveApproval(traceDir, approval);
+
+    // Write trace event
+    writeTraceEvent(traceDir, 'approval.executed', {
+      trace_id,
+      plan_id: approval.plan_id,
+      actor,
+      status: 'EXECUTED',
+      meta
+    });
+
+    console.log(`[ApprovalWriter] Approval marked executed for ${trace_id}`);
+    return { success: true, approval };
+
+  } catch (e) {
+    console.error('[ApprovalWriter] Failed to mark executed:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
  * Get current approval status
  *
  * @param {string} trace_id - Trace identifier
@@ -339,6 +402,7 @@ export default {
   submitApproval,
   approve,
   reject,
+  markExecuted,
   getApproval,
   approvalExists
 };
