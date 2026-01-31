@@ -37,6 +37,7 @@ const WRITE_ENABLED = process.env.WRITE_ENABLED === '1';
 const API_KEY = process.env.LIYE_API_KEY || null;
 const API_KEY_REQUIRED = process.env.LIYE_API_KEY_REQUIRED !== '0'; // Default: required
 
+
 // Week3+4+5+Phase2: Allowed evidence files for static serving (security: whitelist only)
 const ALLOWED_EVIDENCE_FILES = [
   'evidence_package.md',
