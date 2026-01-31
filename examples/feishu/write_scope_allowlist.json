@@ -1,0 +1,54 @@
+{
+  "$schema": "https://liye.ai/schemas/write_scope_allowlist_v1.json",
+  "version": "phase2-v1.0.0",
+  "description": "Write scope allowlist for Phase2 gray launch - real accounts with strict whitelist",
+  "updated_at": "2026-01-31T00:00:00.000Z",
+  "updated_by": "admin",
+
+  "tenants": {
+    "default": {
+      "description": "Default tenant - Timo US gray launch scope",
+      "enabled": true,
+      "profile_ids": [
+        "2636185669342615"
+      ],
+      "campaign_ids": [
+        "1234567890",
+        "2345678901"
+      ],
+      "adgroup_ids": [
+        "1111111111",
+        "2222222222"
+      ],
+      "notes": "Gray launch scope: 1 profile, 2 campaigns, 2 adgroups"
+    },
+    "test": {
+      "description": "Test tenant for local development",
+      "enabled": true,
+      "profile_ids": [
+        "test-profile-001"
+      ],
+      "campaign_ids": [
+        "test-campaign-001",
+        "test-campaign-002"
+      ],
+      "adgroup_ids": [
+        "test-adgroup-001",
+        "test-adgroup-002"
+      ],
+      "notes": "Test scope for local verification"
+    }
+  },
+
+  "validation_rules": {
+    "require_all_fields": true,
+    "fields": ["profile_id", "campaign_id", "adgroup_id"],
+    "match_mode": "exact",
+    "case_sensitive": true
+  },
+
+  "audit": {
+    "log_all_checks": true,
+    "log_rejections": true
+  }
+}
