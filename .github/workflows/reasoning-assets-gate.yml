@@ -48,3 +48,6 @@ jobs:
 
       - name: Run P6-A Snapshot Test 2 - SEARCH_TERM_WASTE_HIGH Coverage
         run: node tests/reasoning/p6a/test_required_coverage_snapshot_2.mjs
+
+      - name: Run P6-B Cause Ranking Stability Tests
+        run: node tests/reasoning/p6b/test_cause_ranking_stability.mjs
