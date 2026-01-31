@@ -733,6 +733,273 @@ evidence_sources:
     status: available
     note: Safety filter for ADD_NEGATIVE_KEYWORDS
 
+  # =============================================================================
+  # P6-A PR-B2: Top 20 Missing Reachable Fields (Now Available)
+  # =============================================================================
+  # These fields were identified as "missing reachable" in the US 14d pilot.
+  # PR-B2 connects them to T1 Truth tables with executable queries.
+  # Target: Raise reachable coverage from 54.2% to 72.9% (≥70% gate).
+
+  # --- Priority 0: Core Waste Diagnostics ---
+
+  match_type_distribution:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/match_type_distribution.sql
+    fallback: none
+    description: Spend distribution across match types (BROAD/PHRASE/EXACT)
+    unit: distribution
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No search term data for date range"
+      degrade_when: "Single match type only (no distribution)"
+      degrade_reason: "Insufficient match type diversity"
+    note: "PR-B2: Core for diagnosing broad match waste"
+
+  keyword_spend_distribution:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/keyword_spend_distribution.sql
+    fallback: none
+    description: Spend concentration across keywords (top N vs long tail)
+    unit: distribution
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No search term data for date range"
+      degrade_when: "Fewer than 10 unique keywords"
+      degrade_reason: "Insufficient keyword volume for distribution"
+    note: "PR-B2: Core for budget concentration analysis"
+
+  zero_conversion_spend_pct:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/zero_conversion_spend_pct.sql
+    fallback: none
+    description: Percentage of total spend on terms with zero conversions
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No search term data for date range"
+      degrade_when: "Never - always computable from T1"
+      degrade_reason: null
+    note: "PR-B2: Core metric for negative keyword recommendations"
+
+  # --- Priority 1: Conversion & Efficiency ---
+
+  conversion_rate_by_term:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/conversion_rate_by_term.sql
+    fallback: none
+    description: CVR grouped by search term (conversions/clicks)
+    unit: aggregate
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No search term data for date range"
+      degrade_when: "Terms with zero clicks excluded"
+      degrade_reason: "Cannot compute CVR without clicks"
+    note: "PR-B2: Essential for identifying low-converting terms"
+
+  high_click_low_conversion_terms:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/high_click_low_conversion.sql
+    fallback: none
+    description: Terms with clicks ≥5 but zero conversions (waste candidates)
+    unit: list
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No terms meet threshold"
+      degrade_when: "Never - list can be empty"
+      degrade_reason: null
+    note: "PR-B2: Direct input for ADD_NEGATIVE_KEYWORDS"
+
+  search_term_efficiency:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/search_term_efficiency.sql
+    fallback: none
+    description: ROAS by search term (sales/cost per term)
+    unit: aggregate
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No search term data for date range"
+      degrade_when: "Terms with zero cost excluded"
+      degrade_reason: "Cannot compute ROAS without spend"
+    note: "PR-B2: Identifies high-value vs low-value terms"
+
+  # --- Priority 2: Budget & Campaign Analysis ---
+
+  campaign_acos_variance:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/campaign_acos_variance.sql
+    fallback: approx
+    description: ACOS variance across campaigns (std dev)
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "Fewer than 2 campaigns"
+      degrade_when: "Single campaign only"
+      degrade_reason: "Cannot compute variance with one campaign"
+    note: "PR-B2: Identifies outlier campaigns"
+
+  avg_cpc_by_campaign:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/avg_cpc_by_campaign.sql
+    fallback: approx
+    description: Average CPC grouped by campaign
+    unit: currency
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No campaign data for date range"
+      degrade_when: "Campaigns with zero clicks"
+      degrade_reason: "Cannot compute CPC without clicks"
+    note: "PR-B2: Benchmark for bid optimization"
+
+  campaign_spend_trend:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/campaign_spend_trend.sql
+    fallback: approx
+    description: Daily spend trend by campaign over date range
+    unit: time_series
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "Single day data only"
+      degrade_when: "Fewer than 7 days of data"
+      degrade_reason: "Insufficient time series for trend"
+    note: "PR-B2: Detects spend acceleration/deceleration"
+
+  # --- Priority 3: Secondary Metrics ---
+
+  bid_vs_budget_ratio:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/bid_vs_budget_ratio.sql
+    fallback: approx
+    description: Average bid / daily budget ratio
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No bid or budget data"
+      degrade_when: "Budget is zero"
+      degrade_reason: "Cannot compute ratio with zero budget"
+    note: "PR-B2: Bid aggressiveness indicator"
+
+  sales_velocity_trend:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/sales_velocity_trend.sql
+    fallback: approx
+    description: Sales velocity change (7d vs 14d comparison)
+    unit: trend
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "Fewer than 14 days of data"
+      degrade_when: "7-14 day data incomplete"
+      degrade_reason: "Requires full 14d window"
+    note: "PR-B2: Detects sales momentum"
+
+  impressions_per_spend:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/impressions_per_spend.sql
+    fallback: approx
+    description: Impressions per dollar spent (efficiency metric)
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No spend data"
+      degrade_when: "Zero spend (division by zero)"
+      degrade_reason: "Cannot compute without spend"
+    note: "PR-B2: Visibility efficiency metric"
+
+  daily_spend_variance:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/daily_spend_variance.sql
+    fallback: approx
+    description: Variance in daily spend (spend stability)
+    unit: currency
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "Single day data only"
+      degrade_when: "Fewer than 7 days"
+      degrade_reason: "Insufficient data for variance"
+    note: "PR-B2: Budget stability indicator"
+
+  low_impression_terms:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/low_impression_terms.sql
+    fallback: none
+    description: Terms with fewer than 100 impressions
+    unit: list
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "All terms have ≥100 impressions"
+      degrade_when: "Never - list can be empty"
+      degrade_reason: null
+    note: "PR-B2: Identifies underperforming terms"
+
+  spend_concentration_index:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/spend_concentration_index.sql
+    fallback: approx
+    description: Gini coefficient of spend across terms (0=equal, 1=concentrated)
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "Fewer than 2 terms"
+      degrade_when: "Single term only"
+      degrade_reason: "Cannot compute concentration with one term"
+    note: "PR-B2: Budget concentration metric"
+
+  click_concentration_index:
+    source: T1_TRUTH
+    query_ref: t1_truth/derived/click_concentration_index.sql
+    fallback: approx
+    description: Gini coefficient of clicks across terms
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "Fewer than 2 terms with clicks"
+      degrade_when: "Single term only"
+      degrade_reason: "Cannot compute concentration with one term"
+    note: "PR-B2: Click concentration metric"
+
+  campaign_saturation:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/campaign_saturation.sql
+    fallback: approx
+    description: Budget exhaustion pattern (early/even/late)
+    unit: enum
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No hourly data available"
+      degrade_when: "Daily granularity only - uses spend/budget proxy"
+      degrade_reason: "T1 has daily granularity, approximating from utilization"
+    note: "PR-B2: Approximated from budget_utilization_rate"
+
+  auto_vs_manual_spend_ratio:
+    source: T1_TRUTH
+    query_ref: t1_truth/aggregated/auto_vs_manual_spend_ratio.sql
+    fallback: approx
+    description: Ratio of auto campaign spend to manual campaign spend
+    unit: ratio
+    refresh: daily
+    status: available
+    availability_contract:
+      empty_when: "No campaign type classification"
+      degrade_when: "Campaign names don't follow auto/manual naming convention"
+      degrade_reason: "Requires campaign type inference from name"
+    note: "PR-B2: Inferred from campaign_name patterns (auto/manual/discovery)"
+
 # =============================================================================
 # P6-A: Unavailable Fields (Require External Sources or New Pipelines)
 # =============================================================================
@@ -939,19 +1206,9 @@ unavailable_fields:
 
   # --- Additional Missing Fields (from playbook scan) ---
 
-  bid_vs_budget_ratio:
-    status: unavailable
-    degrade_reason: requires_computed_metric
-    fallback: approx
-    description: Ratio of bid to daily budget
-    note: Can be derived from bid and daily_budget if both available
+  # bid_vs_budget_ratio: MOVED to PR-B2 Reachable Fields section
 
-  keyword_spend_distribution:
-    status: unavailable
-    degrade_reason: requires_aggregation_query
-    fallback: approx
-    description: Spend distribution across keywords
-    note: Requires aggregated query from t1_ad_search_term_daily
+  # keyword_spend_distribution: MOVED to PR-B2 Reachable Fields section
 
   competitor_review_count:
     status: unavailable
@@ -1009,12 +1266,7 @@ unavailable_fields:
     description: Coverage rate of target keywords
     note: Requires keyword taxonomy definition
 
-  match_type_distribution:
-    status: unavailable
-    degrade_reason: requires_aggregation_query
-    fallback: approx
-    description: Distribution of spend across match types
-    note: Can be derived from t1_ad_search_term_daily aggregation
+  # match_type_distribution: MOVED to PR-B2 Reachable Fields section
 
   asin_targeting_only:
     status: unavailable
@@ -1037,12 +1289,7 @@ unavailable_fields:
     description: BuyBox eligibility status
     note: Requires SP-API catalog data
 
-  sales_velocity_trend:
-    status: unavailable
-    degrade_reason: requires_time_series_analysis
-    fallback: approx
-    description: Trend direction of sales velocity
-    note: Can be computed from sales_velocity_7d vs sales_velocity_30d
+  # sales_velocity_trend: MOVED to PR-B2 Reachable Fields section
 
   competitor_review_velocity:
     status: unavailable
@@ -1079,12 +1326,7 @@ unavailable_fields:
     description: Performance metrics by ad placement
     note: Requires placement-level report data
 
-  auto_vs_manual_spend_ratio:
-    status: unavailable
-    degrade_reason: requires_campaign_classification
-    fallback: approx
-    description: Ratio of auto to manual campaign spend
-    note: Requires campaign type classification
+  # auto_vs_manual_spend_ratio: MOVED to PR-B2 Reachable Fields section
 
   acos:
     source: T1_TRUTH
@@ -1121,6 +1363,7 @@ unavailable_fields:
     refresh: daily
     status: available
 
+# (PR-B2 fields moved to evidence_sources section above)
 # === Fallback Strategies ===
 
 fallback_strategies:
