@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.ai/contracts/phase1/EXECUTION_RESULT_V1.json",
+  "title": "EXECUTION_RESULT_V1",
+  "description": "Execution Result schema for Phase1 Week5 - dry-run execution result with full audit trail",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "plan_id",
+    "tenant_id",
+    "executed_at",
+    "mode",
+    "approval",
+    "summary",
+    "actions",
+    "GUARANTEE",
+    "origin"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "description": "Associated trace identifier"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^plan-[a-zA-Z0-9-]+$",
+      "description": "Associated plan identifier"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant identifier"
+    },
+    "executed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of execution"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["dry_run"],
+      "description": "Execution mode (Week5: always dry_run)"
+    },
+    "approval": {
+      "type": "object",
+      "required": ["status", "reviewed_by", "reviewed_at"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["APPROVED"],
+          "description": "Approval status at execution time (must be APPROVED)"
+        },
+        "reviewed_by": {
+          "type": "string",
+          "description": "Feishu user_id of the approver"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of approval"
+        }
+      },
+      "description": "Approval information at execution time"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_actions", "simulated_actions", "blocked_actions"],
+      "properties": {
+        "total_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of actions in the plan"
+        },
+        "simulated_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of actions successfully simulated"
+        },
+        "blocked_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of actions blocked (write/delete/execute/send)"
+        },
+        "skipped_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of actions skipped"
+        },
+        "failed_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of actions that failed"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Brief summary note"
+        }
+      },
+      "description": "Execution summary statistics"
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action_id", "action_type", "tool", "result_status"],
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "pattern": "^action-[0-9]+$",
+            "description": "Action identifier from plan"
+          },
+          "action_type": {
+            "type": "string",
+            "enum": ["read", "analyze", "write", "delete", "execute", "send"],
+            "description": "Type of action"
+          },
+          "tool": {
+            "type": "string",
+            "description": "Tool that would be invoked"
+          },
+          "arguments_hash": {
+            "type": "string",
+            "description": "SHA-256 hash of arguments (avoid exposing sensitive data)"
+          },
+          "result_status": {
+            "type": "string",
+            "enum": ["SIMULATED", "BLOCKED", "SKIPPED", "FAILED"],
+            "description": "Result status of this action"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the result status"
+          },
+          "simulated_output": {
+            "type": "object",
+            "description": "Simulated output for read/analyze actions (optional)"
+          }
+        }
+      },
+      "description": "Execution results for each action"
+    },
+    "GUARANTEE": {
+      "type": "object",
+      "required": ["no_real_write", "write_calls_attempted", "write_enabled_env"],
+      "properties": {
+        "no_real_write": {
+          "type": "boolean",
+          "const": true,
+          "description": "Guarantee that no real write operations were performed"
+        },
+        "write_calls_attempted": {
+          "type": "integer",
+          "const": 0,
+          "description": "Number of real write calls attempted (Week5: always 0)"
+        },
+        "write_enabled_env": {
+          "type": "string",
+          "enum": ["0", "1"],
+          "description": "Value of WRITE_ENABLED environment variable at execution time"
+        }
+      },
+      "description": "Week5 hard guarantees - no real writes"
+    },
+    "origin": {
+      "type": "string",
+      "const": "liye_os.dry_run_executor",
+      "description": "Origin of this execution result"
+    }
+  },
+  "additionalProperties": false
+}
