@@ -274,6 +274,60 @@ export function reject({ trace_id, actor, meta = {}, comment, baseDir }) {
 }
 
 /**
+ * P6-C Enhanced Approval
+ *
+ * Requires structured review with Why/Evidence/Risk checks.
+ * See docs/sops/P6C_HUMAN_APPROVAL_SOP.md for full checklist.
+ *
+ * @param {Object} params
+ * @param {string} params.trace_id - Trace identifier
+ * @param {string} params.actor - Approver user_id
+ * @param {Object} params.why_check - { reason_clear, observation_valid, action_appropriate }
+ * @param {Object} params.evidence_check - { exists, fresh, supports }
+ * @param {Object} params.risk_check - { rollback_clear, time_estimate, impact_bounded }
+ * @param {string} params.comment - Optional approval comment
+ * @param {string} params.baseDir - Base directory for traces
+ * @returns {Object} { success, approval, error }
+ */
+export function approveP6C({
+  trace_id,
+  actor,
+  why_check,
+  evidence_check,
+  risk_check,
+  comment,
+  baseDir
+}) {
+  // Validate all checks are provided
+  if (!why_check || !evidence_check || !risk_check) {
+    return { success: false, error: 'P6-C requires why_check, evidence_check, and risk_check' };
+  }
+
+  // All checks must pass for APPROVE
+  const allPass =
+    why_check.reason_clear &&
+    why_check.observation_valid &&
+    why_check.action_appropriate &&
+    evidence_check.exists &&
+    evidence_check.fresh &&
+    evidence_check.supports &&
+    risk_check.rollback_clear &&
+    risk_check.impact_bounded;
+
+  if (!allPass) {
+    return { success: false, error: 'Not all P6-C checks passed. Use reject() or defer() instead.' };
+  }
+
+  return approve({
+    trace_id,
+    actor,
+    meta: { p6c: true, why_check, evidence_check, risk_check },
+    comment,
+    baseDir
+  });
+}
+
+/**
  * Mark approval as executed (dry-run completed)
  *
  * Week5: APPROVED → EXECUTED
@@ -401,6 +455,7 @@ export default {
   initApproval,
   submitApproval,
   approve,
+  approveP6C,
   reject,
   markExecuted,
   getApproval,
