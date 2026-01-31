@@ -96,6 +96,13 @@ const APPROVAL_STATUS_DISPLAY = {
   NOT_CREATED: '⬜ 未创建'
 };
 
+// Week5: Execution status display
+const EXECUTION_STATUS_DISPLAY = {
+  NOT_EXECUTED: '**执行**：未执行',
+  IN_PROGRESS: '**执行**：执行中…',
+  EXECUTED: '**执行**：已执行（Dry-run）✅'
+};
+
 /**
  * Generate Why section markdown
  */
@@ -122,6 +129,19 @@ function generatePlanStatusMd(planExists) {
 }
 
 /**
+ * Week5: Generate Execution Status markdown
+ */
+function generateExecutionStatusMd(executionStatus, executionUrl) {
+  if (executionStatus === 'EXECUTED' && executionUrl) {
+    return `${EXECUTION_STATUS_DISPLAY.EXECUTED} [打开结果](${executionUrl})`;
+  }
+  if (executionStatus === 'IN_PROGRESS') {
+    return EXECUTION_STATUS_DISPLAY.IN_PROGRESS;
+  }
+  return EXECUTION_STATUS_DISPLAY.NOT_EXECUTED;
+}
+
+/**
  * Render a verdict response into a Feishu Interactive Card
  *
  * @param {Object} response - GOV_TOOL_CALL_RESPONSE_V1 compliant response
@@ -129,6 +149,8 @@ function generatePlanStatusMd(planExists) {
  * @param {string} opts.traceViewerBaseUrl - Base URL for trace viewer
  * @param {string} opts.approvalStatus - Current approval status (Week4)
  * @param {boolean} opts.planExists - Whether action plan exists (Week4)
+ * @param {string} opts.executionStatus - Execution status: NOT_EXECUTED, IN_PROGRESS, EXECUTED (Week5)
+ * @param {string} opts.executionUrl - URL to execution result (Week5)
  * @returns {Object} Feishu interactive card JSON
  */
 export function renderVerdictCard(response, opts = {}) {
@@ -161,6 +183,10 @@ export function renderVerdictCard(response, opts = {}) {
     const approvalStatus = opts.approvalStatus || 'NOT_CREATED';
     const planExists = opts.planExists || false;
 
+    // Week5: Execution status
+    const executionStatus = opts.executionStatus || 'NOT_EXECUTED';
+    const executionUrl = opts.executionUrl || null;
+
     // Build replacement map
     // Note: \n in JSON strings must be \\n when doing string replacement
     const replacements = {
@@ -180,6 +206,7 @@ export function renderVerdictCard(response, opts = {}) {
       '{{why_md}}': generateWhyMd(decision),
       '{{approval_status_md}}': generateApprovalStatusMd(approvalStatus),
       '{{plan_status_md}}': generatePlanStatusMd(planExists),
+      '{{execution_status_md}}': generateExecutionStatusMd(executionStatus, executionUrl),
       '{{plan_url}}': planExists
         ? `${traceViewerBaseUrl}/${traceId}/action_plan.md`
         : '#'
@@ -323,6 +350,73 @@ export function renderApprovalStatusCard(traceId, approval, opts = {}) {
 }
 
 /**
+ * Week5: Render execution status card (for execute_dry_run action callbacks)
+ *
+ * @param {string} traceId - Trace identifier
+ * @param {Object} executionResult - Execution result object
+ * @param {Object} opts - Options
+ * @returns {Object} Feishu interactive card JSON
+ */
+export function renderExecutionStatusCard(traceId, executionResult, opts = {}) {
+  const traceViewerBaseUrl = opts.traceViewerBaseUrl ||
+    process.env.TRACE_VIEWER_BASE_URL ||
+    'http://localhost:3210/trace';
+
+  const isSuccess = executionResult?.summary != null;
+  const headerColor = isSuccess ? 'green' : 'red';
+  const statusEmoji = isSuccess ? '✅' : '❌';
+  const statusText = isSuccess ? '已执行' : '执行失败';
+
+  // Build summary if available
+  let summaryInfo = '';
+  if (executionResult?.summary) {
+    const s = executionResult.summary;
+    summaryInfo = `\\n\\n**摘要**：${s.simulated_actions} 模拟 / ${s.blocked_actions} 阻止 / ${s.total_actions} 总计`;
+    if (s.notes) {
+      summaryInfo += `\\n> ${sanitizeForJson(s.notes)}`;
+    }
+  }
+
+  // Build guarantee info
+  let guaranteeInfo = '';
+  if (executionResult?.GUARANTEE) {
+    const g = executionResult.GUARANTEE;
+    guaranteeInfo = `\\n\\n**保证**：no_real_write=${g.no_real_write}, write_calls_attempted=${g.write_calls_attempted}`;
+  }
+
+  const executionUrl = `${traceViewerBaseUrl}/${traceId}/execution_result.md`;
+
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `Execution ${statusEmoji} ${statusText} (Dry-run)` },
+      template: headerColor
+    },
+    elements: [
+      {
+        tag: 'markdown',
+        content: `**Trace ID**：\`${traceId}\`\n\n**模式**：🔒 Dry-run（无真实写入）${summaryInfo}${guaranteeInfo}`
+      },
+      ...(isSuccess ? [{
+        tag: 'action',
+        actions: [{
+          tag: 'button',
+          text: { tag: 'plain_text', content: '查看执行结果' },
+          type: 'primary',
+          url: executionUrl
+        }]
+      }] : []),
+      {
+        tag: 'note',
+        elements: [
+          { tag: 'plain_text', content: 'Week5: 所有执行均为 Dry-run，未执行真实 API 调用。' }
+        ]
+      }
+    ]
+  };
+}
+
+/**
  * Create fallback text card when template rendering fails
  * Ensures at minimum: trace_id, decision, origin, mock_used are always shown
  */
@@ -377,5 +471,6 @@ export default {
   renderVerdictCard,
   renderEvidenceStatusCard,
   renderApprovalStatusCard,
+  renderExecutionStatusCard,
   createFallbackTextMessage
 };

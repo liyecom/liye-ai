@@ -1,5 +1,5 @@
 /**
- * Feishu Actions Handler (Week3 + Week4)
+ * Feishu Actions Handler (Week3 + Week4 + Week5)
  *
  * Handles interactive card button click callbacks:
  * - run_dry_plan: Generate dry_run_plan.md (Week3)
@@ -7,6 +7,7 @@
  * - submit_approval: Generate action_plan and submit for approval (Week4)
  * - approve: Approve an action plan (Week4, RBAC enforced)
  * - reject: Reject an action plan (Week4, RBAC enforced)
+ * - execute_dry_run: Execute approved plan in dry-run mode (Week5)
  *
  * Thin-Agent Principle:
  * - Actions handler only generates files, no strategy decisions
@@ -18,7 +19,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync, existsSync, appendFileSync, mkdirSync } from 'fs';
 
 import { replyMessage, sendMessage, isConfigured } from './feishu_client.mjs';
-import { renderEvidenceStatusCard, renderApprovalStatusCard } from './cards/render_verdict_card.mjs';
+import { renderEvidenceStatusCard, renderApprovalStatusCard, renderExecutionStatusCard } from './cards/render_verdict_card.mjs';
 import { writeEvidencePackage, getEvidencePath } from '../../src/runtime/evidence/evidence_writer.mjs';
 import { writeActionPlan, actionPlanExists } from '../../src/runtime/evidence/action_plan_writer.mjs';
 import {
@@ -26,9 +27,12 @@ import {
   submitApproval,
   approve,
   reject,
+  markExecuted,
   getApproval,
   approvalExists
 } from '../../src/runtime/evidence/approval_writer.mjs';
+import { executeDryRun } from '../../src/runtime/execution/dry_run_executor.mjs';
+import { writeExecutionResult } from '../../src/runtime/evidence/execution_result_writer.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -304,6 +308,11 @@ export async function handleFeishuAction(req, res, opts = {}) {
       statusCard = renderApprovalStatusCard(traceId, result.approval, { traceViewerBaseUrl });
       break;
 
+    case 'execute_dry_run':
+      result = await handleExecuteDryRun(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, { messageId, chatId });
+      statusCard = renderExecutionStatusCard(traceId, result.executionResult, { traceViewerBaseUrl });
+      break;
+
     default:
       res.writeHead(400);
       res.end(JSON.stringify({
@@ -512,6 +521,110 @@ async function handleReject(traceId, userId, context, traceBaseDir, traceViewerB
     error: result.error,
     approval: result.approval || getApproval(traceId, traceBaseDir)
   };
+}
+
+// --- Week5 Handlers ---
+
+async function handleExecuteDryRun(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, meta) {
+  const traceDir = join(traceBaseDir, traceId);
+
+  // Step 1: Check approval status - must be APPROVED
+  const approval = getApproval(traceId, traceBaseDir);
+  if (!approval) {
+    return {
+      success: false,
+      error: 'Approval not found. Please submit for approval first.',
+      executionResult: null
+    };
+  }
+
+  if (approval.status !== 'APPROVED') {
+    return {
+      success: false,
+      error: `Cannot execute: approval status is ${approval.status}. Must be APPROVED first.`,
+      executionResult: null
+    };
+  }
+
+  // Step 2: Check action plan exists
+  if (!actionPlanExists(traceId, traceBaseDir)) {
+    return {
+      success: false,
+      error: 'Action plan not found. Please submit for approval to generate plan.',
+      executionResult: null
+    };
+  }
+
+  // Step 3: Write trace event - started
+  writeTraceEvent(traceDir, 'execution.dry_run.started', {
+    trace_id: traceId,
+    user_id: userId,
+    message_id: meta.messageId,
+    chat_id: meta.chatId
+  });
+
+  try {
+    // Step 4: Run dry-run executor
+    const executionResult = executeDryRun({
+      trace_id: traceId,
+      approval,
+      baseDir: traceBaseDir
+    });
+
+    // Step 5: Write execution result to files
+    const writeResult = writeExecutionResult({
+      trace_id: traceId,
+      executionResult,
+      baseDir: traceBaseDir
+    });
+
+    if (!writeResult.success) {
+      throw new Error(`Failed to write execution result: ${writeResult.error}`);
+    }
+
+    // Step 6: Mark approval as EXECUTED
+    const markResult = markExecuted({
+      trace_id: traceId,
+      actor: userId,
+      meta: { message_id: meta.messageId, chat_id: meta.chatId },
+      baseDir: traceBaseDir
+    });
+
+    if (!markResult.success) {
+      console.warn(`[FeishuActions] Failed to mark executed: ${markResult.error}`);
+    }
+
+    // Step 7: Write trace event - completed
+    writeTraceEvent(traceDir, 'execution.dry_run.completed', {
+      trace_id: traceId,
+      plan_id: executionResult.plan_id,
+      user_id: userId,
+      summary: executionResult.summary,
+      GUARANTEE: executionResult.GUARANTEE
+    });
+
+    return {
+      success: true,
+      executionResult,
+      execution_url: `${traceViewerBaseUrl}/${traceId}/execution_result.md`
+    };
+
+  } catch (e) {
+    console.error('[FeishuActions] Dry-run execution failed:', e.message);
+
+    // Write failed event
+    writeTraceEvent(traceDir, 'execution.dry_run.failed', {
+      trace_id: traceId,
+      user_id: userId,
+      error: e.message
+    });
+
+    return {
+      success: false,
+      error: e.message,
+      executionResult: null
+    };
+  }
 }
 
 export default { handleFeishuAction };

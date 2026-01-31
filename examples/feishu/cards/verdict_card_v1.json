@@ -34,7 +34,7 @@
     },
     {
       "tag": "markdown",
-      "content": "### 📄 Approval Status\n\n{{approval_status_md}}\n\n{{plan_status_md}}"
+      "content": "### 📄 Approval Status\n\n{{approval_status_md}}\n\n{{plan_status_md}}\n\n{{execution_status_md}}"
     },
     {
       "tag": "action",
@@ -94,11 +94,22 @@
       ]
     },
     {
+      "tag": "action",
+      "actions": [
+        {
+          "tag": "button",
+          "text": { "tag": "plain_text", "content": "执行（Dry-run）" },
+          "type": "primary",
+          "value": { "action": "execute_dry_run", "trace_id": "{{trace_id}}" }
+        }
+      ]
+    },
+    {
       "tag": "note",
       "elements": [
         {
           "tag": "plain_text",
-          "content": "Thin-Agent：飞书侧仅转发与展示；所有决策与治理在 LiYe OS 内完成。Week4: 写操作已禁用。"
+          "content": "Thin-Agent：飞书侧仅转发与展示；所有决策与治理在 LiYe OS 内完成。Week5: 执行为 Dry-run 模式，不执行真实写入。"
         }
       ]
     }
