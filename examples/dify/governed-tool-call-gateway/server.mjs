@@ -11,6 +11,7 @@
  *
  * Week3: Added /v1/feishu/actions and /trace/:id/:file endpoints
  * Week4: Added WRITE_ENABLED gate and extended file whitelist
+ * Week5: Added execution_result to file whitelist for dry-run results
  */
 
 import { createServer } from 'http';
@@ -31,16 +32,18 @@ const POLICY_VERSION = process.env.POLICY_VERSION || 'phase1-v1.0.0';
 // Week4: WRITE_ENABLED gate (default: 0 = disabled)
 const WRITE_ENABLED = process.env.WRITE_ENABLED === '1';
 
-// Week3+4: Allowed evidence files for static serving (security: whitelist only)
+// Week3+4+5: Allowed evidence files for static serving (security: whitelist only)
 const ALLOWED_EVIDENCE_FILES = [
   'evidence_package.md',
   'dry_run_plan.md',
   'verdict.md',
   'verdict.json',
   'replay.json',
-  'action_plan.md',    // Week4
-  'action_plan.json',  // Week4
-  'approval.json'      // Week4 (optional exposure)
+  'action_plan.md',       // Week4
+  'action_plan.json',     // Week4
+  'approval.json',        // Week4 (optional exposure)
+  'execution_result.md',  // Week5
+  'execution_result.json' // Week5 (optional exposure)
 ];
 
 // ============================================
@@ -510,7 +513,7 @@ const server = createServer((req, res) => {
       status: 'ok',
       service: 'governed-tool-call-gateway',
       policy_version: POLICY_VERSION,
-      contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1', 'ACTION_PLAN_V1', 'APPROVAL_STATE_V1'],
+      contracts: ['GOV_TOOL_CALL_REQUEST_V1', 'GOV_TOOL_CALL_RESPONSE_V1', 'TRACE_REQUIRED_FIELDS_V1', 'ACTION_PLAN_V1', 'APPROVAL_STATE_V1', 'EXECUTION_RESULT_V1'],
       integrations: ['feishu'],
       write_enabled: WRITE_ENABLED
     }));
@@ -533,7 +536,7 @@ const server = createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║  Governed Tool Call Gateway (Phase 1 Week4)                   ║
+║  Governed Tool Call Gateway (Phase 1 Week5)                   ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Endpoint: http://localhost:${PORT}/v1/governed_tool_call       ║
 ║  Feishu:   http://localhost:${PORT}/v1/feishu/events            ║
@@ -542,11 +545,12 @@ server.listen(PORT, () => {
 ║  Health:   http://localhost:${PORT}/health                      ║
 ║  Policy:   ${POLICY_VERSION}                                ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  Contracts: GOV_TOOL_CALL_RESPONSE_V1, ACTION_PLAN_V1         ║
+║  Contracts: GOV_TOOL_CALL_RESPONSE_V1, EXECUTION_RESULT_V1    ║
 ║  HF1-HF5:   Enforced                                          ║
 ║  Week2:     Feishu Thin-Agent (Interactive Card)              ║
 ║  Week3:     Evidence Package + Dry-run Plan                   ║
 ║  Week4:     Approval Shell + Write Gate                       ║
+║  Week5:     Dry-run Execution + Result Files                  ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  WRITE_ENABLED: ${WRITE_ENABLED ? 'ON (DANGER)' : 'OFF (Safe)'}                                      ║
 ╚═══════════════════════════════════════════════════════════════╝
