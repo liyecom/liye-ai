@@ -1,0 +1,13 @@
+{
+  "token": "test_verification_token",
+  "open_id": "ou_test_user_001",
+  "user_id": "ou_test_user_001",
+  "open_message_id": "om_test_message_005",
+  "open_chat_id": "oc_test_chat_001",
+  "action": {
+    "value": {
+      "action": "generate_rollback",
+      "trace_id": "trace-test-001"
+    }
+  }
+}

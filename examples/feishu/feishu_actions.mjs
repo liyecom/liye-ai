@@ -1,5 +1,5 @@
 /**
- * Feishu Actions Handler (Week3 + Week4 + Week5)
+ * Feishu Actions Handler (Week3 + Week4 + Week5 + Phase2 Week1)
  *
  * Handles interactive card button click callbacks:
  * - run_dry_plan: Generate dry_run_plan.md (Week3)
@@ -8,6 +8,8 @@
  * - approve: Approve an action plan (Week4, RBAC enforced)
  * - reject: Reject an action plan (Week4, RBAC enforced)
  * - execute_dry_run: Execute approved plan in dry-run mode (Week5)
+ * - execute_real: Execute approved plan with real writes (Phase2 Week1)
+ * - generate_rollback: Generate rollback plan from execution result (Phase2 Week1)
  *
  * Thin-Agent Principle:
  * - Actions handler only generates files, no strategy decisions
@@ -33,6 +35,9 @@ import {
 } from '../../src/runtime/evidence/approval_writer.mjs';
 import { executeDryRun } from '../../src/runtime/execution/dry_run_executor.mjs';
 import { writeExecutionResult } from '../../src/runtime/evidence/execution_result_writer.mjs';
+// Phase2 Week1: Real write execution and rollback
+import { executeReal } from '../../src/runtime/execution/real_executor.mjs';
+import { writeRollbackPlan, rollbackPlanExists } from '../../src/runtime/evidence/rollback_plan_writer.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -311,6 +316,18 @@ export async function handleFeishuAction(req, res, opts = {}) {
     case 'execute_dry_run':
       result = await handleExecuteDryRun(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, { messageId, chatId });
       statusCard = renderExecutionStatusCard(traceId, result.executionResult, { traceViewerBaseUrl });
+      break;
+
+    // Phase2 Week1: Real write execution
+    case 'execute_real':
+      result = await handleExecuteReal(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, { messageId, chatId });
+      statusCard = renderExecutionStatusCard(traceId, result.executionResult, { traceViewerBaseUrl, mode: 'real_write' });
+      break;
+
+    // Phase2 Week1: Generate rollback plan
+    case 'generate_rollback':
+      result = await handleGenerateRollback(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, { messageId, chatId });
+      statusCard = renderExecutionStatusCard(traceId, result.rollbackPlan, { traceViewerBaseUrl, isRollback: true });
       break;
 
     default:
@@ -623,6 +640,261 @@ async function handleExecuteDryRun(traceId, userId, context, traceBaseDir, trace
       success: false,
       error: e.message,
       executionResult: null
+    };
+  }
+}
+
+// --- Phase2 Week1 Handlers ---
+
+/**
+ * Handle execute_real action - Execute approved plan with real writes
+ *
+ * Gate checks:
+ * 1. Approval status must be APPROVED
+ * 2. Action plan must exist
+ * 3. Write gate validation (four-layer)
+ *
+ * Produces:
+ * - execution_result.json/md with mode="real_write"
+ * - Rollback actions captured for rollback plan generation
+ */
+async function handleExecuteReal(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, meta) {
+  const traceDir = join(traceBaseDir, traceId);
+
+  // Step 1: Check approval status - must be APPROVED
+  const approval = getApproval(traceId, traceBaseDir);
+  if (!approval) {
+    return {
+      success: false,
+      error: 'Approval not found. Please submit for approval first.',
+      executionResult: null
+    };
+  }
+
+  if (approval.status !== 'APPROVED') {
+    return {
+      success: false,
+      error: `Cannot execute: approval status is ${approval.status}. Must be APPROVED first.`,
+      executionResult: null
+    };
+  }
+
+  // Step 2: Check action plan exists
+  if (!actionPlanExists(traceId, traceBaseDir)) {
+    return {
+      success: false,
+      error: 'Action plan not found. Please submit for approval to generate plan.',
+      executionResult: null
+    };
+  }
+
+  // Step 3: Write trace event - started
+  writeTraceEvent(traceDir, 'execution.real_write.started', {
+    trace_id: traceId,
+    user_id: userId,
+    message_id: meta.messageId,
+    chat_id: meta.chatId
+  });
+
+  try {
+    // Step 4: Run real executor (includes write gate checks)
+    const executionResult = await executeReal({
+      trace_id: traceId,
+      approval,
+      baseDir: traceBaseDir
+    });
+
+    // Step 5: Write execution result to files
+    const writeResult = writeExecutionResult({
+      trace_id: traceId,
+      executionResult,
+      baseDir: traceBaseDir
+    });
+
+    if (!writeResult.success) {
+      throw new Error(`Failed to write execution result: ${writeResult.error}`);
+    }
+
+    // Step 6: Auto-generate rollback plan if writes succeeded
+    if (executionResult.rollback_actions && executionResult.rollback_actions.length > 0) {
+      const rollbackResult = writeRollbackPlan({
+        trace_id: traceId,
+        plan_id: executionResult.plan_id,
+        execution_result: executionResult,
+        rollback_actions: executionResult.rollback_actions,
+        baseDir: traceBaseDir
+      });
+
+      if (!rollbackResult.success) {
+        console.warn(`[FeishuActions] Failed to write rollback plan: ${rollbackResult.error}`);
+      } else {
+        writeTraceEvent(traceDir, 'rollback.plan.generated', {
+          trace_id: traceId,
+          rollback_plan_id: rollbackResult.rollback_plan_id,
+          actions_count: executionResult.rollback_actions.length
+        });
+      }
+    }
+
+    // Step 7: Mark approval as EXECUTED
+    const markResult = markExecuted({
+      trace_id: traceId,
+      actor: userId,
+      meta: { message_id: meta.messageId, chat_id: meta.chatId, mode: 'real_write' },
+      baseDir: traceBaseDir
+    });
+
+    if (!markResult.success) {
+      console.warn(`[FeishuActions] Failed to mark executed: ${markResult.error}`);
+    }
+
+    // Step 8: Write trace event - completed
+    writeTraceEvent(traceDir, 'execution.real_write.completed', {
+      trace_id: traceId,
+      plan_id: executionResult.plan_id,
+      user_id: userId,
+      summary: executionResult.summary,
+      GUARANTEE: executionResult.GUARANTEE,
+      rollback_available: executionResult.rollback_actions?.length > 0
+    });
+
+    return {
+      success: true,
+      executionResult,
+      execution_url: `${traceViewerBaseUrl}/${traceId}/execution_result.md`,
+      rollback_url: executionResult.rollback_actions?.length > 0
+        ? `${traceViewerBaseUrl}/${traceId}/rollback_plan.md`
+        : null
+    };
+
+  } catch (e) {
+    console.error('[FeishuActions] Real write execution failed:', e.message);
+
+    // Write failed event
+    writeTraceEvent(traceDir, 'execution.real_write.failed', {
+      trace_id: traceId,
+      user_id: userId,
+      error: e.message
+    });
+
+    return {
+      success: false,
+      error: e.message,
+      executionResult: null
+    };
+  }
+}
+
+/**
+ * Handle generate_rollback action - Generate rollback plan from execution result
+ *
+ * Produces:
+ * - rollback_plan.json/md with inverse operations
+ */
+async function handleGenerateRollback(traceId, userId, context, traceBaseDir, traceViewerBaseUrl, meta) {
+  const traceDir = join(traceBaseDir, traceId);
+
+  // Step 1: Check if rollback plan already exists
+  if (rollbackPlanExists(traceId, traceBaseDir)) {
+    return {
+      success: true,
+      message: 'Rollback plan already exists',
+      rollback_url: `${traceViewerBaseUrl}/${traceId}/rollback_plan.md`
+    };
+  }
+
+  // Step 2: Load execution result
+  const executionResultPath = join(traceDir, 'execution_result.json');
+  if (!existsSync(executionResultPath)) {
+    return {
+      success: false,
+      error: 'Execution result not found. Please execute the plan first.'
+    };
+  }
+
+  let executionResult;
+  try {
+    executionResult = JSON.parse(readFileSync(executionResultPath, 'utf-8'));
+  } catch (e) {
+    return {
+      success: false,
+      error: `Failed to load execution result: ${e.message}`
+    };
+  }
+
+  // Step 3: Check if there are any writes to rollback
+  if (!executionResult.rollback_actions || executionResult.rollback_actions.length === 0) {
+    // Try to build rollback from actions
+    const rollbackActions = [];
+    if (executionResult.actions) {
+      for (const action of executionResult.actions) {
+        if (action.result_status === 'EXECUTED' && action.rollback_info) {
+          rollbackActions.push(action.rollback_info);
+        }
+      }
+    }
+
+    if (rollbackActions.length === 0) {
+      return {
+        success: false,
+        error: 'No writes found to rollback. Only executed real writes can be rolled back.'
+      };
+    }
+
+    executionResult.rollback_actions = rollbackActions;
+  }
+
+  // Step 4: Write trace event
+  writeTraceEvent(traceDir, 'rollback.plan.requested', {
+    trace_id: traceId,
+    user_id: userId,
+    message_id: meta.messageId
+  });
+
+  try {
+    // Step 5: Generate rollback plan
+    const rollbackResult = writeRollbackPlan({
+      trace_id: traceId,
+      plan_id: executionResult.plan_id,
+      execution_result: executionResult,
+      rollback_actions: executionResult.rollback_actions,
+      baseDir: traceBaseDir
+    });
+
+    if (!rollbackResult.success) {
+      throw new Error(rollbackResult.error);
+    }
+
+    // Step 6: Write success event
+    writeTraceEvent(traceDir, 'rollback.plan.generated', {
+      trace_id: traceId,
+      rollback_plan_id: rollbackResult.rollback_plan_id,
+      actions_count: executionResult.rollback_actions.length,
+      user_id: userId
+    });
+
+    return {
+      success: true,
+      rollbackPlan: {
+        rollback_plan_id: rollbackResult.rollback_plan_id,
+        actions_count: executionResult.rollback_actions.length,
+        validity_until: rollbackResult.validity_until
+      },
+      rollback_url: `${traceViewerBaseUrl}/${traceId}/rollback_plan.md`
+    };
+
+  } catch (e) {
+    console.error('[FeishuActions] Rollback plan generation failed:', e.message);
+
+    writeTraceEvent(traceDir, 'rollback.plan.failed', {
+      trace_id: traceId,
+      user_id: userId,
+      error: e.message
+    });
+
+    return {
+      success: false,
+      error: e.message
     };
   }
 }

@@ -2,7 +2,7 @@
 /**
  * Governed Tool Call HTTP Gateway for Dify
  *
- * Phase 1 Contract-Aligned Implementation
+ * Phase 1 + Phase 2 Contract-Aligned Implementation
  * Implements HF1-HF5 with full contract compliance.
  *
  * Endpoint: POST /v1/governed_tool_call
@@ -12,6 +12,7 @@
  * Week3: Added /v1/feishu/actions and /trace/:id/:file endpoints
  * Week4: Added WRITE_ENABLED gate and extended file whitelist
  * Week5: Added execution_result to file whitelist for dry-run results
+ * Phase2 Week1: Added rollback_plan to file whitelist for real write recovery
  */
 
 import { createServer } from 'http';
@@ -32,7 +33,7 @@ const POLICY_VERSION = process.env.POLICY_VERSION || 'phase1-v1.0.0';
 // Week4: WRITE_ENABLED gate (default: 0 = disabled)
 const WRITE_ENABLED = process.env.WRITE_ENABLED === '1';
 
-// Week3+4+5: Allowed evidence files for static serving (security: whitelist only)
+// Week3+4+5+Phase2: Allowed evidence files for static serving (security: whitelist only)
 const ALLOWED_EVIDENCE_FILES = [
   'evidence_package.md',
   'dry_run_plan.md',
@@ -43,7 +44,9 @@ const ALLOWED_EVIDENCE_FILES = [
   'action_plan.json',     // Week4
   'approval.json',        // Week4 (optional exposure)
   'execution_result.md',  // Week5
-  'execution_result.json' // Week5 (optional exposure)
+  'execution_result.json', // Week5 (optional exposure)
+  'rollback_plan.md',     // Phase2 Week1
+  'rollback_plan.json'    // Phase2 Week1
 ];
 
 // ============================================
@@ -536,7 +539,7 @@ const server = createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║  Governed Tool Call Gateway (Phase 1 Week5)                   ║
+║  Governed Tool Call Gateway (Phase 2 Week1)                   ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Endpoint: http://localhost:${PORT}/v1/governed_tool_call       ║
 ║  Feishu:   http://localhost:${PORT}/v1/feishu/events            ║
@@ -551,6 +554,7 @@ server.listen(PORT, () => {
 ║  Week3:     Evidence Package + Dry-run Plan                   ║
 ║  Week4:     Approval Shell + Write Gate                       ║
 ║  Week5:     Dry-run Execution + Result Files                  ║
+║  Phase2W1:  Real Write Gray Launch + Rollback Plans           ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  WRITE_ENABLED: ${WRITE_ENABLED ? 'ON (DANGER)' : 'OFF (Safe)'}                                      ║
 ╚═══════════════════════════════════════════════════════════════╝
