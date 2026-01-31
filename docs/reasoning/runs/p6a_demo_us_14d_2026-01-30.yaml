@@ -1,4 +1,4 @@
-# P6-A Read-only Pilot Run Specification (Timo US 14d)
+# P6-A Read-only Pilot Run Specification (Demo US 14d)
 #
 # This spec defines the first real data readonly pilot run.
 # All writes are blocked by three-layer locks (OAuth + Config + Runtime).
@@ -6,15 +6,15 @@
 # Usage:
 #   DENY_READONLY_ENV=true ADS_OAUTH_MODE=readonly \
 #     node src/reasoning/replay/run_readonly_pilot.mjs \
-#       --spec docs/reasoning/runs/p6a_timo_us_14d_2026-01-30.yaml
+#       --spec docs/reasoning/runs/p6a_demo_us_14d_2026-01-30.yaml
 
 version: v1.0.0
 created_at: 2026-01-30
 status: pending  # pending | running | completed | failed
 
 # === Run Identity ===
-run_id: p6a_timo_us_14d_2026-01-30
-description: "P6-A Read-only Pilot: Timo US account, 14-day window, first real data run"
+run_id: p6a_demo_us_14d_2026-01-30
+description: "P6-A Read-only Pilot: Demo US account, 14-day window, first real data run"
 
 # === Safety Locks (Immutable) ===
 safety:
@@ -28,9 +28,9 @@ safety:
 profile: balanced                   # From P4 threshold calibration
 environment: p6a_pilot              # Maps to execution_flags.yaml
 
-# === Data Scope (Timo US) ===
+# === Data Scope (Demo Client) ===
 data_scope:
-  client_id: "timo"                 # Internal client identifier (no PII)
+  client_id: "demo"                 # Internal client identifier (no PII)
   marketplace: US                   # US marketplace
   ads_profile_id: "${ADS_PROFILE_ID}"  # Amazon Ads profile ID (from env)
 
@@ -131,7 +131,7 @@ reproducibility:
 
 # === Audit Trail ===
 audit:
-  trace_prefix: "p6a-timo-us-14d"
+  trace_prefix: "p6a-demo-us-14d"
   log_level: info
   persist_to:
     - ".liye/traces/${run_id}/"
