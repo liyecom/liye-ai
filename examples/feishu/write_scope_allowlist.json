@@ -7,7 +7,7 @@
 
   "tenants": {
     "default": {
-      "description": "Default tenant - Timo US gray launch scope",
+      "description": "Default tenant - Production US gray launch scope",
       "enabled": true,
       "profile_ids": [
         "2636185669342615"
