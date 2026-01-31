@@ -2,8 +2,21 @@
 
 **Vision**: Build a self-evolving personal operating system powered by dual AI engines (Claude Code + Antigravity)
 
-**Last Updated**: 2025-12-12
+**Last Updated**: 2026-01-31
 **Status**: Active Planning
+
+---
+
+## 🔒 Phase Status
+
+| Phase | Component | Status | Tag |
+|-------|-----------|--------|-----|
+| **P1** | Governance Gateway | **CLOSED** | `integration-dify-gateway-v1.1.0` |
+
+> **P1 Governance Gateway: CLOSED.** No new features until P2 approved.
+> - Public endpoint: `https://gateway.liye.ai`
+> - Runbook: `docs/ops/RUNBOOK_GATEWAY.md`
+> - Dify integration verified (ALLOW/BLOCK scenarios)
 
 ---
 
