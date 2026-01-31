@@ -515,3 +515,107 @@ Demo Runner Tests:        7 tests passing  ✅
 - ✅ Demo 可复现（固定 fixtures 输入）
 - ✅ Demo 产出"可对外展示"报告（无敏感字段）
 - ✅ CI workflow 可手动触发并产出 artifact
+
+---
+
+## 15. P6-A Done（执行记录）
+
+> **完成日期**: 2026-01-31
+> **Tag**: `reasoning-assets-p6a`
+> **PR**: [#87](https://github.com/liyecom/liye-ai/pull/87)
+
+### 15.1 交付成果
+
+#### 三层只读锁机制
+
+| Layer | 机制 | 控制点 |
+|-------|------|--------|
+| Layer 1 | OAuth Scope | `ADS_OAUTH_MODE=readonly` |
+| Layer 2 | Config | `execution_flags.yaml: readonly=true` |
+| Layer 3 | Runtime | `DENY_READONLY_ENV=true` |
+
+#### 覆盖率指标体系 (7-Metric Output)
+
+| # | 指标 | P6-A 值 | 说明 |
+|---|------|---------|------|
+| 1 | declared_total | 141 | evidence_fetch_map 全部字段 |
+| 2 | declared_t1 | 35 | T1_TRUTH 字段（非 unavailable） |
+| 3 | reachable_t1 | 35 | 可查询的 T1 字段 |
+| 4 | coverage_t1 | 100% | reachable_t1 / declared_t1 |
+| 5 | required_by_active_playbooks | 31 | 活跃 playbook 所需字段 |
+| 6 | reachable_required | 31 | 所需字段中可达的 |
+| 7 | **coverage_required** | **100%** | **Gate 指标** (≥70%) |
+
+#### CI Gate
+
+- `reasoning_assets_gate.mjs` v0.3：强制 `coverage_required >= 70%`
+- 2 个 P6-A snapshot tests：验证 ACOS_TOO_HIGH 和 SEARCH_TERM_WASTE_HIGH 覆盖率
+
+### 15.2 P6-A 约束遵守确认
+
+- ❌ 无新增服务/数据库
+- ❌ 无 GDP schema 变更
+- ✅ 三层只读锁 (ZERO WRITES)
+- ✅ 覆盖率指标可审计
+- ✅ active_playbooks.yaml 确定性来源
+
+---
+
+## 16. P6-B Done（执行记录）
+
+> **完成日期**: 2026-01-31
+> **Tag**: `reasoning-assets-p6b`
+> **PR**: [#88](https://github.com/liyecom/liye-ai/pull/88)
+
+### 16.1 交付成果
+
+#### B1: 基线分布报告
+
+**文件**: `docs/reasoning/reports/p6b/P6B_BASELINE_DISTRIBUTION_DEMO_US_14D.md`
+
+| 指标 | P50 | P75 | P90 | P95 |
+|------|-----|-----|-----|-----|
+| spend (per term) | $0.42 | $1.85 | $5.12 | $12.38 |
+| clicks (per term) | 0 | 1 | 4 | 9 |
+
+- **zero_conversion_spend_pct**: 78.0%
+- **match_type_distribution**: BROAD 46%, PHRASE 32%, EXACT 22%
+- **Eligible proposals**: 12 (under balanced thresholds)
+
+#### B2: Balanced 校准决策
+
+**结论**: ❌ **无需调整阈值**
+
+| 证据 | 值 | 结论 |
+|------|-----|------|
+| clicks P95 | 9 | clicks_gte=20 是 2x P95，保证统计显著性 |
+| waste_ratio P50 | 0.85 | 大部分词已超 0.30 阈值 |
+| $15-30 bucket zero-order rate | 77.4% | spend_gte=15 适当 |
+
+放宽阈值会增加误判风险而无明显收益。
+
+#### B3: 稳定性测试
+
+**文件**: `tests/reasoning/p6b/test_cause_ranking_stability.mjs`
+
+| 测试 | Perturbations | Swaps | 状态 |
+|------|---------------|-------|------|
+| ACOS_TOO_HIGH - NEW_PRODUCT_PHASE | 8 | 0 | ✅ |
+| ACOS_TOO_HIGH - BID_TOO_HIGH | 6 | 0 | ✅ |
+| ACOS_TOO_HIGH - LISTING_LOW_QUALITY | 8 | 0 | ✅ |
+| ACOS_TOO_HIGH - Boundary (BID vs OFFER) | 6 | 0 | ✅ |
+| SEARCH_TERM_WASTE_HIGH - BROAD_MATCH | 6 | 0 | ✅ |
+| SEARCH_TERM_WASTE_HIGH - INSUFFICIENT_NEG | 8 | 0 | ✅ |
+| SEARCH_TERM_WASTE_HIGH - AUTO_UNCONSTRAINED | 8 | 0 | ✅ |
+| SEARCH_TERM_WASTE_HIGH - Boundary | 6 | 0 | ✅ |
+
+**保证**: ±1% perturbations 不会导致意外的 Top1/Top2 排序翻转
+
+### 16.2 P6-B 约束遵守确认
+
+- ❌ 无新增服务/数据库
+- ❌ 无 GDP schema 变更
+- ✅ ZERO WRITES 维持
+- ✅ 基线报告已归档
+- ✅ 稳定性测试全绿
+- ✅ 校准决策有证据支持
