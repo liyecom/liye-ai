@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.os/contracts/phase1/TRACE_REQUIRED_FIELDS_V1.json",
+  "title": "Trace Required Fields v1",
+  "description": "Required fields in trace events for auditability. Phase 1 frozen contract.",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "tenant_id",
+    "policy_version",
+    "tool",
+    "action_type",
+    "decision",
+    "origin",
+    "origin_proof",
+    "mock_used"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "pattern": "^trace-[a-z0-9-]+$",
+      "description": "Unique trace identifier"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tenant identifier"
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Applied routing policy version"
+    },
+    "tool": {
+      "type": "string",
+      "description": "Tool URI that was called"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": ["read", "analyze", "write", "delete", "send", "execute"],
+      "description": "Action classification"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["ALLOW", "BLOCK", "DEGRADE", "UNKNOWN"],
+      "description": "Governance decision"
+    },
+    "origin": {
+      "type": "string",
+      "description": "Data origin (amazon-growth-engine or liye_os.mock)"
+    },
+    "origin_proof": {
+      "type": "boolean",
+      "description": "True if real AGE call, false if mock"
+    },
+    "mock_used": {
+      "type": "boolean",
+      "description": "True if mock fallback was used"
+    },
+    "fallback_reason": {
+      "type": "string",
+      "description": "Required when mock_used=true"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp in ISO 8601"
+    }
+  },
+  "allOf": [
+    {
+      "description": "HF5: fallback_reason required when mock_used=true",
+      "if": {
+        "properties": {
+          "mock_used": { "const": true }
+        },
+        "required": ["mock_used"]
+      },
+      "then": {
+        "required": ["fallback_reason"],
+        "properties": {
+          "origin": { "const": "liye_os.mock" },
+          "origin_proof": { "const": false }
+        }
+      }
+    }
+  ],
+  "_meta": {
+    "version": "1.0.0",
+    "frozen_at": "2026-01-30",
+    "trace_event_types": [
+      "gateway.request",
+      "gateway.response",
+      "verdict.generated"
+    ],
+    "notes": "At least one event per tool call must contain all required fields in its meta/payload"
+  }
+}
