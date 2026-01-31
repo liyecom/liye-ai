@@ -1,0 +1,15 @@
+{
+  "type": "card_action",
+  "token": "test_verification_token",
+  "action": {
+    "value": {
+      "action": "submit_approval",
+      "trace_id": "trace-test-001"
+    },
+    "tag": "button"
+  },
+  "open_id": "ou_test_user_001",
+  "user_id": "ou_test_user_001",
+  "open_message_id": "om_test_message_001",
+  "open_chat_id": "oc_test_chat_001"
+}

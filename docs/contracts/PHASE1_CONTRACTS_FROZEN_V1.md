@@ -113,3 +113,78 @@ FORCE_FALLBACK=1 \
 - HF3: WriteBlocker GUARANTEE enforcement
 - HF4: origin field for multi-source telemetry
 - HF5: origin/mock_used consistency rules
+
+---
+
+## Week4 Extension: Approval Shell Contracts
+
+### Additional Contract Files (Week4)
+
+| Contract | Path | Purpose |
+|----------|------|---------|
+| Action Plan Schema | `src/contracts/phase1/ACTION_PLAN_V1.json` | Frozen execution plan validation |
+| Approval State Schema | `src/contracts/phase1/APPROVAL_STATE_V1.json` | Approval workflow state machine |
+
+### Action Plan Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `plan_id` | string | Unique plan identifier (format: `plan-<trace_id>`) |
+| `trace_id` | string | Associated trace identifier |
+| `tenant_id` | string | Tenant identifier |
+| `created_at` | datetime | ISO 8601 timestamp of plan creation |
+| `policy_version` | string | Policy version used to generate plan |
+| `intent` | string | Brief description of user's intent |
+| `actions` | array | List of planned actions (1-10 items) |
+| `GUARANTEE` | object | Week4 hard guarantees |
+
+### Action Item Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `action_id` | string | Unique action identifier (format: `action-N`) |
+| `action_type` | enum | read, analyze, write, delete, execute, send |
+| `tool` | string | Tool to be invoked |
+| `arguments` | object | Tool arguments |
+| `risk_level` | enum | low, medium, high |
+| `requires_approval` | boolean | True for write/execute actions |
+| `dry_run_only` | boolean | Week4: always true for write actions |
+
+### Approval State Machine
+
+```
+DRAFT → SUBMITTED → APPROVED → EXECUTED
+                  ↘ REJECTED
+```
+
+| Status | Description |
+|--------|-------------|
+| DRAFT | Plan created, not yet submitted |
+| SUBMITTED | Awaiting approval |
+| APPROVED | Approved, ready for execution |
+| REJECTED | Rejected, requires modification |
+| EXECUTED | Executed (Week4: always dry-run) |
+
+### Week4 GUARANTEE (MACHINE-ENFORCED)
+
+```
+GUARANTEE:
+  no_real_write: true      # Always true in Week4
+  write_calls_attempted: 0 # Always 0 in Week4
+```
+
+**Rule: Write Gate Enforcement**
+```
+IF WRITE_ENABLED != "1" THEN:
+  - All write/delete/execute/send actions MUST be dry_run_only=true
+  - write_calls_attempted MUST be 0
+  - Real write attempts MUST be blocked with decision=DEGRADE
+```
+
+### Week4 Schema Validation
+
+```bash
+# Validate Week4 schemas are parseable
+node -e "require('./src/contracts/phase1/ACTION_PLAN_V1.json')"
+node -e "require('./src/contracts/phase1/APPROVAL_STATE_V1.json')"
+```

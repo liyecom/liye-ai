@@ -1,0 +1,111 @@
+# Write Gray Launch Policy v1
+# Phase2 Week1: Real Write with strict gating
+#
+# Four-layer gating:
+#   Layer 1: Global switch (WRITE_ENABLED env)
+#   Layer 2: Tool allowlist (only approved write tools)
+#   Layer 3: Scope allowlist (profile/campaign/adgroup whitelist)
+#   Layer 4: Threshold limits (bid adjustment caps)
+
+version: "phase2-v1.0.0"
+name: "write-gray-v1"
+description: "Gray launch policy for real write operations with multi-layer gating"
+
+# Layer 1: Global Switch
+global:
+  write_enabled_env: "WRITE_ENABLED"
+  default: false  # WRITE_ENABLED=0 by default
+
+# Layer 2: Tool Allowlist
+# Only these tools can perform real writes
+tool_allowlist:
+  - tool: "amazon://execution/negative_keyword_add"
+    action_type: "write"
+    risk_level: "medium"
+    rollback_tool: "amazon://execution/negative_keyword_remove"
+    description: "Add negative keywords to ad groups"
+
+  - tool: "amazon://execution/negative_keyword_remove"
+    action_type: "write"
+    risk_level: "low"
+    rollback_tool: null  # Rollback is re-add, handled separately
+    description: "Remove negative keywords (for rollback)"
+
+  - tool: "amazon://execution/bid_adjust"
+    action_type: "write"
+    risk_level: "medium"
+    rollback_tool: "amazon://execution/bid_adjust"  # Self-rollback with original value
+    description: "Adjust keyword/target bids"
+
+# Layer 3: Scope Allowlist
+# Reference to external file for easier updates without policy change
+scope_allowlist:
+  file: "write_scope_allowlist.json"
+  required_fields:
+    - "profile_id"
+    - "campaign_id"
+    - "adgroup_id"
+  validation: "strict"  # All fields must match allowlist
+
+# Layer 4: Thresholds
+thresholds:
+  bid_adjust:
+    # Maximum bid change as percentage of original
+    max_delta_pct: 0.10  # ±10%
+    # Maximum absolute bid change in dollars
+    max_delta_abs: 0.20  # ±$0.20
+    # Minimum bid (cannot go below)
+    min_bid: 0.02
+    # Maximum bid (cannot exceed)
+    max_bid: 10.00
+    # Validation mode: "pct" | "abs" | "both"
+    validation_mode: "both"
+
+  negative_keyword:
+    # Maximum keywords per single operation
+    max_keywords_per_op: 10
+    # Require match type specification
+    require_match_type: true
+    allowed_match_types:
+      - "exact"
+      - "phrase"
+      - "broad"
+
+# Execution Requirements
+execution:
+  # Must have approval before real write
+  require_approval: true
+  # Must have action plan frozen
+  require_frozen_plan: true
+  # Must generate rollback plan
+  require_rollback_plan: true
+  # Read original values before write (for rollback)
+  require_original_values: true
+  # Fail-closed: any gating failure = BLOCK (no DEGRADE fallback)
+  fail_mode: "closed"
+
+# Audit Requirements
+audit:
+  # Events that must be logged
+  required_events:
+    - "write_gate.check.started"
+    - "write_gate.check.completed"
+    - "execution.real_write.started"
+    - "execution.real_write.completed"
+    - "rollback_plan.generated"
+  # Fields that must be present in execution_result
+  required_fields:
+    - "origin"
+    - "origin_proof"
+    - "write_calls_attempted"
+    - "request_id"
+    - "response_id"
+
+# Rollback Configuration
+rollback:
+  # Auto-generate rollback plan after successful write
+  auto_generate: true
+  # Include in execution_result
+  include_in_result: true
+  # TTL for rollback validity (optional, for future use)
+  validity_hours: 168  # 7 days
