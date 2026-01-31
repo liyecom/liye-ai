@@ -1,7 +1,8 @@
 # ACOS_TOO_HIGH Observation Playbook
 # P2.4: Added execution_mode for future semi-auto execution
+# P6-A PR-B2: Added Top20 reachable evidence fields for improved diagnostics
 observation_id: ACOS_TOO_HIGH
-version: v0.2
+version: v0.3
 severity_default: HIGH
 
 definition:
@@ -35,6 +36,9 @@ cause_candidates:
     evidence_requirements:
       - ctr
       - unit_session_pct
+      # PR-B2: Added T1 reachable evidence
+      - conversion_rate_by_term       # CVR breakdown by search term
+      - search_term_efficiency        # ROAS by term for efficiency analysis
     decision_logic: "ctr < targets.min_ctr OR unit_session_pct < targets.min_unit_session_pct"
     rationale:
       - "低 CTR 造成 CPC 结构性偏高"
@@ -54,7 +58,11 @@ cause_candidates:
     evidence_requirements:
       - wasted_spend_ratio
       - search_term_relevance_score
-    decision_logic: "wasted_spend_ratio > 0.3 OR search_term_relevance_score < 0.6"
+      # PR-B2: Added T1 reachable evidence
+      - zero_conversion_spend_pct      # Percentage of spend with zero conversions
+      - high_click_low_conversion_terms # Terms with clicks but no sales
+      - match_type_distribution         # Spend distribution by match type
+    decision_logic: "wasted_spend_ratio > 0.3 OR search_term_relevance_score < 0.6 OR zero_conversion_spend_pct > 0.25"
     rationale:
       - "宽泛匹配带来低意图流量"
     recommended_actions:
@@ -72,7 +80,11 @@ cause_candidates:
     evidence_requirements:
       - cpc
       - category_avg_cpc
-    decision_logic: "cpc > category_avg_cpc * 1.5"
+      # PR-B2: Added T1 reachable evidence
+      - avg_cpc_by_campaign           # CPC breakdown by campaign
+      - budget_utilization_rate       # Budget usage pattern
+      - campaign_acos_variance        # ACOS variation across campaigns
+    decision_logic: "cpc > category_avg_cpc * 1.5 OR campaign_acos_variance > 0.3"
     rationale:
       - "价格竞争导致点击成本过高"
     recommended_actions:

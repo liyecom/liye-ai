@@ -1,0 +1,144 @@
+# P6-A Read-only Pilot Run Specification (Demo US 14d)
+#
+# This spec defines the first real data readonly pilot run.
+# All writes are blocked by three-layer locks (OAuth + Config + Runtime).
+#
+# Usage:
+#   DENY_READONLY_ENV=true ADS_OAUTH_MODE=readonly \
+#     node src/reasoning/replay/run_readonly_pilot.mjs \
+#       --spec docs/reasoning/runs/p6a_demo_us_14d_2026-01-30.yaml
+
+version: v1.0.0
+created_at: 2026-01-30
+status: pending  # pending | running | completed | failed
+
+# === Run Identity ===
+run_id: p6a_demo_us_14d_2026-01-30
+description: "P6-A Read-only Pilot: Demo US account, 14-day window, first real data run"
+
+# === Safety Locks (Immutable) ===
+safety:
+  readonly: true                    # Layer 2: global_mode.readonly
+  force_dry_run: true               # Double insurance: even if readonly bypassed
+  ads_oauth_mode: readonly          # Layer 1: ADS_OAUTH_MODE
+  max_writes_allowed: 0             # Hard limit: any write > 0 = FAIL
+  must_deny_all_writes: true        # All write actions must return DENY_READONLY_ENV
+
+# === Execution Profile ===
+profile: balanced                   # From P4 threshold calibration
+environment: p6a_pilot              # Maps to execution_flags.yaml
+
+# === Data Scope (Demo Client) ===
+data_scope:
+  client_id: "demo"                 # Internal client identifier (no PII)
+  marketplace: US                   # US marketplace
+  ads_profile_id: "${ADS_PROFILE_ID}"  # Amazon Ads profile ID (from env)
+
+  # Time window: 14 days (initial run, may extend to 30d if insufficient)
+  date_range:
+    type: rolling
+    days: 14
+
+# === Data Sources ===
+data_sources:
+  # T1 Truth tables (already exist from Phase 1)
+  t1_search_term:
+    table: t1_ad_search_term_daily
+    required_fields:
+      - report_date
+      - campaign_id
+      - ad_group_id
+      - search_term
+      - match_type
+      - impressions
+      - clicks
+      - cost
+      - attributed_sales_7d
+      - attributed_conversions_7d
+
+  t1_campaign:
+    table: t1_ad_campaign_daily
+    required_fields:
+      - report_date
+      - campaign_id
+      - campaign_name
+      - campaign_status
+      - campaign_budget
+      - impressions
+      - clicks
+      - cost
+      - attributed_sales_7d
+
+# === Replay Stages ===
+stages:
+  - name: extract
+    description: "Pull data from Amazon Ads API (read-only)"
+    outputs:
+      - raw_ingest_audit record
+      - t1_ad_search_term_daily rows
+      - t1_ad_campaign_daily rows
+    validation:
+      - "row_count > 0"
+      - "date_coverage >= 10 days"  # 14d run, allow some gaps
+      - "profile_id matches spec"
+
+  - name: explain
+    description: "Run explain_observation for detected observations"
+    inputs:
+      - aggregated signals from T1
+    outputs:
+      - explanation per observation
+      - causes with evidence
+    validation:
+      - "explanation_count >= 1"
+      - "all explanations have trace_id"
+
+  - name: propose
+    description: "Build action proposals from explanations"
+    inputs:
+      - explanations
+      - action playbooks
+    outputs:
+      - action proposals (execution_mode: suggest_only or auto_if_safe)
+    validation:
+      - "proposals have proposal_id"
+      - "proposals have rule_version"
+
+  - name: execute
+    description: "Attempt execution (all must be DENY_READONLY_ENV or DRY_RUN)"
+    inputs:
+      - action proposals
+    outputs:
+      - ActionOutcomeEvent per proposal
+    validation:
+      - "writes_attempted == 0"
+      - "all outcomes have status in [DENY_READONLY_ENV, DRY_RUN, SUGGEST_ONLY]"
+      - "no status == AUTO_EXECUTED"
+
+# === Report Outputs ===
+reports:
+  directory: docs/reasoning/reports/p6a/${run_id}
+  files:
+    - P6A_READONLY_PILOT_RUN.md
+    - P6A_EVALUATOR_REPORT.md
+    - P6A_EVIDENCE_GAP_REPORT.md
+
+# === Reproducibility ===
+reproducibility:
+  seed: 42                          # For any random operations
+  deterministic: true               # Same input = same output
+  git_commit: "${GIT_COMMIT_SHA}"   # Record commit at run time
+
+# === Audit Trail ===
+audit:
+  trace_prefix: "p6a-demo-us-14d"
+  log_level: info
+  persist_to:
+    - ".liye/traces/${run_id}/"
+    - "docs/reasoning/reports/p6a/${run_id}/traces/"
+
+# === Data Health Thresholds (for 14d assessment) ===
+health_thresholds:
+  min_search_term_rows: 100         # If < 100, extend to 30d
+  min_clicks: 200                   # If < 200, extend to 30d
+  min_date_coverage_days: 10        # Allow up to 4 days gap in 14d window

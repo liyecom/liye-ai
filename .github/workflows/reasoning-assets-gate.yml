@@ -42,3 +42,9 @@ jobs:
 
       - name: Run Snapshot Tests - Verdict Enrichment
         run: node tests/governance/test_verdict_enrichment_snapshot.mjs
+
+      - name: Run P6-A Snapshot Test 1 - ACOS_TOO_HIGH Coverage
+        run: node tests/reasoning/p6a/test_required_coverage_snapshot_1.mjs
+
+      - name: Run P6-A Snapshot Test 2 - SEARCH_TERM_WASTE_HIGH Coverage
+        run: node tests/reasoning/p6a/test_required_coverage_snapshot_2.mjs

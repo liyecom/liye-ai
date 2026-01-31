@@ -1,0 +1,40 @@
+# Active Playbooks Registry
+# P6-A: Defines which playbooks are used for coverage_required calculation
+# Only these playbooks' evidence_requirements count toward the 70% gate
+#
+# Purpose:
+# - Provides deterministic source for CI gate validation
+# - Prevents coverage drift from inactive/experimental playbooks
+# - Enables phased rollout of new playbooks
+
+version: v1.0
+updated_at: 2026-01-31
+
+# Active observation playbooks (used for coverage_required calculation)
+active_observations:
+  - observation_id: ACOS_TOO_HIGH
+    file: ACOS_TOO_HIGH.yaml
+    enabled: true
+    added_in: P6-A
+    note: "Core observation for PPC optimization"
+
+  - observation_id: SEARCH_TERM_WASTE_HIGH
+    file: SEARCH_TERM_WASTE_HIGH.yaml
+    enabled: true
+    added_in: P6-A
+    note: "Core observation for negative keyword recommendations"
+
+# Active action playbooks (if any - currently none required for P6-A gate)
+active_actions: []
+
+# Gate configuration
+gate_config:
+  coverage_required_threshold: 0.70
+  enforce_in_ci: true
+  block_on_failure: true
+
+# Metadata for audit
+audit:
+  last_reviewed: 2026-01-31
+  reviewed_by: "P6-A PR-B2"
+  next_review: "P6-B kickoff"

@@ -1,5 +1,7 @@
+# SEARCH_TERM_WASTE_HIGH Observation Playbook
+# P6-A PR-B2: Added Top20 reachable evidence fields for improved diagnostics
 observation_id: SEARCH_TERM_WASTE_HIGH
-version: v0.1
+version: v0.2
 severity_default: HIGH
 
 definition:
@@ -17,7 +19,11 @@ cause_candidates:
       - broad_match_spend_pct
       - exact_match_spend_pct
       - phrase_match_spend_pct
-    decision_logic: "broad_match_spend_pct > 0.6"
+      # PR-B2: Added T1 reachable evidence
+      - match_type_distribution         # Full distribution analysis
+      - keyword_spend_distribution      # Spend concentration pattern
+      - top_5_keyword_spend_pct        # Top keyword concentration
+    decision_logic: "broad_match_spend_pct > 0.6 OR match_type_distribution.broad > 0.5"
     rationale:
       - "宽泛匹配吸引大量不相关搜索词"
       - "Amazon 算法探索性过强"
@@ -43,7 +49,11 @@ cause_candidates:
       - negative_keyword_count
       - recurring_waste_terms
       - negative_to_positive_ratio
-    decision_logic: "negative_keyword_count < 50 OR negative_to_positive_ratio < 0.3"
+      # PR-B2: Added T1 reachable evidence
+      - zero_conversion_spend_pct       # Direct waste metric
+      - high_click_low_conversion_terms # Negative keyword candidates
+      - low_impression_terms            # Low-value terms
+    decision_logic: "negative_keyword_count < 50 OR negative_to_positive_ratio < 0.3 OR zero_conversion_spend_pct > 0.2"
     rationale:
       - "否定词列表过短"
       - "相同无效词反复花费"
@@ -69,6 +79,10 @@ cause_candidates:
       - auto_campaign_spend_pct
       - auto_campaign_acos
       - auto_to_manual_harvest_rate
+      # PR-B2: Added T1 reachable evidence
+      - auto_vs_manual_spend_ratio     # Auto vs manual balance
+      - budget_utilization_rate        # Budget exhaustion pattern
+      - campaign_spend_trend           # Spending trend over time
     decision_logic: "auto_campaign_spend_pct > 0.4 AND auto_campaign_acos > targets.max_acos * 1.5"
     rationale:
       - "Auto 广告预算占比过高"
