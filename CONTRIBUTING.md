@@ -208,6 +208,26 @@ export default my_skill;
 npm test
 ```
 
+## Replay CI Gate Rule
+
+Any change affecting:
+- **Governance Kernel** (`src/governance/`, `src/audit/`)
+- **Policy / Gate logic** (`src/reasoning/`)
+- **Decision boundary** (verdict generation)
+- **Evidence generation or hashing** (`docs/contracts/`)
+
+**MUST pass Replay CI Gate.**
+
+Failure indicates a breaking change to historical trust guarantees.
+
+```bash
+# Run locally before submitting PR
+./scripts/ci/replay-gate.sh
+```
+
+If replay fails, your change breaks the ability to verify historical decisions.
+This is considered a **breaking change** and cannot be merged.
+
 ## Documentation
 
 - Update README.md if adding user-facing features

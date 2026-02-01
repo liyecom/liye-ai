@@ -1,0 +1,39 @@
+# P3-A Replay CI Gate
+# Contract: docs/contracts/EVIDENCE_PACKAGE_V1.md (FROZEN: 2026-02-01)
+#
+# Ensures historical evidence artifacts remain verifiable.
+# Failure indicates a breaking change to governance trust guarantees.
+
+name: Replay CI Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/audit/**'
+      - 'src/governance/**'
+      - 'src/reasoning/**'
+      - 'docs/contracts/**'
+      - '.ci/replay-fixtures/**'
+      - 'scripts/ci/replay-gate.sh'
+
+jobs:
+  replay-gate:
+    name: Deterministic Replay Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Replay CI Gate
+        run: ./scripts/ci/replay-gate.sh
