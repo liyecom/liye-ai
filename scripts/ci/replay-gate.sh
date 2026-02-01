@@ -20,7 +20,7 @@ fi
 for f in "$FIXTURES_DIR"/*.json; do
   [ -e "$f" ] || continue
   echo "▶ Replaying $f"
-  if ! pnpm audit:replay "$f"; then
+  if ! npm run audit:replay -- "$f"; then
     echo "❌ Replay failed for $f"
     FAILED=1
   fi
