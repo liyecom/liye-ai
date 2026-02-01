@@ -23,7 +23,8 @@
     "mcp:status": "./.claude/scripts/mcp_up.sh status",
     "mcp:governance": "node src/mcp/server.mjs",
     "mcp:knowledge": "python3 -m src.runtime.mcp.server_main",
-    "demo:reasoning": "node src/reasoning/demo/run_demo.mjs --profile=balanced"
+    "demo:reasoning": "node src/reasoning/demo/run_demo.mjs --profile=balanced",
+    "audit:replay": "npx tsx src/audit/replay/replay.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
