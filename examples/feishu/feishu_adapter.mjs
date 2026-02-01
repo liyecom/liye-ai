@@ -47,12 +47,22 @@ function verifyEvent(body) {
     return true;
   }
 
-  // Check token in body
-  if (body.token && body.token === verificationToken) {
+  // Feishu v1.0 format: token in body.token
+  // Feishu v2.0 format: token in body.header.token
+  const receivedToken = body.token || body.header?.token;
+
+  // Debug: log tokens for troubleshooting
+  console.log('[FeishuAdapter] Expected:', verificationToken);
+  console.log('[FeishuAdapter] Received:', receivedToken);
+  console.log('[FeishuAdapter] Body keys:', Object.keys(body));
+
+  // Check token
+  if (receivedToken && receivedToken === verificationToken) {
+    console.log('[FeishuAdapter] Token verified OK');
     return true;
   }
 
-  console.error('[FeishuAdapter] Token verification failed');
+  console.error('[FeishuAdapter] Token verification failed - tokens do not match');
   return false;
 }
 
