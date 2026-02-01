@@ -1,8 +1,24 @@
 # Evidence Package Contract v1
 
-> **Status**: DRAFT → Review → FROZEN
-> **Last Updated**: 2026-02-01
+> **Status**: 🔒 FROZEN
+> **Frozen Date**: 2026-02-01
 > **Owner**: LiYe Governance Kernel
+
+---
+
+## Freeze Constraints
+
+```yaml
+Status: FROZEN
+Breaking_Changes: NOT_ALLOWED
+Modification_Policy:
+  Schema_fields: ❌ 禁止修改
+  Enum_extension: ❌ v1 禁止
+  Hash_Canonicalization: ✅ 允许在实现中细化，但必须满足本 Contract 语义
+Next_Revision: EVIDENCE_PACKAGE_V2 (only if new decision class or audit dimension required)
+```
+
+**违规行为定义**：任何"顺手加个字段"的修改都是违规，必须走 v2 流程。
 
 ---
 
@@ -225,23 +241,40 @@ validation:
 
 Phase 2-B-1 Gate（封板条件）：
 
-- [ ] Schema 字段完整且无冗余
-- [ ] 每个字段的 Rationale 已记录
-- [ ] Hash 计算规则明确
-- [ ] Validation Rules 完整
-- [ ] Example 可通过 Validation
-- [ ] Downstream Dependencies 已声明
-- [ ] **Review Completed**
-- [ ] **FROZEN**
+- [x] Schema 字段完整且无冗余
+- [x] 每个字段的 Rationale 已记录
+- [x] Hash 计算规则明确
+- [x] Validation Rules 完整
+- [x] Example 可通过 Validation
+- [x] Downstream Dependencies 已声明
+- [x] **Review Completed** (2026-02-01, 4 Minor issues → 实现约束)
+- [x] **FROZEN** (2026-02-01)
 
 ---
 
-## 10. Version History
+## 10. Implementation Notes (Minor Issues from Review)
+
+以下约束在实现时必须遵守，但不构成 Schema 变更：
+
+```javascript
+/**
+ * Canonicalization Rules (Derived from EVIDENCE_PACKAGE_V1, non-breaking):
+ * 1. All object keys MUST be sorted lexicographically (stable).
+ * 2. Undefined / null MUST be normalized to empty string "".
+ * 3. Arrays MUST be deterministically ordered before hashing.
+ * 4. JSON.stringify third argument MUST NOT be relied on for determinism.
+ */
+```
+
+---
+
+## 11. Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v1-frozen | 2026-02-01 | FROZEN after review (4 Minor → impl notes) |
 | v1-draft | 2026-02-01 | Initial draft |
 
 ---
 
-**Next**: Complete review → Freeze → Phase 2-B-2 (Evidence Artifact Generator)
+**Next**: Phase 2-B-2 (Evidence Artifact Generator)
