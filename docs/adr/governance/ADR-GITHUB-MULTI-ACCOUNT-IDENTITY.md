@@ -1,10 +1,12 @@
-# ADR: GitHub Multi-Account Identity Governance
+# ADR-0007: GitHub Multi-Account Identity Governance
 
-**Status**: ACCEPTED
-**Date**: 2026-02-03
-**Deciders**: LiYe (System Owner)
-
----
+- decision_id: ADR-0007
+- domain: governance
+- status: accepted
+- created: 2026-02-03
+- tags: [github, identity, multi-account, governance, audit]
+- owners: LiYe OS Governance
+- scope: All GitHub operations across loudmirror and liyecom accounts
 
 ## Context
 
@@ -12,7 +14,7 @@ LiYe OS ecosystem operates across two distinct GitHub identities:
 
 | Identity | GitHub Account | Repos | Purpose |
 |----------|----------------|-------|---------|
-| **Operator/Builder** | `loudmirror` | amazon-growth-engine | AGE development, operational tooling |
+| **Operator/Builder** | `loudmirror` | AGE (private) | Operational tooling |
 | **Legal Entity / Product Hub** | `liyecom` | liye-ai (liye_os) | Core platform, governance, IP ownership |
 
 ### Problem Discovered
@@ -28,8 +30,6 @@ On 2026-02-03, a governance audit revealed:
 1. **GitHub does not allow modifying PR author after creation**
 2. **Rebasing/force-pushing to rewrite history is prohibited** (destroys audit trail)
 3. **All code and decisions belong to LiYe OS regardless of author display anomaly**
-
----
 
 ## Decision
 
@@ -50,7 +50,7 @@ PRs #84-#93 in `liyecom/liye-ai` will retain `loudmirror` as displayed author.
 git config user.name "liyecom"
 git config user.email "liyecom@users.noreply.github.com"
 
-# amazon-growth-engine
+# AGE (private repo)
 git config user.name "loudmirror"
 git config user.email "loudmirror@gmail.com"
 ```
@@ -66,9 +66,7 @@ alias gh-age='gh auth switch --user loudmirror && gh'
 | Repo | Allowed gh Command | Blocked |
 |------|-------------------|---------|
 | liye_os | `gh-liye pr create` | `gh pr create` (without switch) |
-| amazon-growth-engine | `gh-age pr create` | `gh pr create` (without switch) |
-
----
+| AGE (private) | `gh-age pr create` | `gh pr create` (without switch) |
 
 ## Consequences
 
@@ -87,23 +85,17 @@ alias gh-age='gh auth switch --user loudmirror && gh'
 
 - This ADR serves as authoritative record for any future audit questions
 
----
-
 ## Compliance Verification
 
 From **PR #94 onwards** in `liyecom/liye-ai`:
 - All PRs MUST show author = `liyecom`
 - Any violation indicates tooling bypass and requires investigation
 
----
-
 ## Declaration
 
 > All code, decisions, and intellectual property in `liyecom/liye-ai` belong to LiYe OS,
 > regardless of author display anomalies in PRs #84-#93.
 > This ADR is the authoritative governance record.
-
----
 
 **Affected PRs (Historical - Accepted)**:
 - liyecom/liye-ai #84 through #93 (author displayed as `loudmirror`)
