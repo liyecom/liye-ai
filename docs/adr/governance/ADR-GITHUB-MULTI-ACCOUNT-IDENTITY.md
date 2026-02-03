@@ -1,6 +1,6 @@
-# ADR-0007: GitHub Multi-Account Identity Governance
+# ADR-0008: GitHub Multi-Account Identity Governance
 
-- decision_id: ADR-0007
+- decision_id: ADR-0008
 - domain: governance
 - status: accepted
 - created: 2026-02-03
