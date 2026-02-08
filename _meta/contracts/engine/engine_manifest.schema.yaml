@@ -28,7 +28,7 @@ properties:
     maxLength: 64
     description: "Engine 唯一标识符，小写字母+数字+连字符"
     examples:
-      - amazon-growth-engine
+      - my-domain-engine
       - notion-sync-engine
       - medical-research-engine
 

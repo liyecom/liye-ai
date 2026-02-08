@@ -72,21 +72,22 @@ jobs:
           fi
           echo "Boundary Gate check passed"
 
-  # 如果 AGE 仓库也需要校验
-  validate-age-manifest:
-    name: Validate AGE Manifest (if exists)
+  # 外部 Engine 仓库校验（可选，通过 secrets 配置）
+  validate-external-engine-manifest:
+    name: Validate External Engine Manifest (if configured)
     runs-on: ubuntu-latest
-    if: github.repository == 'liye/liye_os'  # 仅在主仓库运行
+    if: ${{ vars.EXTERNAL_ENGINE_REPO != '' }}
 
     steps:
       - name: Checkout liye_os
         uses: actions/checkout@v4
 
-      - name: Checkout AGE (if accessible)
+      - name: Checkout External Engine (if accessible)
         uses: actions/checkout@v4
         with:
-          repository: liye/amazon-growth-engine
-          path: amazon-growth-engine
+          repository: ${{ vars.EXTERNAL_ENGINE_REPO }}
+          path: external-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
         continue-on-error: true
 
       - name: Setup Node.js
@@ -97,20 +98,20 @@ jobs:
       - name: Install dependencies
         run: npm install yaml
 
-      - name: Validate AGE manifest
+      - name: Validate External Engine manifest
         run: |
-          if [ -f "amazon-growth-engine/engine_manifest.yaml" ]; then
-            echo "Validating AGE engine_manifest.yaml..."
+          if [ -f "external-engine/engine_manifest.yaml" ]; then
+            echo "Validating external engine_manifest.yaml..."
             # 简单校验：确保必需字段存在
             required_fields=("engine_id" "domain" "contracts_compat" "playbooks" "write_capability")
             for field in "${required_fields[@]}"; do
-              if ! grep -q "$field:" amazon-growth-engine/engine_manifest.yaml; then
+              if ! grep -q "$field:" external-engine/engine_manifest.yaml; then
                 echo "ERROR: Missing required field: $field"
                 exit 1
               fi
             done
-            echo "AGE manifest validation passed"
+            echo "External engine manifest validation passed"
           else
-            echo "AGE engine_manifest.yaml not found (may not be accessible)"
+            echo "External engine_manifest.yaml not found (may not be accessible)"
           fi
         continue-on-error: true

@@ -311,11 +311,15 @@ function validateEngineManifests() {
 
   const manifestSchema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
 
-  // 在当前项目和 AGE 仓库中查找 engine_manifest.yaml
-  const searchPaths = [
-    PROJECT_ROOT,
-    join(PROJECT_ROOT, '..', 'amazon-growth-engine'),
-  ];
+  // 在当前项目和外部 Engine 仓库中查找 engine_manifest.yaml
+  // 外部 Engine 路径通过环境变量 ENGINE_MANIFEST_PATH 指定
+  const searchPaths = [PROJECT_ROOT];
+
+  // 添加外部 Engine 路径（如果指定）
+  const externalEnginePath = process.env.ENGINE_MANIFEST_PATH;
+  if (externalEnginePath) {
+    searchPaths.push(externalEnginePath);
+  }
 
   for (const searchPath of searchPaths) {
     if (!existsSync(searchPath)) {
