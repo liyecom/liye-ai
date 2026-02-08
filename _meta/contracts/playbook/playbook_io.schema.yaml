@@ -1,15 +1,21 @@
-# Playbook I/O Contract v1.0.0
+# Playbook I/O Contract v1.1.0
 # SSOT: _meta/contracts/playbook/playbook_io.schema.yaml
 #
 # 统一 playbook 输出格式，便于 OS 投递与审计。
 # Playbook 是纯函数：接收 inputs → 返回 verdict + recommendations。
 # Playbook 禁止：自行调度、投递、读写 OS 状态。
+#
+# Week 5 扩展：
+# - action_type 枚举（bid_adjust, budget_adjust, keyword_pause, campaign_pause）
+# - tier 字段（observe|recommend|execute_limited）
+# - risk_level 字段（low|medium|high）
+# - rollback_plan 结构化字段（execute_limited 必须）
 
 $schema: "http://json-schema.org/draft-07/schema#"
-$id: "https://liye.com/contracts/playbook/playbook_io.v1"
+$id: "https://liye.com/contracts/playbook/playbook_io.v1.1"
 title: "Playbook I/O Schema"
 description: "Playbook 输入输出格式规范。所有 playbook 必须遵循此格式，便于 OS 统一处理。"
-version: "1.0.0"
+version: "1.1.0"
 type: object
 
 required:
@@ -90,14 +96,52 @@ properties:
             - parameters
             - confidence
             - dry_run_result
+            - tier
+            - risk_level
           properties:
             action_type:
               type: string
-              description: "推荐动作类型"
-              examples:
-                - bid_adjustment
+              enum:
+                - bid_adjust
+                - budget_adjust
+                - keyword_pause
+                - campaign_pause
                 - keyword_negation
                 - investigate_metric
+                - no_action
+              description: |
+                推荐动作类型（Week 5 枚举化，未知类型将被拒绝）：
+                - bid_adjust: 出价调整
+                - budget_adjust: 预算调整
+                - keyword_pause: 关键词暂停
+                - campaign_pause: 广告活动暂停
+                - keyword_negation: 否定关键词
+                - investigate_metric: 指标调查（不涉及写入）
+                - no_action: 无需行动
+            tier:
+              type: string
+              enum:
+                - observe
+                - recommend
+                - execute_limited
+              default: recommend
+              description: |
+                执行层级（Week 5 新增）：
+                - observe: 只读检测
+                - recommend: 生成提案等待批准
+                - execute_limited: 可写入（需通过所有 Gate）
+            risk_level:
+              type: string
+              enum:
+                - low
+                - medium
+                - high
+              default: medium
+              description: |
+                风险等级（Week 5 新增）：
+                - low: 低风险（如调查类动作）
+                - medium: 中风险（如小幅出价调整）
+                - high: 高风险（如暂停广告活动，需人工批准）
             parameters:
               type: object
               additionalProperties: true
@@ -121,6 +165,34 @@ properties:
                   description: "预期变化（可选，结构化数据）"
               additionalProperties: false
               description: "Dry-run 结果（必须支持）"
+            rollback_plan:
+              type: object
+              required:
+                - how_to_revert
+                - safe_window_hours
+              properties:
+                how_to_revert:
+                  type: string
+                  maxLength: 500
+                  description: "回滚方法描述"
+                safe_window_hours:
+                  type: integer
+                  minimum: 1
+                  maximum: 168
+                  default: 24
+                  description: "安全窗口（小时），超过此时间不建议自动回滚"
+                auto_rollback_trigger:
+                  type: string
+                  description: "自动回滚触发条件（如 acos_increase > 20%）"
+                manual_steps:
+                  type: array
+                  items:
+                    type: string
+                  description: "手动回滚步骤"
+              additionalProperties: false
+              description: |
+                回滚计划（execute_limited 必须提供）：
+                Week 5 强制要求写入动作必须带回滚方案
             requires_tier:
               type: string
               enum:
@@ -128,7 +200,7 @@ properties:
                 - recommend
                 - execute_limited
               default: recommend
-              description: "执行此推荐所需的最低层级"
+              description: "执行此推荐所需的最低层级（向后兼容，建议用 tier）"
             priority:
               type: integer
               minimum: 0

@@ -1,0 +1,149 @@
+{
+  "title": "Execute-Limited Dry-Run Pass Evidence",
+  "timestamp": "2026-02-08T14:40:58.874Z",
+  "scenario": "All 6 gates pass, dry-run execution completes successfully",
+  "recommendation": {
+    "action_type": "bid_adjust",
+    "tier": "execute_limited",
+    "risk_level": "low",
+    "parameters": {
+      "keyword": "organic mushroom powder",
+      "keyword_id": "KW-12345",
+      "campaign_id": "CAMP-67890",
+      "current_bid": 1.5,
+      "new_bid": 1.73,
+      "multiplier": 1.15,
+      "reason": "Matched policy BID_OPT_HIGH_CVR_EXACT"
+    },
+    "confidence": 0.75,
+    "dry_run_result": {
+      "impact": "Adjust bid from $1.50 to $1.73 (+15%)"
+    },
+    "rollback_plan": {
+      "how_to_revert": "Reset bid from $1.73 back to $1.50",
+      "safe_window_hours": 24,
+      "auto_rollback_trigger": "acos_increase > 20%",
+      "manual_steps": [
+        "1. Navigate to keyword \"organic mushroom powder\"",
+        "2. Set bid back to $1.50",
+        "3. Monitor for 24 hours"
+      ]
+    }
+  },
+  "gate_evaluation": {
+    "passed": true,
+    "firstFailedGate": null,
+    "results": [
+      {
+        "gate": "feature_flag",
+        "passed": true,
+        "reason": "Feature flag enabled (source: config_file)"
+      },
+      {
+        "gate": "contract",
+        "passed": true,
+        "reason": "Contract validation passed"
+      },
+      {
+        "gate": "scope",
+        "passed": true,
+        "reason": "No scope context provided (skipped)"
+      },
+      {
+        "gate": "risk",
+        "passed": true,
+        "reason": "Risk level (low) acceptable"
+      },
+      {
+        "gate": "rate_limit",
+        "passed": true,
+        "reason": "Rate limit OK: tenant=0/5, global=0/50",
+        "increment": {
+          "tenantKey": "2026-02-08:test_tenant",
+          "globalKey": "2026-02-08:__global__"
+        }
+      },
+      {
+        "gate": "rollback_requirement",
+        "passed": true,
+        "reason": "Rollback plan validation passed"
+      }
+    ],
+    "evaluated_at": "2026-02-08T14:40:58.874Z"
+  },
+  "execution_result": {
+    "status": "dry_run_completed",
+    "action_type": "bid_adjust",
+    "parameters": {
+      "keyword": "organic mushroom powder",
+      "keyword_id": "KW-12345",
+      "campaign_id": "CAMP-67890",
+      "current_bid": 1.5,
+      "new_bid": 1.73,
+      "multiplier": 1.15,
+      "reason": "Matched policy BID_OPT_HIGH_CVR_EXACT"
+    },
+    "execution_timestamp": "2026-02-08T14:40:58.874Z",
+    "dry_run": true,
+    "details": {
+      "api_endpoint": "POST /v2/sp/keywords",
+      "request_body": {
+        "keywordId": "KW-12345",
+        "bid": 1.73
+      },
+      "simulated_response": {
+        "status": 200,
+        "keywordId": "KW-12345",
+        "bid": 1.73,
+        "state": "enabled"
+      }
+    },
+    "rollback_info": {
+      "original_value": 1.5,
+      "revert_command": "PUT /v2/sp/keywords/KW-12345 { \"bid\": 1.5 }",
+      "safe_window_expires": "2026-02-09T14:40:58.874Z"
+    },
+    "gate_result": {
+      "passed": true,
+      "firstFailedGate": null,
+      "results": [
+        {
+          "gate": "feature_flag",
+          "passed": true,
+          "reason": "Feature flag enabled (source: config_file)"
+        },
+        {
+          "gate": "contract",
+          "passed": true,
+          "reason": "Contract validation passed"
+        },
+        {
+          "gate": "scope",
+          "passed": true,
+          "reason": "No scope context provided (skipped)"
+        },
+        {
+          "gate": "risk",
+          "passed": true,
+          "reason": "Risk level (low) acceptable"
+        },
+        {
+          "gate": "rate_limit",
+          "passed": true,
+          "reason": "Rate limit OK: tenant=0/5, global=0/50",
+          "increment": {
+            "tenantKey": "2026-02-08:test_tenant",
+            "globalKey": "2026-02-08:__global__"
+          }
+        },
+        {
+          "gate": "rollback_requirement",
+          "passed": true,
+          "reason": "Rollback plan validation passed"
+        }
+      ],
+      "evaluated_at": "2026-02-08T14:40:58.874Z"
+    }
+  },
+  "conclusion": "SUCCESS: All gates passed, dry-run execution completed"
+}

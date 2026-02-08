@@ -1,0 +1,86 @@
+{
+  "title": "Drift Guard Auto-Disable Evidence",
+  "timestamp": "2026-02-08T14:40:58.875Z",
+  "scenario": "Policy has 3 consecutive business_probe failures, drift_guard auto-disables it",
+  "policy_before": {
+    "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+    "validation_status": "production",
+    "tier": "execute_limited",
+    "last_success": "2026-02-04T14:40:58.875Z"
+  },
+  "probe_history": [
+    {
+      "probe_id": "probe-1770561655875",
+      "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+      "status": "failed",
+      "recovery_rate": 0.15,
+      "threshold": 0.3,
+      "timestamp": "2026-02-05T14:40:58.875Z"
+    },
+    {
+      "probe_id": "probe-1770561656875",
+      "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+      "status": "failed",
+      "recovery_rate": 0.18,
+      "threshold": 0.3,
+      "timestamp": "2026-02-06T14:40:58.875Z"
+    },
+    {
+      "probe_id": "probe-1770561657875",
+      "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+      "status": "failed",
+      "recovery_rate": 0.12,
+      "threshold": 0.3,
+      "timestamp": "2026-02-07T14:40:58.875Z"
+    }
+  ],
+  "drift_guard_evaluation": {
+    "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+    "consecutive_failures": 3,
+    "threshold": 3,
+    "action": "auto_disabled",
+    "reason": "Consecutive business_probe failures >= 3 (recovery_rate consistently below 30%)",
+    "timestamp": "2026-02-08T14:40:58.875Z",
+    "probe_history": [
+      {
+        "probe_id": "probe-1770561655875",
+        "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+        "status": "failed",
+        "recovery_rate": 0.15,
+        "threshold": 0.3,
+        "timestamp": "2026-02-05T14:40:58.875Z"
+      },
+      {
+        "probe_id": "probe-1770561656875",
+        "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+        "status": "failed",
+        "recovery_rate": 0.18,
+        "threshold": 0.3,
+        "timestamp": "2026-02-06T14:40:58.875Z"
+      },
+      {
+        "probe_id": "probe-1770561657875",
+        "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+        "status": "failed",
+        "recovery_rate": 0.12,
+        "threshold": 0.3,
+        "timestamp": "2026-02-07T14:40:58.875Z"
+      }
+    ],
+    "previous_status": "production",
+    "new_status": "disabled",
+    "recovery_options": [
+      "Manual re-enable after investigation",
+      "Automatic re-enable after 7 days if metrics improve"
+    ]
+  },
+  "policy_after": {
+    "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+    "validation_status": "disabled",
+    "tier": "recommend",
+    "disabled_at": "2026-02-08T14:40:58.875Z",
+    "disabled_by": "drift_guard",
+    "disabled_reason": "Consecutive business_probe failures >= 3 (recovery_rate consistently below 30%)"
+  },
+  "conclusion": "SUCCESS: Drift guard correctly detected consecutive failures and disabled the policy"
+}
