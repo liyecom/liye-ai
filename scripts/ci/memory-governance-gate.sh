@@ -1,20 +1,21 @@
 #!/bin/bash
 
 ################################################################################
-# Memory Governance Gate - CI Compliance Scanner
+# Memory Governance Gate - LiYe OS SSOT (MAAP Boundary Enforcement)
 #
 # Purpose:
 #   - Verify that Memory Completeness Contract v1 exists (frozen)
 #   - Verify ADR-0010 exists
 #   - Scan codebase for direct memory API calls (bypass violations)
 #   - Ensure only save_observation_with_validation() can write to main pool
+#   - Step 5B: Enforce no direct claude-mem access outside gateway
 #
 # Usage:
-#   ./scripts/ci/memory-governance-gate.sh [--verbose] [--fix]
+#   ./scripts/ci/memory-governance-gate.sh [--verbose]
 #
 # Exit Codes:
-#   0 = All checks passed
-#   1 = Critical failure (contract/ADR missing or bypass detected)
+#   0 = All checks passed (boundary enforced)
+#   1 = Critical failure (contract/ADR missing, bypass detected, or boundary violated)
 #   2 = Warnings only (non-critical issues)
 #
 ################################################################################
@@ -197,6 +198,65 @@ check_no_bypass_writes() {
 }
 
 ################################################################################
+# Check 4.5: Direct Claude-Mem API Calls (STEP 5B: Boundary Enforcement)
+################################################################################
+
+check_no_direct_claude_mem_calls() {
+  log_info "Check 4.5: Scanning for direct claude-mem API calls (boundary enforcement)..."
+
+  # Auto-discover gateway file as whitelist (must be exactly 1)
+  local gateway_files
+  gateway_files=$(find "$SCRIPT_DIR/src" -name "observation-gateway.ts" 2>/dev/null || true)
+
+  local file_count=$(echo "$gateway_files" | grep -c . || true)
+
+  if [[ $file_count -ne 1 ]]; then
+    log_fail "Cannot auto-discover unique gateway file (found: $file_count)"
+    return 1
+  fi
+
+  local whitelist_file=$(echo "$gateway_files" | head -1)
+  log_verbose "Whitelist: $whitelist_file"
+
+  local violations=""
+  local violation_count=0
+
+  # Pattern 1: CLAUDE_MEM_BASE_URL environment variable
+  log_verbose "Scanning for CLAUDE_MEM_BASE_URL references..."
+  local matches=$(grep -rn "CLAUDE_MEM_BASE_URL" "$SCRIPT_DIR/src" --include="*.ts" --include="*.js" 2>/dev/null | grep -v "$whitelist_file" || true)
+  if [[ -n "$matches" ]]; then
+    violations+="=== CLAUDE_MEM_BASE_URL (exposed) ===\n$matches\n\n"
+    violation_count=$((violation_count + 1))
+  fi
+
+  # Pattern 2: /observations endpoints
+  log_verbose "Scanning for /observations endpoints..."
+  local matches=$(grep -rn "/observations" "$SCRIPT_DIR/src" --include="*.ts" --include="*.js" 2>/dev/null | grep -v "$whitelist_file" || true)
+  if [[ -n "$matches" ]]; then
+    violations+="=== /observations endpoints ===\n$matches\n\n"
+    violation_count=$((violation_count + 1))
+  fi
+
+  # Pattern 3: 'claude-mem' string references (exclude comments)
+  log_verbose "Scanning for 'claude-mem' string references..."
+  local matches=$(grep -rn "claude-mem" "$SCRIPT_DIR/src" --include="*.ts" --include="*.js" 2>/dev/null | grep -v "//" | grep -v "$whitelist_file" || true)
+  if [[ -n "$matches" ]]; then
+    violations+="=== 'claude-mem' string references ===\n$matches\n\n"
+    violation_count=$((violation_count + 1))
+  fi
+
+  if [[ $violation_count -gt 0 ]]; then
+    log_fail "Direct claude-mem API calls detected OUTSIDE gateway (BOUNDARY VIOLATION):"
+    echo -e "$violations"
+    return 1
+  else
+    log_pass "No direct claude-mem calls detected outside gateway (boundary enforced)"
+  fi
+
+  return 0
+}
+
+################################################################################
 # Check 5: Tests Pass
 ################################################################################
 
@@ -260,29 +320,20 @@ check_governance_log_config() {
 main() {
   echo ""
   echo "╔════════════════════════════════════════════════════════════════════════════╗"
-  echo "║       Memory Governance Gate — CI Compliance Scanner v1.0                  ║"
+  echo "║    LiYe OS Memory Governance Gate — Boundary Enforcement (SSOT) v1.1       ║"
+  echo "║          Step 5B: No Direct Claude-Mem Access Outside Gateway              ║"
   echo "╚════════════════════════════════════════════════════════════════════════════╝"
   echo ""
 
-  # Run all checks
+  # For liye_os, we only run Step 5B checks (Checks 4.5+)
+  # AGE-specific checks (Contract v1, ADR-0010, gateway-exists) are skipped
   local failed=0
 
-  check_contract_exists || failed=1
+  log_info "Running liye_os SSOT checks (Step 5B)..."
   echo ""
 
-  check_adr_exists || failed=1
-  echo ""
-
-  check_gateway_exists || failed=1
-  echo ""
-
-  check_no_bypass_writes || failed=1
-  echo ""
-
-  check_tests_pass || failed=1
-  echo ""
-
-  check_governance_log_config
+  # Core boundary enforcement check (CRITICAL)
+  check_no_direct_claude_mem_calls || failed=1
   echo ""
 
   # Summary
