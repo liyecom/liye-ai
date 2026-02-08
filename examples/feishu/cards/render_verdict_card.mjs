@@ -43,6 +43,7 @@ const DECISION_BADGES = {
   ALLOW: 'ALLOW',
   BLOCK: 'BLOCK',
   DEGRADE: 'DEGRADE',
+  PENDING: 'PENDING',
   UNKNOWN: 'UNKNOWN'
 };
 
@@ -51,6 +52,7 @@ const HEADER_TEMPLATES = {
   ALLOW: 'green',
   BLOCK: 'red',
   DEGRADE: 'orange',
+  PENDING: 'blue',
   UNKNOWN: 'grey'
 };
 
@@ -59,6 +61,7 @@ const SUMMARY_MESSAGES = {
   ALLOW: '已通过治理检查，可继续执行下一步。',
   BLOCK: '已阻止执行，请查看原因并按指引处理。',
   DEGRADE: '已降级到 mock fallback，结果可用但受限。',
+  PENDING: '报告正在后台生成，完成后将自动推送结果。',
   UNKNOWN: '无法确定决策，请检查系统状态。'
 };
 
@@ -78,6 +81,11 @@ const WHY_MESSAGES = {
     'AGE 服务不可达',
     '已降级到 mock fallback',
     '结果可用但受限（建议稍后重试）'
+  ],
+  PENDING: [
+    '报告生成需要 1-5 分钟',
+    '系统正在后台处理',
+    '完成后将自动推送到本群'
   ],
   UNKNOWN: [
     '无法确定决策状态',
@@ -103,42 +111,71 @@ const EXECUTION_STATUS_DISPLAY = {
   EXECUTED: '**执行**：已执行（Dry-run）✅'
 };
 
+// Task lifecycle stages (for DEGRADE cards)
+const TASK_STAGES = {
+  QUEUED: '⏳ 已排队',
+  RUNNING: '🔄 执行中',
+  TIMEOUT: '⏰ 超时',
+  ERROR: '❌ 错误',
+  COMPLETED: '✅ 完成',
+  CANCELLED: '🚫 已取消'
+};
+
+// Error codes for DEGRADE scenarios
+const ERROR_CODES = {
+  AGE_UNREACHABLE: 'AGE MCP 服务不可达',
+  AGE_TIMEOUT: 'AGE MCP 响应超时',
+  WRITE_GATE_BLOCKED: 'WRITE_ENABLED=0 写操作被阻止',
+  GOVERNANCE_ERROR: '治理引擎内部错误',
+  RATE_LIMIT: 'API 调用频率限制',
+  AUTH_EXPIRED: '认证已过期',
+  UNKNOWN: '未知错误'
+};
+
 /**
  * Generate Why section markdown
+ * Note: Returns pre-escaped string for JSON embedding
  */
 function generateWhyMd(decision) {
   const points = WHY_MESSAGES[decision] || WHY_MESSAGES.UNKNOWN;
-  return points.map(p => `• ${p}`).join('\\n');
+  // Sanitize each point and join with escaped newline
+  return points.map(p => sanitizeForJson(p)).map(p => `• ${p}`).join('\\n');
 }
 
 /**
  * Generate Approval Status markdown
+ * Note: Returns pre-escaped string for JSON embedding
  */
 function generateApprovalStatusMd(approvalStatus) {
   const display = APPROVAL_STATUS_DISPLAY[approvalStatus] || APPROVAL_STATUS_DISPLAY.NOT_CREATED;
-  return `**状态**：${display}`;
+  return sanitizeForJson(`**状态**：${display}`);
 }
 
 /**
  * Generate Plan Status markdown
+ * Note: Returns pre-escaped string for JSON embedding
  */
 function generatePlanStatusMd(planExists) {
-  return planExists
+  const text = planExists
     ? '**计划**：✅ 已生成'
     : '**计划**：⬜ 未生成（点击"提交审批"自动生成）';
+  return sanitizeForJson(text);
 }
 
 /**
  * Week5: Generate Execution Status markdown
+ * Note: Returns pre-escaped string for JSON embedding
  */
 function generateExecutionStatusMd(executionStatus, executionUrl) {
+  let text;
   if (executionStatus === 'EXECUTED' && executionUrl) {
-    return `${EXECUTION_STATUS_DISPLAY.EXECUTED} [打开结果](${executionUrl})`;
+    text = `${EXECUTION_STATUS_DISPLAY.EXECUTED} [打开结果](${executionUrl})`;
+  } else if (executionStatus === 'IN_PROGRESS') {
+    text = EXECUTION_STATUS_DISPLAY.IN_PROGRESS;
+  } else {
+    text = EXECUTION_STATUS_DISPLAY.NOT_EXECUTED;
   }
-  if (executionStatus === 'IN_PROGRESS') {
-    return EXECUTION_STATUS_DISPLAY.IN_PROGRESS;
-  }
-  return EXECUTION_STATUS_DISPLAY.NOT_EXECUTED;
+  return sanitizeForJson(text);
 }
 
 /**
@@ -557,11 +594,116 @@ export function createFallbackTextMessage(response) {
   return `LiYe Verdict: ${decision}\nTrace: ${traceId}\nOrigin: ${origin}\nMock: ${mockUsed}`;
 }
 
+/**
+ * Render a DEGRADE card with full lifecycle context
+ *
+ * Used when worker timeout, AGE unreachable, or other degradation scenarios.
+ * Provides stage, error_code, and trace_id for debugging.
+ *
+ * @param {Object} opts - Options
+ * @param {string} opts.trace_id - Trace identifier
+ * @param {string} opts.stage - Task lifecycle stage: QUEUED, RUNNING, TIMEOUT, ERROR, COMPLETED, CANCELLED
+ * @param {string} opts.error_code - Error code: AGE_UNREACHABLE, AGE_TIMEOUT, WRITE_GATE_BLOCKED, etc.
+ * @param {string} opts.error_message - Human readable error message
+ * @param {string} opts.origin - Origin service (e.g., 'liye_os.mock', 'amazon-growth-engine')
+ * @param {string} opts.fallback_reason - Why fallback was triggered
+ * @param {number} opts.elapsed_ms - Time elapsed before degradation
+ * @param {Object} opts.partial_result - Any partial result available
+ * @returns {Object} Feishu interactive card JSON
+ */
+export function renderDegradeCard(opts = {}) {
+  const {
+    trace_id = 'unknown',
+    stage = 'ERROR',
+    error_code = 'UNKNOWN',
+    error_message = '',
+    origin = 'liye_os.mock',
+    fallback_reason = '',
+    elapsed_ms = null,
+    partial_result = null
+  } = opts;
+
+  const stageDisplay = TASK_STAGES[stage] || TASK_STAGES.ERROR;
+  const errorDisplay = ERROR_CODES[error_code] || ERROR_CODES.UNKNOWN;
+
+  // Build content sections
+  const contentLines = [
+    `**决策**：DEGRADE（降级）`,
+    `**阶段**：${stageDisplay}`,
+    `**错误码**：\`${error_code}\``,
+    `**说明**：${errorDisplay}`
+  ];
+
+  if (error_message) {
+    contentLines.push(`**详情**：${sanitizeForJson(error_message)}`);
+  }
+
+  if (fallback_reason) {
+    contentLines.push(`**降级原因**：${sanitizeForJson(fallback_reason)}`);
+  }
+
+  if (elapsed_ms != null) {
+    contentLines.push(`**耗时**：${elapsed_ms}ms`);
+  }
+
+  contentLines.push(`**来源**：\`${origin}\``);
+
+  // Add partial result hint if available
+  if (partial_result) {
+    contentLines.push('');
+    contentLines.push('**部分结果可用**：请查看 trace 目录获取更多信息');
+  }
+
+  // Build card
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: `LiYe Verdict · DEGRADE ${stageDisplay}` },
+      template: 'orange'
+    },
+    elements: [
+      {
+        tag: 'markdown',
+        content: contentLines.join('\n\n')
+      },
+      {
+        tag: 'hr'
+      },
+      {
+        tag: 'note',
+        elements: [
+          { tag: 'plain_text', content: `trace_id: ${trace_id}` }
+        ]
+      }
+    ]
+  };
+
+  // Add retry suggestion based on error type
+  const retryHints = {
+    AGE_UNREACHABLE: '建议：检查 AGE MCP 服务是否运行',
+    AGE_TIMEOUT: '建议：稍后重试或检查网络连接',
+    WRITE_GATE_BLOCKED: '建议：如需写操作，请设置 WRITE_ENABLED=1',
+    RATE_LIMIT: '建议：等待 1-2 分钟后重试',
+    AUTH_EXPIRED: '建议：刷新 API 凭证'
+  };
+
+  const hint = retryHints[error_code];
+  if (hint) {
+    card.elements.splice(1, 0, {
+      tag: 'markdown',
+      content: `> ${hint}`
+    });
+  }
+
+  return card;
+}
+
 export default {
   renderVerdictCard,
   renderEvidenceStatusCard,
   renderApprovalStatusCard,
   renderExecutionStatusCard,
   renderRollbackPlanCard,
+  renderDegradeCard,
   createFallbackTextMessage
 };

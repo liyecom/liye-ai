@@ -1,0 +1,412 @@
+# Learned Policy Contract v1.0.0
+# SSOT: _meta/contracts/learning/learned_policy.schema.yaml
+#
+# 此 schema 定义了学习策略的数据格式。所有 required 字段缺失时，
+# validate-contracts.mjs 必须 fail-closed (exit 1)。
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/learned_policy.v1"
+title: "Learned Policy Schema"
+description: "学习策略的数据格式规范。scope + success_signals + confidence 为跨租户/bundle 协商的必需字段。"
+version: "1.0.0"
+type: object
+
+# ============================================================
+# CRITICAL: 这 4 个字段是"复用必需字段"，缺一必须 fail-closed
+# - schema_version: SemVer，用于 bundle 版本协商
+# - scope: 防止跨租户污染
+# - success_signals: 三信号体系，禁止用 ALLOW 替代
+# - confidence: 数值 0~1，禁止 high/medium 字符串
+# ============================================================
+required:
+  - schema_version
+  - policy_id
+  - domain
+  - learned_at
+  - scope
+  - risk_level
+  - validation_status
+  - confidence
+  - preconditions
+  - actions
+  - constraints
+  - rollback_plan
+  - success_signals
+  - evaluation_window_days
+  - expiry_at
+  - evidence
+
+properties:
+  # ==========================================================
+  # 复用必需字段 1: schema_version
+  # ==========================================================
+  schema_version:
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+    description: "SemVer 格式，用于 bundle 版本协商。如 1.0.0"
+    examples:
+      - "1.0.0"
+
+  policy_id:
+    type: string
+    pattern: "^[A-Z0-9_]+$"
+    minLength: 3
+    maxLength: 64
+    description: "唯一标识符，大写字母+数字+下划线。如 BID_OPT_HIGH_CVR_EXACT"
+    examples:
+      - "BID_OPT_HIGH_CVR_EXACT"
+      - "WASTED_SPEND_CLEANUP_V1"
+
+  domain:
+    type: string
+    enum:
+      - amazon-advertising
+      - notion-sync
+      - medical-research
+      - geo-governance
+    description: "所属领域，必须是已注册的 Engine domain"
+
+  learned_at:
+    type: string
+    format: date-time
+    description: "策略首次学习时间 (ISO 8601)"
+
+  # ==========================================================
+  # 复用必需字段 2: scope
+  # 防止跨租户污染。升级到 domain/global 必须有 ADR。
+  # ==========================================================
+  scope:
+    type: object
+    required:
+      - type
+      - keys
+    properties:
+      type:
+        type: string
+        enum:
+          - keyword_set
+          - asin
+          - brand
+          - tenant
+          - domain
+          - global
+        description: "作用范围类型。默认 tenant，升级到 domain/global 必须有 ADR"
+      keys:
+        type: object
+        description: "作用范围的具体键值。必须包含适用的 tenant_id、marketplace、brand_id 等"
+        additionalProperties: true
+        # 至少包含 tenant_id（除非是 global）
+    additionalProperties: false
+
+  risk_level:
+    type: string
+    enum:
+      - low
+      - medium
+      - high
+    description: "风险等级。high 需要额外审批"
+
+  validation_status:
+    type: string
+    enum:
+      - sandbox
+      - candidate
+      - production
+      - disabled
+      - quarantine
+    description: "生命周期状态。物理隔离在不同目录"
+
+  # ==========================================================
+  # 复用必需字段 3: confidence
+  # 必须是 0~1 数值，禁止 high/medium/low 字符串
+  # ==========================================================
+  confidence:
+    type: number
+    minimum: 0.0
+    maximum: 1.0
+    description: "置信度。必须是 0~1 数值，禁止使用 high/medium/low 字符串"
+    examples:
+      - 0.72
+      - 0.85
+
+  preconditions:
+    type: object
+    required:
+      - match_rules
+    properties:
+      match_rules:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required:
+            - field
+            - operator
+            - value
+          properties:
+            field:
+              type: string
+              description: "匹配字段，如 match_type, cvr, acos"
+            operator:
+              type: string
+              enum:
+                - eq
+                - ne
+                - gt
+                - gte
+                - lt
+                - lte
+                - in
+                - not_in
+            value:
+              description: "匹配值，类型由 field 决定"
+          additionalProperties: false
+    additionalProperties: false
+    description: "可执行的匹配条件"
+
+  actions:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - action_type
+        - parameters
+        - dry_run_compatible
+      properties:
+        action_type:
+          type: string
+          enum:
+            - bid_adjustment
+            - keyword_negation
+            - budget_reallocation
+            - alert
+            - investigate
+          description: "动作类型"
+        parameters:
+          type: object
+          additionalProperties: true
+          description: "动作参数"
+        dry_run_compatible:
+          type: boolean
+          description: "是否支持 dry-run。写入动作必须为 true"
+        requires_tier:
+          type: string
+          enum:
+            - observe
+            - recommend
+            - execute_limited
+          description: "执行此动作所需的最低层级"
+      additionalProperties: false
+    description: "策略触发的动作列表"
+
+  constraints:
+    type: object
+    required:
+      - max_bid_change_pct
+      - max_actions_per_day
+    properties:
+      max_bid_change_pct:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: "最大出价变动百分比"
+      max_actions_per_day:
+        type: integer
+        minimum: 1
+        description: "每日最大执行次数"
+      max_budget_change_pct:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: "最大预算变动百分比"
+      require_approval:
+        type: boolean
+        default: true
+        description: "是否需要人工批准。production 目录中若为 false 且有写入动作，校验失败"
+    additionalProperties: false
+    description: "执行约束"
+
+  rollback_plan:
+    type: object
+    required:
+      - type
+      - steps
+    properties:
+      type:
+        type: string
+        enum:
+          - automatic
+          - manual
+          - hybrid
+        description: "回滚类型"
+      steps:
+        type: array
+        minItems: 1
+        items:
+          type: string
+        description: "回滚步骤"
+      timeout_minutes:
+        type: integer
+        minimum: 1
+        default: 60
+        description: "回滚超时时间（分钟）"
+    additionalProperties: false
+    description: "回滚计划。必填"
+
+  # ==========================================================
+  # 复用必需字段 4: success_signals
+  # 三信号体系：exec + operator + business
+  # - sandbox 结晶需要 exec
+  # - candidate 晋升需要 exec + operator
+  # - production 晋升需要 exec + operator + business
+  # ==========================================================
+  success_signals:
+    type: object
+    required:
+      - exec
+      - operator
+      - business
+    properties:
+      exec:
+        type: object
+        required:
+          - count
+          - success_rate
+        properties:
+          count:
+            type: integer
+            minimum: 0
+            description: "执行总次数"
+          success_rate:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+            description: "执行成功率（无错误完成 / 总次数）"
+        additionalProperties: false
+        description: "ExecSuccess: 执行无错误"
+      operator:
+        type: object
+        required:
+          - approval_count
+          - rejection_count
+        properties:
+          approval_count:
+            type: integer
+            minimum: 0
+            description: "人工批准次数"
+          rejection_count:
+            type: integer
+            minimum: 0
+            description: "人工拒绝次数"
+          approval_rate:
+            type:
+              - number
+              - "null"
+            minimum: 0.0
+            maximum: 1.0
+            description: "批准率。sandbox 阶段可为 null"
+        additionalProperties: false
+        description: "OperatorSuccess: 人工采纳/批准"
+      business:
+        type: object
+        required:
+          - metric_name
+          - baseline
+          - current
+          - improvement_pct
+        properties:
+          metric_name:
+            type:
+              - string
+              - "null"
+            enum:
+              - acos
+              - roas
+              - wasted_spend
+              - conversion_rate
+              - null
+            description: "业务指标名称。sandbox/candidate 阶段可为 null"
+          baseline:
+            type:
+              - number
+              - "null"
+            description: "基线值"
+          current:
+            type:
+              - number
+              - "null"
+            description: "当前值"
+          improvement_pct:
+            type:
+              - number
+              - "null"
+            description: "改善百分比。晋升 production 必须 > 0"
+          sample_size:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+            description: "样本量"
+        additionalProperties: false
+        description: "BusinessSuccess: 指标改善（晋升 production 必须）"
+    additionalProperties: false
+    description: "三信号体系。禁止用 ALLOW 替代"
+
+  evaluation_window_days:
+    type: integer
+    minimum: 1
+    maximum: 90
+    description: "评估窗口（天数）"
+
+  expiry_at:
+    type: string
+    format: date-time
+    description: "策略过期时间。防止僵尸策略"
+
+  evidence:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - trace_id
+        - summary
+      properties:
+        trace_id:
+          type: string
+          pattern: "^trace-\\d{8}-[a-z0-9]+$"
+          description: "追踪 ID，格式 trace-YYYYMMDD-xxx"
+        summary:
+          type: string
+          maxLength: 500
+          description: "引用摘要，禁止大段内联"
+        outcome:
+          type: string
+          maxLength: 200
+          description: "执行结果"
+      additionalProperties: false
+    description: "证据链。每个策略必须可追溯"
+
+  # 可选字段
+  promoted_at:
+    type: string
+    format: date-time
+    description: "晋升时间（从 sandbox 到 candidate 或 candidate 到 production）"
+
+  promoted_to_production_at:
+    type: string
+    format: date-time
+    description: "晋升到 production 的时间"
+
+  disabled_at:
+    type: string
+    format: date-time
+    description: "禁用时间"
+
+  disabled_reason:
+    type: string
+    maxLength: 500
+    description: "禁用原因"
+
+additionalProperties: false

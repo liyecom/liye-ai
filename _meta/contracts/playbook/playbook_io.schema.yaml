@@ -1,0 +1,223 @@
+# Playbook I/O Contract v1.0.0
+# SSOT: _meta/contracts/playbook/playbook_io.schema.yaml
+#
+# 统一 playbook 输出格式，便于 OS 投递与审计。
+# Playbook 是纯函数：接收 inputs → 返回 verdict + recommendations。
+# Playbook 禁止：自行调度、投递、读写 OS 状态。
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/playbook/playbook_io.v1"
+title: "Playbook I/O Schema"
+description: "Playbook 输入输出格式规范。所有 playbook 必须遵循此格式，便于 OS 统一处理。"
+version: "1.0.0"
+type: object
+
+required:
+  - playbook_id
+  - run_id
+  - timestamp
+  - inputs
+  - outputs
+
+properties:
+  playbook_id:
+    type: string
+    pattern: "^[a-z0-9_]+$"
+    description: "Playbook 标识符，与 engine_manifest.playbooks[].id 对应"
+    examples:
+      - anomaly_detect
+      - bid_recommend
+      - alert_score
+
+  run_id:
+    type: string
+    pattern: "^run-\\d{8}-[a-z0-9]+$"
+    description: "本次运行 ID，与 trace_id 关联。格式 run-YYYYMMDD-xxx"
+    examples:
+      - run-20260208-abc123
+
+  timestamp:
+    type: string
+    format: date-time
+    description: "运行时间（ISO 8601）"
+
+  engine_id:
+    type: string
+    description: "执行此 playbook 的 Engine ID"
+
+  inputs:
+    type: object
+    required:
+      - hash
+      - data
+    properties:
+      hash:
+        type: string
+        pattern: "^[a-f0-9]{64}$"
+        description: "inputs.data 的 SHA256 hash，用于审计"
+      data:
+        type: object
+        additionalProperties: true
+        description: "实际输入数据"
+    additionalProperties: false
+    description: "输入参数（带 hash 用于审计）"
+
+  outputs:
+    type: object
+    required:
+      - verdict
+      - recommendations
+      - evidence_package_ref
+    properties:
+      verdict:
+        type: string
+        enum:
+          - OK
+          - WARN
+          - CRIT
+        description: |
+          判定结果：
+          - OK: 无异常，无需行动
+          - WARN: 检测到问题，建议行动（recommend 层级）
+          - CRIT: 严重问题，需要立即行动
+
+      recommendations:
+        type: array
+        items:
+          type: object
+          required:
+            - action_type
+            - parameters
+            - confidence
+            - dry_run_result
+          properties:
+            action_type:
+              type: string
+              description: "推荐动作类型"
+              examples:
+                - bid_adjustment
+                - keyword_negation
+                - investigate_metric
+            parameters:
+              type: object
+              additionalProperties: true
+              description: "动作参数"
+            confidence:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+              description: "置信度（0~1 数值）"
+            dry_run_result:
+              type: object
+              required:
+                - impact
+              properties:
+                impact:
+                  type: string
+                  maxLength: 500
+                  description: "预期影响描述"
+                expected_change:
+                  type: object
+                  description: "预期变化（可选，结构化数据）"
+              additionalProperties: false
+              description: "Dry-run 结果（必须支持）"
+            requires_tier:
+              type: string
+              enum:
+                - observe
+                - recommend
+                - execute_limited
+              default: recommend
+              description: "执行此推荐所需的最低层级"
+            priority:
+              type: integer
+              minimum: 0
+              maximum: 100
+              default: 50
+              description: "优先级（0-100，越高越优先）"
+          additionalProperties: false
+        description: "推荐动作列表（结构化，支持 dry-run）"
+
+      evidence_package_ref:
+        type:
+          - string
+          - "null"
+        description: "证据包引用路径。如 data/traces/{run_id}/evidence/"
+
+      success_signal_hooks:
+        type: object
+        properties:
+          operator_feedback_url:
+            type:
+              - string
+              - "null"
+            format: uri
+            description: "操作员反馈 URL（飞书卡片回调等）"
+          business_metric_query:
+            type:
+              - string
+              - "null"
+            description: "业务指标查询语句（用于后续 BusinessSuccess 评估）"
+          follow_up_after_days:
+            type: integer
+            minimum: 1
+            maximum: 30
+            default: 7
+            description: "跟踪周期（天数）"
+        additionalProperties: false
+        description: "成功信号收集钩子（OS 用于 follow-up）"
+
+      metadata:
+        type: object
+        properties:
+          execution_time_ms:
+            type: integer
+            minimum: 0
+            description: "执行时间（毫秒）"
+          api_calls:
+            type: integer
+            minimum: 0
+            description: "API 调用次数"
+          bundle_version:
+            type: string
+            description: "使用的 bundle 版本"
+        additionalProperties: false
+        description: "执行元数据"
+
+    additionalProperties: false
+    description: "Playbook 输出"
+
+  error:
+    type: object
+    properties:
+      code:
+        type: string
+        enum:
+          - INVALID_INPUT
+          - DATA_SOURCE_ERROR
+          - BUNDLE_NOT_FOUND
+          - BUNDLE_HASH_MISMATCH
+          - TIMEOUT
+          - INTERNAL_ERROR
+        description: "错误码"
+      message:
+        type: string
+        maxLength: 500
+        description: "错误信息"
+      details:
+        type: object
+        additionalProperties: true
+        description: "错误详情"
+    additionalProperties: false
+    description: "错误信息（失败时填充）"
+
+  status:
+    type: string
+    enum:
+      - success
+      - partial
+      - failed
+    default: success
+    description: "执行状态"
+
+additionalProperties: false

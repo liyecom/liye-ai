@@ -1,0 +1,224 @@
+# Engine Manifest Contract v1.0.0
+# SSOT: _meta/contracts/engine/engine_manifest.schema.yaml
+#
+# 用于 Domain Engine（如 AGE）声明能力与兼容性。
+# OS 根据 manifest 发现/协商 Engine 能力。
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/engine/engine_manifest.v1"
+title: "Engine Manifest Schema"
+description: "Domain Engine 的能力声明规范。OS 通过此 manifest 发现和协商 Engine 能力。"
+version: "1.0.0"
+type: object
+
+required:
+  - engine_id
+  - engine_version
+  - domain
+  - contracts_compat
+  - playbooks
+  - data_sources
+  - write_capability
+
+properties:
+  engine_id:
+    type: string
+    pattern: "^[a-z0-9-]+$"
+    minLength: 3
+    maxLength: 64
+    description: "Engine 唯一标识符，小写字母+数字+连字符"
+    examples:
+      - my-domain-engine
+      - notion-sync-engine
+      - medical-research-engine
+
+  engine_version:
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+    description: "Engine 版本号（SemVer）"
+    examples:
+      - "1.0.0"
+      - "2.1.0"
+
+  domain:
+    type: string
+    description: "所属领域，必须与 learned_policy.domain 对应"
+    examples:
+      - amazon-advertising
+      - notion-sync
+      - medical-research
+
+  contracts_compat:
+    type: string
+    pattern: "^>=\\d+\\.\\d+(\\.\\d+)? <\\d+\\.\\d+(\\.\\d+)?$"
+    description: "兼容的 contract schema 版本范围（SemVer range）"
+    examples:
+      - ">=1.0 <2.0"
+      - ">=1.0.0 <1.5.0"
+
+  playbooks:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - entrypoint
+        - description
+        - required_permissions
+        - io_schema
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Playbook 唯一标识符"
+          examples:
+            - anomaly_detect
+            - bid_recommend
+            - alert_score
+        entrypoint:
+          type: string
+          description: "可执行路径。如 src/playbooks/anomaly_detect.py"
+          examples:
+            - src/playbooks/anomaly_detect.py
+            - src/playbooks/bid_recommend.py
+        description:
+          type: string
+          maxLength: 200
+          description: "Playbook 功能描述"
+        required_permissions:
+          type: array
+          items:
+            type: string
+            enum:
+              - read:metrics
+              - read:ads_api
+              - read:learned_bundle
+              - read:alert_history
+              - read:duckdb
+              - write:bids
+              - write:keywords
+              - write:budget
+              - write:evidence_package
+          description: "所需权限列表"
+        io_schema:
+          type: object
+          required:
+            - inputs
+            - outputs
+          properties:
+            inputs:
+              type: object
+              additionalProperties: true
+              description: "输入参数 schema"
+            outputs:
+              type: object
+              additionalProperties: true
+              description: "输出参数 schema"
+          additionalProperties: false
+          description: "输入输出 schema 定义"
+        status:
+          type: string
+          enum:
+            - active
+            - deprecated
+            - placeholder
+          default: active
+          description: "Playbook 状态。placeholder 表示占位未实现"
+      additionalProperties: false
+    description: "Engine 提供的 playbooks 列表。OS 通过此列表调用"
+
+  data_sources:
+    type: array
+    items:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          enum:
+            - ads_api
+            - duckdb
+            - qdrant
+            - postgres
+            - sqlite
+            - api
+          description: "数据源类型"
+        description:
+          type: string
+          maxLength: 200
+          description: "数据源描述（不含凭据）"
+        required:
+          type: boolean
+          default: true
+          description: "是否必需"
+      additionalProperties: false
+    description: "Engine 依赖的数据源声明（仅声明，不含凭据）"
+
+  write_capability:
+    type: string
+    enum:
+      - none
+      - limited
+      - full
+    default: none
+    description: |
+      写入能力声明：
+      - none: 只读，不执行任何写入（推荐）
+      - limited: 有限写入（需通过 OS execute_limited 层级）
+      - full: 完整写入（需要特殊审批）
+      默认 none，需要显式声明
+
+  bundle_consumption:
+    type: object
+    properties:
+      env_var:
+        type: string
+        default: "LEARNED_BUNDLE_PATH"
+        description: "Bundle 路径环境变量名"
+      required:
+        type: boolean
+        default: false
+        description: "是否必须有 bundle 才能运行"
+      min_version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+        description: "最低兼容的 bundle schema_version"
+    additionalProperties: false
+    description: "Bundle 消费配置"
+
+  health_check:
+    type: object
+    properties:
+      entrypoint:
+        type: string
+        description: "健康检查脚本路径"
+      timeout_seconds:
+        type: integer
+        minimum: 1
+        maximum: 60
+        default: 10
+        description: "健康检查超时时间"
+    additionalProperties: false
+    description: "健康检查配置"
+
+  metadata:
+    type: object
+    properties:
+      maintainer:
+        type: string
+        description: "维护者"
+      repository:
+        type: string
+        format: uri
+        description: "仓库地址"
+      documentation:
+        type: string
+        format: uri
+        description: "文档地址"
+    additionalProperties: false
+    description: "元数据"
+
+additionalProperties: false

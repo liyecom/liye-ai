@@ -62,6 +62,8 @@ const AGE_MCP_CONFIG = {
   timeout_ms: parseInt(process.env.AGE_MCP_TIMEOUT || '5000'),
   tools_allowlist: [
     'amazon://strategy/campaign-audit',
+    'amazon://strategy/keyword-list',
+    'amazon://strategy/keyword-performance',
     'amazon://strategy/wasted-spend-detect',
     'amazon://execution/dry-run'
   ]
@@ -382,16 +384,34 @@ async function handleGovernedToolCall(req, res) {
       decision = 'DEGRADE';
     }
 
+    // Check for PENDING status from AGE MCP (async operations)
+    let pendingMessage = null;
+    for (const ageResult of ageResults) {
+      const ageStatus = ageResult.result?.status;
+      if (ageStatus === 'PENDING') {
+        decision = 'PENDING';
+        pendingMessage = ageResult.result?.message || '报告生成中，可能需要1-5分钟';
+        break;
+      }
+    }
+
     // HF5: Consistent origin/mock signals
     const origin = mockUsed ? 'liye_os.mock' : 'amazon-growth-engine';
     const originProof = !mockUsed;
 
+    // Determine success status (ALLOW, DEGRADE, PENDING are all ok)
+    const isOk = decision === 'ALLOW' || decision === 'DEGRADE' || decision === 'PENDING';
+
     // Build contract-compliant response (GOV_TOOL_CALL_RESPONSE_V1)
     const response = {
-      ok: decision === 'ALLOW' || decision === 'DEGRADE',
-      result: decision === 'ALLOW' || decision === 'DEGRADE'
+      ok: isOk,
+      result: isOk
         ? {
-            message: mockUsed ? 'Action approved with mock fallback' : 'Action approved for execution',
+            message: pendingMessage
+              ? pendingMessage
+              : mockUsed
+                ? 'Action approved with mock fallback'
+                : 'Action approved for execution',
             age_results: ageResults.length > 0 ? ageResults : undefined
           }
         : null,
@@ -403,9 +423,11 @@ async function handleGovernedToolCall(req, res) {
       policy_version: POLICY_VERSION,
       trace_id: finalTraceId,
       evidence_path: `.liye/traces/${finalTraceId}/`,
-      verdict_summary: mockUsed
-        ? `AGE MCP unavailable - using mock fallback. ${generateVerdictSummary(result.gateReport, result.verdict)}`
-        : generateVerdictSummary(result.gateReport, result.verdict),
+      verdict_summary: decision === 'PENDING'
+        ? (pendingMessage || '报告正在后台生成，完成后将自动推送结果。')
+        : mockUsed
+          ? `AGE MCP unavailable - using mock fallback. ${generateVerdictSummary(result.gateReport, result.verdict)}`
+          : generateVerdictSummary(result.gateReport, result.verdict),
       replay_status: result.replayResult?.status || 'UNKNOWN',
       // Week4: Write gate info
       write_enabled: WRITE_ENABLED,
