@@ -1,0 +1,23 @@
+{
+  "signals": [
+    {
+      "run_id": "run-20260208-3kturq",
+      "approved": true,
+      "operator_id": "user123",
+      "timestamp": "2026-02-08T07:28:27.615Z",
+      "note": "Looks good",
+      "source": "command",
+      "metadata": {}
+    }
+  ],
+  "latest": {
+    "run_id": "run-20260208-3kturq",
+    "approved": true,
+    "operator_id": "user123",
+    "timestamp": "2026-02-08T07:28:27.615Z",
+    "note": "Looks good",
+    "source": "command",
+    "metadata": {}
+  },
+  "updated_at": "2026-02-08T07:28:27.615Z"
+}
