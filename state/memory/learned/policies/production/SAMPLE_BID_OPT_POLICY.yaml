@@ -1,0 +1,66 @@
+# Sample Production Policy for Bundle Testing
+# This is a minimal valid policy for Week 2 testing
+
+schema_version: "1.0.0"
+policy_id: SAMPLE_BID_OPT_POLICY
+domain: amazon-advertising
+learned_at: "2026-02-08T12:00:00Z"
+
+scope:
+  type: tenant
+  keys:
+    tenant_id: default
+    marketplace: US
+
+risk_level: low
+validation_status: production
+confidence: 0.85
+
+preconditions:
+  match_rules:
+    - field: match_type
+      operator: eq
+      value: exact
+    - field: cvr
+      operator: gte
+      value: 0.15
+
+actions:
+  - action_type: alert
+    parameters:
+      message: "High CVR keyword detected"
+    dry_run_compatible: true
+
+constraints:
+  max_bid_change_pct: 20
+  max_actions_per_day: 10
+  require_approval: true
+
+rollback_plan:
+  type: manual
+  steps:
+    - "Disable policy"
+    - "Review affected keywords"
+
+success_signals:
+  exec:
+    count: 100
+    success_rate: 0.95
+  operator:
+    approval_count: 25
+    rejection_count: 2
+    approval_rate: 0.93
+  business:
+    metric_name: acos
+    baseline: 0.25
+    current: 0.20
+    improvement_pct: 20.0
+    sample_size: 500
+
+evaluation_window_days: 14
+expiry_at: "2026-08-08T12:00:00Z"
+
+evidence:
+  - trace_id: trace-20260208-sample1
+    summary: "Sample evidence for testing"
+    outcome: "Policy validated"

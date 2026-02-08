@@ -1,0 +1,98 @@
+# Bundle Gate CI
+# SSOT: .github/workflows/bundle-gate.yml
+#
+# 触发条件：PR 改动涉及 scripts/learning/** 或 state/memory/learned/policies/**
+# 动作：构建 bundle → 验证 bundle
+# 失败：阻断合并（fail-closed）
+
+name: Bundle Gate
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/**'
+      - 'state/memory/learned/policies/**'
+      - '_meta/contracts/learning/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.claude/scripts/learning/**'
+      - 'state/memory/learned/policies/**'
+      - '_meta/contracts/learning/**'
+
+jobs:
+  build-and-verify-bundle:
+    name: Build & Verify Learned Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install yaml
+
+      - name: Create policies directories (if not exist)
+        run: |
+          mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
+          mkdir -p state/memory/learned/skills/{sandbox,production}
+          mkdir -p state/artifacts/learned-bundles
+
+      - name: Build Learned Bundle
+        id: build
+        run: |
+          VERSION="0.2.$(date +%s)"
+          echo "Building bundle version: $VERSION"
+          node .claude/scripts/learning/build-learned-bundle.mjs "$VERSION"
+          echo "bundle_version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Learned Bundle
+        run: |
+          VERSION="${{ steps.build.outputs.bundle_version }}"
+          BUNDLE_PATH="state/artifacts/learned-bundles/learned-bundle_${VERSION}.tgz"
+
+          echo "Verifying bundle: $BUNDLE_PATH"
+
+          if [ ! -f "$BUNDLE_PATH" ]; then
+            echo "ERROR: Bundle file not found: $BUNDLE_PATH"
+            exit 1
+          fi
+
+          node _meta/contracts/scripts/validate-contracts.mjs --bundle "$BUNDLE_PATH"
+
+      - name: Upload Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: learned-bundle-${{ steps.build.outputs.bundle_version }}
+          path: |
+            state/artifacts/learned-bundles/learned-bundle_${{ steps.build.outputs.bundle_version }}.tgz
+            state/artifacts/learned-bundles/learned-bundle_${{ steps.build.outputs.bundle_version }}.manifest.json
+          retention-days: 7
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.build.outputs.bundle_version }}"
+          MANIFEST="state/artifacts/learned-bundles/learned-bundle_${VERSION}.manifest.json"
+
+          echo "## Bundle Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | $VERSION |" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "$MANIFEST" ]; then
+            POLICY_COUNT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$MANIFEST')).policies_index.length)")
+            SHA256=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$MANIFEST')).sha256)")
+            echo "| Policies | $POLICY_COUNT |" >> $GITHUB_STEP_SUMMARY
+            echo "| SHA256 | \`${SHA256:0:16}...\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Bundle Gate passed" >> $GITHUB_STEP_SUMMARY

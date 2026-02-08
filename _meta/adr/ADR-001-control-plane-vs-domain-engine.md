@@ -106,36 +106,41 @@ state/memory/learned/policies/
 
 ---
 
-## Appendix: Learned Bundle Specification v1.0.0
+## Appendix A: Learned Bundle Specification v1.1.0
 
-### Bundle 结构
+> **Week 2 冻结**：此规范为 Week 2 交付标准，后续修改需要新 ADR。
+
+### A.1 Bundle 目录树（冻结）
 
 ```
-learned-bundle-v1.0.0.tar.gz
+learned-bundle_<version>.tgz
+├── manifest.json           # 必需，字段白名单严格
 ├── policies/
-│   ├── production/
-│   │   └── *.yaml
-│   └── candidate/
-│       └── *.yaml  (approval_rate >= 0.80)
-└── skills/
+│   └── production/         # Week 2 仅打包 production
+│       └── *.yaml
+└── skills/                 # 可选
     └── production/
         └── *.yaml
 ```
 
-### Manifest 格式
+**Week 2 限制**：
+- 仅打包 `production` 状态策略
+- `candidate` 暂不打包（减少变量）
+
+### A.2 manifest.json 字段白名单（冻结）
 
 ```json
 {
-  "bundle_version": "v1.0.0",
+  "bundle_version": "0.2.0",
   "schema_version": "1.0.0",
   "created_at": "2026-02-08T12:00:00Z",
-  "sha256": "abc123...",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "policies_index": [
     {
       "policy_id": "BID_OPT_HIGH_CVR_EXACT",
+      "domain": "amazon-advertising",
       "file": "policies/production/BID_OPT_HIGH_CVR_EXACT.yaml",
-      "hash": "def456...",
-      "status": "production",
+      "sha256": "abc123def456...",
       "scope": {
         "type": "asin",
         "keys": {
@@ -143,43 +148,110 @@ learned-bundle-v1.0.0.tar.gz
           "marketplace": "US"
         }
       },
-      "confidence": 0.85,
-      "risk_level": "medium"
+      "risk_level": "medium",
+      "confidence": 0.85
     }
-  ]
+  ],
+  "skills_index": []
 }
 ```
 
-### 消费方式
+**字段说明**：
 
-**环境变量**：`LEARNED_BUNDLE_PATH`
+| 字段 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `bundle_version` | string | ✅ | SemVer，如 "0.2.0" |
+| `schema_version` | string | ✅ | 对应 learned_policy.schema 版本 |
+| `created_at` | string | ✅ | ISO 8601 时间戳 |
+| `sha256` | string | ✅ | Bundle 内容哈希（manifest 自身 sha256 字段置空后计算） |
+| `policies_index` | array | ✅ | 策略索引列表 |
+| `skills_index` | array | ❌ | 技能索引列表（可选） |
 
-**示例**：
+**policies_index[] 字段**：
+
+| 字段 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `policy_id` | string | ✅ | 策略唯一 ID |
+| `domain` | string | ✅ | 所属领域 |
+| `file` | string | ✅ | 相对路径 |
+| `sha256` | string | ✅ | 文件内容哈希 |
+| `scope` | object | ✅ | 作用范围 |
+| `risk_level` | string | ✅ | 风险等级 |
+| `confidence` | number | ✅ | 置信度 (0~1) |
+
+**严格约束**：
+- `additionalProperties: false` - 禁止未知字段
+- 验证器必须拒绝任何白名单外的字段
+
+### A.3 SHA256 计算规则
+
+1. **单文件哈希**：`sha256(file_content)`
+2. **Bundle 整体哈希**：
+   - 将 manifest.json 的 `sha256` 字段置为空字符串 `""`
+   - 计算整个 tgz 文件的 sha256
+   - 写回 `sha256` 字段
+   - 重新打包（或使用两阶段构建）
+
+### A.4 可复现性要求
+
+构建必须满足以下条件才能保证相同输入产生相同输出：
+
+1. **文件排序稳定**：按文件名字母序
+2. **Index 排序稳定**：按 `policy_id` 字母序
+3. **时间戳**：使用构建时间，而非文件 mtime
+4. **Tar 选项**：`--sort=name --mtime='UTC 2026-01-01'`
+
+### A.5 消费方式
+
+**环境变量**：`LEARNED_BUNDLE_PATH=/path/to/learned-bundle_0.2.0.tgz`
+
+**AGE 加载示例**：
 ```python
-from src.adapters.learned_bundle_loader import LearnedBundleLoader
+from src.learned.bundle_loader import BundleLoader
 
-loader = LearnedBundleLoader()
+loader = BundleLoader()
 policies = loader.load()  # 返回 production policies 列表
+
+# 按 domain + scope 过滤
+matched = loader.match(
+    domain="amazon-advertising",
+    scope_context={"tenant_id": "default", "marketplace": "US"}
+)
 ```
 
-### 完整性校验
+**禁止**：
+- 任何 `~/github/liye_os/...` 路径
+- 任何软链接
+- 任何硬编码 OS 路径
 
-1. 读取 `*.manifest.json`
-2. 计算 tar.gz 的 SHA256
-3. 对比 `manifest.sha256`
-4. 不匹配则拒绝加载
+### A.6 完整性校验流程
 
-### 版本约束
+```
+1. 解压 tgz 到临时目录
+2. 读取 manifest.json
+3. 校验 manifest 字段白名单（拒绝未知字段）
+4. 遍历 policies_index：
+   a. 检查文件存在
+   b. 计算文件 sha256，对比 index.sha256
+   c. 解析 YAML，校验 learned_policy.schema
+5. 重算 bundle sha256（manifest.sha256 置空）
+6. 对比 manifest.sha256
+7. 全部通过 → 返回策略列表；任一失败 → 拒绝加载
+```
 
-Engine 通过 `contracts_compat` 声明兼容版本：
+### A.7 版本兼容性
+
+Engine 通过 `contracts_compat` 声明兼容版本范围：
 
 ```yaml
+# engine_manifest.yaml
 contracts_compat: ">=1.0 <2.0"
 ```
 
-Bundle 的 `schema_version` 必须在范围内。
+Bundle 的 `schema_version` 必须在范围内，否则拒绝加载。
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Last Updated**: 2026-02-08
+**Week 2 Frozen**: ✅
