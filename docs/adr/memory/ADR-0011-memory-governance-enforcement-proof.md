@@ -1,6 +1,6 @@
-# ADR-0010A: Memory Governance Enforcement Proof
+# ADR-0011: Memory Governance Enforcement Proof
 
-- decision_id: ADR-0010A
+- decision_id: ADR-0011
 - domain: memory
 - status: accepted
 - tags: [memory, governance, enforcement, ssot, proof]
