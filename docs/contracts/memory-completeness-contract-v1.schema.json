@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://liye-ai.com/schemas/memory-completeness-v1.json",
+  "title": "Memory Completeness Contract v1",
+  "description": "Defines required fields and validation rules for all Observation objects in MAAP (Memory as a Product)",
+  "type": "object",
+  "required": [
+    "id",
+    "content",
+    "session_id",
+    "source_prompt_id",
+    "entities",
+    "timestamp",
+    "integrity_status"
+  ],
+  "properties": {
+    "id": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "Unique identifier for the observation (e.g., '25467' or 25467)",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string",
+      "description": "Core content of the observation, must not be empty or whitespace-only",
+      "minLength": 10,
+      "pattern": "^(?!\\s*$).{10,}$"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Session identifier, traceable to a specific conversation session",
+      "minLength": 1
+    },
+    "source_prompt_id": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "ID of the source prompt/message that triggered this observation",
+      "minLength": 1
+    },
+    "entities": {
+      "type": "array",
+      "description": "Entity tags for association and retrieval, must contain at least 1 element",
+      "minItems": 1,
+      "items": {
+        "type": [
+          "string",
+          "object"
+        ]
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Observation creation time in ISO8601 format (e.g., '2026-02-08T12:30:45.000Z')",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z?$"
+    },
+    "integrity_status": {
+      "type": "string",
+      "enum": [
+        "VERIFIED",
+        "REJECTED"
+      ],
+      "description": "Integrity verification status. Must be VERIFIED or REJECTED, never PENDING or UNKNOWN"
+    },
+    "governance_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Governance reason or rejection explanation. REQUIRED if integrity_status='REJECTED'",
+      "minLength": 1
+    },
+    "legacy_status": {
+      "type": "string",
+      "enum": [
+        "trusted",
+        "legacy_untrusted"
+      ],
+      "description": "Legacy status marker for pre-contract observations. Optional field."
+    },
+    "observation_type": {
+      "type": "string",
+      "description": "Classification of observation type (e.g., 'discovery', 'decision', 'bugfix'). Optional field.",
+      "minLength": 1
+    },
+    "context_timeline": {
+      "type": "object",
+      "description": "Optional context timeline with before/current/after sections",
+      "properties": {
+        "before": {
+          "type": "array",
+          "description": "Observations that preceded this one"
+        },
+        "current": {
+          "type": "object",
+          "description": "Current context snapshot"
+        },
+        "after": {
+          "type": "array",
+          "description": "Observations that follow this one"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "integrity_status": {
+            "const": "REJECTED"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "governance_reason"
+        ],
+        "properties": {
+          "governance_reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true,
+  "examples": [
+    {
+      "id": "25467",
+      "content": "Successfully created product ads for ASIN B0C5Q9Y6YF across 7 ad groups with proper SKU handling",
+      "session_id": "sess-20260208-amazon-ads",
+      "source_prompt_id": "prompt-1644295200",
+      "entities": [
+        "amazon-ads",
+        "sbv-campaign",
+        "product-ads"
+      ],
+      "timestamp": "2026-02-08T11:02:30.000Z",
+      "integrity_status": "VERIFIED",
+      "governance_reason": null,
+      "observation_type": "discovery"
+    },
+    {
+      "id": "25468",
+      "content": "Rejected observation: missing source_prompt_id and invalid entities array structure",
+      "session_id": "sess-20260208-test",
+      "source_prompt_id": "prompt-1644295300",
+      "entities": [
+        "memory-governance",
+        "validation"
+      ],
+      "timestamp": "2026-02-08T11:05:45.000Z",
+      "integrity_status": "REJECTED",
+      "governance_reason": "缺少必要字段：source_prompt_id 在原始尝试中",
+      "observation_type": "governance-test"
+    }
+  ]
+}
