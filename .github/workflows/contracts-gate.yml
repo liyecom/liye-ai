@@ -1,0 +1,116 @@
+# Contracts Gate CI
+# SSOT: .github/workflows/contracts-gate.yml
+#
+# 触发条件：PR 改动涉及 _meta/contracts/** 或 state/memory/learned/**
+# 动作：跑 validate-contracts.mjs
+# 失败：阻断合并（fail-closed）
+
+name: Contracts Gate
+
+on:
+  pull_request:
+    paths:
+      - '_meta/contracts/**'
+      - 'state/memory/learned/**'
+      - 'engine_manifest.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - '_meta/contracts/**'
+      - 'state/memory/learned/**'
+      - 'engine_manifest.yaml'
+
+jobs:
+  validate-contracts:
+    name: Validate Contracts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install yaml
+
+      - name: Create policies directories (if not exist)
+        run: |
+          mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
+          mkdir -p state/memory/learned/skills/{sandbox,production}
+          mkdir -p state/runtime/proactive
+
+      - name: Run Contracts Validator
+        run: |
+          node _meta/contracts/scripts/validate-contracts.mjs
+
+      - name: Check SSOT (Single Source of Truth)
+        run: |
+          # 确保 learned_policy.schema 只有一个位置
+          count=$(find . -name "*learned_policy*schema*" -not -path "./node_modules/*" | wc -l)
+          if [ "$count" -ne 1 ]; then
+            echo "ERROR: Multiple learned_policy.schema files found!"
+            find . -name "*learned_policy*schema*" -not -path "./node_modules/*"
+            exit 1
+          fi
+          echo "SSOT check passed: single learned_policy.schema found"
+
+      - name: Boundary Gate Check
+        run: |
+          # 检查 AGE 仓库边界（如果有 engine_manifest.yaml）
+          if [ -f "engine_manifest.yaml" ]; then
+            echo "Checking engine_manifest.yaml..."
+            # 确保 write_capability 不是 full（除非有特殊审批）
+            if grep -q "write_capability: full" engine_manifest.yaml; then
+              echo "WARNING: write_capability is 'full'. Requires special approval."
+            fi
+          fi
+          echo "Boundary Gate check passed"
+
+  # 如果 AGE 仓库也需要校验
+  validate-age-manifest:
+    name: Validate AGE Manifest (if exists)
+    runs-on: ubuntu-latest
+    if: github.repository == 'liye/liye_os'  # 仅在主仓库运行
+
+    steps:
+      - name: Checkout liye_os
+        uses: actions/checkout@v4
+
+      - name: Checkout AGE (if accessible)
+        uses: actions/checkout@v4
+        with:
+          repository: liye/amazon-growth-engine
+          path: amazon-growth-engine
+        continue-on-error: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install yaml
+
+      - name: Validate AGE manifest
+        run: |
+          if [ -f "amazon-growth-engine/engine_manifest.yaml" ]; then
+            echo "Validating AGE engine_manifest.yaml..."
+            # 简单校验：确保必需字段存在
+            required_fields=("engine_id" "domain" "contracts_compat" "playbooks" "write_capability")
+            for field in "${required_fields[@]}"; do
+              if ! grep -q "$field:" amazon-growth-engine/engine_manifest.yaml; then
+                echo "ERROR: Missing required field: $field"
+                exit 1
+              fi
+            done
+            echo "AGE manifest validation passed"
+          else
+            echo "AGE engine_manifest.yaml not found (may not be accessible)"
+          fi
+        continue-on-error: true

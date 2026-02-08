@@ -1,0 +1,33 @@
+{
+  "$schema": "https://liye.com/schemas/proactive/state.v1.json",
+  "version": "1.0.0",
+  "description": "Proactive scheduling state for LiYe OS Control Plane",
+
+  "learning_enabled": true,
+  "last_run": null,
+  "run_count": 0,
+  "policies_learned": 0,
+
+  "cooldown_minutes": 30,
+  "tool_call_interval": 15,
+  "min_traces": 8,
+
+  "consecutive_errors": 0,
+  "last_error": null,
+
+  "execution_tier": "observe",
+  "tier_history": [],
+
+  "quiet_hours": {
+    "enabled": false,
+    "start": "22:00",
+    "end": "08:00",
+    "timezone": "Asia/Shanghai"
+  },
+
+  "metadata": {
+    "created_at": "2026-02-08T12:30:00Z",
+    "updated_at": null,
+    "ssot": "state/runtime/proactive/state.json"
+  }
+}

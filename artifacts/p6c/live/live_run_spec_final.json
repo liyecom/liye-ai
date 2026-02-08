@@ -1,0 +1,60 @@
+{
+  "spec_id": "lrs-4e52c427",
+  "customer": "demo",
+  "market": "US",
+  "action_type": "ADD_NEGATIVE_KEYWORDS",
+  "reason_summary": "P6-C Live Write: Two competitor ASINs identified from 14-day Search Term Report. Both ASINs generated clicks (20 and 13 respectively) with $21.55 total spend but zero orders. Users searching these specific ASINs are looking for competitor products, not Timo products. Adding as EXACT match negatives to prevent further wasted spend on competitor ASIN traffic.",
+  "evidence_snapshot": {
+    "hash": "dd7a576873a7e79a",
+    "file_path": "amazon-growth-engine/data/p6a_pilot_summary.json",
+    "source": "Amazon Ads API - Search Term Report",
+    "profile_id": "2636185669342615",
+    "date_range": "2026-01-18 to 2026-01-31",
+    "report_type": "spSearchTerm",
+    "total_search_terms_analyzed": 1444,
+    "filter_criteria": {
+      "clicks_gte": 10,
+      "orders_eq": 0,
+      "cost_gt": 0,
+      "excluded_commercial_keywords": true
+    }
+  },
+  "proposed_keywords": [
+    {
+      "keyword": "b09m8m23rs",
+      "match_type": "EXACT",
+      "evidence": {
+        "clicks": 20,
+        "cost_usd": 13.46,
+        "orders": 0,
+        "reason": "Competitor ASIN - users explicitly searching for this product"
+      }
+    },
+    {
+      "keyword": "b0d9k2d274",
+      "match_type": "EXACT",
+      "evidence": {
+        "clicks": 13,
+        "cost_usd": 8.09,
+        "orders": 0,
+        "reason": "Competitor ASIN - users explicitly searching for this product"
+      }
+    }
+  ],
+  "created_at": "2026-02-01T13:47:04.750Z",
+  "mode": "LIVE_READY",
+  "p6c_constraints": {
+    "max_keywords_per_action": 5,
+    "actual_keywords": 2,
+    "max_writes_per_day": 1,
+    "customer_locked": "Timo",
+    "market_locked": "US",
+    "action_locked": "ADD_NEGATIVE_KEYWORDS"
+  },
+  "rollback_procedure": {
+    "tool": "negative_keyword_remove",
+    "description": "Remove the added negative keywords using their IDs from ActionOutcomeEvent",
+    "estimated_time": "< 5 minutes",
+    "manual_fallback": "Amazon Ads Console > Campaign Manager > Negative Keywords"
+  }
+}

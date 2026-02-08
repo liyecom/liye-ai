@@ -19,7 +19,7 @@ import { fileURLToPath } from 'url';
 import { appendFileSync, mkdirSync, existsSync } from 'fs';
 
 import { replyMessage, sendMessage, isConfigured } from './feishu_client.mjs';
-import { renderVerdictCard, createFallbackTextMessage } from './cards/render_verdict_card.mjs';
+import { renderVerdictCard, renderDegradeCard, createFallbackTextMessage } from './cards/render_verdict_card.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -262,8 +262,87 @@ export async function handleFeishuEvent(req, res, opts = {}) {
   }
 
   // Build GOV_TOOL_CALL_REQUEST_V1
-  // Thin-Agent: action_type fixed to "read", tool is a read-only default
-  // User text goes into task, letting Gateway/LiYe decide real routing
+  // Thin-Agent: Simple intent routing based on keywords
+
+  // Intent detection: keyword query vs campaign audit vs keyword performance
+  const lowerText = (text || '').toLowerCase();
+  const isKeywordQuery = (
+    lowerText.includes('关键词') ||
+    lowerText.includes('否定词') ||
+    lowerText.includes('keyword') ||
+    lowerText.includes('negative')
+  );
+
+  // Check if user wants performance/analysis data
+  const wantsPerformance = (
+    lowerText.includes('表现') ||
+    lowerText.includes('性能') ||
+    lowerText.includes('数据') ||
+    lowerText.includes('分析') ||
+    lowerText.includes('acos') ||
+    lowerText.includes('花费') ||
+    lowerText.includes('转化') ||
+    lowerText.includes('加大投放') ||
+    lowerText.includes('否定') ||
+    lowerText.includes('performance')
+  );
+
+  // Extract campaign name from text
+  let campaignName = '';
+  if (isKeywordQuery) {
+    // Pattern 1: "列出XXX所有的关键词"
+    const pattern1 = text.match(/列出(.+?)(?:所有)?的?(?:关键词|否定词)/);
+    if (pattern1 && pattern1[1]) {
+      campaignName = pattern1[1].trim();
+    }
+    // Pattern 2: "广告组：XXX里"
+    if (!campaignName) {
+      const pattern2 = text.match(/(?:广告组|广告活动)[：:]\s*[•·\s]*(.+?)(?:里|的这|这些|的关键词)/);
+      if (pattern2 && pattern2[1]) {
+        campaignName = pattern2[1].trim();
+      }
+    }
+    // Pattern 3: Date-ending campaign names like XXX-20251226
+    if (!campaignName) {
+      const pattern3 = text.match(/([a-zA-Z0-9\u4e00-\u9fa5][^\s]*-\d{8})/);
+      if (pattern3) {
+        campaignName = pattern3[1].trim();
+      }
+    }
+  }
+
+  // Select tool based on intent
+  let selectedTool = 'amazon://strategy/campaign-audit';
+  let toolArguments = {
+    query: text,
+    source: 'feishu_thin_agent'
+  };
+
+  if (isKeywordQuery && campaignName && wantsPerformance) {
+    // User wants keyword performance data with analysis
+    // Pass chat_id for async result push to Feishu
+    selectedTool = 'amazon://strategy/keyword-performance';
+    toolArguments = {
+      campaign_name: campaignName,
+      days: 30,
+      chat_id: chatId,
+      query: text,
+      source: 'feishu_thin_agent'
+    };
+    console.log('[FeishuAdapter] Intent: keyword-performance for campaign:', campaignName);
+  } else if (isKeywordQuery && campaignName) {
+    // User just wants keyword list
+    selectedTool = 'amazon://strategy/keyword-list';
+    toolArguments = {
+      campaign_name: campaignName,
+      query: text,
+      source: 'feishu_thin_agent'
+    };
+    console.log('[FeishuAdapter] Intent: keyword-list for campaign:', campaignName);
+  } else {
+    console.log('[FeishuAdapter] Intent: campaign-audit (default)');
+  }
+
   const govRequest = {
     task: text || '(empty message)',
     tenant_id: tenantId,
@@ -277,11 +356,8 @@ export async function handleFeishuEvent(req, res, opts = {}) {
     proposed_actions: [
       {
         action_type: 'read',
-        tool: 'amazon://strategy/campaign-audit',
-        arguments: {
-          query: text,
-          source: 'feishu_thin_agent'
-        }
+        tool: selectedTool,
+        arguments: toolArguments
       }
     ]
   };
@@ -303,6 +379,14 @@ export async function handleFeishuEvent(req, res, opts = {}) {
   } catch (e) {
     console.error('[FeishuAdapter] Gateway call failed:', e.message);
 
+    // Determine error code based on error type
+    let errorCode = 'AGE_UNREACHABLE';
+    let stage = 'ERROR';
+    if (e.message?.includes('timeout') || e.name === 'AbortError') {
+      errorCode = 'AGE_TIMEOUT';
+      stage = 'TIMEOUT';
+    }
+
     // Create degraded response when Gateway is unreachable
     govResponse = {
       ok: true,
@@ -313,7 +397,13 @@ export async function handleFeishuEvent(req, res, opts = {}) {
       policy_version: 'phase1-v1.0.0',
       trace_id: traceId,
       fallback_reason: `Gateway unreachable: ${e.message}`,
-      verdict_summary: '网关暂时不可用，请稍后重试。'
+      verdict_summary: '网关暂时不可用，请稍后重试。',
+      // Extended DEGRADE info
+      degrade_info: {
+        stage,
+        error_code: errorCode,
+        error_message: e.message
+      }
     };
   }
 
@@ -328,7 +418,19 @@ export async function handleFeishuEvent(req, res, opts = {}) {
   // Render verdict card
   let card;
   try {
-    card = renderVerdictCard(govResponse);
+    // Use renderDegradeCard for DEGRADE decisions with extended info
+    if (govResponse.decision === 'DEGRADE' && govResponse.degrade_info) {
+      card = renderDegradeCard({
+        trace_id: govResponse.trace_id || traceId,
+        stage: govResponse.degrade_info.stage,
+        error_code: govResponse.degrade_info.error_code,
+        error_message: govResponse.degrade_info.error_message,
+        origin: govResponse.origin,
+        fallback_reason: govResponse.fallback_reason
+      });
+    } else {
+      card = renderVerdictCard(govResponse);
+    }
   } catch (e) {
     console.error('[FeishuAdapter] Card render failed:', e.message);
     card = null;
@@ -364,4 +466,75 @@ export async function handleFeishuEvent(req, res, opts = {}) {
   }));
 }
 
-export default { handleFeishuEvent };
+/**
+ * Notify a channel with a message
+ *
+ * @param {Object} opts - Notification options
+ * @param {string} opts.channel - 'group' | 'private' (uses FEISHU_CHAT_ID_GROUP or FEISHU_CHAT_ID_PRIVATE)
+ * @param {string} opts.title - Card title
+ * @param {string} opts.md - Markdown content
+ * @param {string} opts.trace_id - Trace ID for linking
+ * @param {string} opts.level - 'info' | 'warn' | 'error' | 'success' (controls card color)
+ * @returns {Promise<Object>} API response
+ */
+export async function notify(opts) {
+  const { channel = 'group', title, md, trace_id, level = 'info' } = opts;
+
+  // Resolve chat_id from env (support multiple variable names for compatibility)
+  const chatId = channel === 'group'
+    ? (process.env.FEISHU_CHAT_ID_GROUP || process.env.FEISHU_CHAT_ID)
+    : (process.env.FEISHU_CHAT_ID_PRIVATE || process.env.FEISHU_PRIVATE_CHAT_ID);
+
+  if (!chatId) {
+    const envHint = channel === 'group'
+      ? 'FEISHU_CHAT_ID_GROUP or FEISHU_CHAT_ID'
+      : 'FEISHU_CHAT_ID_PRIVATE or FEISHU_PRIVATE_CHAT_ID';
+    console.error(`[FeishuAdapter] No chat_id for channel: ${channel}. Set ${envHint}`);
+    return { ok: false, error: `Missing env: ${envHint}` };
+  }
+
+  // Level to header color mapping
+  const levelColors = {
+    info: 'blue',
+    warn: 'orange',
+    error: 'red',
+    success: 'green'
+  };
+  const headerColor = levelColors[level] || 'blue';
+
+  // Build interactive card
+  const card = {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: title || 'LiYe OS Notification' },
+      template: headerColor
+    },
+    elements: [
+      {
+        tag: 'markdown',
+        content: md || '(empty)'
+      }
+    ]
+  };
+
+  // Add trace_id footer if provided
+  if (trace_id) {
+    card.elements.push({
+      tag: 'note',
+      elements: [
+        { tag: 'plain_text', content: `trace_id: ${trace_id}` }
+      ]
+    });
+  }
+
+  try {
+    const result = await sendMessage(chatId, card);
+    console.log(`[FeishuAdapter] Notify sent to ${channel}:`, title);
+    return { ok: true, data: result };
+  } catch (e) {
+    console.error(`[FeishuAdapter] Notify failed:`, e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+export default { handleFeishuEvent, notify };

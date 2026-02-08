@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-02-02T00:05:24.764440",
+  "campaign_id": "420936658319780",
+  "campaign_name": "9.25-7810-捡漏",
+  "created_keywords": [
+    {
+      "id": "283869302908886",
+      "text": "b09m8m23rs",
+      "matchType": "NEGATIVE_EXACT"
+    },
+    {
+      "id": "418066398958849",
+      "text": "b0d9k2d274",
+      "matchType": "NEGATIVE_EXACT"
+    }
+  ],
+  "rollback_endpoint": "POST /sp/campaignNegativeKeywords/delete",
+  "p6c_spec_id": "lrs-4e52c427",
+  "write_gate_status": "CLOSED"
+}
