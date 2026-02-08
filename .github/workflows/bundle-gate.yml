@@ -45,17 +45,49 @@ jobs:
           mkdir -p state/memory/learned/skills/{sandbox,production}
           mkdir -p state/artifacts/learned-bundles
 
+      - name: Generate Version (Single Source of Truth)
+        id: version
+        run: |
+          # 版本号单一来源：git describe，禁止人工传入
+          # 格式：v0.2.0-<commits>-g<sha> 或 v0.2.0（如果恰好在 tag 上）
+          if git describe --tags --always 2>/dev/null; then
+            RAW_VERSION=$(git describe --tags --always)
+          else
+            # 无 tag 时使用 commit short sha
+            RAW_VERSION="0.2.0-$(git rev-parse --short HEAD)"
+          fi
+          # 清理版本号：移除 'v' 前缀，替换非法字符
+          VERSION=$(echo "$RAW_VERSION" | sed 's/^v//' | tr -c 'a-zA-Z0-9.-' '-')
+          echo "Generated version: $VERSION"
+          echo "bundle_version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build Learned Bundle
         id: build
         run: |
-          VERSION="0.2.$(date +%s)"
+          VERSION="${{ steps.version.outputs.bundle_version }}"
           echo "Building bundle version: $VERSION"
           node .claude/scripts/learning/build-learned-bundle.mjs "$VERSION"
-          echo "bundle_version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # 强校验：产物路径与 manifest.bundle_version 必须一致
+          BUNDLE_PATH="state/artifacts/learned-bundles/learned-bundle_${VERSION}.tgz"
+          MANIFEST_PATH="state/artifacts/learned-bundles/learned-bundle_${VERSION}.manifest.json"
+
+          if [ ! -f "$BUNDLE_PATH" ]; then
+            echo "ERROR: Expected bundle not found: $BUNDLE_PATH"
+            exit 1
+          fi
+
+          MANIFEST_VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$MANIFEST_PATH')).bundle_version)")
+          if [ "$MANIFEST_VERSION" != "$VERSION" ]; then
+            echo "ERROR: Version mismatch! Expected: $VERSION, Manifest: $MANIFEST_VERSION"
+            exit 1
+          fi
+
+          echo "✅ Version consistency verified: $VERSION"
 
       - name: Verify Learned Bundle
         run: |
-          VERSION="${{ steps.build.outputs.bundle_version }}"
+          VERSION="${{ steps.version.outputs.bundle_version }}"
           BUNDLE_PATH="state/artifacts/learned-bundles/learned-bundle_${VERSION}.tgz"
 
           echo "Verifying bundle: $BUNDLE_PATH"
@@ -70,15 +102,15 @@ jobs:
       - name: Upload Bundle Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: learned-bundle-${{ steps.build.outputs.bundle_version }}
+          name: learned-bundle-${{ steps.version.outputs.bundle_version }}
           path: |
-            state/artifacts/learned-bundles/learned-bundle_${{ steps.build.outputs.bundle_version }}.tgz
-            state/artifacts/learned-bundles/learned-bundle_${{ steps.build.outputs.bundle_version }}.manifest.json
+            state/artifacts/learned-bundles/learned-bundle_${{ steps.version.outputs.bundle_version }}.tgz
+            state/artifacts/learned-bundles/learned-bundle_${{ steps.version.outputs.bundle_version }}.manifest.json
           retention-days: 7
 
       - name: Summary
         run: |
-          VERSION="${{ steps.build.outputs.bundle_version }}"
+          VERSION="${{ steps.version.outputs.bundle_version }}"
           MANIFEST="state/artifacts/learned-bundles/learned-bundle_${VERSION}.manifest.json"
 
           echo "## Bundle Gate Summary" >> $GITHUB_STEP_SUMMARY

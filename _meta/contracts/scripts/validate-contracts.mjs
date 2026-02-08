@@ -14,7 +14,7 @@
  * 退出码：0 = 全部通过，1 = 有错误（fail-closed）
  */
 
-import { readFileSync, existsSync, readdirSync, statSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, statSync, mkdtempSync, rmSync, writeFileSync, realpathSync } from 'fs';
 import { join, basename, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parse as parseYaml } from 'yaml';
@@ -477,6 +477,20 @@ async function validateBundle(bundlePath) {
   }
 
   console.log(`📂 Extracted to: ${tempDir}\n`);
+
+  // 1.5 ZipSlip/路径穿越防护：验证所有解压文件的 realpath 在临时目录内
+  const realTempDir = realpathSync(tempDir);
+  const extractedFiles = execSync(`find "${tempDir}" -type f`, { encoding: 'utf-8' }).trim().split('\n').filter(Boolean);
+
+  for (const file of extractedFiles) {
+    const realFilePath = realpathSync(file);
+    if (!realFilePath.startsWith(realTempDir)) {
+      logError('Bundle', `ZipSlip attack detected: ${file} resolves outside temp directory`);
+      rmSync(tempDir, { recursive: true, force: true });
+      return;
+    }
+  }
+  console.log(`🛡️  ZipSlip check passed (${extractedFiles.length} files verified)\n`);
 
   // 2. 读取 manifest.json
   const manifestPath = join(tempDir, 'manifest.json');

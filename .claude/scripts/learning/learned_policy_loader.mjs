@@ -22,7 +22,7 @@
  *   const matched = loader.matchByScope({ tenant_id: 'default', marketplace: 'US' });
  */
 
-import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync, realpathSync } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { parse as parseYaml } from 'yaml';
@@ -124,6 +124,19 @@ export class PolicyLoader {
     } catch (e) {
       this.cleanup();
       throw new Error(`Failed to extract bundle: ${e.message}`);
+    }
+
+    // 1.5 ZipSlip/路径穿越防护：验证所有解压文件的 realpath 在临时目录内
+    const realCacheDir = realpathSync(this._cacheDir);
+    const extractedFiles = execSync(`find "${this._cacheDir}" -type f`, { encoding: 'utf-8' })
+      .trim().split('\n').filter(Boolean);
+
+    for (const file of extractedFiles) {
+      const realFilePath = realpathSync(file);
+      if (!realFilePath.startsWith(realCacheDir)) {
+        this.cleanup();
+        throw new Error(`ZipSlip attack detected: ${file} resolves outside cache directory`);
+      }
     }
 
     // 2. 读取并验证 manifest
