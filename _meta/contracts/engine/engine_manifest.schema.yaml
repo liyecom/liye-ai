@@ -115,6 +115,7 @@ properties:
               type: object
               additionalProperties: true
               description: "输出参数 schema"
+          additionalProperties: false
           description: "输入输出 schema 定义"
         status:
           type: string
@@ -124,6 +125,7 @@ properties:
             - placeholder
           default: active
           description: "Playbook 状态。placeholder 表示占位未实现"
+      additionalProperties: false
     description: "Engine 提供的 playbooks 列表。OS 通过此列表调用"
 
   data_sources:
@@ -152,6 +154,7 @@ properties:
           type: boolean
           default: true
           description: "是否必需"
+      additionalProperties: false
     description: "Engine 依赖的数据源声明（仅声明，不含凭据）"
 
   write_capability:
@@ -183,6 +186,7 @@ properties:
         type: string
         pattern: "^\\d+\\.\\d+\\.\\d+$"
         description: "最低兼容的 bundle schema_version"
+    additionalProperties: false
     description: "Bundle 消费配置"
 
   health_check:
@@ -197,6 +201,7 @@ properties:
         maximum: 60
         default: 10
         description: "健康检查超时时间"
+    additionalProperties: false
     description: "健康检查配置"
 
   metadata:
@@ -213,6 +218,7 @@ properties:
         type: string
         format: uri
         description: "文档地址"
+    additionalProperties: false
     description: "元数据"
 
 additionalProperties: false

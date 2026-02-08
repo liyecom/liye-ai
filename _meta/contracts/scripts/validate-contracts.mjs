@@ -62,7 +62,55 @@ function loadSchema(schemaPath) {
 }
 
 /**
- * 简单 schema 校验（检查 required 字段）
+ * 检查额外字段（additionalProperties: false 强制执行）
+ * 递归检查嵌套对象
+ */
+function checkAdditionalProperties(data, schema, path = '') {
+  const errors = [];
+
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    return errors;
+  }
+
+  // 获取 schema 中定义的属性
+  const schemaProperties = schema.properties || {};
+  const allowedKeys = Object.keys(schemaProperties);
+
+  // 检查 additionalProperties 约束
+  if (schema.additionalProperties === false) {
+    for (const key of Object.keys(data)) {
+      if (!allowedKeys.includes(key)) {
+        const fieldPath = path ? `${path}.${key}` : key;
+        errors.push(`Unknown field '${fieldPath}' not allowed (additionalProperties: false)`);
+      }
+    }
+  }
+
+  // 递归检查嵌套对象
+  for (const [key, value] of Object.entries(data)) {
+    if (schemaProperties[key] && typeof value === 'object' && value !== null) {
+      const nestedSchema = schemaProperties[key];
+      const nestedPath = path ? `${path}.${key}` : key;
+
+      if (Array.isArray(value) && nestedSchema.items) {
+        // 数组项校验
+        value.forEach((item, index) => {
+          if (typeof item === 'object' && item !== null) {
+            errors.push(...checkAdditionalProperties(item, nestedSchema.items, `${nestedPath}[${index}]`));
+          }
+        });
+      } else if (!Array.isArray(value)) {
+        // 对象校验
+        errors.push(...checkAdditionalProperties(value, nestedSchema, nestedPath));
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * 简单 schema 校验（检查 required 字段 + additionalProperties）
  */
 function validateAgainstSchema(data, schema, filePath) {
   const errors = [];
@@ -73,6 +121,10 @@ function validateAgainstSchema(data, schema, filePath) {
       errors.push(`Missing required field: ${field}`);
     }
   }
+
+  // 检查额外字段（additionalProperties: false）
+  const additionalErrors = checkAdditionalProperties(data, schema);
+  errors.push(...additionalErrors);
 
   // 特殊校验：confidence 必须是数值
   if ('confidence' in data) {
@@ -150,14 +202,20 @@ function validateLifecycle(data, filePath) {
   // production 目录特殊规则
   if (dirName === 'production') {
     // 规则 1：如果有写入动作，require_approval 不能为 false
-    const hasWriteAction = (data.actions || []).some((action) => {
-      const writeActions = ['bid_adjustment', 'keyword_negation', 'budget_reallocation'];
-      return writeActions.includes(action.action_type);
-    });
+    // 写入动作定义：bid_adjustment, keyword_negation, budget_reallocation
+    // 非写入动作（alert, investigate）不受此约束，可 require_approval=false
+    const WRITE_ACTIONS = ['bid_adjustment', 'keyword_negation', 'budget_reallocation'];
+    const NON_WRITE_ACTIONS = ['alert', 'investigate']; // 仅用于文档，不参与校验
+
+    const writeActionsFound = (data.actions || [])
+      .filter((action) => WRITE_ACTIONS.includes(action.action_type))
+      .map((action) => action.action_type);
+
+    const hasWriteAction = writeActionsFound.length > 0;
 
     if (hasWriteAction && data.constraints?.require_approval === false) {
       errors.push(
-        `Production policy with write actions MUST have 'constraints.require_approval: true'`
+        `Production policy with write actions (${writeActionsFound.join(', ')}) MUST have 'constraints.require_approval: true'`
       );
     }
 

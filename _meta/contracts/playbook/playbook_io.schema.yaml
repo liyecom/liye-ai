@@ -59,6 +59,7 @@ properties:
         type: object
         additionalProperties: true
         description: "实际输入数据"
+    additionalProperties: false
     description: "输入参数（带 hash 用于审计）"
 
   outputs:
@@ -118,6 +119,7 @@ properties:
                 expected_change:
                   type: object
                   description: "预期变化（可选，结构化数据）"
+              additionalProperties: false
               description: "Dry-run 结果（必须支持）"
             requires_tier:
               type: string
@@ -133,6 +135,7 @@ properties:
               maximum: 100
               default: 50
               description: "优先级（0-100，越高越优先）"
+          additionalProperties: false
         description: "推荐动作列表（结构化，支持 dry-run）"
 
       evidence_package_ref:
@@ -161,6 +164,7 @@ properties:
             maximum: 30
             default: 7
             description: "跟踪周期（天数）"
+        additionalProperties: false
         description: "成功信号收集钩子（OS 用于 follow-up）"
 
       metadata:
@@ -177,8 +181,10 @@ properties:
           bundle_version:
             type: string
             description: "使用的 bundle 版本"
+        additionalProperties: false
         description: "执行元数据"
 
+    additionalProperties: false
     description: "Playbook 输出"
 
   error:
@@ -202,6 +208,7 @@ properties:
         type: object
         additionalProperties: true
         description: "错误详情"
+    additionalProperties: false
     description: "错误信息（失败时填充）"
 
   status:

@@ -160,6 +160,8 @@ properties:
                 - not_in
             value:
               description: "匹配值，类型由 field 决定"
+          additionalProperties: false
+    additionalProperties: false
     description: "可执行的匹配条件"
 
   actions:
@@ -195,6 +197,7 @@ properties:
             - recommend
             - execute_limited
           description: "执行此动作所需的最低层级"
+      additionalProperties: false
     description: "策略触发的动作列表"
 
   constraints:
@@ -221,6 +224,7 @@ properties:
         type: boolean
         default: true
         description: "是否需要人工批准。production 目录中若为 false 且有写入动作，校验失败"
+    additionalProperties: false
     description: "执行约束"
 
   rollback_plan:
@@ -247,6 +251,7 @@ properties:
         minimum: 1
         default: 60
         description: "回滚超时时间（分钟）"
+    additionalProperties: false
     description: "回滚计划。必填"
 
   # ==========================================================
@@ -278,6 +283,7 @@ properties:
             minimum: 0.0
             maximum: 1.0
             description: "执行成功率（无错误完成 / 总次数）"
+        additionalProperties: false
         description: "ExecSuccess: 执行无错误"
       operator:
         type: object
@@ -300,6 +306,7 @@ properties:
             minimum: 0.0
             maximum: 1.0
             description: "批准率。sandbox 阶段可为 null"
+        additionalProperties: false
         description: "OperatorSuccess: 人工采纳/批准"
       business:
         type: object
@@ -341,7 +348,9 @@ properties:
               - "null"
             minimum: 0
             description: "样本量"
+        additionalProperties: false
         description: "BusinessSuccess: 指标改善（晋升 production 必须）"
+    additionalProperties: false
     description: "三信号体系。禁止用 ALLOW 替代"
 
   evaluation_window_days:
@@ -376,6 +385,7 @@ properties:
           type: string
           maxLength: 200
           description: "执行结果"
+      additionalProperties: false
     description: "证据链。每个策略必须可追溯"
 
   # 可选字段
