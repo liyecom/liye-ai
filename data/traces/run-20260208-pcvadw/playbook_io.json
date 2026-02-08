@@ -1,0 +1,29 @@
+{
+  "playbook_id": "anomaly_detect",
+  "run_id": "run-20260208-pcvadw",
+  "timestamp": "2026-02-08T07:30:27.455Z",
+  "engine_id": "amazon-growth-engine",
+  "inputs": {
+    "hash": "99719d6a79481b91cb7fc3521059f6384b7ea0cc37c3ce1ad7512eac7d887c5e",
+    "data": {
+      "asin": "B0C5Q8L7FP",
+      "lookback_days": 7
+    }
+  },
+  "outputs": {
+    "verdict": "OK",
+    "recommendations": [],
+    "evidence_package_ref": "data/traces/run-20260208-pcvadw/evidence/",
+    "success_signal_hooks": {
+      "operator_feedback_url": null,
+      "business_metric_query": "SELECT acos, cvr FROM metrics WHERE asin='B0C5Q8L7FP' AND date >= date('now', '-7 days')",
+      "follow_up_after_days": 7
+    },
+    "metadata": {
+      "execution_time_ms": 62,
+      "api_calls": 0,
+      "bundle_version": null
+    }
+  },
+  "status": "success"
+}

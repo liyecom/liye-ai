@@ -102,6 +102,48 @@ async function sendCard(chatId, card) {
 // Notifier 主函数
 // ===============================================================
 
+// Week 3 禁止的写入动作类型
+const FORBIDDEN_WRITE_ACTIONS = [
+  'bid_adjustment',
+  'budget_adjustment',
+  'keyword_negation',
+  'campaign_pause',
+  'campaign_enable',
+  'bid_write',
+  'budget_write'
+];
+
+/**
+ * Week 3 边界 Gate：拒绝包含写入动作的推荐
+ * fail-closed: 任何写入动作 → 拒绝投递
+ */
+function validateNoWriteActions(playbookOutput) {
+  const recommendations = playbookOutput.outputs?.recommendations || [];
+
+  for (const rec of recommendations) {
+    const tier = rec.requires_tier || 'recommend';
+
+    // execute_limited 层级的动作在 Week 3 禁止
+    if (tier === 'execute_limited') {
+      throw new Error(
+        `[Week3 Gate] REJECTED: Action '${rec.action_type}' requires execute_limited tier. ` +
+        `Week 3 only allows observe + recommend.`
+      );
+    }
+
+    // 检查禁止的写入动作类型
+    if (FORBIDDEN_WRITE_ACTIONS.some(a => rec.action_type?.includes(a))) {
+      throw new Error(
+        `[Week3 Gate] REJECTED: Action '${rec.action_type}' is a write action. ` +
+        `Week 3 prohibits all write actions.`
+      );
+    }
+  }
+
+  console.error('[Week3 Gate] PASSED: No write actions detected');
+  return true;
+}
+
 /**
  * 发送推荐通知
  */
@@ -109,6 +151,12 @@ export async function notify(playbookOutput, options = {}) {
   const chatId = options.chatId || process.env.FEISHU_CHAT_ID;
   const callbackUrl = options.callbackUrl || process.env.OPERATOR_CALLBACK_URL;
   const dryRun = options.dryRun || false;
+  const skipGate = options.skipGate || false;
+
+  // Week 3 边界 Gate（除非显式跳过用于测试）
+  if (!skipGate) {
+    validateNoWriteActions(playbookOutput);
+  }
 
   if (!chatId) {
     throw new Error('Chat ID is required. Set FEISHU_CHAT_ID or use --chat-id');
