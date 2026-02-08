@@ -150,6 +150,12 @@ node .claude/scripts/assembler.mjs --task "Your task description"
 
 ---
 
+## Memory Governance (SSOT)
+
+**LiYe OS is the Single Source of Truth (SSOT) for MAAP (Memory as a Product) governance rules.** Step 5B boundary enforcement ensures no direct claude-mem API access outside `src/runtime/memory/observation-gateway.ts`. See [`scripts/ci/memory-governance-gate.sh`](scripts/ci/memory-governance-gate.sh) for enforcement details.
+
+---
+
 ## Stability Contract
 
 LiYe OS maintains clear stability boundaries. See [ARCHITECTURE_CONTRACT.md](docs/architecture/ARCHITECTURE_CONTRACT.md) for details.
