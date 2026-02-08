@@ -13,6 +13,8 @@ on:
       - '_meta/contracts/**'
       - 'state/memory/learned/**'
       - 'engine_manifest.yaml'
+      - '.claude/scripts/proactive/**'
+      - 'data/traces/**'
   push:
     branches:
       - main
@@ -20,6 +22,8 @@ on:
       - '_meta/contracts/**'
       - 'state/memory/learned/**'
       - 'engine_manifest.yaml'
+      - '.claude/scripts/proactive/**'
+      - 'data/traces/**'
 
 jobs:
   validate-contracts:
@@ -71,6 +75,16 @@ jobs:
             fi
           fi
           echo "Boundary Gate check passed"
+
+      - name: Validate Playbook I/O Schema
+        run: |
+          # 校验所有 playbook_io.json 文件符合 schema
+          if [ -d "data/traces" ]; then
+            echo "Scanning data/traces/ for playbook_io.json files..."
+            node _meta/contracts/scripts/validate-playbook-io.mjs --scan data/traces/
+          else
+            echo "No data/traces/ directory found, skipping playbook_io validation"
+          fi
 
   # 外部 Engine 仓库校验（可选，通过 secrets 配置）
   validate-external-engine-manifest:

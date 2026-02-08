@@ -26,21 +26,135 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 const SIGNALS_DIR = join(PROJECT_ROOT, 'state', 'runtime', 'proactive', 'operator_signals');
+const TRACES_DIR = join(PROJECT_ROOT, 'data', 'traces');
+
+// ===============================================================
+// 安全配置
+// ===============================================================
+
+const SECURITY_CONFIG = {
+  // HMAC 密钥（生产环境必须通过环境变量设置）
+  hmacSecret: process.env.OPERATOR_CALLBACK_SECRET || 'dev-secret-change-in-production',
+  // 签名有效期（秒）
+  signatureMaxAge: 300,  // 5 分钟
+  // 是否强制验证签名（生产环境应为 true）
+  enforceSignature: process.env.OPERATOR_ENFORCE_SIGNATURE === 'true'
+};
+
+// ===============================================================
+// HMAC 签名验证
+// ===============================================================
+
+/**
+ * 生成 HMAC 签名
+ * 签名内容: timestamp:run_id:decision
+ */
+export function generateSignature(timestamp, runId, decision) {
+  const payload = `${timestamp}:${runId}:${decision}`;
+  return createHmac('sha256', SECURITY_CONFIG.hmacSecret)
+    .update(payload)
+    .digest('hex');
+}
+
+/**
+ * 验证 HMAC 签名
+ * @returns {{ valid: boolean, error?: string }}
+ */
+export function verifySignature(timestamp, runId, decision, providedSignature) {
+  // 检查时间戳是否过期
+  const now = Math.floor(Date.now() / 1000);
+  const signatureAge = now - parseInt(timestamp, 10);
+
+  if (isNaN(signatureAge) || signatureAge > SECURITY_CONFIG.signatureMaxAge) {
+    return { valid: false, error: 'Signature expired or invalid timestamp' };
+  }
+
+  if (signatureAge < 0) {
+    return { valid: false, error: 'Timestamp is in the future' };
+  }
+
+  // 生成预期签名
+  const expectedSignature = generateSignature(timestamp, runId, decision);
+
+  // 时间安全比较（防止时序攻击）
+  try {
+    const providedBuffer = Buffer.from(providedSignature, 'hex');
+    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+
+    if (providedBuffer.length !== expectedBuffer.length) {
+      return { valid: false, error: 'Invalid signature format' };
+    }
+
+    if (!timingSafeEqual(providedBuffer, expectedBuffer)) {
+      return { valid: false, error: 'Signature mismatch' };
+    }
+  } catch (e) {
+    return { valid: false, error: 'Invalid signature format' };
+  }
+
+  return { valid: true };
+}
+
+// ===============================================================
+// 幂等性检查
+// ===============================================================
+
+/**
+ * 检查是否已有最终决定（幂等性）
+ * @returns {{ isDuplicate: boolean, existingDecision?: object }}
+ */
+export function checkIdempotency(runId) {
+  const signalPath = join(SIGNALS_DIR, `${runId}.json`);
+
+  if (!existsSync(signalPath)) {
+    return { isDuplicate: false };
+  }
+
+  const existingData = JSON.parse(readFileSync(signalPath, 'utf-8'));
+
+  // 如果已有 latest 决定，视为重复
+  if (existingData.latest) {
+    return {
+      isDuplicate: true,
+      existingDecision: existingData.latest
+    };
+  }
+
+  return { isDuplicate: false };
+}
 
 // ===============================================================
 // 信号记录
 // ===============================================================
 
 /**
- * 记录 operator 信号
+ * 记录 operator 信号（带幂等性检查）
+ * @param {string} runId
+ * @param {object} signal
+ * @param {object} options - { skipIdempotency: boolean, force: boolean }
+ * @returns {{ success: boolean, signal?: object, error?: string, existingDecision?: object }}
  */
-export function recordSignal(runId, signal) {
+export function recordSignal(runId, signal, options = {}) {
   if (!existsSync(SIGNALS_DIR)) {
     mkdirSync(SIGNALS_DIR, { recursive: true });
+  }
+
+  // 幂等性检查（除非显式跳过或强制覆盖）
+  if (!options.skipIdempotency && !options.force) {
+    const idempotencyCheck = checkIdempotency(runId);
+    if (idempotencyCheck.isDuplicate) {
+      console.warn(`[OperatorCallback] IDEMPOTENCY: Duplicate signal for ${runId}, ignoring`);
+      return {
+        success: false,
+        error: 'Duplicate signal - decision already recorded',
+        existingDecision: idempotencyCheck.existingDecision
+      };
+    }
   }
 
   const signalData = {
@@ -55,7 +169,7 @@ export function recordSignal(runId, signal) {
 
   const signalPath = join(SIGNALS_DIR, `${runId}.json`);
 
-  // 如果已存在，追加到历史
+  // 如果已存在，追加到历史（force 模式）
   let existingData = { signals: [] };
   if (existsSync(signalPath)) {
     existingData = JSON.parse(readFileSync(signalPath, 'utf-8'));
@@ -67,9 +181,20 @@ export function recordSignal(runId, signal) {
 
   writeFileSync(signalPath, JSON.stringify(existingData, null, 2));
 
+  // 同时保存到 Evidence Package（如果存在）
+  // run_id 可能包含 : 需要 sanitize
+  const runIdSanitized = runId.replace(/:/g, '-');
+  const evidenceDir = join(TRACES_DIR, runIdSanitized, 'evidence');
+
+  if (existsSync(evidenceDir)) {
+    const evidenceSignalPath = join(evidenceDir, 'operator_signal.json');
+    writeFileSync(evidenceSignalPath, JSON.stringify(signalData, null, 2));
+    console.log(`[OperatorCallback] Signal also saved to evidence: ${evidenceSignalPath}`);
+  }
+
   console.log(`[OperatorCallback] Signal recorded: ${runId} -> ${signal.approved ? 'APPROVED' : 'REJECTED'}`);
 
-  return signalData;
+  return { success: true, signal: signalData };
 }
 
 /**
@@ -149,9 +274,32 @@ function createCallbackServer(port) {
 
         // 飞书卡片回调格式
         const action = data.action?.value ? JSON.parse(data.action.value) : data;
+        const runId = action.run_id;
+        const decision = action.action === 'approve' ? 'approve' : 'reject';
 
-        const signal = recordSignal(action.run_id, {
-          approved: action.action === 'approve',
+        // HMAC 签名验证（如果启用）
+        if (SECURITY_CONFIG.enforceSignature || action.signature) {
+          const timestamp = action.timestamp || data.timestamp;
+          const signature = action.signature || data.signature;
+
+          if (!timestamp || !signature) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing signature or timestamp' }));
+            return;
+          }
+
+          const verifyResult = verifySignature(timestamp, runId, decision, signature);
+          if (!verifyResult.valid) {
+            console.warn(`[OperatorCallback] SIGNATURE_FAILED: ${runId} - ${verifyResult.error}`);
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: verifyResult.error }));
+            return;
+          }
+        }
+
+        // 记录信号（带幂等性检查）
+        const result = recordSignal(runId, {
+          approved: decision === 'approve',
           operatorId: data.operator?.open_id || data.user_id || 'unknown',
           source: 'callback',
           metadata: {
@@ -160,8 +308,18 @@ function createCallbackServer(port) {
           }
         });
 
+        if (!result.success) {
+          // 幂等性冲突 - 返回 409 Conflict
+          res.writeHead(409, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: result.error,
+            existing_decision: result.existingDecision
+          }));
+          return;
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, signal }));
+        res.end(JSON.stringify({ success: true, signal: result.signal }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
@@ -218,7 +376,8 @@ function parseArgs(args) {
     runId: null,
     operatorId: 'cli-user',
     note: null,
-    port: 8787
+    port: 8787,
+    force: false  // 强制覆盖幂等性检查
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -250,6 +409,10 @@ function parseArgs(args) {
       case '--port':
         result.port = parseInt(args[++i], 10);
         break;
+      case '--force':
+      case '-f':
+        result.force = true;
+        break;
       case '--help':
       case '-h':
         console.log(`
@@ -269,7 +432,12 @@ Options:
   --operator <id>     Operator ID (default: cli-user)
   --note <text>       Note for approval/rejection
   --port <port>       Server port (default: 8787)
+  --force, -f         Force override idempotency check
   --help, -h          Show this help
+
+Environment Variables:
+  OPERATOR_CALLBACK_SECRET     HMAC secret for signature verification
+  OPERATOR_ENFORCE_SIGNATURE   Set to 'true' to require signatures
 
 Examples:
   node operator_callback.mjs --approve run-20260208-xxx --operator user123
@@ -302,14 +470,22 @@ async function main() {
         process.exit(1);
       }
 
-      const signal = recordSignal(options.runId, {
+      const result = recordSignal(options.runId, {
         approved: options.action === 'approve',
         operatorId: options.operatorId,
         note: options.note,
         source: 'command'
-      });
+      }, { skipIdempotency: options.force });
 
-      console.log(JSON.stringify(signal, null, 2));
+      if (!result.success) {
+        console.error(`Error: ${result.error}`);
+        if (result.existingDecision) {
+          console.error('Existing decision:', JSON.stringify(result.existingDecision, null, 2));
+        }
+        process.exit(1);
+      }
+
+      console.log(JSON.stringify(result.signal, null, 2));
       break;
 
     case 'query':
@@ -339,8 +515,8 @@ async function main() {
   }
 }
 
-// 导出
-export { SIGNALS_DIR };
+// 导出（注意：generateSignature, verifySignature, checkIdempotency, recordSignal, querySignal, getSignalStats 已在函数定义处 export）
+export { SIGNALS_DIR, SECURITY_CONFIG };
 
 // 直接运行
 if (import.meta.url === `file://${process.argv[1]}`) {
