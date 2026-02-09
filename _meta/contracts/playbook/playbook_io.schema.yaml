@@ -1,4 +1,4 @@
-# Playbook I/O Contract v1.1.0
+# Playbook I/O Contract v1.1.1
 # SSOT: _meta/contracts/playbook/playbook_io.schema.yaml
 #
 # 统一 playbook 输出格式，便于 OS 投递与审计。
@@ -10,12 +10,15 @@
 # - tier 字段（observe|recommend|execute_limited）
 # - risk_level 字段（low|medium|high）
 # - rollback_plan 结构化字段（execute_limited 必须）
+#
+# P1 扩展（v1.1.1）：
+# - primary_metric 可选字段（业务指标语义，用于 business_probe）
 
 $schema: "http://json-schema.org/draft-07/schema#"
-$id: "https://liye.com/contracts/playbook/playbook_io.v1.1"
+$id: "https://liye.com/contracts/playbook/playbook_io.v1.1.1"
 title: "Playbook I/O Schema"
 description: "Playbook 输入输出格式规范。所有 playbook 必须遵循此格式，便于 OS 统一处理。"
-version: "1.1.0"
+version: "1.1.1"
 type: object
 
 required:
@@ -215,6 +218,37 @@ properties:
           - string
           - "null"
         description: "证据包引用路径。如 data/traces/{run_id}/evidence/"
+
+      primary_metric:
+        type: object
+        properties:
+          name:
+            type: string
+            description: "主指标名称（如 acos, cvr, impressions）"
+            examples:
+              - acos
+              - cvr
+              - impressions
+          anomaly_direction:
+            type: string
+            enum:
+              - high
+              - low
+            description: |
+              异常方向：
+              - high: 值越高越异常（如 ACOS, CPC, spend）
+              - low: 值越低越异常（如 CVR, impressions, sales）
+          lookback_days:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 30
+            description: "基线计算回溯天数"
+        additionalProperties: false
+        description: |
+          主指标语义（P1 新增，可选但建议提供）：
+          业务探测 (business_probe) 使用此字段判定恢复状态。
+          若未提供，将尝试从 recommendations 推断，失败则 insufficient_data。
 
       success_signal_hooks:
         type: object
