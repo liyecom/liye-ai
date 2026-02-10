@@ -62,7 +62,8 @@ function getBucketId(value, buckets) {
 }
 
 /**
- * Generate scope hash from entity keys
+ * Generate scope hash from entity keys (for entity-specific patterns)
+ * NOTE: Not used in v0.1 - patterns are grouped by bucket conditions only
  */
 function scopeHash(entityKey) {
   const key = JSON.stringify(entityKey);
@@ -71,9 +72,13 @@ function scopeHash(entityKey) {
 
 /**
  * Generate pattern ID
+ * v0.1: Group by match_type + cvr_bucket + acos_bucket (not entity-specific)
+ * This allows patterns to aggregate across multiple keywords with similar characteristics
  */
 function generatePatternId(engineId, playbookId, metricName, entityKey, matchType, cvrBucket, acosBucket) {
-  return `${engineId}:${playbookId}:${metricName}:${scopeHash(entityKey)}:${matchType}:${cvrBucket}:${acosBucket}`;
+  // v0.1: Remove entity_key scope to allow cross-entity pattern aggregation
+  // Patterns are grouped by: engine + playbook + metric + match_type + cvr_bucket + acos_bucket
+  return `${engineId}:${playbookId}:${metricName}:global:${matchType}:${cvrBucket}:${acosBucket}`;
 }
 
 /**
