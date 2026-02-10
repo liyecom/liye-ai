@@ -205,8 +205,15 @@ ${status === 'critical' ? '1. Investigate top rejection reasons immediately\\n2.
 async function main() {
   console.log(`📊 Generating memory health report for last ${daysWindow} days...`);
 
-  const logPath = path.join(PROJECT_ROOT, '.liye/logs/test-compliance.jsonl');
-  const events = loadEvents(logPath, daysWindow);
+  // Primary: production governance log
+  const logPath = path.join(PROJECT_ROOT, '.liye/logs/memory-compliance.jsonl');
+  // Fallback: test compliance log (for backwards compatibility)
+  const testLogPath = path.join(PROJECT_ROOT, '.liye/logs/test-compliance.jsonl');
+
+  // Load events from both logs (production + test)
+  let events = loadEvents(logPath, daysWindow);
+  const testEvents = loadEvents(testLogPath, daysWindow);
+  events = [...events, ...testEvents];
 
   if (events.length === 0) {
     console.log('⚠️ No events found in timeframe');

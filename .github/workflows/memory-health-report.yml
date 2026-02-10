@@ -1,0 +1,44 @@
+name: Memory Health Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Time window in days'
+        required: false
+        default: '7'
+  schedule:
+    # Every Monday at 00:00 UTC (Monday 08:00 Beijing)
+    - cron: '0 0 * * 1'
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate Memory Health Report
+        run: |
+          DAYS="${{ github.event.inputs.days || '7' }}"
+          node scripts/ops/memory-health.mjs --days "$DAYS"
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-health-report
+          path: |
+            artifacts/memory-health.json
+            artifacts/memory-health.md
+          retention-days: 90
+
+      - name: Print Summary
+        run: |
+          echo "## Memory Health Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat artifacts/memory-health.md >> $GITHUB_STEP_SUMMARY
