@@ -15,6 +15,12 @@
 - **Healthy Range**: < 5% (per 7-day window)
 - **Alert Threshold**: ≥ 10%
 
+> **⚠️ 分母可信性说明**：
+> - 当 `MAAP_OBSERVATION_SAVED` 事件尚未记录时，分母 = rejected_count only
+> - 此时 Rejection Rate 会显示 `100%`，这是**数据不完整**，不是系统雪崩
+> - 当写入成功事件被记录后，Rate 才可作为决策依据
+> - 在此之前，请使用 **Rejected Count per Day** 作为主要指标
+
 **Example Rejection Reasons**:
 - `content must be string with length >= 10`
 - `integrity_status=REJECTED requires governance_reason`
