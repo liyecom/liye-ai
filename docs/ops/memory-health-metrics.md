@@ -53,7 +53,9 @@
 
 ## Data Source
 
-**Log Location**: `.liye/logs/test-compliance.jsonl`
+**Log Locations**:
+- Primary: `.liye/logs/memory-compliance.jsonl` (production gateway)
+- Fallback: `.liye/logs/test-compliance.jsonl` (test runs)
 **Format**: JSON Lines (one event per line)
 **Fields**:
 - `event`: Event type (string)
