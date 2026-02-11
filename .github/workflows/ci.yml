@@ -9,6 +9,17 @@ on:
     branches: [main]
 
 jobs:
+  # Memory Governance Gate: enforce SSOT boundary (no direct claude-mem outside gateway)
+  memory-gate:
+    name: Memory Governance Gate (SSOT)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Memory governance gate (enforce Step 5B boundary)
+        shell: bash
+        run: bash scripts/ci/memory-governance-gate.sh
+
   lint:
     name: Lint
     runs-on: ubuntu-latest

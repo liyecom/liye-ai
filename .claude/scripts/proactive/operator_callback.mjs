@@ -1,524 +1,636 @@
 #!/usr/bin/env node
 /**
- * Operator Callback Handler v1.0.0
+ * Operator Callback Handler v1.1.0
  * SSOT: .claude/scripts/proactive/operator_callback.mjs
  *
- * 处理飞书卡片按钮回调，记录 OperatorSuccess 信号。
- * 信号写入：state/runtime/proactive/operator_signals/{run_id}.json
+ * 处理飞书卡片按钮点击的 callback。
  *
- * 可作为独立服务运行，或被 Dify gateway 调用。
+ * 功能:
+ * - HMAC-SHA256 签名验证
+ * - 幂等性保证（run_id + inputs_hash 作为幂等键）
+ * - inputs_hash 防串单校验
+ * - 速率限制（同一 run_id 1 分钟内最多 3 次）
+ * - 写入 operator_signal.json
+ * - 追加写入 facts (append-only)
+ * - 结构化日志输出
  *
- * 用法:
- *   # 记录批准
- *   node operator_callback.mjs --approve run-20260208-xxx --operator user123
+ * Callback 协议 v1.1:
+ * - run_id: string (必填)
+ * - inputs_hash: string (必填，防串单校验)
+ * - decision: 'approve' | 'reject' (必填，严格枚举)
+ * - action_taken: 'applied' | 'not_applied' | 'n/a' (必填，严格枚举)
+ * - applied_at: ISO8601 (仅 action_taken='applied' 时自动填充)
+ * - operator_source: 'feishu' | 'cli' | 'backfill' | 'api' (必填，严格枚举)
+ * - operator_id: string (可选，飞书 user_id)
+ * - note: string (可选)
+ * - sig: HMAC-SHA256 签名 (必填，header 或 body)
  *
- *   # 记录拒绝
- *   node operator_callback.mjs --reject run-20260208-xxx --operator user123 --note "风险太高"
- *
- *   # 查询信号
- *   node operator_callback.mjs --query run-20260208-xxx
- *
- *   # 作为 HTTP 服务运行（可选）
- *   node operator_callback.mjs --serve --port 8787
+ * 用法 (CLI):
+ *   node operator_callback.mjs \
+ *     --run-id <run_id> \
+ *     --inputs-hash <sha256:xxx> \
+ *     --decision approve|reject \
+ *     --action_taken applied|not_applied|n/a \
+ *     [--operator_source feishu] \
+ *     [--note "..."]
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { createServer } from 'http';
 import { createHmac, timingSafeEqual } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
-const SIGNALS_DIR = join(PROJECT_ROOT, 'state', 'runtime', 'proactive', 'operator_signals');
-const TRACES_DIR = join(PROJECT_ROOT, 'data', 'traces');
 
 // ===============================================================
-// 安全配置
+// 配置
 // ===============================================================
 
-const SECURITY_CONFIG = {
-  // HMAC 密钥（生产环境必须通过环境变量设置）
-  hmacSecret: process.env.OPERATOR_CALLBACK_SECRET || 'dev-secret-change-in-production',
-  // 签名有效期（秒）
-  signatureMaxAge: 300,  // 5 分钟
-  // 是否强制验证签名（生产环境应为 true）
-  enforceSignature: process.env.OPERATOR_ENFORCE_SIGNATURE === 'true'
-};
+const HMAC_SECRET = process.env.OPERATOR_CALLBACK_HMAC_SECRET || 'dev_secret';
+const FACTS_DIR = join(PROJECT_ROOT, 'state', 'memory', 'facts');
+const FACTS_FILE = join(FACTS_DIR, 'fact_run_outcomes.jsonl');
+const RATE_LIMIT_DIR = join(PROJECT_ROOT, 'state', 'runtime', 'rate_limits');
+const SECURITY_LOG_FILE = join(PROJECT_ROOT, 'state', 'runtime', 'security_events.jsonl');
+
+// 严格枚举白名单 - 任何未知值直接 400 fail-closed
+const VALID_DECISIONS = Object.freeze(['approve', 'reject']);
+const VALID_ACTION_TAKEN = Object.freeze(['applied', 'not_applied', 'n/a']);
+const VALID_OPERATOR_SOURCES = Object.freeze(['feishu', 'cli', 'backfill', 'api']);
+
+// 速率限制配置
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;  // 1 分钟
+const RATE_LIMIT_MAX_REQUESTS = 3;       // 每 run_id 最多 3 次
 
 // ===============================================================
-// HMAC 签名验证
+// 结构化日志
+// ===============================================================
+
+/**
+ * 输出结构化日志（不含敏感字段）
+ */
+function structuredLog(level, event, data) {
+  const log = {
+    timestamp: new Date().toISOString(),
+    level,
+    event,
+    ...data
+  };
+  // 输出到 stderr 避免污染 stdout JSON 输出
+  console.error(JSON.stringify(log));
+}
+
+/**
+ * 记录安全事件（持久化）
+ */
+function logSecurityEvent(eventType, data) {
+  try {
+    const dir = dirname(SECURITY_LOG_FILE);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    const event = {
+      timestamp: new Date().toISOString(),
+      event_type: eventType,
+      ...data
+    };
+    appendFileSync(SECURITY_LOG_FILE, JSON.stringify(event) + '\n');
+  } catch (e) {
+    // 安全日志失败不应阻塞主流程
+    console.error(`[WARN] Failed to log security event: ${e.message}`);
+  }
+}
+
+// ===============================================================
+// 速率限制
+// ===============================================================
+
+/**
+ * 检查速率限制
+ * @returns {Object} { allowed: boolean, remaining: number, resetAt: string }
+ */
+function checkRateLimit(runId) {
+  if (!existsSync(RATE_LIMIT_DIR)) {
+    mkdirSync(RATE_LIMIT_DIR, { recursive: true });
+  }
+
+  const safeRunId = runId.replace(/[^a-zA-Z0-9_:-]/g, '_');
+  const limitFile = join(RATE_LIMIT_DIR, `${safeRunId}.json`);
+  const now = Date.now();
+
+  let state = { requests: [], window_start: now };
+
+  if (existsSync(limitFile)) {
+    try {
+      state = JSON.parse(readFileSync(limitFile, 'utf-8'));
+    } catch (e) {
+      // 损坏的文件，重置
+      state = { requests: [], window_start: now };
+    }
+  }
+
+  // 清理过期请求
+  state.requests = state.requests.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+
+  // 检查是否超限
+  if (state.requests.length >= RATE_LIMIT_MAX_REQUESTS) {
+    const oldestRequest = Math.min(...state.requests);
+    const resetAt = new Date(oldestRequest + RATE_LIMIT_WINDOW_MS).toISOString();
+
+    structuredLog('warn', 'rate_limit_exceeded', {
+      run_id: runId,
+      request_count: state.requests.length,
+      reset_at: resetAt
+    });
+
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt
+    };
+  }
+
+  // 记录本次请求
+  state.requests.push(now);
+  writeFileSync(limitFile, JSON.stringify(state));
+
+  return {
+    allowed: true,
+    remaining: RATE_LIMIT_MAX_REQUESTS - state.requests.length,
+    resetAt: new Date(now + RATE_LIMIT_WINDOW_MS).toISOString()
+  };
+}
+
+// ===============================================================
+// HMAC 验证
 // ===============================================================
 
 /**
  * 生成 HMAC 签名
- * 签名内容: timestamp:run_id:decision
  */
-export function generateSignature(timestamp, runId, decision) {
-  const payload = `${timestamp}:${runId}:${decision}`;
-  return createHmac('sha256', SECURITY_CONFIG.hmacSecret)
-    .update(payload)
-    .digest('hex');
+export function generateHmac(payload) {
+  const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+  return createHmac('sha256', HMAC_SECRET).update(data).digest('hex');
 }
 
 /**
  * 验证 HMAC 签名
- * @returns {{ valid: boolean, error?: string }}
+ * @returns {Object} { valid: boolean, mismatch: boolean }
  */
-export function verifySignature(timestamp, runId, decision, providedSignature) {
-  // 检查时间戳是否过期
-  const now = Math.floor(Date.now() / 1000);
-  const signatureAge = now - parseInt(timestamp, 10);
+export function verifyHmac(payload, signature) {
+  const expected = generateHmac(payload);
 
-  if (isNaN(signatureAge) || signatureAge > SECURITY_CONFIG.signatureMaxAge) {
-    return { valid: false, error: 'Signature expired or invalid timestamp' };
-  }
-
-  if (signatureAge < 0) {
-    return { valid: false, error: 'Timestamp is in the future' };
-  }
-
-  // 生成预期签名
-  const expectedSignature = generateSignature(timestamp, runId, decision);
-
-  // 时间安全比较（防止时序攻击）
+  // 使用 timingSafeEqual 防止时序攻击
   try {
-    const providedBuffer = Buffer.from(providedSignature, 'hex');
-    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
-
-    if (providedBuffer.length !== expectedBuffer.length) {
-      return { valid: false, error: 'Invalid signature format' };
-    }
-
-    if (!timingSafeEqual(providedBuffer, expectedBuffer)) {
-      return { valid: false, error: 'Signature mismatch' };
-    }
+    const valid = timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expected, 'hex')
+    );
+    return { valid, mismatch: !valid };
   } catch (e) {
-    return { valid: false, error: 'Invalid signature format' };
+    return { valid: false, mismatch: true };
   }
-
-  return { valid: true };
 }
 
 // ===============================================================
-// 幂等性检查
+// Run 目录操作
 // ===============================================================
 
 /**
- * 检查是否已有最终决定（幂等性）
- * @returns {{ isDuplicate: boolean, existingDecision?: object }}
+ * 获取 run 目录路径
  */
-export function checkIdempotency(runId) {
-  const signalPath = join(SIGNALS_DIR, `${runId}.json`);
-
-  if (!existsSync(signalPath)) {
-    return { isDuplicate: false };
+function getRunDir(runId) {
+  // 优先检查 data/runs
+  const dataRunDir = join(PROJECT_ROOT, 'data', 'runs', runId);
+  if (existsSync(dataRunDir)) {
+    return dataRunDir;
   }
 
-  const existingData = JSON.parse(readFileSync(signalPath, 'utf-8'));
-
-  // 如果已有 latest 决定，视为重复
-  if (existingData.latest) {
-    return {
-      isDuplicate: true,
-      existingDecision: existingData.latest
-    };
+  // 回退到 state/runs
+  const stateRunDir = join(PROJECT_ROOT, 'state', 'runs', runId);
+  if (existsSync(stateRunDir)) {
+    return stateRunDir;
   }
 
-  return { isDuplicate: false };
+  return null;
+}
+
+/**
+ * 检查 run 是否存在
+ */
+function runExists(runId) {
+  return getRunDir(runId) !== null;
+}
+
+/**
+ * 获取 run 的 inputs_hash（从 input.json）
+ */
+function getRunInputsHash(runId) {
+  const runDir = getRunDir(runId);
+  if (!runDir) return null;
+
+  const inputPath = join(runDir, 'input.json');
+  if (!existsSync(inputPath)) return null;
+
+  try {
+    const input = JSON.parse(readFileSync(inputPath, 'utf-8'));
+    return input.inputs_hash || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 获取现有的 operator_signal
+ */
+function getExistingSignal(runId) {
+  const runDir = getRunDir(runId);
+  if (!runDir) return null;
+
+  const signalPath = join(runDir, 'operator_signal.json');
+  if (!existsSync(signalPath)) return null;
+
+  try {
+    return JSON.parse(readFileSync(signalPath, 'utf-8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 写入 operator_signal.json
+ */
+function writeSignal(runId, signal) {
+  let runDir = getRunDir(runId);
+
+  // 如果 run 目录不存在，创建在 state/runs
+  if (!runDir) {
+    runDir = join(PROJECT_ROOT, 'state', 'runs', runId);
+    mkdirSync(runDir, { recursive: true });
+  }
+
+  const signalPath = join(runDir, 'operator_signal.json');
+  writeFileSync(signalPath, JSON.stringify(signal, null, 2));
+
+  return signalPath;
 }
 
 // ===============================================================
-// 信号记录
+// Facts 追加写入
 // ===============================================================
 
 /**
- * 记录 operator 信号（带幂等性检查）
- * @param {string} runId
- * @param {object} signal
- * @param {object} options - { skipIdempotency: boolean, force: boolean }
- * @returns {{ success: boolean, signal?: object, error?: string, existingDecision?: object }}
+ * 追加写入 fact
  */
-export function recordSignal(runId, signal, options = {}) {
-  if (!existsSync(SIGNALS_DIR)) {
-    mkdirSync(SIGNALS_DIR, { recursive: true });
+function appendFact(fact) {
+  // 确保目录存在
+  if (!existsSync(FACTS_DIR)) {
+    mkdirSync(FACTS_DIR, { recursive: true });
   }
 
-  // 幂等性检查（除非显式跳过或强制覆盖）
-  if (!options.skipIdempotency && !options.force) {
-    const idempotencyCheck = checkIdempotency(runId);
-    if (idempotencyCheck.isDuplicate) {
-      console.warn(`[OperatorCallback] IDEMPOTENCY: Duplicate signal for ${runId}, ignoring`);
+  // Append-only 写入
+  const line = JSON.stringify(fact) + '\n';
+  appendFileSync(FACTS_FILE, line);
+}
+
+// ===============================================================
+// Callback 处理
+// ===============================================================
+
+/**
+ * 验证 callback 请求（严格枚举白名单）
+ */
+function validateRequest(payload) {
+  const errors = [];
+
+  // 必填字段
+  if (!payload.run_id) {
+    errors.push('run_id is required');
+  }
+
+  // inputs_hash 必填（防串单）
+  if (!payload.inputs_hash) {
+    errors.push('inputs_hash is required (anti-tampering)');
+  }
+
+  // 严格枚举验证 - 任何未知值直接 fail-closed
+  if (!payload.decision || !VALID_DECISIONS.includes(payload.decision)) {
+    errors.push(`decision must be one of: ${VALID_DECISIONS.join(', ')} (got: "${payload.decision}")`);
+  }
+
+  if (!payload.action_taken || !VALID_ACTION_TAKEN.includes(payload.action_taken)) {
+    errors.push(`action_taken must be one of: ${VALID_ACTION_TAKEN.join(', ')} (got: "${payload.action_taken}")`);
+  }
+
+  if (!payload.operator_source || !VALID_OPERATOR_SOURCES.includes(payload.operator_source)) {
+    errors.push(`operator_source must be one of: ${VALID_OPERATOR_SOURCES.join(', ')} (got: "${payload.operator_source}")`);
+  }
+
+  // Applied_at 语义：action_taken=not_applied 时必须为 null
+  if (payload.action_taken === 'not_applied' && payload.applied_at) {
+    errors.push('applied_at must be null when action_taken is "not_applied"');
+  }
+
+  // applied_at 格式验证（如果提供）
+  if (payload.applied_at) {
+    const date = new Date(payload.applied_at);
+    if (isNaN(date.getTime())) {
+      errors.push('applied_at must be a valid ISO8601 date');
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * 处理 operator callback
+ *
+ * @param {Object} payload - Callback payload
+ * @param {string} signature - HMAC 签名
+ * @param {Object} options - 选项 { skipRateLimit: boolean }
+ * @returns {Object} { ok, status, message, data? }
+ */
+export function handleCallback(payload, signature = null, options = {}) {
+  const startTime = Date.now();
+
+  // 1. 验证签名（如果提供）
+  if (signature) {
+    const hmacResult = verifyHmac(payload, signature);
+    if (!hmacResult.valid) {
+      // 记录签名失败（用于异常监控）
+      logSecurityEvent('hmac_mismatch', {
+        run_id: payload.run_id || 'unknown',
+        operator_source: payload.operator_source || 'unknown'
+      });
+
+      structuredLog('warn', 'callback_hmac_failed', {
+        run_id: payload.run_id,
+        status_code: 401
+      });
+
       return {
-        success: false,
-        error: 'Duplicate signal - decision already recorded',
-        existingDecision: idempotencyCheck.existingDecision
+        ok: false,
+        status: 401,
+        message: 'Unauthorized: HMAC signature verification failed'
       };
     }
   }
 
-  const signalData = {
-    run_id: runId,
-    approved: signal.approved,
-    operator_id: signal.operatorId || 'unknown',
-    timestamp: new Date().toISOString(),
-    note: signal.note || null,
-    source: signal.source || 'callback',  // 'callback' | 'command'
-    metadata: signal.metadata || {}
-  };
+  // 2. 验证请求（严格枚举白名单）
+  const validationErrors = validateRequest(payload);
+  if (validationErrors.length > 0) {
+    structuredLog('info', 'callback_validation_failed', {
+      run_id: payload.run_id,
+      errors: validationErrors,
+      status_code: 400
+    });
 
-  const signalPath = join(SIGNALS_DIR, `${runId}.json`);
-
-  // 如果已存在，追加到历史（force 模式）
-  let existingData = { signals: [] };
-  if (existsSync(signalPath)) {
-    existingData = JSON.parse(readFileSync(signalPath, 'utf-8'));
+    return {
+      ok: false,
+      status: 400,
+      message: `Bad Request: ${validationErrors.join('; ')}`
+    };
   }
 
-  existingData.signals.push(signalData);
-  existingData.latest = signalData;
-  existingData.updated_at = signalData.timestamp;
+  const { run_id, inputs_hash, decision, action_taken, operator_source, operator_id, note } = payload;
 
-  writeFileSync(signalPath, JSON.stringify(existingData, null, 2));
-
-  // 同时保存到 Evidence Package（如果存在）
-  // run_id 可能包含 : 需要 sanitize
-  const runIdSanitized = runId.replace(/:/g, '-');
-  const evidenceDir = join(TRACES_DIR, runIdSanitized, 'evidence');
-
-  if (existsSync(evidenceDir)) {
-    const evidenceSignalPath = join(evidenceDir, 'operator_signal.json');
-    writeFileSync(evidenceSignalPath, JSON.stringify(signalData, null, 2));
-    console.log(`[OperatorCallback] Signal also saved to evidence: ${evidenceSignalPath}`);
-  }
-
-  console.log(`[OperatorCallback] Signal recorded: ${runId} -> ${signal.approved ? 'APPROVED' : 'REJECTED'}`);
-
-  return { success: true, signal: signalData };
-}
-
-/**
- * 查询 operator 信号
- */
-export function querySignal(runId) {
-  const signalPath = join(SIGNALS_DIR, `${runId}.json`);
-
-  if (!existsSync(signalPath)) {
-    return null;
-  }
-
-  return JSON.parse(readFileSync(signalPath, 'utf-8'));
-}
-
-/**
- * 获取所有信号统计
- */
-export function getSignalStats() {
-  if (!existsSync(SIGNALS_DIR)) {
-    return { total: 0, approved: 0, rejected: 0, approval_rate: 0 };
-  }
-
-  const files = readdirSync(SIGNALS_DIR).filter(f => f.endsWith('.json'));
-
-  let approved = 0;
-  let rejected = 0;
-
-  for (const file of files) {
-    const data = JSON.parse(readFileSync(join(SIGNALS_DIR, file), 'utf-8'));
-    if (data.latest?.approved) {
-      approved++;
-    } else {
-      rejected++;
+  // 3. 速率限制检查
+  if (!options.skipRateLimit) {
+    const rateLimit = checkRateLimit(run_id);
+    if (!rateLimit.allowed) {
+      return {
+        ok: false,
+        status: 429,
+        message: `Too Many Requests: rate limit exceeded for run_id "${run_id}"`,
+        data: {
+          retry_after: rateLimit.resetAt,
+          remaining: rateLimit.remaining
+        }
+      };
     }
   }
 
-  const total = approved + rejected;
-  const approvalRate = total > 0 ? approved / total : 0;
+  // 4. 检查 run 是否存在
+  if (!runExists(run_id)) {
+    structuredLog('info', 'callback_run_not_found', {
+      run_id,
+      status_code: 404
+    });
+
+    return {
+      ok: false,
+      status: 404,
+      message: `Not Found: run_id "${run_id}" does not exist`
+    };
+  }
+
+  // 5. 防串单校验：验证 inputs_hash 匹配
+  const storedInputsHash = getRunInputsHash(run_id);
+  if (storedInputsHash && storedInputsHash !== inputs_hash) {
+    logSecurityEvent('inputs_hash_mismatch', {
+      run_id,
+      expected_hash: storedInputsHash,
+      received_hash: inputs_hash,
+      operator_source
+    });
+
+    structuredLog('warn', 'callback_inputs_hash_mismatch', {
+      run_id,
+      expected_hash: storedInputsHash?.slice(0, 16) + '...',
+      received_hash: inputs_hash?.slice(0, 16) + '...',
+      status_code: 400
+    });
+
+    return {
+      ok: false,
+      status: 400,
+      message: `Bad Request: inputs_hash mismatch (anti-tampering protection)`
+    };
+  }
+
+  // 6. 幂等性检查（run_id + inputs_hash 作为幂等键）
+  const existingSignal = getExistingSignal(run_id);
+  if (existingSignal) {
+    // 如果相同的 decision + action_taken，返回 409
+    if (existingSignal.decision === decision && existingSignal.action_taken === action_taken) {
+      structuredLog('info', 'callback_duplicate', {
+        run_id,
+        decision,
+        action_taken,
+        status_code: 409
+      });
+
+      return {
+        ok: false,
+        status: 409,
+        message: 'Conflict: duplicate callback (same decision + action_taken)',
+        data: existingSignal
+      };
+    }
+
+    // 如果不同，也返回 409（不允许修改）
+    return {
+      ok: false,
+      status: 409,
+      message: 'Conflict: operator signal already exists with different decision',
+      data: existingSignal
+    };
+  }
+
+  // 7. 构建 signal 对象（Applied_at 语义固定）
+  const now = new Date().toISOString();
+  const signal = {
+    run_id,
+    inputs_hash,
+    decision,
+    action_taken,
+    // Applied_at 语义：
+    // - action_taken='applied': applied_at = now(), applied_at_source = 'click_time'
+    // - action_taken='not_applied' 或 'n/a': applied_at = null
+    applied_at: action_taken === 'applied' ? now : null,
+    applied_at_source: action_taken === 'applied' ? 'click_time' : null,
+    operator_source,
+    operator_id: operator_id || null,
+    note: note || null,
+    received_at: now,
+    protocol_version: '1.1'
+  };
+
+  // 8. 写入 operator_signal.json
+  const signalPath = writeSignal(run_id, signal);
+
+  // 9. 追加写入 fact
+  const fact = {
+    event_type: 'operator_signal',
+    run_id,
+    inputs_hash,
+    decision,
+    action_taken,
+    applied_at: signal.applied_at,
+    applied_at_source: signal.applied_at_source,
+    operator_source,
+    operator_id: signal.operator_id,
+    note: signal.note,
+    timestamp: now
+  };
+  appendFact(fact);
+
+  // 10. 结构化日志（成功）
+  const duration = Date.now() - startTime;
+  structuredLog('info', 'callback_success', {
+    run_id,
+    decision,
+    action_taken,
+    operator_source,
+    status_code: 200,
+    duration_ms: duration
+  });
 
   return {
-    total,
-    approved,
-    rejected,
-    approval_rate: Math.round(approvalRate * 100) / 100
+    ok: true,
+    status: 200,
+    message: 'OK: operator signal recorded',
+    data: {
+      signal_path: signalPath,
+      fact_appended: true
+    }
   };
 }
 
 // ===============================================================
-// HTTP 服务（可选）
+// HTTP 处理器（供 Express/Hono 等使用）
 // ===============================================================
 
-function createCallbackServer(port) {
-  const server = createServer(async (req, res) => {
-    const url = new URL(req.url, `http://localhost:${port}`);
+/**
+ * HTTP 请求处理器
+ *
+ * @param {Object} req - HTTP 请求（需要有 body 和 headers）
+ * @returns {Object} { status, body }
+ */
+export function httpHandler(req) {
+  const payload = req.body;
+  const signature = req.headers?.['x-hmac-signature'] || payload?.sig;
 
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // 如果没有签名且不是 dev 模式，拒绝
+  if (!signature && HMAC_SECRET !== 'dev_secret') {
+    structuredLog('warn', 'callback_missing_signature', {
+      run_id: payload?.run_id || 'unknown'
+    });
 
-    if (req.method === 'OPTIONS') {
-      res.writeHead(200);
-      res.end();
-      return;
-    }
-
-    // POST /callback/operator - 处理飞书卡片回调
-    if (req.method === 'POST' && url.pathname === '/callback/operator') {
-      let body = '';
-      for await (const chunk of req) {
-        body += chunk;
-      }
-
-      try {
-        const data = JSON.parse(body);
-
-        // 飞书卡片回调格式
-        const action = data.action?.value ? JSON.parse(data.action.value) : data;
-        const runId = action.run_id;
-        const decision = action.action === 'approve' ? 'approve' : 'reject';
-
-        // HMAC 签名验证（如果启用）
-        if (SECURITY_CONFIG.enforceSignature || action.signature) {
-          const timestamp = action.timestamp || data.timestamp;
-          const signature = action.signature || data.signature;
-
-          if (!timestamp || !signature) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing signature or timestamp' }));
-            return;
-          }
-
-          const verifyResult = verifySignature(timestamp, runId, decision, signature);
-          if (!verifyResult.valid) {
-            console.warn(`[OperatorCallback] SIGNATURE_FAILED: ${runId} - ${verifyResult.error}`);
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: verifyResult.error }));
-            return;
-          }
-        }
-
-        // 记录信号（带幂等性检查）
-        const result = recordSignal(runId, {
-          approved: decision === 'approve',
-          operatorId: data.operator?.open_id || data.user_id || 'unknown',
-          source: 'callback',
-          metadata: {
-            message_id: data.message_id,
-            open_chat_id: data.open_chat_id
-          }
-        });
-
-        if (!result.success) {
-          // 幂等性冲突 - 返回 409 Conflict
-          res.writeHead(409, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: result.error,
-            existing_decision: result.existingDecision
-          }));
-          return;
-        }
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, signal: result.signal }));
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
-      }
-      return;
-    }
-
-    // GET /callback/operator/stats - 获取统计
-    if (req.method === 'GET' && url.pathname === '/callback/operator/stats') {
-      const stats = getSignalStats();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(stats));
-      return;
-    }
-
-    // GET /callback/operator/details/:run_id - 获取详情
-    const detailsMatch = url.pathname.match(/^\/callback\/operator\/details\/(.+)$/);
-    if (req.method === 'GET' && detailsMatch) {
-      const runId = detailsMatch[1];
-      const signal = querySignal(runId);
-
-      if (signal) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(signal));
-      } else {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Signal not found' }));
-      }
-      return;
-    }
-
-    // 404
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found' }));
-  });
-
-  server.listen(port, () => {
-    console.log(`[OperatorCallback] Server listening on http://localhost:${port}`);
-    console.log(`  POST /callback/operator - Record operator signal`);
-    console.log(`  GET  /callback/operator/stats - Get signal statistics`);
-    console.log(`  GET  /callback/operator/details/:run_id - Get signal details`);
-  });
-
-  return server;
-}
-
-// ===============================================================
-// CLI 入口
-// ===============================================================
-
-function parseArgs(args) {
-  const result = {
-    action: null,  // 'approve' | 'reject' | 'query' | 'stats' | 'serve'
-    runId: null,
-    operatorId: 'cli-user',
-    note: null,
-    port: 8787,
-    force: false  // 强制覆盖幂等性检查
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case '--approve':
-        result.action = 'approve';
-        result.runId = args[++i];
-        break;
-      case '--reject':
-        result.action = 'reject';
-        result.runId = args[++i];
-        break;
-      case '--query':
-        result.action = 'query';
-        result.runId = args[++i];
-        break;
-      case '--stats':
-        result.action = 'stats';
-        break;
-      case '--serve':
-        result.action = 'serve';
-        break;
-      case '--operator':
-        result.operatorId = args[++i];
-        break;
-      case '--note':
-        result.note = args[++i];
-        break;
-      case '--port':
-        result.port = parseInt(args[++i], 10);
-        break;
-      case '--force':
-      case '-f':
-        result.force = true;
-        break;
-      case '--help':
-      case '-h':
-        console.log(`
-Operator Callback Handler
-
-Usage:
-  node operator_callback.mjs [action] [options]
-
-Actions:
-  --approve <run_id>  Record approval for run
-  --reject <run_id>   Record rejection for run
-  --query <run_id>    Query signal for run
-  --stats             Get signal statistics
-  --serve             Start HTTP callback server
-
-Options:
-  --operator <id>     Operator ID (default: cli-user)
-  --note <text>       Note for approval/rejection
-  --port <port>       Server port (default: 8787)
-  --force, -f         Force override idempotency check
-  --help, -h          Show this help
-
-Environment Variables:
-  OPERATOR_CALLBACK_SECRET     HMAC secret for signature verification
-  OPERATOR_ENFORCE_SIGNATURE   Set to 'true' to require signatures
-
-Examples:
-  node operator_callback.mjs --approve run-20260208-xxx --operator user123
-  node operator_callback.mjs --reject run-20260208-xxx --note "Too risky"
-  node operator_callback.mjs --query run-20260208-xxx
-  node operator_callback.mjs --stats
-  node operator_callback.mjs --serve --port 8787
-`);
-        process.exit(0);
-    }
+    return {
+      status: 401,
+      body: { ok: false, message: 'Unauthorized: HMAC signature required' }
+    };
   }
 
-  return result;
+  const result = handleCallback(payload, signature);
+
+  return {
+    status: result.status,
+    body: {
+      ok: result.ok,
+      message: result.message,
+      data: result.data
+    }
+  };
 }
+
+// ===============================================================
+// CLI
+// ===============================================================
 
 async function main() {
   const args = process.argv.slice(2);
-  const options = parseArgs(args);
 
-  if (!options.action) {
-    console.error('Error: No action specified. Use --approve, --reject, --query, --stats, or --serve');
+  // 解析参数
+  const opts = {};
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2).replace(/-/g, '_');
+      opts[key] = args[++i];
+    }
+  }
+
+  // 检查必填参数
+  if (!opts.run_id || !opts.decision || !opts.action_taken) {
+    console.error(`Usage: node operator_callback.mjs \\
+  --run-id <run_id> \\
+  --inputs-hash <sha256:xxx> \\
+  --decision approve|reject \\
+  --action_taken applied|not_applied|n/a \\
+  [--operator_source feishu|cli|backfill|api] \\
+  [--note "..."]`);
     process.exit(1);
   }
 
-  switch (options.action) {
-    case 'approve':
-    case 'reject':
-      if (!options.runId) {
-        console.error('Error: run_id is required');
-        process.exit(1);
-      }
+  // 构建 payload
+  const payload = {
+    run_id: opts.run_id,
+    inputs_hash: opts.inputs_hash || 'cli-bypass',  // CLI 模式允许跳过
+    decision: opts.decision,
+    action_taken: opts.action_taken,
+    operator_source: opts.operator_source || 'cli',
+    operator_id: opts.operator_id || null,
+    note: opts.note || null
+  };
 
-      const result = recordSignal(options.runId, {
-        approved: options.action === 'approve',
-        operatorId: options.operatorId,
-        note: options.note,
-        source: 'command'
-      }, { skipIdempotency: options.force });
+  // 在 CLI 模式下跳过签名验证和速率限制
+  const result = handleCallback(payload, null, { skipRateLimit: true });
 
-      if (!result.success) {
-        console.error(`Error: ${result.error}`);
-        if (result.existingDecision) {
-          console.error('Existing decision:', JSON.stringify(result.existingDecision, null, 2));
-        }
-        process.exit(1);
-      }
+  // 输出结果
+  console.log(JSON.stringify(result, null, 2));
 
-      console.log(JSON.stringify(result.signal, null, 2));
-      break;
-
-    case 'query':
-      if (!options.runId) {
-        console.error('Error: run_id is required');
-        process.exit(1);
-      }
-
-      const queryResult = querySignal(options.runId);
-      if (queryResult) {
-        console.log(JSON.stringify(queryResult, null, 2));
-      } else {
-        console.log('Signal not found');
-        process.exit(1);
-      }
-      break;
-
-    case 'stats':
-      const stats = getSignalStats();
-      console.log(JSON.stringify(stats, null, 2));
-      break;
-
-    case 'serve':
-      createCallbackServer(options.port);
-      // Keep running
-      break;
-  }
+  process.exit(result.ok ? 0 : 1);
 }
 
-// 导出（注意：generateSignature, verifySignature, checkIdempotency, recordSignal, querySignal, getSignalStats 已在函数定义处 export）
-export { SIGNALS_DIR, SECURITY_CONFIG };
-
-// 直接运行
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+// 如果直接运行
+const isMain = process.argv[1] && fileURLToPath(import.meta.url).includes(process.argv[1]);
+if (isMain) {
+  main().catch(e => {
+    console.error('Error:', e.message);
+    process.exit(1);
+  });
 }
+
+export default { handleCallback, httpHandler, generateHmac, verifyHmac };

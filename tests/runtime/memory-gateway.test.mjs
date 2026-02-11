@@ -115,6 +115,11 @@ class TestGovernanceLogger {
     fs.appendFileSync(this.logPath, line, "utf8");
   }
 
+  logSuccess(event) {
+    const line = JSON.stringify(event) + "\n";
+    fs.appendFileSync(this.logPath, line, "utf8");
+  }
+
   getRecentRejections(limit = 10) {
     try {
       if (!fs.existsSync(this.logPath)) {
@@ -193,6 +198,18 @@ class TestObservationGateway {
         error: `Observation validation failed: ${validation.errors.join(", ")}`,
       };
     }
+
+    // Log success event (Step 6.1: Positive Instrumentation)
+    const savedEvent = {
+      event: "MAAP_OBSERVATION_SAVED",
+      timestamp: new Date().toISOString(),
+      observation_id: obs.id,
+      session_id: obs.session_id,
+      source_prompt_id: obs.source_prompt_id,
+      entities: obs.entities,
+      content_length: obs.content.length,
+    };
+    this.logger.logSuccess(savedEvent);
 
     return {
       success: true,
@@ -374,6 +391,34 @@ async function runTests() {
 
     assert(!result.success, "Result should indicate failure");
     assert(gateway.getRejectedObservations().length === 1, "One observation should be rejected");
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Test 7: Successful save logs MAAP_OBSERVATION_SAVED event (Step 6.1)
+  // ─────────────────────────────────────────────────────────────────────────
+  await test("成功保存时记录 MAAP_OBSERVATION_SAVED 事件", async () => {
+    gateway.clearRejections();
+    gateway.getLogger().clear();
+
+    const result = await gateway.save_observation_with_validation({
+      content: "This is a valid observation for Step 6.1 test",
+      session_id: "sess-step61",
+      source_prompt_id: "prompt-step61",
+      entities: ["memory", "metrics"],
+      integrity_status: "VERIFIED",
+    });
+
+    assert(result.success, "Result should indicate success");
+
+    // Read log and check for SAVED event
+    const logs = gateway.getLogger().getRecentRejections(10);
+    const savedEvent = logs.find(log => log.event === "MAAP_OBSERVATION_SAVED");
+
+    assert(savedEvent !== undefined, "Should log MAAP_OBSERVATION_SAVED event");
+    assert(savedEvent.session_id === "sess-step61", "session_id should match");
+    assert(savedEvent.source_prompt_id === "prompt-step61", "source_prompt_id should match");
+    assert(savedEvent.content_length > 0, "content_length should be recorded");
+    assert(Array.isArray(savedEvent.entities), "entities should be recorded");
   });
 
   // ─────────────────────────────────────────────────────────────────────────
