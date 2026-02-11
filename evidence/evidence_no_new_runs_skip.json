@@ -1,0 +1,29 @@
+{
+  "status": "success",
+  "action": "skipped",
+  "timestamp": "2026-02-11T05:56:02.535Z",
+  "dry_run": true,
+  "steps": {
+    "kill_switch": {
+      "enabled": true,
+      "reason": null
+    },
+    "cooldown": {
+      "passed": true,
+      "remaining_minutes": 0
+    },
+    "lock": {
+      "acquired": true,
+      "lock_id": "503e613a"
+    },
+    "discover": {
+      "new_run_ids": [],
+      "window_start": "2026-02-11T05:56:02.508Z",
+      "window_end": "2026-02-11T05:56:02.538Z",
+      "filtered_count": 0,
+      "total_scanned": 0
+    },
+    "skip_reason": "no_new_runs"
+  },
+  "error": null
+}

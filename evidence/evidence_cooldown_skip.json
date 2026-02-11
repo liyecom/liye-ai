@@ -1,0 +1,18 @@
+{
+  "status": "success",
+  "action": "skipped",
+  "timestamp": "2026-02-11T05:56:02.504Z",
+  "dry_run": true,
+  "steps": {
+    "kill_switch": {
+      "enabled": true,
+      "reason": null
+    },
+    "cooldown": {
+      "passed": false,
+      "remaining_minutes": 30
+    },
+    "skip_reason": "cooldown"
+  },
+  "error": null
+}
