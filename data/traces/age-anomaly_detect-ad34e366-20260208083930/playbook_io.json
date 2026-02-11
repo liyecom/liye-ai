@@ -1,0 +1,28 @@
+{
+  "playbook_id": "anomaly_detect",
+  "run_id": "age:anomaly_detect:ad34e366:20260208083930",
+  "timestamp": "2026-02-08T08:39:31.031Z",
+  "engine_id": "age",
+  "inputs": {
+    "hash": "ad34e36624da9d6d4c0a63e4fed99d01faae0f7dc6ee82985b986c2de72efa52",
+    "data": {
+      "asin": "B0TEST123"
+    }
+  },
+  "outputs": {
+    "verdict": "OK",
+    "recommendations": [],
+    "evidence_package_ref": "data/traces/age:anomaly_detect:ad34e366:20260208083930/evidence/",
+    "success_signal_hooks": {
+      "operator_feedback_url": null,
+      "business_metric_query": "SELECT acos, cvr FROM metrics WHERE asin='B0TEST123' AND date >= date('now', '-7 days')",
+      "follow_up_after_days": 7
+    },
+    "metadata": {
+      "execution_time_ms": 62,
+      "api_calls": 0,
+      "bundle_version": null
+    }
+  },
+  "status": "success"
+}

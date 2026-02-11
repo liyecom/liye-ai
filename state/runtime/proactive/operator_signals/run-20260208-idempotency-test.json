@@ -1,0 +1,32 @@
+{
+  "signals": [
+    {
+      "run_id": "run-20260208-idempotency-test",
+      "approved": true,
+      "operator_id": "test1",
+      "timestamp": "2026-02-08T07:47:02.902Z",
+      "note": null,
+      "source": "command",
+      "metadata": {}
+    },
+    {
+      "run_id": "run-20260208-idempotency-test",
+      "approved": false,
+      "operator_id": "test2",
+      "timestamp": "2026-02-08T07:47:08.569Z",
+      "note": null,
+      "source": "command",
+      "metadata": {}
+    }
+  ],
+  "latest": {
+    "run_id": "run-20260208-idempotency-test",
+    "approved": false,
+    "operator_id": "test2",
+    "timestamp": "2026-02-08T07:47:08.569Z",
+    "note": null,
+    "source": "command",
+    "metadata": {}
+  },
+  "updated_at": "2026-02-08T07:47:08.569Z"
+}
