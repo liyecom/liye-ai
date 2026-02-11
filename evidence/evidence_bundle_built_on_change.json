@@ -1,0 +1,68 @@
+{
+  "status": "success",
+  "action": "completed",
+  "timestamp": "2026-02-11T05:56:02.829Z",
+  "dry_run": true,
+  "steps": {
+    "kill_switch": {
+      "enabled": true,
+      "reason": null
+    },
+    "cooldown": {
+      "passed": true,
+      "remaining_minutes": 0
+    },
+    "lock": {
+      "acquired": true,
+      "lock_id": "51ffd251"
+    },
+    "discover": {
+      "new_run_ids": [
+        "age:bid_recommend:test-run-001"
+      ],
+      "window_start": "2026-01-01T00:00:00Z",
+      "window_end": "2026-02-11T05:56:02.831Z",
+      "filtered_count": 1,
+      "total_scanned": 1
+    },
+    "pipeline": {
+      "status": "success",
+      "stages": {
+        "pattern_detector": {
+          "status": "success",
+          "patterns_count": 2,
+          "patterns_file": "patterns_2026-02-11.json"
+        },
+        "policy_crystallizer": {
+          "status": "success",
+          "policies_generated": 0
+        },
+        "promotion": {
+          "status": "success",
+          "promotions": 0
+        }
+      },
+      "window": {
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-02-11T05:56:02.831Z"
+      },
+      "dry_run": true,
+      "error": null
+    },
+    "bundle": {
+      "status": "built",
+      "content_sha": "sha256:a6282fd50214537205ddeb84838a2dd5e78147f4286f1465133e502408de5471",
+      "content_sha_changed": true,
+      "previous_content_sha": "sha256:old_hash",
+      "files_count": 2,
+      "bundle_version": "0.4.1",
+      "bundle_path": "/Users/liye/github/liye_os/state/artifacts/learned-bundles/learned-bundle_0.4.1.tgz",
+      "error": null
+    },
+    "facts_recorded": true,
+    "notification": {
+      "should_notify": true
+    }
+  },
+  "error": null
+}

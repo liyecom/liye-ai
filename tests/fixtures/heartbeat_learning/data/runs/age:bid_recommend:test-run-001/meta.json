@@ -1,0 +1,7 @@
+{
+  "engine_id": "age",
+  "playbook_id": "bid_recommend",
+  "run_id": "age:bid_recommend:test-run-001",
+  "tier": "recommend",
+  "created_at": "2026-02-11T10:00:00Z"
+}
