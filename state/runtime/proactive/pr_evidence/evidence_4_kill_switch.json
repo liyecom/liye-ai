@@ -1,0 +1,46 @@
+{
+  "title": "Kill Switch Effectiveness Evidence",
+  "timestamp": "2026-02-08T14:40:58.877Z",
+  "scenario": "Demonstrate kill switch priority: ENV > config file > default",
+  "phases": [
+    {
+      "phase": 1,
+      "description": "Normal operation with config enabled",
+      "config": {
+        "enabled": true
+      },
+      "env": null,
+      "effective_status": true,
+      "source": "config_file"
+    },
+    {
+      "phase": 2,
+      "description": "Emergency kill switch activation",
+      "config": {
+        "enabled": false,
+        "reason": "Emergency stop: ACOS spike detected across multiple campaigns"
+      },
+      "env": null,
+      "effective_status": false,
+      "source": "config_file",
+      "activation_time": "2026-02-08T14:40:58.875Z"
+    },
+    {
+      "phase": 3,
+      "description": "ENV override takes highest priority",
+      "config": {
+        "enabled": true
+      },
+      "env": "EXECUTE_LIMITED_ENABLED=0",
+      "effective_status": false,
+      "source": "env",
+      "note": "ENV overrides config even when config says enabled"
+    }
+  ],
+  "priority_order": [
+    "1. ENV: EXECUTE_LIMITED_ENABLED (highest)",
+    "2. Config file: state/runtime/proactive/kill_switch.json",
+    "3. Default: false (disabled)"
+  ],
+  "conclusion": "SUCCESS: Kill switch correctly respects priority order and can disable system immediately"
+}

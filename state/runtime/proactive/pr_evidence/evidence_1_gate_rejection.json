@@ -1,0 +1,67 @@
+{
+  "title": "Execute-Limited Gate Rejection Evidence",
+  "timestamp": "2026-02-08T14:40:58.873Z",
+  "scenario": "Feature flag (kill switch) is disabled, recommendation should be rejected at Gate 1",
+  "recommendation": {
+    "action_type": "bid_adjust",
+    "tier": "execute_limited",
+    "risk_level": "medium",
+    "parameters": {
+      "keyword": "organic mushroom powder",
+      "current_bid": 1.5,
+      "new_bid": 1.88,
+      "multiplier": 1.25
+    },
+    "confidence": 0.72,
+    "dry_run_result": {
+      "impact": "Adjust bid from $1.50 to $1.88 (+25%)"
+    },
+    "rollback_plan": {
+      "how_to_revert": "Reset bid from $1.88 back to $1.50",
+      "safe_window_hours": 24,
+      "auto_rollback_trigger": "acos_increase > 20%"
+    }
+  },
+  "gate_evaluation": {
+    "passed": false,
+    "firstFailedGate": "feature_flag",
+    "results": [
+      {
+        "gate": "feature_flag",
+        "passed": false,
+        "reason": "Feature flag disabled (source: config_file, reason: Week 5 default: disabled until operator enables)"
+      },
+      {
+        "gate": "contract",
+        "passed": true,
+        "reason": "Contract validation passed"
+      },
+      {
+        "gate": "scope",
+        "passed": true,
+        "reason": "No scope context provided (skipped)"
+      },
+      {
+        "gate": "risk",
+        "passed": true,
+        "reason": "Risk level (medium) acceptable"
+      },
+      {
+        "gate": "rate_limit",
+        "passed": true,
+        "reason": "Rate limit OK: tenant=0/5, global=0/50",
+        "increment": {
+          "tenantKey": "2026-02-08:test_tenant",
+          "globalKey": "2026-02-08:__global__"
+        }
+      },
+      {
+        "gate": "rollback_requirement",
+        "passed": true,
+        "reason": "Rollback plan validation passed"
+      }
+    ],
+    "evaluated_at": "2026-02-08T14:40:58.873Z"
+  },
+  "conclusion": "EXPECTED: Rejected at gate 'feature_flag'"
+}

@@ -1,4 +1,4 @@
-name: Security Gate (secrets + blocklist)
+name: Security Gate (secrets + blocklist + unicode)
 
 on:
   pull_request:
@@ -9,6 +9,25 @@ permissions:
   contents: read
 
 jobs:
+  no-bidi:
+    name: no-bidi/unicode gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run no-bidi gate
+        run: |
+          node _meta/contracts/scripts/no_bidi_gate.mjs --diff origin/main
+          echo "✅ No dangerous Unicode characters found"
+
   gitleaks:
     name: gitleaks scan
     runs-on: ubuntu-latest

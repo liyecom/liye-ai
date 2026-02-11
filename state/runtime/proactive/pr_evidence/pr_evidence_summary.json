@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-02-08T14:40:58.877Z",
+  "evidence_count": 4,
+  "files": [
+    "evidence_1_gate_rejection.json",
+    "evidence_2_dry_run_pass.json",
+    "evidence_3_drift_guard.json",
+    "evidence_4_kill_switch.json"
+  ],
+  "pr_checklist": {
+    "execute_limited rejection": "✓ See evidence_1_gate_rejection.json - rejected at feature_flag gate",
+    "execute_limited dry-run pass": "✓ See evidence_2_dry_run_pass.json - all 6 gates passed",
+    "drift_guard auto-disable": "✓ See evidence_3_drift_guard.json - 3 consecutive failures triggered disable",
+    "kill switch effectiveness": "✓ See evidence_4_kill_switch.json - ENV > config > default priority"
+  }
+}
