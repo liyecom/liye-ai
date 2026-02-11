@@ -41,7 +41,7 @@ data_sources:
   # Week 4-5 最小可信源（优先级排序）
   primary:
     name: "AGE T1 Truth Tables"
-    location: "amazon-growth-engine/data/t1/*.parquet"
+    location: "<private-repo>/data/t1/*.parquet"
     type: "duckdb"
     latency: "T+1d"
     confidence: "high"
