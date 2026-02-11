@@ -35,6 +35,7 @@ const FIXTURE_RUN_META = {
 };
 
 const FIXTURE_RECOMMENDATION = {
+  card_contract_version: '1',  // 契约版本（必须与渲染器支持的版本匹配）
   primary_metric: { name: 'acos', anomaly_direction: 'low' },
   entities: [
     { keyword_text: 'organic mushroom', match_type: 'exact', acos_7d: 0.22, cvr_7d: 0.18, delta_pct: 20 },
@@ -149,6 +150,61 @@ function testCardEmptyEntities() {
   assert.ok(card.header.title.content.includes('0 keywords'), 'Title should show 0 keywords');
 
   console.log('  ✅ Card handles empty entities gracefully');
+}
+
+function testCardContractVersionMismatch() {
+  console.log('Test: Card renders fallback for unsupported version (fail-closed)...');
+
+  // Test 1: Missing card_contract_version
+  const cardMissingVersion = renderBidRecommendCard({
+    run_meta: FIXTURE_RUN_META,
+    recommendation: {
+      ...FIXTURE_RECOMMENDATION,
+      card_contract_version: undefined  // Remove version
+    }
+  });
+
+  assert.ok(cardMissingVersion.header.template === 'red', 'Fallback card should have red header');
+  assert.ok(cardMissingVersion.header.title.content.includes('Mismatch'), 'Should indicate version mismatch');
+  assert.ok(!cardMissingVersion.elements.some(el => el.tag === 'action'), 'Fallback should have no action buttons');
+
+  // Test 2: Unsupported version (v99)
+  const cardUnsupportedVersion = renderBidRecommendCard({
+    run_meta: FIXTURE_RUN_META,
+    recommendation: {
+      ...FIXTURE_RECOMMENDATION,
+      card_contract_version: '99'  // Unsupported version
+    }
+  });
+
+  assert.ok(cardUnsupportedVersion.header.template === 'red', 'Fallback card should have red header');
+  const cardJson = JSON.stringify(cardUnsupportedVersion);
+  assert.ok(cardJson.includes('99'), 'Fallback should show requested version');
+  assert.ok(cardJson.includes('Unsupported'), 'Should indicate unsupported version');
+
+  console.log('  ✅ Unsupported contract version triggers fail-closed fallback');
+}
+
+function testCardContractVersionSupported() {
+  console.log('Test: Card renders normally for supported version "1"...');
+
+  const card = renderBidRecommendCard({
+    run_meta: FIXTURE_RUN_META,
+    recommendation: {
+      ...FIXTURE_RECOMMENDATION,
+      card_contract_version: '1'  // Supported version
+    }
+  });
+
+  // Should NOT be a fallback card
+  assert.ok(card.header.template !== 'red', 'Supported version should not render fallback');
+  assert.ok(!card.header.title.content.includes('Mismatch'), 'Should not indicate mismatch');
+
+  // Should have action buttons
+  const actionElement = card.elements.find(el => el.tag === 'action');
+  assert.ok(actionElement, 'Supported version should render action buttons');
+
+  console.log('  ✅ Supported version "1" renders normal card');
 }
 
 // ===============================================================
@@ -523,6 +579,9 @@ async function runAllTests() {
     testCardNoSecrets,
     testCardStructure,
     testCardEmptyEntities,
+    // Contract version negotiation tests
+    testCardContractVersionMismatch,
+    testCardContractVersionSupported,
     // Callback tests - basic
     testCallbackHmacVerification,
     testCallbackRunNotFound,
