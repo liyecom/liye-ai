@@ -1,0 +1,46 @@
+{
+  "playbook_id": "alert_score",
+  "run_id": "run-20260208-3kturq",
+  "timestamp": "2026-02-08T07:25:41.994Z",
+  "engine_id": "amazon-growth-engine",
+  "inputs": {
+    "hash": "0930507800f9c9b8b49c34e4c24e4148cfb80e27f541c9b95b7c93465ec94afe",
+    "data": {
+      "alert_context": {
+        "type": "acos_spike",
+        "affected_spend": 500,
+        "duration_hours": 12
+      }
+    }
+  },
+  "outputs": {
+    "verdict": "CRIT",
+    "recommendations": [
+      {
+        "action_type": "investigate_metric",
+        "parameters": {
+          "metric": "acos",
+          "suggested_action": "Review keyword bids and targeting"
+        },
+        "confidence": 0.85,
+        "dry_run_result": {
+          "impact": "Identify root cause of ACOS spike"
+        },
+        "requires_tier": "recommend",
+        "priority": 90
+      }
+    ],
+    "evidence_package_ref": "data/traces/run-20260208-3kturq/evidence/",
+    "success_signal_hooks": {
+      "operator_feedback_url": null,
+      "business_metric_query": null,
+      "follow_up_after_days": 7
+    },
+    "metadata": {
+      "execution_time_ms": 55,
+      "api_calls": 0,
+      "bundle_version": null
+    }
+  },
+  "status": "success"
+}

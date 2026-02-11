@@ -1,0 +1,21 @@
+{
+  "run_id": "age:anomaly_detect:ad34e366:20260208083930",
+  "engine_id": "age",
+  "playbook_id": "anomaly_detect",
+  "created_at": "2026-02-08T08:39:31.040Z",
+  "files": [
+    {
+      "name": "inputs.json",
+      "purpose": "canonical inputs with hash"
+    },
+    {
+      "name": "outputs.json",
+      "purpose": "playbook outputs and recommendations"
+    },
+    {
+      "name": "operator_signal.json",
+      "purpose": "operator feedback (if any)",
+      "optional": true
+    }
+  ]
+}

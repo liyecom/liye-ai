@@ -1,0 +1,9 @@
+{
+  "run_id": "age:anomaly_detect:ad34e366:20260208083930",
+  "approved": true,
+  "operator_id": "test-reviewer",
+  "timestamp": "2026-02-08T08:42:17.698Z",
+  "note": null,
+  "source": "command",
+  "metadata": {}
+}
