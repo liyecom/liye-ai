@@ -49,25 +49,43 @@ function sha256String(content) {
 }
 
 /**
- * 获取所有 production policies
+ * 获取指定 tier 的 policies
  */
-function getProductionPolicies() {
-  const productionDir = join(POLICIES_DIR, 'production');
+function getPoliciesByTier(tier) {
+  const tierDir = join(POLICIES_DIR, tier);
 
-  if (!existsSync(productionDir)) {
-    console.log(`${YELLOW}⚠️  Production directory not found: ${productionDir}${RESET}`);
+  if (!existsSync(tierDir)) {
     return [];
   }
 
-  const files = readdirSync(productionDir)
+  const files = readdirSync(tierDir)
     .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
     .sort(); // 按字母序排序，确保可复现
 
   return files.map(f => ({
     filename: f,
-    fullPath: join(productionDir, f),
-    relativePath: `policies/production/${f}`
+    fullPath: join(tierDir, f),
+    relativePath: `policies/${tier}/${f}`,
+    tier
   }));
+}
+
+/**
+ * 获取所有 production policies
+ */
+function getProductionPolicies() {
+  const policies = getPoliciesByTier('production');
+  if (policies.length === 0) {
+    console.log(`${YELLOW}⚠️  Production directory empty or not found${RESET}`);
+  }
+  return policies;
+}
+
+/**
+ * 获取所有 candidate policies (Week 6: included in bundle for recommend-only)
+ */
+function getCandidatePolicies() {
+  return getPoliciesByTier('candidate');
 }
 
 /**
@@ -115,16 +133,23 @@ async function buildBundle(version) {
   const buildDir = join(tmpdir(), `bundle-build-${Date.now()}`);
   mkdirSync(buildDir, { recursive: true });
   mkdirSync(join(buildDir, 'policies', 'production'), { recursive: true });
+  mkdirSync(join(buildDir, 'policies', 'candidate'), { recursive: true });
   mkdirSync(join(buildDir, 'skills', 'production'), { recursive: true });
 
   console.log(`📂 Build directory: ${buildDir}\n`);
 
-  // 3. 获取 production policies
-  const policies = getProductionPolicies();
-  console.log(`📋 Found ${policies.length} production policies\n`);
+  // 3. 获取 production + candidate policies (Week 6: candidate for recommend-only)
+  const productionPolicies = getProductionPolicies();
+  const candidatePolicies = getCandidatePolicies();
+  const policies = [...productionPolicies, ...candidatePolicies].sort((a, b) =>
+    a.filename.localeCompare(b.filename)
+  );
+
+  console.log(`📋 Found ${productionPolicies.length} production policies`);
+  console.log(`📋 Found ${candidatePolicies.length} candidate policies\n`);
 
   if (policies.length === 0) {
-    console.log(`${YELLOW}⚠️  No production policies found. Creating empty bundle.${RESET}\n`);
+    console.log(`${YELLOW}⚠️  No policies found. Creating empty bundle.${RESET}\n`);
   }
 
   // 4. 复制 policies 到构建目录
@@ -132,6 +157,8 @@ async function buildBundle(version) {
 
   for (const policy of policies) {
     const destPath = join(buildDir, policy.relativePath);
+    // Ensure parent directory exists (for candidate tier)
+    mkdirSync(dirname(destPath), { recursive: true });
     cpSync(policy.fullPath, destPath);
 
     try {

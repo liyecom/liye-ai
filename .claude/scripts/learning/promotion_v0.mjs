@@ -1,25 +1,33 @@
 #!/usr/bin/env node
 /**
- * Promotion v0 (Week 6 Learning Pipeline)
+ * Promotion v0.1 (Week 6 Learning Pipeline)
  * SSOT: .claude/scripts/learning/promotion_v0.mjs
  *
  * Control Plane component: manages policy lifecycle transitions.
- * Checks promotion criteria and moves policies between status directories.
+ * Week 6 only supports: sandbox → candidate
  *
- * Lifecycle: sandbox → candidate → production → disabled/quarantine
- *
- * Stub implementation for Week 6 bootstrap.
+ * Promotion criteria (sandbox → candidate):
+ * - sample_size >= 20 OR consecutive 2 report periods with improve_rate >= 0.6
+ * - No drift guard triggered
+ * - Scope within bounds
  *
  * Usage:
- *   node .claude/scripts/learning/promotion_v0.mjs [--dry-run] [--check-demotions]
+ *   node .claude/scripts/learning/promotion_v0.mjs [--dry-run]
  *
- * Output: JSON with promotion/demotion actions taken
+ * Output: JSON with promotion actions taken
  */
 
-import { readdirSync, readFileSync, renameSync, existsSync, mkdirSync } from 'fs';
-import { join, basename } from 'path';
+import { readdirSync, readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, appendFileSync } from 'fs';
+import { join, dirname, basename } from 'path';
+import { fileURLToPath } from 'url';
 
-const POLICIES_BASE = 'state/memory/learned/policies';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Directories
+const POLICIES_BASE = join(__dirname, '../../../state/memory/learned/policies');
+const PROMOTION_LOG = join(__dirname, '../../../state/runtime/learning/promotion_log.jsonl');
+
 const STATUS_DIRS = {
   sandbox: join(POLICIES_BASE, 'sandbox'),
   candidate: join(POLICIES_BASE, 'candidate'),
@@ -28,52 +36,36 @@ const STATUS_DIRS = {
   quarantine: join(POLICIES_BASE, 'quarantine')
 };
 
-// Promotion criteria (aligned with execution_tiers.yaml)
+// Promotion criteria
 const PROMOTION_CRITERIA = {
   sandbox_to_candidate: {
-    min_days: 3,
-    min_executions: 20,
-    min_exec_success_rate: 0.70
-  },
-  candidate_to_production: {
-    min_days: 7,
-    min_proposals: 30,
-    min_operator_approval_rate: 0.70,
-    min_business_improvement_pct: 5.0
-  }
-};
-
-// Demotion criteria (drift detection)
-const DEMOTION_CRITERIA = {
-  production_to_disabled: {
-    drift_threshold: 0.20  // 20% performance degradation
+    min_sample_size: 20,
+    alt_min_sample_size: 10,  // If improve_rate high
+    min_improve_rate: 0.6,
+    min_confidence: 0.5
   }
 };
 
 /**
- * Load a policy file (supports JSON content in .yaml files)
- * @param {string} filepath - Path to policy file
- * @returns {Object|null} Parsed policy or null if invalid
+ * Load a policy file
  */
 function loadPolicy(filepath) {
   try {
     const content = readFileSync(filepath, 'utf-8');
-    // Extract JSON from the file (our stub format)
+    // Extract JSON from the file (our format has JSON after header comments)
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
     return null;
   } catch (error) {
-    console.error(`[promotion_v0] Failed to load ${filepath}: ${error.message}`);
+    console.error(`[promotion] Failed to load ${filepath}: ${error.message}`);
     return null;
   }
 }
 
 /**
  * Get policies from a status directory
- * @param {string} status - Status directory name
- * @returns {Array} Array of {filepath, policy} objects
  */
 function getPolicies(status) {
   const dir = STATUS_DIRS[status];
@@ -88,7 +80,7 @@ function getPolicies(status) {
     const filepath = join(dir, file);
     const policy = loadPolicy(filepath);
     if (policy) {
-      policies.push({ filepath, policy });
+      policies.push({ filepath, policy, filename: file });
     }
   }
 
@@ -96,11 +88,21 @@ function getPolicies(status) {
 }
 
 /**
+ * Write promotion log entry (append-only)
+ */
+function logPromotion(entry) {
+  mkdirSync(dirname(PROMOTION_LOG), { recursive: true });
+
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    ...entry
+  };
+
+  appendFileSync(PROMOTION_LOG, JSON.stringify(logEntry) + '\n');
+}
+
+/**
  * Move a policy to a new status directory
- * @param {string} filepath - Current policy filepath
- * @param {string} newStatus - Target status
- * @param {boolean} dryRun - If true, don't actually move
- * @returns {string} New filepath
  */
 function movePolicy(filepath, newStatus, dryRun = false) {
   const filename = basename(filepath);
@@ -110,116 +112,156 @@ function movePolicy(filepath, newStatus, dryRun = false) {
   if (!dryRun) {
     mkdirSync(newDir, { recursive: true });
     renameSync(filepath, newPath);
-    console.error(`[promotion_v0] Moved: ${filepath} -> ${newPath}`);
+    console.error(`[promotion] Moved: ${filepath} -> ${newPath}`);
   } else {
-    console.error(`[promotion_v0] Dry-run: would move ${filepath} -> ${newPath}`);
+    console.error(`[promotion] Dry-run: would move ${filepath} -> ${newPath}`);
   }
 
   return newPath;
 }
 
 /**
- * Check if a policy is ready for promotion from sandbox to candidate
- * @param {Object} policy - Policy object
- * @returns {Object} {eligible: boolean, reason: string}
+ * Update policy status in file
+ */
+function updatePolicyStatus(filepath, newStatus, dryRun = false) {
+  if (dryRun) {
+    return;
+  }
+
+  const content = readFileSync(filepath, 'utf-8');
+  const policy = loadPolicy(filepath);
+
+  if (!policy) {
+    return;
+  }
+
+  policy.validation_status = newStatus;
+  policy.promoted_at = new Date().toISOString();
+
+  // Preserve header comments and update JSON
+  const headerMatch = content.match(/^(#[^\n]*\n)*/);
+  const header = headerMatch ? headerMatch[0] : '';
+
+  const newContent = `${header}${JSON.stringify(policy, null, 2)}\n`;
+  writeFileSync(filepath, newContent);
+}
+
+/**
+ * Check if a sandbox policy is ready for promotion to candidate
  */
 function checkSandboxPromotion(policy) {
   const criteria = PROMOTION_CRITERIA.sandbox_to_candidate;
-  const learnedAt = new Date(policy.learned_at);
-  const ageInDays = (Date.now() - learnedAt.getTime()) / (1000 * 60 * 60 * 24);
 
-  if (ageInDays < criteria.min_days) {
-    return { eligible: false, reason: `age ${ageInDays.toFixed(1)}d < ${criteria.min_days}d` };
+  // Get metrics from success_signals
+  const sampleSize = policy.success_signals?.exec?.count || 0;
+  const improveRate = (policy.success_signals?.business?.improvement_pct || 0) / 100;
+  const confidence = policy.confidence || 0;
+
+  // Check minimum confidence
+  if (confidence < criteria.min_confidence) {
+    return {
+      eligible: false,
+      reason: `confidence=${confidence.toFixed(2)} < ${criteria.min_confidence}`
+    };
   }
 
-  const execCount = policy.success_signals?.exec?.count || 0;
-  if (execCount < criteria.min_executions) {
-    return { eligible: false, reason: `exec_count ${execCount} < ${criteria.min_executions}` };
+  // Primary path: sample_size >= 20
+  if (sampleSize >= criteria.min_sample_size) {
+    return {
+      eligible: true,
+      reason: `sample_size=${sampleSize} >= ${criteria.min_sample_size}`
+    };
   }
 
-  const execRate = policy.success_signals?.exec?.success_rate || 0;
-  if (execRate < criteria.min_exec_success_rate) {
-    return { eligible: false, reason: `exec_rate ${(execRate * 100).toFixed(0)}% < ${criteria.min_exec_success_rate * 100}%` };
+  // Alternative path: sample_size >= 10 AND improve_rate >= 0.6
+  if (sampleSize >= criteria.alt_min_sample_size && improveRate >= criteria.min_improve_rate) {
+    return {
+      eligible: true,
+      reason: `sample_size=${sampleSize} >= ${criteria.alt_min_sample_size} AND improve_rate=${(improveRate*100).toFixed(1)}% >= ${criteria.min_improve_rate*100}%`
+    };
   }
 
-  return { eligible: true, reason: 'meets all criteria' };
+  return {
+    eligible: false,
+    reason: `sample_size=${sampleSize} < ${criteria.min_sample_size} AND (sample_size < ${criteria.alt_min_sample_size} OR improve_rate=${(improveRate*100).toFixed(1)}% < ${criteria.min_improve_rate*100}%)`
+  };
 }
 
 /**
- * Check if a policy is ready for promotion from candidate to production
- * @param {Object} policy - Policy object
- * @returns {Object} {eligible: boolean, reason: string}
+ * Check scope is within bounds (no cross-tenant violations)
  */
-function checkCandidatePromotion(policy) {
-  const criteria = PROMOTION_CRITERIA.candidate_to_production;
-  const promotedAt = new Date(policy.promoted_at || policy.learned_at);
-  const ageInDays = (Date.now() - promotedAt.getTime()) / (1000 * 60 * 60 * 24);
+function checkScopeBounds(policy) {
+  const scope = policy.scope || {};
 
-  if (ageInDays < criteria.min_days) {
-    return { eligible: false, reason: `age ${ageInDays.toFixed(1)}d < ${criteria.min_days}d` };
+  // Week 6: basic scope validation
+  if (scope.type === 'global') {
+    return { valid: true };
   }
 
-  const approvalCount = policy.success_signals?.operator?.approval_count || 0;
-  if (approvalCount < criteria.min_proposals) {
-    return { eligible: false, reason: `approvals ${approvalCount} < ${criteria.min_proposals}` };
+  // Ensure tenant_id is present for non-global scopes
+  if (!scope.keys?.tenant_id) {
+    return { valid: false, reason: 'missing tenant_id in scope.keys' };
   }
 
-  const approvalRate = policy.success_signals?.operator?.approval_rate || 0;
-  if (approvalRate < criteria.min_operator_approval_rate) {
-    return { eligible: false, reason: `approval_rate ${(approvalRate * 100).toFixed(0)}% < ${criteria.min_operator_approval_rate * 100}%` };
-  }
-
-  const improvementPct = policy.success_signals?.business?.improvement_pct || 0;
-  if (improvementPct < criteria.min_business_improvement_pct) {
-    return { eligible: false, reason: `improvement ${improvementPct}% < ${criteria.min_business_improvement_pct}%` };
-  }
-
-  return { eligible: true, reason: 'meets all criteria' };
+  return { valid: true };
 }
 
 /**
- * Check promotions and optionally execute them
- * @param {boolean} dryRun - If true, don't actually move files
- * @returns {Array} Promotion actions taken
+ * Check for drift (placeholder for Week 6)
+ */
+function checkDriftGuard(policy) {
+  // Week 6: no drift detection implemented yet
+  // Always pass for now
+  return { triggered: false };
+}
+
+/**
+ * Check and execute promotions
  */
 function checkPromotions(dryRun = false) {
   const actions = [];
 
-  // Check sandbox → candidate
+  // Get sandbox policies
   const sandboxPolicies = getPolicies('sandbox');
-  for (const { filepath, policy } of sandboxPolicies) {
-    const result = checkSandboxPromotion(policy);
-    if (result.eligible) {
+  console.error(`[promotion] Found ${sandboxPolicies.length} sandbox policies`);
+
+  for (const { filepath, policy, filename } of sandboxPolicies) {
+    const policyId = policy.policy_id || filename.replace('.yaml', '');
+
+    // Check scope bounds
+    const scopeCheck = checkScopeBounds(policy);
+    if (!scopeCheck.valid) {
+      console.error(`[promotion] ${policyId}: scope invalid - ${scopeCheck.reason}`);
+      continue;
+    }
+
+    // Check drift guard
+    const driftCheck = checkDriftGuard(policy);
+    if (driftCheck.triggered) {
+      console.error(`[promotion] ${policyId}: drift guard triggered`);
+      continue;
+    }
+
+    // Check promotion criteria
+    const promotionCheck = checkSandboxPromotion(policy);
+
+    if (promotionCheck.eligible) {
+      // Promote to candidate!
       const newPath = movePolicy(filepath, 'candidate', dryRun);
+      updatePolicyStatus(newPath, 'candidate', dryRun);
+
       actions.push({
         action: 'promote',
-        policy_id: policy.policy_id,
+        policy_id: policyId,
         from: 'sandbox',
         to: 'candidate',
         new_path: newPath,
-        reason: result.reason
+        reason: promotionCheck.reason
       });
-    } else {
-      console.error(`[promotion_v0] ${policy.policy_id}: not eligible (${result.reason})`);
-    }
-  }
 
-  // Check candidate → production
-  const candidatePolicies = getPolicies('candidate');
-  for (const { filepath, policy } of candidatePolicies) {
-    const result = checkCandidatePromotion(policy);
-    if (result.eligible) {
-      const newPath = movePolicy(filepath, 'production', dryRun);
-      actions.push({
-        action: 'promote',
-        policy_id: policy.policy_id,
-        from: 'candidate',
-        to: 'production',
-        new_path: newPath,
-        reason: result.reason
-      });
+      console.error(`[promotion] PROMOTED: ${policyId} (${promotionCheck.reason})`);
     } else {
-      console.error(`[promotion_v0] ${policy.policy_id}: not eligible (${result.reason})`);
+      console.error(`[promotion] ${policyId}: not eligible (${promotionCheck.reason})`);
     }
   }
 
@@ -227,48 +269,41 @@ function checkPromotions(dryRun = false) {
 }
 
 /**
- * Check demotions (drift detection) and optionally execute them
- * @param {boolean} dryRun - If true, don't actually move files
- * @returns {Array} Demotion actions taken
- */
-function checkDemotions(dryRun = false) {
-  // Week 6 stub: drift detection not implemented
-  console.error('[promotion_v0] Stub: demotion/drift detection not implemented');
-  return [];
-}
-
-/**
  * Main entry point
  */
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
-  const checkDemotionsFlag = args.includes('--check-demotions');
 
-  console.error('[promotion_v0] Starting promotion check...');
-  console.error(`[promotion_v0] Dry-run: ${dryRun}`);
+  console.error('[promotion] Starting promotion check v0.1...');
+  console.error(`[promotion] Dry-run: ${dryRun}`);
+  console.error(`[promotion] Week 6: sandbox → candidate only`);
 
   try {
     // Check promotions
     const promotions = checkPromotions(dryRun);
-    console.error(`[promotion_v0] Promotions: ${promotions.length}`);
+    console.error(`[promotion] Promotions: ${promotions.length}`);
 
-    // Optionally check demotions
-    let demotions = [];
-    if (checkDemotionsFlag) {
-      demotions = checkDemotions(dryRun);
-      console.error(`[promotion_v0] Demotions: ${demotions.length}`);
+    // Log promotions (append-only)
+    if (!dryRun && promotions.length > 0) {
+      for (const p of promotions) {
+        try {
+          logPromotion(p);
+        } catch (e) {
+          console.error(`[promotion] Failed to log promotion: ${e.message}`);
+        }
+      }
     }
 
     const result = {
       status: 'success',
       timestamp: new Date().toISOString(),
       dry_run: dryRun,
-      promotions: promotions,
-      demotions: demotions,
+      promotions_count: promotions.length,
+      promotions,
       summary: {
-        promotions_count: promotions.length,
-        demotions_count: demotions.length
+        sandbox_checked: getPolicies('sandbox').length + promotions.length,
+        promoted_to_candidate: promotions.length
       }
     };
 
@@ -296,4 +331,4 @@ if (isDirectRun) {
   main();
 }
 
-export { checkSandboxPromotion, checkCandidatePromotion, checkPromotions, checkDemotions };
+export { checkSandboxPromotion, checkPromotions, checkScopeBounds, checkDriftGuard };

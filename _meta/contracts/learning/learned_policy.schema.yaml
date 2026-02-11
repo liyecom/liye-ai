@@ -129,10 +129,43 @@ properties:
       - 0.72
       - 0.85
 
+  # Optional: primary_metric for pattern-based policies
+  primary_metric:
+    type: object
+    properties:
+      name:
+        type: string
+        enum:
+          - acos
+          - roas
+          - wasted_spend
+          - conversion_rate
+          - cvr
+        description: "主要优化指标"
+      anomaly_direction:
+        type: string
+        enum:
+          - low
+          - high
+        description: "异常方向（low=越低越好，如 ACOS）"
+      lookback_days:
+        type: integer
+        minimum: 1
+        maximum: 90
+        description: "回溯天数"
+    additionalProperties: false
+    description: "主要指标定义（用于模式匹配策略）"
+
+  # Optional: require_approval at root level (in addition to constraints)
+  require_approval:
+    type: boolean
+    default: true
+    description: "是否需要人工批准。与 constraints.require_approval 二选一"
+
   preconditions:
     type: object
-    required:
-      - match_rules
+    description: "可执行的匹配条件。支持两种格式：match_rules 数组或直接字段"
+    # Either match_rules array format OR direct fields format
     properties:
       match_rules:
         type: array
@@ -161,8 +194,36 @@ properties:
             value:
               description: "匹配值，类型由 field 决定"
           additionalProperties: false
-    additionalProperties: false
-    description: "可执行的匹配条件"
+      # Direct fields format (used by crystallizer)
+      playbook_id:
+        type: string
+        description: "Playbook ID"
+      match_type:
+        type: string
+        description: "匹配类型，如 exact, phrase, broad"
+      cvr_bucket:
+        type: string
+        enum:
+          - cvr_low
+          - cvr_mid
+          - cvr_high
+        description: "CVR 分桶"
+      acos_bucket:
+        type: string
+        enum:
+          - acos_low
+          - acos_mid
+          - acos_high
+        description: "ACOS 分桶"
+      min_clicks:
+        type: integer
+        minimum: 0
+        description: "最小点击数要求"
+      thresholds:
+        type: object
+        additionalProperties: true
+        description: "阈值条件"
+    additionalProperties: true
 
   actions:
     type: array
@@ -178,6 +239,7 @@ properties:
           type: string
           enum:
             - bid_adjustment
+            - bid_adjust
             - keyword_negation
             - budget_reallocation
             - alert
@@ -251,6 +313,10 @@ properties:
         minimum: 1
         default: 60
         description: "回滚超时时间（分钟）"
+      safe_window_hours:
+        type: integer
+        minimum: 1
+        description: "安全观察窗口（小时）"
     additionalProperties: false
     description: "回滚计划。必填"
 
@@ -375,8 +441,8 @@ properties:
       properties:
         trace_id:
           type: string
-          pattern: "^trace-\\d{8}-[a-z0-9]+$"
-          description: "追踪 ID，格式 trace-YYYYMMDD-xxx"
+          pattern: "^(trace|run)-\\d{8}-[a-z0-9]+$"
+          description: "追踪 ID，格式 trace-YYYYMMDD-xxx 或 run-YYYYMMDD-xxx"
         summary:
           type: string
           maxLength: 500

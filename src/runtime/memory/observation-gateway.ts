@@ -54,6 +54,16 @@ interface ComplianceError {
   payload_digest: string;
 }
 
+interface SavedEvent {
+  event: "MAAP_OBSERVATION_SAVED";
+  timestamp: string;
+  observation_id: string | number;
+  session_id: string;
+  source_prompt_id: string | number;
+  entities: string[];
+  content_length: number;
+}
+
 // ============================================================================
 // Governance Logger
 // ============================================================================
@@ -79,6 +89,19 @@ class GovernanceLogger {
   logRejection(error: ComplianceError): void {
     try {
       const line = JSON.stringify(error) + "\n";
+      fs.appendFileSync(this.logPath, line, "utf8");
+    } catch (e) {
+      // Non-blocking: if logging fails, don't crash the system
+      console.error("[MAAP] Warning: Failed to write governance log", e);
+    }
+  }
+
+  /**
+   * Log a successful observation save event (non-blocking, best-effort)
+   */
+  logSuccess(event: SavedEvent): void {
+    try {
+      const line = JSON.stringify(event) + "\n";
       fs.appendFileSync(this.logPath, line, "utf8");
     } catch (e) {
       // Non-blocking: if logging fails, don't crash the system
@@ -249,6 +272,18 @@ class ObservationGateway {
       // TODO: Integrate with claude-mem HTTP API here
       // For now, just emit success event (placeholder for actual persistence)
       this.eventEmitter.emit("observation_saved", obs);
+
+      // Log success event for metrics (Step 6.1: Positive Instrumentation)
+      const savedEvent: SavedEvent = {
+        event: "MAAP_OBSERVATION_SAVED",
+        timestamp: new Date().toISOString(),
+        observation_id: obs.id!,
+        session_id: obs.session_id,
+        source_prompt_id: obs.source_prompt_id,
+        entities: obs.entities,
+        content_length: obs.content.length,
+      };
+      this.logger.logSuccess(savedEvent);
 
       return {
         success: true,

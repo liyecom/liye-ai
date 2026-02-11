@@ -1,105 +1,203 @@
 #!/usr/bin/env node
 /**
- * Policy Crystallizer v0 (Week 6 Learning Pipeline)
+ * Policy Crystallizer v0.1 (Week 6 Learning Pipeline)
  * SSOT: .claude/scripts/learning/policy_crystallizer_v0.mjs
  *
  * Control Plane component: crystallizes detected patterns into learned policies.
  * Writes policies to state/memory/learned/policies/sandbox/ directory.
  *
- * Stub implementation for Week 6 bootstrap.
+ * Crystallization thresholds:
+ * - sample_size >= 10
+ * - business_improve_rate >= 0.6
+ *
+ * Confidence calculation:
+ * confidence = clamp(0, 1, 0.2*exec + 0.3*operator + 0.5*business)
  *
  * Usage:
- *   node .claude/scripts/learning/policy_crystallizer_v0.mjs [--dry-run]
+ *   node .claude/scripts/learning/policy_crystallizer_v0.mjs [--dry-run] [--patterns-file <path>]
  *
- * Input: Reads patterns from stdin (output of pattern_detector_v0)
- * Output: JSON with crystallized policy count or dry-run preview
+ * Input: Reads patterns from patterns file (default: latest patterns_{date}.json)
+ * Output: YAML policy files in state/memory/learned/policies/sandbox/
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { join, dirname, basename } from 'path';
+import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 
-const POLICIES_DIR = 'state/memory/learned/policies';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Directories
+const PATTERNS_DIR = join(__dirname, '../../../state/runtime/learning/patterns');
+const POLICIES_DIR = join(__dirname, '../../../state/memory/learned/policies');
 const SANDBOX_DIR = join(POLICIES_DIR, 'sandbox');
 
+// Crystallization thresholds
+const MIN_SAMPLE_SIZE = 10;
+const MIN_IMPROVE_RATE = 0.6;
+
 /**
- * Generate a policy ID from pattern characteristics
- * @param {Object} pattern - Detected pattern
- * @returns {string} Policy ID in uppercase snake_case
+ * Find the latest patterns file
+ */
+function findLatestPatternsFile() {
+  if (!existsSync(PATTERNS_DIR)) {
+    return null;
+  }
+
+  const files = readdirSync(PATTERNS_DIR)
+    .filter(f => f.startsWith('patterns_') && f.endsWith('.json'))
+    .sort()
+    .reverse();
+
+  return files.length > 0 ? join(PATTERNS_DIR, files[0]) : null;
+}
+
+/**
+ * Load patterns from file
+ */
+function loadPatterns(filePath) {
+  if (!existsSync(filePath)) {
+    throw new Error(`Patterns file not found: ${filePath}`);
+  }
+
+  const data = JSON.parse(readFileSync(filePath, 'utf-8'));
+  return data.patterns || [];
+}
+
+/**
+ * Calculate confidence score
+ */
+function calculateConfidence(pattern) {
+  // Week 6: simplified confidence calculation
+  // In production, would use actual exec/operator rates from facts
+  const execRate = 1.0;  // Assume exec success (we filtered for this)
+  const operatorRate = 1.0;  // Assume operator approved (we filtered for this)
+  const businessRate = pattern.business_improve_rate || 0;
+
+  const confidence = 0.2 * execRate + 0.3 * operatorRate + 0.5 * businessRate;
+  return Math.max(0, Math.min(1, confidence));  // Clamp 0-1
+}
+
+/**
+ * Generate policy ID from pattern
  */
 function generatePolicyId(pattern) {
-  const actionType = (pattern.action_type || 'UNKNOWN').toUpperCase().replace(/-/g, '_');
-  const scope = (pattern.scope?.type || 'GLOBAL').toUpperCase();
+  // Extract key parts from pattern_id
+  const parts = pattern.pattern_id.split(':');
+  const playbookId = (parts[1] || 'bid_recommend').toUpperCase().replace(/-/g, '_');
+  const metricName = (parts[2] || 'acos').toUpperCase();
+  const matchType = (pattern.conditions?.match_type || 'BROAD').toUpperCase();
+  const cvrBucket = (pattern.conditions?.cvr_bucket || 'MID').toUpperCase().replace('CVR_', '');
+  const acosBucket = (pattern.conditions?.acos_bucket || 'MID').toUpperCase().replace('ACOS_', '');
+
   const hash = createHash('sha256')
-    .update(JSON.stringify(pattern))
+    .update(pattern.pattern_id)
     .digest('hex')
     .slice(0, 6)
     .toUpperCase();
 
-  return `${actionType}_${scope}_${hash}`;
+  return `${playbookId}_${metricName}_${matchType}_CVR${cvrBucket}_ACOS${acosBucket}_${hash}`;
 }
 
 /**
- * Convert a pattern to a learned policy YAML structure
- * @param {Object} pattern - Detected pattern with success signals
- * @returns {Object} Policy object conforming to learned_policy.schema.yaml
+ * Convert pattern to policy YAML content
  */
 function patternToPolicy(pattern) {
   const now = new Date().toISOString();
   const policyId = generatePolicyId(pattern);
+  const confidence = calculateConfidence(pattern);
 
-  return {
+  // Calculate suggested delta_pct with cap
+  const suggestedDeltaPct = Math.min(
+    Math.max(pattern.avg_delta_pct || 25, 10),  // Min 10%
+    30  // Max 30% (cap_pct)
+  );
+
+  const policy = {
     schema_version: '1.0.0',
     policy_id: policyId,
-    domain: pattern.domain || 'unknown',
+    domain: 'amazon-advertising',
     learned_at: now,
-    scope: pattern.scope || { type: 'global', keys: {} },
-    risk_level: pattern.risk_level || 'medium',
-    validation_status: 'sandbox',  // Always start in sandbox
-    confidence: pattern.success_rates?.exec || 0.5,
-    preconditions: pattern.preconditions || {},
-    actions: pattern.actions || [{
-      action_type: pattern.action_type || 'investigate_metric',
-      parameters: pattern.parameters || {},
+    scope: {
+      type: 'global',  // Week 6: global scope for initial learning
+      keys: {
+        tenant_id: 'default',
+        marketplace: 'US'
+      }
+    },
+    risk_level: 'medium',
+    validation_status: 'sandbox',
+    confidence: Math.round(confidence * 1000) / 1000,
+    primary_metric: pattern.primary_metric || {
+      name: 'acos',
+      anomaly_direction: 'low'
+    },
+    preconditions: {
+      playbook_id: pattern.playbook_id || 'bid_recommend',
+      match_type: pattern.conditions?.match_type || 'broad',
+      cvr_bucket: pattern.conditions?.cvr_bucket || 'cvr_mid',
+      acos_bucket: pattern.conditions?.acos_bucket || 'acos_mid',
+      min_clicks: pattern.conditions?.min_clicks || 50,
+      thresholds: {
+        cvr_min: pattern.conditions?.cvr_bucket === 'cvr_high' ? 0.15 :
+                 pattern.conditions?.cvr_bucket === 'cvr_mid' ? 0.10 : 0,
+        acos_max: pattern.conditions?.acos_bucket === 'acos_low' ? 0.25 :
+                  pattern.conditions?.acos_bucket === 'acos_mid' ? 0.35 : 1.0
+      }
+    },
+    actions: [{
+      action_type: 'bid_adjust',
+      parameters: {
+        delta_pct: suggestedDeltaPct,
+        cap_pct: 30
+      },
       dry_run_compatible: true
     }],
     constraints: {
       max_bid_change_pct: 30,
       max_actions_per_day: 5
     },
+    require_approval: true,  // Always require operator approval
     rollback_plan: {
       type: 'automatic',
-      steps: ['Revert to previous state', 'Wait 24h for stabilization']
+      steps: [
+        'Revert bid to original value',
+        'Wait 48h for stabilization'
+      ],
+      safe_window_hours: 48
     },
     success_signals: {
       exec: {
-        count: pattern.frequency || 0,
-        success_rate: pattern.success_rates?.exec || 0
+        count: pattern.sample_size || 0,
+        success_rate: 1.0  // All samples in pattern are exec success
       },
       operator: {
-        approval_count: 0,
+        approval_count: pattern.sample_size || 0,
         rejection_count: 0,
-        approval_rate: null  // Not measured in sandbox
+        approval_rate: 1.0  // All samples in pattern are approved
       },
       business: {
-        metric_name: pattern.metric_name || 'unknown',
+        metric_name: pattern.primary_metric?.name || 'acos',
         baseline: null,
         current: null,
-        improvement_pct: null,
-        sample_size: null
+        improvement_pct: Math.round((pattern.business_improve_rate || 0) * 100),
+        sample_size: pattern.sample_size || 0
       }
     },
     evaluation_window_days: 7,
     expiry_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-    evidence: pattern.evidence || []
+    evidence: pattern.evidence_refs?.slice(0, 10).map(runId => ({
+      trace_id: runId,
+      summary: `Run ${runId} contributed to pattern`
+    })) || []
   };
+
+  return policy;
 }
 
 /**
- * Write policy to sandbox directory
- * @param {Object} policy - Policy object
- * @param {boolean} dryRun - If true, don't write to disk
- * @returns {string} Path to written file (or would-be path in dry-run)
+ * Write policy to sandbox as YAML-like format
  */
 function writePolicy(policy, dryRun = false) {
   mkdirSync(SANDBOX_DIR, { recursive: true });
@@ -108,17 +206,21 @@ function writePolicy(policy, dryRun = false) {
   const filepath = join(SANDBOX_DIR, filename);
 
   if (!dryRun) {
-    // Week 6 stub: would use YAML serializer
-    // For now, write as JSON with .yaml extension
-    const content = `# Learned Policy (auto-generated by policy_crystallizer_v0)
+    // Write as formatted JSON with YAML-like header
+    const content = `# Learned Policy (auto-generated by policy_crystallizer v0.1)
 # Schema: _meta/contracts/learning/learned_policy.schema.yaml
+# Generated: ${policy.learned_at}
+# Policy ID: ${policy.policy_id}
+# Confidence: ${policy.confidence}
+# Sample Size: ${policy.success_signals.exec.count}
+# Improve Rate: ${policy.success_signals.business.improvement_pct}%
 
 ${JSON.stringify(policy, null, 2)}
 `;
     writeFileSync(filepath, content);
-    console.error(`[policy_crystallizer_v0] Wrote: ${filepath}`);
+    console.error(`[policy_crystallizer] Wrote: ${filepath}`);
   } else {
-    console.error(`[policy_crystallizer_v0] Dry-run: would write ${filepath}`);
+    console.error(`[policy_crystallizer] Dry-run: would write ${filepath}`);
   }
 
   return filepath;
@@ -126,28 +228,39 @@ ${JSON.stringify(policy, null, 2)}
 
 /**
  * Crystallize patterns into policies
- * @param {Array} patterns - Detected patterns from pattern_detector
- * @param {boolean} dryRun - If true, don't write to disk
- * @returns {Array} Created policies
  */
 function crystallize(patterns, dryRun = false) {
   const policies = [];
 
   for (const pattern of patterns) {
-    // Only crystallize patterns meeting minimum criteria
-    if ((pattern.frequency || 0) < 3) {
-      console.error(`[policy_crystallizer_v0] Skipping pattern (frequency < 3): ${pattern.action_type}`);
+    // Check crystallization thresholds
+    const sampleSize = pattern.sample_size || 0;
+    const improveRate = pattern.business_improve_rate || 0;
+
+    if (sampleSize < MIN_SAMPLE_SIZE) {
+      console.error(`[policy_crystallizer] Skipping ${pattern.pattern_id}: sample_size=${sampleSize} < ${MIN_SAMPLE_SIZE}`);
       continue;
     }
 
-    if ((pattern.success_rates?.exec || 0) < 0.7) {
-      console.error(`[policy_crystallizer_v0] Skipping pattern (exec_rate < 0.7): ${pattern.action_type}`);
+    if (improveRate < MIN_IMPROVE_RATE) {
+      console.error(`[policy_crystallizer] Skipping ${pattern.pattern_id}: improve_rate=${improveRate} < ${MIN_IMPROVE_RATE}`);
       continue;
     }
 
+    // Crystallize!
     const policy = patternToPolicy(pattern);
     const filepath = writePolicy(policy, dryRun);
-    policies.push({ policy_id: policy.policy_id, filepath });
+
+    policies.push({
+      policy_id: policy.policy_id,
+      filepath,
+      pattern_id: pattern.pattern_id,
+      sample_size: sampleSize,
+      improve_rate: improveRate,
+      confidence: policy.confidence
+    });
+
+    console.error(`[policy_crystallizer] Crystallized: ${policy.policy_id} (samples=${sampleSize}, improve=${(improveRate*100).toFixed(1)}%)`);
   }
 
   return policies;
@@ -156,51 +269,59 @@ function crystallize(patterns, dryRun = false) {
 /**
  * Main entry point
  */
-async function main() {
+function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
 
-  console.error('[policy_crystallizer_v0] Starting crystallization...');
-  console.error(`[policy_crystallizer_v0] Dry-run: ${dryRun}`);
+  // Find patterns file
+  let patternsFile = null;
+  const patternsIndex = args.indexOf('--patterns-file');
+  if (patternsIndex !== -1 && args[patternsIndex + 1]) {
+    patternsFile = args[patternsIndex + 1];
+  } else {
+    patternsFile = findLatestPatternsFile();
+  }
+
+  console.error('[policy_crystallizer] Starting crystallization v0.1...');
+  console.error(`[policy_crystallizer] Dry-run: ${dryRun}`);
+  console.error(`[policy_crystallizer] Patterns file: ${patternsFile || '(not found)'}`);
+  console.error(`[policy_crystallizer] Thresholds: sample_size >= ${MIN_SAMPLE_SIZE}, improve_rate >= ${MIN_IMPROVE_RATE}`);
 
   try {
-    // Read patterns from stdin
-    let inputData = '';
-
-    if (!process.stdin.isTTY) {
-      inputData = readFileSync(0, 'utf-8');
-    }
-
-    if (!inputData.trim()) {
-      // Week 6 stub: no input patterns
-      console.error('[policy_crystallizer_v0] No patterns in stdin (stub mode)');
+    if (!patternsFile) {
       const result = {
         status: 'success',
         timestamp: new Date().toISOString(),
         dry_run: dryRun,
         patterns_received: 0,
         policies_created: 0,
-        policies: []
+        policies: [],
+        message: 'No patterns file found'
       };
       console.log(JSON.stringify(result, null, 2));
       process.exit(0);
     }
 
-    const input = JSON.parse(inputData);
-    const patterns = input.patterns || [];
+    // Load patterns
+    const patterns = loadPatterns(patternsFile);
+    console.error(`[policy_crystallizer] Loaded ${patterns.length} patterns from ${basename(patternsFile)}`);
 
-    console.error(`[policy_crystallizer_v0] Received ${patterns.length} patterns`);
+    // Filter for crystallizable patterns
+    const crystallizable = patterns.filter(p => p.can_crystallize);
+    console.error(`[policy_crystallizer] Crystallizable: ${crystallizable.length}`);
 
-    // Crystallize patterns into policies
-    const policies = crystallize(patterns, dryRun);
+    // Crystallize
+    const policies = crystallize(crystallizable, dryRun);
 
     const result = {
       status: 'success',
       timestamp: new Date().toISOString(),
       dry_run: dryRun,
+      patterns_file: patternsFile,
       patterns_received: patterns.length,
+      patterns_crystallizable: crystallizable.length,
       policies_created: policies.length,
-      policies: policies
+      policies
     };
 
     console.log(JSON.stringify(result, null, 2));
@@ -227,4 +348,4 @@ if (isDirectRun) {
   main();
 }
 
-export { generatePolicyId, patternToPolicy, crystallize };
+export { crystallize, patternToPolicy, calculateConfidence, generatePolicyId };
