@@ -29,6 +29,9 @@ const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 const CALLBACK_BASE_URL = process.env.PUBLIC_BASE_URL || 'http://localhost:3210';
 const HMAC_SECRET = process.env.OPERATOR_CALLBACK_HMAC_SECRET || 'dev_secret';
 
+// 支持的契约版本（fail-closed：不支持的版本拒绝渲染）
+const SUPPORTED_CONTRACT_VERSIONS = Object.freeze(['1']);
+
 // 颜色配置
 const HEADER_TEMPLATES = {
   recommend: 'orange',
@@ -120,6 +123,46 @@ function formatRollbackPlan(rollbackPlan) {
 }
 
 // ===============================================================
+// 版本协商 Fallback
+// ===============================================================
+
+/**
+ * 渲染版本不兼容的 fallback 卡片（plain text）
+ *
+ * @param {Object} opts - 选项
+ * @returns {Object} Feishu 卡片 JSON（plain text 警告）
+ */
+function renderVersionMismatchFallback({ run_id, engine_id, playbook_id, requested_version, supported_versions }) {
+  return {
+    config: { wide_screen_mode: true },
+    header: {
+      title: { tag: 'plain_text', content: '⚠️ Card Contract Version Mismatch' },
+      template: 'red'
+    },
+    elements: [
+      {
+        tag: 'div',
+        text: {
+          tag: 'lark_md',
+          content: [
+            `**Error**: Unsupported card contract version`,
+            '',
+            `- **Run ID**: ${run_id || 'unknown'}`,
+            `- **Engine**: ${engine_id}/${playbook_id}`,
+            `- **Requested Version**: ${requested_version || 'null (missing)'}`,
+            `- **Supported Versions**: ${supported_versions.join(', ')}`,
+            '',
+            '**Action Required**: Update the playbook to output a supported card_contract_version.',
+            '',
+            '_This card cannot be rendered until the version is updated._'
+          ].join('\n')
+        }
+      }
+    ]
+  };
+}
+
+// ===============================================================
 // 卡片渲染
 // ===============================================================
 
@@ -137,8 +180,23 @@ export function renderBidRecommendCard({ run_meta, recommendation }) {
     engine_id = 'age',
     playbook_id = 'bid_recommend',
     inputs_hash,
-    policy_id = null
+    policy_id = null,
+    card_contract_version = null
   } = run_meta || {};
+
+  // 契约版本协商：fail-closed（不支持的版本返回 plain text fallback）
+  // card_contract_version 来源：playbook 输出或 run_meta
+  const effectiveVersion = card_contract_version || recommendation?.card_contract_version;
+
+  if (!effectiveVersion || !SUPPORTED_CONTRACT_VERSIONS.includes(effectiveVersion)) {
+    return renderVersionMismatchFallback({
+      run_id,
+      engine_id,
+      playbook_id,
+      requested_version: effectiveVersion,
+      supported_versions: SUPPORTED_CONTRACT_VERSIONS
+    });
+  }
 
   const {
     primary_metric = { name: 'acos', anomaly_direction: 'low' },
