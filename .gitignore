@@ -316,3 +316,11 @@ docs/reasoning/demo_runs/*
 /templates
 /traces
 .liye/
+
+# ============================================
+# Proactive System Runtime State
+# ============================================
+state/runtime/proactive/runs/
+state/runtime/proactive/facts/
+state/runtime/proactive/rate_limits.json
+# Note: kill_switch.json and pr_evidence/ are included for PR but may be gitignored later

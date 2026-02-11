@@ -3,544 +3,263 @@
  * Playbook Runner v1.0.0
  * SSOT: .claude/scripts/proactive/playbook_runner.mjs
  *
- * OS 统一 Playbook 调用入口：
- * - subprocess 调用 AGE 的 python entrypoint
- * - 输出符合 playbook_io.schema.yaml
- * - 不引入 OS-Engine 耦合
+ * 执行 AGE Playbooks，生成 Evidence Package v1 四件套：
+ * - inputs.json: 规范化输入 (canonical JSON + hash)
+ * - playbook_io.json: playbook 完整输出
+ * - operator_signal.json: operator 决策 (初始为 awaiting)
+ * - meta.json: 执行元数据
  *
- * 运行方式:
- *   node .claude/scripts/proactive/playbook_runner.mjs \
- *     --playbook alert_score \
- *     --input '{"alert_id":"xyz"}' \
- *     --bundle /path/to/bundle.tgz \
- *     --engine /path/to/amazon-growth-engine
- *
- * 输出: playbook_io.json（stdout）
+ * 用法：
+ *   node playbook_runner.mjs --engine age --playbook anomaly_detect --inputs '{"asin":"B0TEST"}'
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
 import { createHash } from 'crypto';
+import { execSync } from 'child_process';
 import { parse as parseYaml } from 'yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
-const CONTRACTS_DIR = join(PROJECT_ROOT, '_meta', 'contracts');
-const TRACES_DIR = join(PROJECT_ROOT, 'data', 'traces');
 
-// ===============================================================
-// 默认配置
-// ===============================================================
+const RUNS_DIR = join(PROJECT_ROOT, 'state', 'runtime', 'proactive', 'runs');
+const FACTS_DIR = join(PROJECT_ROOT, 'state', 'runtime', 'proactive', 'facts');
+const FACTS_FILE = join(FACTS_DIR, 'fact_run_outcomes.jsonl');
 
-const DEFAULT_CONFIG = {
-  enginePath: process.env.AGE_ENGINE_PATH || join(PROJECT_ROOT, '..', 'amazon-growth-engine'),
-  bundlePath: process.env.LEARNED_BUNDLE_PATH || null,
-  timeout: 60000,  // 60 秒超时
-  pythonPath: 'python3',
-  // 安全配置
-  enforceRegistry: process.env.PLAYBOOK_ENFORCE_REGISTRY !== 'false',  // 默认启用注册表校验
-  allowedPlaybookPattern: /^[a-z][a-z0-9_]*$/  // 只允许小写字母、数字、下划线
+const AGE_ROOT = process.env.AGE_ROOT || join(PROJECT_ROOT, '..', 'amazon-growth-engine');
+
+const RED = '\x1b[31m';
+const GREEN = '\x1b[32m';
+const YELLOW = '\x1b[33m';
+const CYAN = '\x1b[36m';
+const RESET = '\x1b[0m';
+
+const ENGINE_ALIASES = {
+  'age': 'amazon-growth-engine',
+  'amazon-growth-engine': 'amazon-growth-engine'
 };
 
-// ===============================================================
-// 安全：Playbook 注册表校验
-// ===============================================================
+function canonicalJson(obj) {
+  return JSON.stringify(obj, Object.keys(obj).sort(), 0);
+}
 
-/**
- * 加载 engine_manifest.yaml（如果存在）
- * @returns {{ playbooks: Array<{id: string, entrypoint: string}> } | null}
- */
-function loadEngineManifest(enginePath) {
-  const manifestPath = join(enginePath, 'engine_manifest.yaml');
+function sha256(content) {
+  return createHash('sha256').update(content).digest('hex');
+}
+
+function generateRunId(engine, playbook, inputsHash) {
+  const ts = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+  const hashShort = inputsHash.slice(0, 8);
+  return `${engine}:${playbook}:${hashShort}:${ts}`;
+}
+
+function validatePlaybookRegistry(engineId, playbookId) {
+  const manifestPath = join(AGE_ROOT, 'engine_manifest.yaml');
 
   if (!existsSync(manifestPath)) {
-    console.warn(`[PlaybookRunner] WARNING: No engine_manifest.yaml found at ${manifestPath}`);
-    return null;
+    console.warn(`${YELLOW}[PlaybookRunner] Warning: engine_manifest.yaml not found${RESET}`);
+    return true;
   }
+
+  const manifest = parseYaml(readFileSync(manifestPath, 'utf-8'));
+  const normalizedEngineId = ENGINE_ALIASES[engineId] || engineId;
+
+  if (manifest.engine_id !== normalizedEngineId) {
+    throw new Error(`Engine ID mismatch: expected ${manifest.engine_id}, got ${normalizedEngineId}`);
+  }
+
+  const playbooks = manifest.playbooks || [];
+  const found = playbooks.find(p => p.id === playbookId);
+
+  if (!found) {
+    throw new Error(`Playbook ${playbookId} not registered in engine_manifest.yaml`);
+  }
+
+  return found;
+}
+
+async function runPlaybook(engineId, playbookId, inputs, options = {}) {
+  const startTime = Date.now();
+  const createdAt = new Date().toISOString();
+
+  const canonicalInputs = canonicalJson(inputs);
+  const inputsHash = sha256(canonicalInputs);
+  const runId = options.runId || generateRunId(engineId, playbookId, inputsHash);
+  const runIdSanitized = runId.replace(/:/g, '-');
+
+  console.log(`${CYAN}[PlaybookRunner] Starting: ${runId}${RESET}`);
 
   try {
-    const content = readFileSync(manifestPath, 'utf-8');
-    return parseYaml(content);
+    validatePlaybookRegistry(engineId, playbookId);
   } catch (e) {
-    console.error(`[PlaybookRunner] ERROR: Failed to parse engine_manifest.yaml: ${e.message}`);
-    return null;
-  }
-}
-
-/**
- * 验证 playbook_id 是否在注册表中
- * @returns {{ valid: boolean, error?: string, entrypoint?: string }}
- */
-function validatePlaybookRegistry(playbookId, enginePath) {
-  // 1. 基础格式校验（防止路径注入）
-  if (!DEFAULT_CONFIG.allowedPlaybookPattern.test(playbookId)) {
-    return {
-      valid: false,
-      error: `Invalid playbook_id format: ${playbookId}. Must match ${DEFAULT_CONFIG.allowedPlaybookPattern}`
-    };
+    console.error(`${RED}[PlaybookRunner] Validation error: ${e.message}${RESET}`);
+    throw e;
   }
 
-  // 2. 检查是否包含危险字符
-  if (playbookId.includes('..') || playbookId.includes('/') || playbookId.includes('\\')) {
-    return {
-      valid: false,
-      error: `Playbook_id contains path traversal characters: ${playbookId}`
-    };
-  }
-
-  // 3. 如果不强制注册表校验，跳过
-  if (!DEFAULT_CONFIG.enforceRegistry) {
-    console.warn(`[PlaybookRunner] WARNING: Registry enforcement disabled, allowing ${playbookId}`);
-    return { valid: true };
-  }
-
-  // 4. 加载 manifest 并校验
-  const manifest = loadEngineManifest(enginePath);
-
-  if (!manifest) {
-    // 无 manifest 但强制校验 → 拒绝
-    return {
-      valid: false,
-      error: 'No engine_manifest.yaml found but registry enforcement is enabled'
-    };
-  }
-
-  if (!manifest.playbooks || !Array.isArray(manifest.playbooks)) {
-    return {
-      valid: false,
-      error: 'engine_manifest.yaml has no playbooks array'
-    };
-  }
-
-  // 5. 查找匹配的 playbook
-  const registeredPlaybook = manifest.playbooks.find(p => p.id === playbookId);
-
-  if (!registeredPlaybook) {
-    const availablePlaybooks = manifest.playbooks.map(p => p.id).join(', ');
-    return {
-      valid: false,
-      error: `Playbook '${playbookId}' not in registry. Available: [${availablePlaybooks}]`
-    };
-  }
-
-  return {
-    valid: true,
-    entrypoint: registeredPlaybook.entrypoint
-  };
-}
-
-// ===============================================================
-// 工具函数
-// ===============================================================
-
-/**
- * 计算对象 SHA256（canonical JSON - key 排序）
- */
-function hashObject(obj) {
-  const json = canonicalJSON(obj);
-  return createHash('sha256').update(json).digest('hex');
-}
-
-/**
- * 生成 canonical JSON（递归 key 排序）
- * 确保同一输入始终产生相同 hash
- */
-function canonicalJSON(obj) {
-  if (obj === null || typeof obj !== 'object') {
-    return JSON.stringify(obj);
-  }
-
-  if (Array.isArray(obj)) {
-    return '[' + obj.map(item => canonicalJSON(item)).join(',') + ']';
-  }
-
-  const sortedKeys = Object.keys(obj).sort();
-  const pairs = sortedKeys.map(key => {
-    return JSON.stringify(key) + ':' + canonicalJSON(obj[key]);
-  });
-  return '{' + pairs.join(',') + '}';
-}
-
-/**
- * 生成规范化 run_id
- * 格式: {engine_id}:{playbook_id}:{inputs_hash_short}:{timestamp}
- */
-function generateRunId(engineId = 'age', playbookId = 'unknown', inputsHash = null) {
-  const now = new Date();
-  const ts = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);  // YYYYMMDDHHmmss
-  const hashShort = inputsHash ? inputsHash.slice(0, 8) : Math.random().toString(36).slice(2, 10);
-  return `${engineId}:${playbookId}:${hashShort}:${ts}`;
-}
-
-/**
- * 简化 run_id（用于文件名等场景）
- * 将 : 替换为 -，避免文件系统问题
- */
-function sanitizeRunId(runId) {
-  return runId.replace(/:/g, '-');
-}
-
-/**
- * 加载 playbook_io schema
- */
-function loadSchema() {
-  const schemaPath = join(CONTRACTS_DIR, 'playbook', 'playbook_io.schema.yaml');
-  if (!existsSync(schemaPath)) {
-    throw new Error(`Schema not found: ${schemaPath}`);
-  }
-  return parseYaml(readFileSync(schemaPath, 'utf-8'));
-}
-
-/**
- * 验证输出是否符合 schema（基础校验）
- */
-function validateOutput(output, schema) {
-  const errors = [];
-
-  // 检查必需字段
-  const required = schema.required || [];
-  for (const field of required) {
-    if (!(field in output)) {
-      errors.push(`Missing required field: ${field}`);
-    }
-  }
-
-  // 检查 outputs.verdict
-  if (output.outputs) {
-    const validVerdicts = ['OK', 'WARN', 'CRIT'];
-    if (!validVerdicts.includes(output.outputs.verdict)) {
-      errors.push(`Invalid verdict: ${output.outputs.verdict}`);
-    }
-
-    // 检查 recommendations
-    if (!Array.isArray(output.outputs.recommendations)) {
-      errors.push('outputs.recommendations must be an array');
-    }
-  }
-
-  return errors;
-}
-
-// ===============================================================
-// Playbook Runner
-// ===============================================================
-
-/**
- * 运行 playbook
- */
-async function runPlaybook(options) {
-  const playbookId = options.playbookId;
-  const inputs = options.inputs || {};
-  const bundlePath = options.bundlePath || DEFAULT_CONFIG.bundlePath;
-  const enginePath = options.enginePath || DEFAULT_CONFIG.enginePath;
-  const timeout = options.timeout || DEFAULT_CONFIG.timeout;
-  const engineId = options.engineId || 'age';
-
-  // 1. 验证 engine 存在
-  if (!existsSync(enginePath)) {
-    throw new Error(`Engine not found: ${enginePath}`);
-  }
-
-  // 2. 安全校验：验证 playbook_id 在注册表中（防止路径注入）
-  const registryCheck = validatePlaybookRegistry(playbookId, enginePath);
-  if (!registryCheck.valid) {
-    throw new Error(`[SECURITY] Playbook registry validation failed: ${registryCheck.error}`);
-  }
-
-  // 3. 查找 playbook entrypoint（优先使用 manifest 中的路径）
-  let playbookPath;
-  if (registryCheck.entrypoint) {
-    playbookPath = join(enginePath, registryCheck.entrypoint);
-  } else {
-    playbookPath = join(enginePath, 'src', 'playbooks', `${playbookId}.py`);
-  }
-
-  if (!existsSync(playbookPath)) {
-    throw new Error(`Playbook not found: ${playbookPath}`);
-  }
-
-  // 4. 计算 inputs hash（canonical JSON）
-  const inputsHash = hashObject(inputs);
-
-  // 5. 生成规范化 run_id: {engine}:{playbook}:{hash_short}:{ts}
-  const runId = options.runId || generateRunId(engineId, playbookId, inputsHash);
-  const runIdSanitized = sanitizeRunId(runId);
-
-  console.error(`[PlaybookRunner] Starting playbook: ${playbookId}`);
-  console.error(`[PlaybookRunner] Run ID: ${runId}`);
-  console.error(`[PlaybookRunner] Inputs hash: ${inputsHash}`);
-  console.error(`[PlaybookRunner] Engine path: ${enginePath}`);
-
-  // 5. 构建环境变量
-  const env = {
-    ...process.env,
-    PLAYBOOK_ID: playbookId,
-    RUN_ID: runId,
-    PYTHONPATH: enginePath
-  };
-
-  if (bundlePath) {
-    env.LEARNED_BUNDLE_PATH = bundlePath;
-  }
-
-  // 6. 构建输入 JSON
-  const playbookInput = {
-    playbook_id: playbookId,
-    run_id: runId,
-    inputs: inputs,
-    inputs_hash: inputsHash
-  };
-
-  // 7. 执行 subprocess
-  const startTime = Date.now();
-
-  const result = await new Promise((resolve, reject) => {
-    const pythonProcess = spawn(DEFAULT_CONFIG.pythonPath, [playbookPath], {
-      cwd: enginePath,
-      env,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    // 发送输入
-    pythonProcess.stdin.write(JSON.stringify(playbookInput));
-    pythonProcess.stdin.end();
-
-    pythonProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-      console.error(`[PlaybookRunner] ${data.toString().trim()}`);
-    });
-
-    // 设置超时
-    const timeoutId = setTimeout(() => {
-      pythonProcess.kill('SIGTERM');
-      reject(new Error(`Playbook timeout after ${timeout}ms`));
-    }, timeout);
-
-    pythonProcess.on('close', (code) => {
-      clearTimeout(timeoutId);
-
-      if (code !== 0) {
-        reject(new Error(`Playbook exited with code ${code}: ${stderr}`));
-        return;
+  // Get bundle version
+  let bundleVersion = null;
+  try {
+    const bundleDir = join(PROJECT_ROOT, 'state', 'artifacts', 'learned-bundles');
+    if (existsSync(bundleDir)) {
+      const manifestFiles = readdirSync(bundleDir).filter(f => f.endsWith('.manifest.json'));
+      if (manifestFiles.length > 0) {
+        const latestManifest = manifestFiles.sort().pop();
+        const manifest = JSON.parse(readFileSync(join(bundleDir, latestManifest), 'utf-8'));
+        bundleVersion = manifest.bundle_version;
       }
-
-      try {
-        const output = JSON.parse(stdout);
-        resolve(output);
-      } catch (e) {
-        reject(new Error(`Failed to parse playbook output: ${e.message}\nStdout: ${stdout}`));
-      }
-    });
-
-    pythonProcess.on('error', (err) => {
-      clearTimeout(timeoutId);
-      reject(new Error(`Failed to spawn playbook: ${err.message}`));
-    });
-  });
-
-  const executionTime = Date.now() - startTime;
-
-  // 8. 构建完整的 playbook_io 输出
-  const playbookOutput = {
-    playbook_id: playbookId,
-    run_id: runId,
-    timestamp: new Date().toISOString(),
-    engine_id: engineId,
-    inputs: {
-      hash: inputsHash,
-      data: inputs
-    },
-    outputs: {
-      verdict: result.verdict || result.outputs?.verdict || 'OK',
-      recommendations: result.recommendations || result.outputs?.recommendations || [],
-      evidence_package_ref: result.evidence_package_ref || result.outputs?.evidence_package_ref || `data/traces/${runIdSanitized}/evidence/`,
-      success_signal_hooks: result.success_signal_hooks || result.outputs?.success_signal_hooks || null,
-      metadata: {
-        execution_time_ms: executionTime,
-        api_calls: result.api_calls || 0,
-        bundle_version: bundlePath ? 'loaded' : null
-      }
-    },
-    status: 'success'
-  };
-
-  // 9. 验证输出
-  const schema = loadSchema();
-  const validationErrors = validateOutput(playbookOutput, schema);
-
-  if (validationErrors.length > 0) {
-    console.error(`[PlaybookRunner] Validation warnings: ${validationErrors.join(', ')}`);
+    }
+  } catch (e) {
+    console.warn(`${YELLOW}[PlaybookRunner] Could not determine bundle version${RESET}`);
   }
 
-  // 10. 保存 trace（使用 sanitized run_id 作为目录名）
-  const traceDir = join(TRACES_DIR, runIdSanitized);
-  if (!existsSync(traceDir)) {
-    mkdirSync(traceDir, { recursive: true });
-  }
+  // Create Evidence Package directory
+  const runDir = join(RUNS_DIR, runIdSanitized);
+  mkdirSync(runDir, { recursive: true });
+  mkdirSync(FACTS_DIR, { recursive: true });
 
-  const tracePath = join(traceDir, 'playbook_io.json');
-  writeFileSync(tracePath, JSON.stringify(playbookOutput, null, 2));
-  console.error(`[PlaybookRunner] Trace saved: ${tracePath}`);
-
-  // 11. 创建 Evidence Package（真实落地，非占位）
-  const evidenceDir = join(traceDir, 'evidence');
-  if (!existsSync(evidenceDir)) {
-    mkdirSync(evidenceDir, { recursive: true });
-  }
-
-  // 11a. inputs.json（canonical JSON）
-  const inputsPath = join(evidenceDir, 'inputs.json');
-  writeFileSync(inputsPath, JSON.stringify({
-    canonical_json: canonicalJSON(inputs),
+  // Save inputs.json
+  const inputsData = {
+    canonical_json: canonicalInputs,
     hash: inputsHash,
     raw: inputs,
-    timestamp: new Date().toISOString()
+    timestamp: createdAt
+  };
+  writeFileSync(join(runDir, 'inputs.json'), JSON.stringify(inputsData, null, 2));
+
+  // Execute playbook
+  let playbookOutput = null;
+  let execError = null;
+
+  try {
+    const playbookPath = join(AGE_ROOT, 'src', 'playbooks', `${playbookId}.py`);
+
+    if (!existsSync(playbookPath)) {
+      throw new Error(`Playbook not found: ${playbookPath}`);
+    }
+
+    const result = execSync(
+      `python3 "${playbookPath}"`,
+      {
+        cwd: AGE_ROOT,
+        input: JSON.stringify({ inputs, run_id: runId }),
+        encoding: 'utf-8',
+        timeout: 60000,
+        env: { ...process.env, PYTHONPATH: AGE_ROOT }
+      }
+    );
+
+    playbookOutput = JSON.parse(result.trim());
+  } catch (e) {
+    execError = e.message;
+    playbookOutput = { error: e.message };
+  }
+
+  const executionTimeMs = Date.now() - startTime;
+
+  // Validate output
+  const validationErrors = [];
+  if (playbookOutput && !playbookOutput.error) {
+    const outputs = playbookOutput.outputs || playbookOutput;
+
+    if (!outputs.verdict || !['OK', 'WARN', 'CRIT'].includes(outputs.verdict)) {
+      validationErrors.push('Invalid or missing verdict');
+    }
+
+    if (!Array.isArray(outputs.recommendations)) {
+      validationErrors.push('recommendations must be an array');
+    } else {
+      outputs.recommendations.forEach((rec, i) => {
+        if (!rec.action_type) validationErrors.push(`recommendations[${i}].action_type required`);
+        if (!rec.dry_run_result) validationErrors.push(`recommendations[${i}].dry_run_result required`);
+      });
+    }
+  }
+
+  // Save playbook_io.json
+  writeFileSync(join(runDir, 'playbook_io.json'), JSON.stringify({
+    run_id: runId,
+    playbook_id: playbookId,
+    inputs_hash: inputsHash,
+    output: playbookOutput,
+    validation_errors: validationErrors,
+    executed_at: createdAt
   }, null, 2));
 
-  // 11b. outputs.json
-  const outputsPath = join(evidenceDir, 'outputs.json');
-  writeFileSync(outputsPath, JSON.stringify({
-    verdict: playbookOutput.outputs.verdict,
-    recommendations: playbookOutput.outputs.recommendations,
-    metadata: playbookOutput.outputs.metadata,
-    timestamp: new Date().toISOString()
+  // Save operator_signal.json
+  writeFileSync(join(runDir, 'operator_signal.json'), JSON.stringify({
+    run_id: runId,
+    status: 'awaiting_decision',
+    awaiting_decision: true,
+    decision: null,
+    decided_by: null,
+    decided_at: null,
+    signature: null
   }, null, 2));
 
-  // 11c. manifest.json（evidence 包清单）
-  const manifestPath = join(evidenceDir, 'manifest.json');
-  writeFileSync(manifestPath, JSON.stringify({
+  // Save meta.json
+  const metaData = {
     run_id: runId,
     engine_id: engineId,
     playbook_id: playbookId,
-    created_at: new Date().toISOString(),
-    files: [
-      { name: 'inputs.json', purpose: 'canonical inputs with hash' },
-      { name: 'outputs.json', purpose: 'playbook outputs and recommendations' },
-      { name: 'operator_signal.json', purpose: 'operator feedback (if any)', optional: true }
-    ]
-  }, null, 2));
+    created_at: createdAt,
+    bundle_version: bundleVersion,
+    schema_version: '1.0.0',
+    inputs_hash: inputsHash,
+    exec_success: !execError && validationErrors.length === 0,
+    execution_time_ms: executionTimeMs
+  };
+  writeFileSync(join(runDir, 'meta.json'), JSON.stringify(metaData, null, 2));
 
-  console.error(`[PlaybookRunner] Evidence package created: ${evidenceDir}`);
-  console.error(`[PlaybookRunner] Completed in ${executionTime}ms`);
+  // Write to fact_run_outcomes.jsonl
+  const factRecord = {
+    run_id: runId,
+    timestamp: createdAt,
+    exec_success: !execError && validationErrors.length === 0,
+    operator_decision: 'none',
+    business_probe_status: 'pending',
+    business_probe_value: null,
+    measured_at: null
+  };
+  appendFileSync(FACTS_FILE, JSON.stringify(factRecord) + '\n');
 
-  return playbookOutput;
+  console.log(`${GREEN}[PlaybookRunner] Evidence Package v1 created: ${runDir}${RESET}`);
+  console.log(`[PlaybookRunner] Fact recorded: exec_success=${metaData.exec_success}`);
+
+  return { runId, runDir, meta: metaData };
 }
 
-// ===============================================================
-// CLI 入口
-// ===============================================================
-
-function parseArgs(args) {
-  const result = {
-    playbookId: null,
-    inputs: {},
-    bundlePath: null,
-    enginePath: null,
-    runId: null
-  };
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const result = { engine: null, playbook: null, inputs: {} };
 
   for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case '--playbook':
-      case '-p':
-        result.playbookId = args[++i];
-        break;
-      case '--input':
-      case '-i':
-        result.inputs = JSON.parse(args[++i]);
-        break;
-      case '--bundle':
-      case '-b':
-        result.bundlePath = args[++i];
-        break;
-      case '--engine':
-      case '-e':
-        result.enginePath = args[++i];
-        break;
-      case '--run-id':
-        result.runId = args[++i];
-        break;
-      case '--help':
-      case '-h':
-        console.log(`
-Playbook Runner - OS unified playbook execution
-
-Usage:
-  node playbook_runner.mjs --playbook <id> [options]
-
-Options:
-  --playbook, -p  Playbook ID (required)
-  --input, -i     Input JSON (default: {})
-  --bundle, -b    Learned bundle path
-  --engine, -e    Engine path (default: ../amazon-growth-engine)
-  --run-id        Custom run ID (default: auto-generated)
-  --help, -h      Show this help
-
-Examples:
-  node playbook_runner.mjs -p alert_score -i '{"alert_id":"xyz"}'
-  node playbook_runner.mjs -p anomaly_detect -i '{"asin":"B0C5Q8L7FP"}' -b ./bundle.tgz
-`);
-        process.exit(0);
-    }
+    if (args[i] === '--engine' && args[i + 1]) result.engine = args[++i];
+    else if (args[i] === '--playbook' && args[i + 1]) result.playbook = args[++i];
+    else if (args[i] === '--inputs' && args[i + 1]) result.inputs = JSON.parse(args[++i]);
   }
 
   return result;
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const options = parseArgs(args);
+  const args = parseArgs();
 
-  if (!options.playbookId) {
-    console.error('Error: --playbook is required');
+  if (!args.engine || !args.playbook) {
+    console.log('Usage: node playbook_runner.mjs --engine <id> --playbook <id> --inputs <json>');
     process.exit(1);
   }
 
   try {
-    const result = await runPlaybook({
-      playbookId: options.playbookId,
-      inputs: options.inputs,
-      bundlePath: options.bundlePath,
-      enginePath: options.enginePath,
-      runId: options.runId
-    });
-
-    // 输出 JSON 到 stdout
-    console.log(JSON.stringify(result, null, 2));
+    const result = await runPlaybook(args.engine, args.playbook, args.inputs);
+    console.log(JSON.stringify(result.meta, null, 2));
     process.exit(0);
   } catch (e) {
-    console.error(`[PlaybookRunner] Error: ${e.message}`);
-
-    // 输出错误格式
-    const errorOutput = {
-      playbook_id: options.playbookId,
-      run_id: options.runId || generateRunId(),
-      timestamp: new Date().toISOString(),
-      status: 'failed',
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: e.message
-      }
-    };
-
-    console.log(JSON.stringify(errorOutput, null, 2));
+    console.error(`${RED}Error: ${e.message}${RESET}`);
     process.exit(1);
   }
 }
 
-// 导出供其他模块使用
-export { runPlaybook, generateRunId, hashObject, canonicalJSON, sanitizeRunId, validatePlaybookRegistry, loadEngineManifest };
+export { runPlaybook, canonicalJson, sha256, generateRunId };
 
-// 直接运行
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
+main();
