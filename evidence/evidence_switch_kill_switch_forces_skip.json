@@ -1,7 +1,7 @@
 {
   "status": "success",
   "action": "skipped",
-  "timestamp": "2026-02-18T09:56:25.424Z",
+  "timestamp": "2026-02-18T11:45:14.328Z",
   "dry_run": true,
   "steps": {
     "switch_resolution": {
@@ -20,6 +20,7 @@
         "source": "state"
       },
       "config_errors": [],
+      "error_codes": [],
       "action": "SKIP"
     },
     "skip_reason": "kill_switch",

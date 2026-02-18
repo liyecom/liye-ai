@@ -1,7 +1,7 @@
 {
   "status": "success",
   "action": "skipped",
-  "timestamp": "2026-02-18T09:56:25.323Z",
+  "timestamp": "2026-02-18T11:45:14.229Z",
   "dry_run": true,
   "steps": {
     "switch_resolution": {
@@ -20,6 +20,7 @@
         "source": "none"
       },
       "config_errors": [],
+      "error_codes": [],
       "action": "SKIP"
     },
     "skip_reason": "disabled",

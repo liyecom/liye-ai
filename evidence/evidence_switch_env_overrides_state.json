@@ -1,7 +1,7 @@
 {
   "status": "success",
   "action": "skipped",
-  "timestamp": "2026-02-18T09:56:25.288Z",
+  "timestamp": "2026-02-18T11:45:14.195Z",
   "dry_run": true,
   "steps": {
     "switch_resolution": {
@@ -20,6 +20,7 @@
         "source": "none"
       },
       "config_errors": [],
+      "error_codes": [],
       "action": "RUN"
     },
     "cooldown": {
@@ -28,12 +29,12 @@
     },
     "lock": {
       "acquired": true,
-      "lock_id": "562cce4c"
+      "lock_id": "1ea5cf45"
     },
     "discover": {
       "new_run_ids": [],
       "window_start": "2026-01-01T00:00:00Z",
-      "window_end": "2026-02-18T09:56:25.291Z",
+      "window_end": "2026-02-18T11:45:14.197Z",
       "filtered_count": 0,
       "total_scanned": 0
     },

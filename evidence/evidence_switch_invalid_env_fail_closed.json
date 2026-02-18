@@ -1,7 +1,7 @@
 {
   "status": "success",
   "action": "skipped",
-  "timestamp": "2026-02-18T09:56:25.390Z",
+  "timestamp": "2026-02-18T11:45:14.294Z",
   "dry_run": true,
   "steps": {
     "switch_resolution": {
@@ -21,6 +21,9 @@
       },
       "config_errors": [
         "Invalid boolean value for LIYE_HEARTBEAT_ENABLED: \"maybe\". Expected: true|false|1|0|yes|no|on|off"
+      ],
+      "error_codes": [
+        "ENV_BOOL_INVALID"
       ],
       "action": "SKIP"
     },

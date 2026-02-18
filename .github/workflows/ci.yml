@@ -113,6 +113,28 @@ jobs:
         run: |
           find src/domain -name "*.yaml" -type f | head -20 | xargs -I {} echo "Checking {}"
 
+  heartbeat-switch-test:
+    name: Heartbeat Dual-Switch Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create test fixtures
+        run: |
+          mkdir -p tests/fixtures/heartbeat_learning/empty/data/runs
+          touch tests/fixtures/heartbeat_learning/empty/data/runs/.gitkeep
+          mkdir -p state/runtime/proactive
+          echo '{"enabled":false,"cooldown_minutes":30}' > state/runtime/proactive/heartbeat_learning_state.json
+          echo '{"learning_heartbeat":true}' > state/runtime/proactive/kill_switch.json
+
+      - name: Run dual-switch tests
+        run: node tests/test_dual_switch_heartbeat.mjs
+
   architecture-check:
     name: Architecture Check
     runs-on: ubuntu-latest

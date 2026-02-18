@@ -68,7 +68,8 @@ function resolveBooleanEnv(name) {
   return {
     value: null,
     source: 'env_invalid',
-    error: `Invalid boolean value for ${name}: "${raw}". Expected: true|false|1|0|yes|no|on|off`
+    error: `Invalid boolean value for ${name}: "${raw}". Expected: true|false|1|0|yes|no|on|off`,
+    error_code: 'ENV_BOOL_INVALID'
   };
 }
 
@@ -87,7 +88,8 @@ function resolveNumberEnv(name, { min = 1, max = 1440 } = {}) {
     return {
       value: null,
       source: 'env_invalid',
-      error: `Invalid number value for ${name}: "${raw}". Expected integer.`
+      error: `Invalid number value for ${name}: "${raw}". Expected integer.`,
+      error_code: 'ENV_NUMBER_INVALID'
     };
   }
 
@@ -95,7 +97,8 @@ function resolveNumberEnv(name, { min = 1, max = 1440 } = {}) {
     return {
       value: null,
       source: 'env_invalid',
-      error: `Value for ${name} out of range: ${num}. Expected ${min}-${max}.`
+      error: `Value for ${name} out of range: ${num}. Expected ${min}-${max}.`,
+      error_code: 'ENV_NUMBER_OUT_OF_RANGE'
     };
   }
 
@@ -120,7 +123,8 @@ function resolveNotifyPolicyEnv() {
   return {
     value: null,
     source: 'env_invalid',
-    error: `Invalid notify_policy: "${raw}". Expected: ${VALID_NOTIFY_POLICIES.join('|')}`
+    error: `Invalid notify_policy: "${raw}". Expected: ${VALID_NOTIFY_POLICIES.join('|')}`,
+    error_code: 'ENV_NOTIFY_POLICY_INVALID'
   };
 }
 
@@ -163,13 +167,17 @@ function checkKillSwitch() {
 function resolveSwitches() {
   const state = loadState();
   const config_errors = [];
+  const error_codes = [];  // 建议 1：统一错误码
 
   // 1. Kill Switch（最高优先级）
   const killSwitch = checkKillSwitch();
 
   // 2. 解析 enabled（ENV > state > default）
   const envEnabled = resolveBooleanEnv('LIYE_HEARTBEAT_ENABLED');
-  if (envEnabled.error) config_errors.push(envEnabled.error);
+  if (envEnabled.error) {
+    config_errors.push(envEnabled.error);
+    if (envEnabled.error_code) error_codes.push(envEnabled.error_code);
+  }
 
   let effective_enabled, enabled_source;
   if (envEnabled.value !== null) {
@@ -189,7 +197,10 @@ function resolveSwitches() {
 
   // 3. 解析 notify_policy（ENV > state > default）
   const envNotify = resolveNotifyPolicyEnv();
-  if (envNotify.error) config_errors.push(envNotify.error);
+  if (envNotify.error) {
+    config_errors.push(envNotify.error);
+    if (envNotify.error_code) error_codes.push(envNotify.error_code);
+  }
 
   let effective_notify_policy, notify_source;
   if (envNotify.value !== null) {
@@ -208,7 +219,10 @@ function resolveSwitches() {
 
   // 4. 解析 cooldown_minutes（ENV > state > default）
   const envCooldown = resolveNumberEnv('LIYE_HEARTBEAT_COOLDOWN_MINUTES', { min: 1, max: 1440 });
-  if (envCooldown.error) config_errors.push(envCooldown.error);
+  if (envCooldown.error) {
+    config_errors.push(envCooldown.error);
+    if (envCooldown.error_code) error_codes.push(envCooldown.error_code);
+  }
 
   let effective_cooldown_minutes, cooldown_source;
   if (envCooldown.value !== null) {
@@ -250,6 +264,7 @@ function resolveSwitches() {
     },
     kill_switch: killSwitch,
     config_errors,
+    error_codes,  // 建议 1：统一错误码
     action
   };
 }
@@ -329,7 +344,20 @@ function appendSwitchResolvedFact(switchResult) {
     source: switchResult.source,
     kill_switch: switchResult.kill_switch,
     config_errors: switchResult.config_errors,
+    error_codes: switchResult.error_codes,  // 建议 1：统一错误码
     action: switchResult.action
+  });
+}
+
+/**
+ * 建议 2：当 enabled 从 false→true 时记录点火事件
+ */
+function appendIgnitedFact(switchResult) {
+  appendFact({
+    event_type: 'heartbeat_ignited',
+    effective: switchResult.effective,
+    source: switchResult.source,
+    ignited_via: switchResult.source.enabled  // env/state
   });
 }
 
@@ -388,6 +416,12 @@ export async function runHeartbeat(options = {}) {
     result.steps.disabled_source = switchResult.source.enabled;
     console.error(`[heartbeat] SKIP: disabled (source: ${switchResult.source.enabled})`);
     return result;
+  }
+
+  // 建议 2：记录点火事件（enabled=true 时）
+  if (!dryRun && switchResult.effective.enabled) {
+    appendIgnitedFact(switchResult);
+    console.error(`[heartbeat] IGNITED via ${switchResult.source.enabled}`);
   }
 
   const state = loadState();
