@@ -318,9 +318,39 @@ docs/reasoning/demo_runs/*
 .liye/
 
 # ============================================
-# Proactive System Runtime State
+# Proactive System Runtime State (P1 收口)
 # ============================================
+# Runtime state: 点火产物，不进 main
 state/runtime/proactive/runs/
 state/runtime/proactive/facts/
 state/runtime/proactive/rate_limits.json
+state/runtime/learning/
+state/runtime/rate_limits/
+state/runtime/security_events.jsonl
+
+# Facts: append-only 事实文件，不进 main
+state/memory/facts/
+!state/memory/facts/.gitkeep
+
+# Runs: 执行记录，不进 main（AGE 的 runs 也不进）
+data/runs/
+!data/runs/.gitkeep
+
 # Note: kill_switch.json and pr_evidence/ are included for PR but may be gitignored later
+
+# ============================================
+# Learned Policies: 只保留 SAMPLE_* fixtures
+# ============================================
+# 真实 candidate/production policies 由 bundle 管理
+state/memory/learned/policies/candidate/*.yaml
+!state/memory/learned/policies/candidate/SAMPLE_*.yaml
+!state/memory/learned/policies/candidate/.gitkeep
+state/memory/learned/policies/production/*.yaml
+!state/memory/learned/policies/production/SAMPLE_*.yaml
+!state/memory/learned/policies/production/.gitkeep
+
+# ============================================
+# Evidence Packs (打包后的证据，不进 main)
+# ============================================
+evidence/p1-*.tgz
+evidence/*.tgz

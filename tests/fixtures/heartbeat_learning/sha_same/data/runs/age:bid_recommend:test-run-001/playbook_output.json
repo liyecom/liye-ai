@@ -1,0 +1,29 @@
+{
+  "engine_id": "age",
+  "playbook_id": "bid_recommend",
+  "run_id": "age:bid_recommend:test-run-001",
+  "tier": "recommend",
+  "risk_level": "medium",
+  "card_contract_version": "1",
+  "verdict": "WARN",
+  "primary_metric": { "name": "acos", "direction": "low", "lookback_days": 7 },
+  "entities": [
+    {
+      "entity_type": "keyword",
+      "entity_key": "abc123",
+      "label": "organic mushroom",
+      "current": { "acos": 0.18, "cvr": 0.22, "bid": 1.50, "match_type": "exact" },
+      "recommendation": {
+        "action": "bid_adjust",
+        "delta_pct": 25,
+        "delta_pct_cap": 30,
+        "suggested_bid": 1.88,
+        "reason": "High CVR (22.0%), low ACOS (18.0%)",
+        "confidence": 0.75,
+        "policy_id": "RULE_HIGH_CVR_EXACT"
+      }
+    }
+  ],
+  "rollback_plan": { "summary": "Revert bid", "steps": ["Revert", "Wait 48h"] },
+  "created_at": "2026-02-11T10:00:00Z"
+}
