@@ -61,12 +61,33 @@ alias gh-liye='gh auth switch --user liyecom && gh'
 alias gh-age='gh auth switch --user loudmirror && gh'
 ```
 
-### 3. Governance Rule
+### 3. Automated Enforcement (Added 2026-02-18)
+
+**Pre-push Hook** (fail-closed gate):
+```
+.git/hooks/pre-push  # Blocks push if gh account != repo owner
+```
+
+The hook automatically:
+- Detects repo owner from `remote.origin.url`
+- Checks current `gh auth` active account
+- Blocks push with clear error message if mismatch
+
+**Shell Wrapper** (optional, auto-switch):
+```bash
+source ~/.../gh-identity-guard.sh  # Auto-switches for pr create/merge/review
+```
+
+### 4. Governance Rule
 
 | Repo | Allowed gh Command | Blocked |
 |------|-------------------|---------|
 | liye_os | `gh-liye pr create` | `gh pr create` (without switch) |
 | AGE (private) | `gh-age pr create` | `gh pr create` (without switch) |
+
+**Automated Gates**:
+- `pre-push` hook blocks if gh account mismatch (fail-closed)
+- Manual `gh pr create` without switch will fail at push time
 
 ## Consequences
 
@@ -99,6 +120,7 @@ From **PR #94 onwards** in `liyecom/liye-ai`:
 
 **Affected PRs (Historical - Accepted)**:
 - liyecom/liye-ai #84 through #93 (author displayed as `loudmirror`)
+- liyecom/liye-ai #110 (author displayed as `loudmirror`, approved by `liyecom` on 2026-02-18)
 
 **Clean Slate Begins**:
-- liyecom/liye-ai #94+ (author MUST be `liyecom`)
+- liyecom/liye-ai #94+ (author MUST be `liyecom`, with exceptions noted above)
