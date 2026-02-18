@@ -1,0 +1,36 @@
+{
+  "status": "success",
+  "action": "skipped",
+  "timestamp": "2026-02-18T11:45:14.294Z",
+  "dry_run": true,
+  "steps": {
+    "switch_resolution": {
+      "effective": {
+        "enabled": false,
+        "notify_policy": "bundle_or_error",
+        "cooldown_minutes": 30
+      },
+      "source": {
+        "enabled": "env_invalid_fail_closed",
+        "notify_policy": "state",
+        "cooldown_minutes": "state"
+      },
+      "kill_switch": {
+        "active": false,
+        "source": "none"
+      },
+      "config_errors": [
+        "Invalid boolean value for LIYE_HEARTBEAT_ENABLED: \"maybe\". Expected: true|false|1|0|yes|no|on|off"
+      ],
+      "error_codes": [
+        "ENV_BOOL_INVALID"
+      ],
+      "action": "SKIP"
+    },
+    "skip_reason": "config_error_fail_closed",
+    "config_errors": [
+      "Invalid boolean value for LIYE_HEARTBEAT_ENABLED: \"maybe\". Expected: true|false|1|0|yes|no|on|off"
+    ]
+  },
+  "error": null
+}

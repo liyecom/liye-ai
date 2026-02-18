@@ -1,0 +1,30 @@
+{
+  "status": "success",
+  "action": "skipped",
+  "timestamp": "2026-02-18T11:45:14.229Z",
+  "dry_run": true,
+  "steps": {
+    "switch_resolution": {
+      "effective": {
+        "enabled": false,
+        "notify_policy": "bundle_or_error",
+        "cooldown_minutes": 30
+      },
+      "source": {
+        "enabled": "env",
+        "notify_policy": "state",
+        "cooldown_minutes": "state"
+      },
+      "kill_switch": {
+        "active": false,
+        "source": "none"
+      },
+      "config_errors": [],
+      "error_codes": [],
+      "action": "SKIP"
+    },
+    "skip_reason": "disabled",
+    "disabled_source": "env"
+  },
+  "error": null
+}
