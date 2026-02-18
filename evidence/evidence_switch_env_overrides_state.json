@@ -1,0 +1,43 @@
+{
+  "status": "success",
+  "action": "skipped",
+  "timestamp": "2026-02-18T09:56:25.288Z",
+  "dry_run": true,
+  "steps": {
+    "switch_resolution": {
+      "effective": {
+        "enabled": true,
+        "notify_policy": "bundle_or_error",
+        "cooldown_minutes": 30
+      },
+      "source": {
+        "enabled": "env",
+        "notify_policy": "state",
+        "cooldown_minutes": "state"
+      },
+      "kill_switch": {
+        "active": false,
+        "source": "none"
+      },
+      "config_errors": [],
+      "action": "RUN"
+    },
+    "cooldown": {
+      "passed": true,
+      "remaining_minutes": 0
+    },
+    "lock": {
+      "acquired": true,
+      "lock_id": "562cce4c"
+    },
+    "discover": {
+      "new_run_ids": [],
+      "window_start": "2026-01-01T00:00:00Z",
+      "window_end": "2026-02-18T09:56:25.291Z",
+      "filtered_count": 0,
+      "total_scanned": 0
+    },
+    "skip_reason": "no_new_runs"
+  },
+  "error": null
+}
