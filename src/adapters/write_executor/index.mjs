@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Write Executor v1.0.0
+ * Write Executor v1.1.0
  * SSOT: src/adapters/write_executor/index.mjs
  *
  * Week 5 写入执行器（默认 dry-run）：
@@ -10,11 +10,17 @@
  *
  * Week 5 默认 dry_run=true，不触碰真实 API
  * Week 6 可选开启真实写入
+ *
+ * S1 Phase B 更新 (v1.1.0)：
+ * - 强制调用 execution_gate.preflightCheck() 作为硬前置
+ * - deny-before-run：任何 WRITE_LIMITED 动作先过 gate
+ * - 不可绕过：executeWithGate() 是唯一的外部入口
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { preflightCheck } from '../../governance/learning/execution_gate.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
@@ -242,16 +248,31 @@ const executors = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 主执行函数
+// 执行回执协议 v0
+// ═══════════════════════════════════════════════════════════
+
+const RECEIPTS_FILE = join(PROJECT_ROOT, 'state', 'memory', 'facts', 'fact_execution_receipts.jsonl');
+
+/**
+ * 记录执行回执（append-only）
+ */
+function appendExecutionReceipt(receipt) {
+  const dir = dirname(RECEIPTS_FILE);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  appendFileSync(RECEIPTS_FILE, JSON.stringify(receipt) + '\n');
+}
+
+// ═══════════════════════════════════════════════════════════
+// 主执行函数（内部使用，不直接导出给外部）
 // ═══════════════════════════════════════════════════════════
 
 /**
- * 执行写入动作
+ * 执行写入动作（内部函数，不可直接调用）
  * @param {Object} recommendation - 推荐动作
  * @param {boolean} dry_run - 是否 dry-run（默认 true）
  * @returns {ExecutionResult}
  */
-export async function execute(recommendation, dry_run = true) {
+async function executeInternal(recommendation, dry_run = true) {
   const { action_type, parameters } = recommendation;
 
   const executor = executors[action_type];
@@ -263,10 +284,139 @@ export async function execute(recommendation, dry_run = true) {
   return await executor(parameters, dry_run);
 }
 
+// 保留旧的 execute 导出用于向后兼容，但标记为 deprecated
 /**
- * 执行并保存结果到 Evidence Package
+ * @deprecated 使用 executeWithGate() 代替，确保 preflight 检查
  */
-export async function executeAndSave(runId, recommendationIndex, dry_run = true) {
+export async function execute(recommendation, dry_run = true) {
+  console.warn('[DEPRECATED] execute() is deprecated. Use executeWithGate() for mandatory preflight checks.');
+  return executeInternal(recommendation, dry_run);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 带 Gate 的执行函数（S1 Phase B 新增）
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 判断 action_type 是否需要 WRITE_LIMITED 权限
+ */
+function requiresWritePermission(action_type) {
+  const READ_ONLY_ACTIONS = ['investigate_metric', 'no_action'];
+  return !READ_ONLY_ACTIONS.includes(action_type);
+}
+
+/**
+ * 带 Gate 的执行函数（推荐入口）
+ *
+ * deny-before-run：在执行任何写入动作前，强制调用 execution_gate.preflightCheck()
+ * 不可绕过：所有外部调用都应使用此函数
+ *
+ * @param {Object} options
+ * @param {Object} options.recommendation - 推荐动作
+ * @param {string} options.policyId - 策略 ID（用于 drift 检查）
+ * @param {string} options.currentTier - 当前执行层级（observe/recommend/execute_limited）
+ * @param {boolean} options.dryRun - 是否 dry-run（默认 true）
+ * @param {string} options.runId - 运行 ID（用于审计）
+ * @returns {{ allowed: boolean, result?: ExecutionResult, gateResult?: Object, receipt?: Object }}
+ */
+export async function executeWithGate(options) {
+  const {
+    recommendation,
+    policyId = null,
+    currentTier = 'execute_limited',
+    dryRun = true,
+    runId = `exec-${Date.now()}`
+  } = options;
+
+  const { action_type } = recommendation;
+  const actionHash = `${action_type}-${JSON.stringify(recommendation.parameters || {}).slice(0, 50)}`;
+
+  // 判断是否需要 WRITE_LIMITED 权限
+  const needsWrite = requiresWritePermission(action_type);
+  const actionType = needsWrite ? 'WRITE_LIMITED' : 'READ_ONLY';
+
+  // 1. Preflight Check（deny-before-run）
+  const gateResult = preflightCheck({
+    policyId,
+    actionType,
+    currentTier,
+    recordFacts: true  // 记录到 facts
+  });
+
+  // 2. 如果 gate 拒绝，立即返回
+  if (!gateResult.allowed) {
+    const receipt = {
+      timestamp: new Date().toISOString(),
+      run_id: runId,
+      action_hash: actionHash,
+      action_type,
+      status: 'DENIED',
+      reason: gateResult.reason,
+      denied_by: gateResult.denied_by,
+      tier: currentTier,
+      policy_id: policyId,
+      dry_run: dryRun
+    };
+
+    appendExecutionReceipt(receipt);
+
+    return {
+      allowed: false,
+      gateResult,
+      receipt
+    };
+  }
+
+  // 3. Gate 通过，执行动作
+  try {
+    const result = await executeInternal(recommendation, dryRun);
+
+    const receipt = {
+      timestamp: new Date().toISOString(),
+      run_id: runId,
+      action_hash: actionHash,
+      action_type,
+      status: dryRun ? 'DRY_RUN_APPLIED' : 'APPLIED',
+      tier: currentTier,
+      policy_id: policyId,
+      dry_run: dryRun,
+      success: result.success,
+      details_summary: result.details?.mode || 'executed'
+    };
+
+    appendExecutionReceipt(receipt);
+
+    return {
+      allowed: true,
+      result,
+      gateResult,
+      receipt
+    };
+  } catch (error) {
+    const receipt = {
+      timestamp: new Date().toISOString(),
+      run_id: runId,
+      action_hash: actionHash,
+      action_type,
+      status: 'ERROR',
+      error: error.message,
+      tier: currentTier,
+      policy_id: policyId,
+      dry_run: dryRun
+    };
+
+    appendExecutionReceipt(receipt);
+
+    throw error;
+  }
+}
+
+/**
+ * 执行并保存结果到 Evidence Package（带 Gate 检查）
+ *
+ * S1 Phase B 更新：强制使用 executeWithGate()
+ */
+export async function executeAndSave(runId, recommendationIndex, dry_run = true, options = {}) {
   const runIdSanitized = runId.replace(/:/g, '-');
   const runDir = join(RUNS_DIR, runIdSanitized);
 
@@ -284,18 +434,45 @@ export async function executeAndSave(runId, recommendationIndex, dry_run = true)
     throw new Error(`Recommendation index ${recommendationIndex} not found`);
   }
 
-  // 执行
-  const result = await execute(recommendation, dry_run);
+  // 提取 policy_id 和 tier（从 playbook_io 或 options）
+  const policyId = options.policyId || playbookIo.policy_id || null;
+  const currentTier = options.tier || playbookIo.tier || 'execute_limited';
+
+  // 使用带 Gate 的执行（deny-before-run）
+  const gatedResult = await executeWithGate({
+    recommendation,
+    policyId,
+    currentTier,
+    dryRun: dry_run,
+    runId
+  });
 
   // 保存 execution_result.json
   const executionResultPath = join(runDir, 'execution_result.json');
-  writeFileSync(executionResultPath, JSON.stringify({
-    run_id: runId,
-    recommendation_index: recommendationIndex,
-    ...result.toJSON()
-  }, null, 2));
 
-  return { result, path: executionResultPath };
+  if (gatedResult.allowed) {
+    writeFileSync(executionResultPath, JSON.stringify({
+      run_id: runId,
+      recommendation_index: recommendationIndex,
+      gate_passed: true,
+      ...gatedResult.result.toJSON(),
+      receipt: gatedResult.receipt
+    }, null, 2));
+
+    return { result: gatedResult.result, path: executionResultPath, receipt: gatedResult.receipt };
+  } else {
+    // Gate 拒绝，保存拒绝信息
+    writeFileSync(executionResultPath, JSON.stringify({
+      run_id: runId,
+      recommendation_index: recommendationIndex,
+      gate_passed: false,
+      denied_by: gatedResult.gateResult.denied_by,
+      reason: gatedResult.gateResult.reason,
+      receipt: gatedResult.receipt
+    }, null, 2));
+
+    throw new Error(`Execution denied by gate: ${gatedResult.gateResult.reason}`);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
