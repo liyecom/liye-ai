@@ -1,0 +1,70 @@
+# Learned Bundle Smoke Test
+# SSOT: .github/workflows/learned-bundle-smoke.yml
+#
+# 每次 PR 构建并验证 bundle（不发布）
+# fail-closed: 任何校验失败则阻断合并
+
+name: Build & Verify Learned Bundle
+
+on:
+  pull_request:
+    paths:
+      - 'state/memory/learned/**'
+      - '.claude/scripts/learning/build-learned-bundle.mjs'
+      - '.claude/scripts/learning/validate-learned-bundle.mjs'
+      - '_meta/contracts/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'state/memory/learned/**'
+      - '.claude/scripts/learning/build-learned-bundle.mjs'
+      - '.claude/scripts/learning/validate-learned-bundle.mjs'
+      - '_meta/contracts/**'
+
+jobs:
+  learned-bundle-smoke:
+    name: Build & Verify Learned Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install yaml
+
+      - name: Create required directories
+        run: |
+          mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
+          mkdir -p state/memory/learned/skills/{sandbox,production}
+          mkdir -p state/artifacts/learned-bundles
+
+      - name: Build learned bundle
+        run: |
+          node .claude/scripts/learning/build-learned-bundle.mjs smoke-test-${{ github.run_number }}
+
+      - name: List bundle output
+        run: |
+          ls -la state/artifacts/learned-bundles/
+          echo "---"
+          cat state/artifacts/learned-bundles/*.manifest.json || true
+
+      - name: Validate learned bundle
+        run: |
+          BUNDLE=$(ls state/artifacts/learned-bundles/*.tgz | head -1)
+          echo "Validating: $BUNDLE"
+          node .claude/scripts/learning/validate-learned-bundle.mjs "$BUNDLE"
+
+      - name: Upload bundle artifact (for debugging)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: learned-bundle-smoke-${{ github.run_number }}
+          path: state/artifacts/learned-bundles/
+          retention-days: 7

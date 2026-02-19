@@ -400,6 +400,7 @@ function validateContractSchemas() {
 
 /**
  * Manifest 字段白名单（additionalProperties: false 等效）
+ * 包含 v1.0.0 builder 生成的所有字段
  */
 const MANIFEST_ALLOWED_FIELDS = [
   'bundle_version',
@@ -407,7 +408,13 @@ const MANIFEST_ALLOWED_FIELDS = [
   'created_at',
   'sha256',
   'policies_index',
-  'skills_index'
+  'skills_index',
+  // v1.0.0 新增字段
+  'git_sha',
+  'contracts',
+  'bundle_sha256',
+  'included_policies',
+  'files'
 ];
 
 const POLICY_INDEX_ALLOWED_FIELDS = [

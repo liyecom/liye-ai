@@ -357,3 +357,5 @@ state/memory/learned/policies/production/*.yaml
 # ============================================
 evidence/p1-*.tgz
 evidence/*.tgz
+# Bundle build outputs
+dist/bundles/

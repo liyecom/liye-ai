@@ -13,7 +13,7 @@
  * 输出：state/artifacts/learned-bundles/learned-bundle_<version>.tgz
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, cpSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, cpSync, rmSync, statSync } from 'fs';
 import { join, basename, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parse as parseYaml } from 'yaml';
@@ -25,6 +25,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 const POLICIES_DIR = join(PROJECT_ROOT, 'state', 'memory', 'learned', 'policies');
 const OUTPUT_DIR = join(PROJECT_ROOT, 'state', 'artifacts', 'learned-bundles');
+const CONTRACTS_DIR = join(PROJECT_ROOT, '_meta', 'contracts');
 
 // 颜色输出
 const RED = '\x1b[31m';
@@ -32,6 +33,49 @@ const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
 const RESET = '\x1b[0m';
+
+/**
+ * 获取当前 git SHA
+ */
+function getGitSha() {
+  try {
+    return execSync('git rev-parse HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' }).trim();
+  } catch (e) {
+    return 'unknown';
+  }
+}
+
+/**
+ * 获取 contracts 版本信息
+ */
+function getContractsVersions() {
+  const contracts = {};
+  const schemaFiles = [
+    { name: 'learned_policy', path: join(CONTRACTS_DIR, 'learning', 'learned_policy.schema.yaml') },
+    { name: 'engine_manifest', path: join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml') },
+    { name: 'playbook_io', path: join(CONTRACTS_DIR, 'playbook', 'playbook_io.schema.yaml') }
+  ];
+
+  for (const schema of schemaFiles) {
+    if (existsSync(schema.path)) {
+      try {
+        const content = readFileSync(schema.path, 'utf-8');
+        const data = parseYaml(content);
+        contracts[schema.name] = data.version || '1.0.0';
+      } catch (e) {
+        contracts[schema.name] = 'unknown';
+      }
+    }
+  }
+  return contracts;
+}
+
+/**
+ * 获取文件大小
+ */
+function getFileSize(filePath) {
+  return statSync(filePath).size;
+}
 
 /**
  * 计算文件 SHA256
@@ -176,12 +220,38 @@ async function buildBundle(version) {
   // 5. 按 policy_id 排序 index（确保可复现）
   policiesIndex.sort((a, b) => a.policy_id.localeCompare(b.policy_id));
 
-  // 6. 生成 manifest.json（第一阶段：sha256 为空）
+  // 5.5. 构建 files 列表（所有打包文件的 path, sha256, size）
+  const files = [];
+  for (const policy of policies) {
+    const destPath = join(buildDir, policy.relativePath);
+    if (existsSync(destPath)) {
+      const content = readFileSync(destPath);
+      files.push({
+        path: policy.relativePath,
+        sha256: createHash('sha256').update(content).digest('hex'),
+        size: content.length
+      });
+    }
+  }
+  // 按 path 排序确保可复现
+  files.sort((a, b) => a.path.localeCompare(b.path));
+
+  // 6. 生成 manifest.json（第一阶段：bundle_sha256 为空）
   const manifest = {
     bundle_version: bundleVersion,
     schema_version: '1.0.0',
     created_at: new Date().toISOString(),
-    sha256: '', // 第一阶段为空
+    git_sha: getGitSha(),
+    contracts: getContractsVersions(),
+    bundle_sha256: '', // 第一阶段为空，打包后填充
+    included_policies: policiesIndex.map(p => ({
+      name: p.policy_id,
+      scope: p.scope,
+      policy_hash: p.sha256
+    })),
+    files: files,
+    // Legacy fields for backward compatibility
+    sha256: '',
     policies_index: policiesIndex,
     skills_index: []
   };
@@ -201,7 +271,8 @@ async function buildBundle(version) {
 
   // 8. 计算整体 SHA256
   const bundleHash = sha256File(tempTgzPath);
-  manifest.sha256 = bundleHash;
+  manifest.bundle_sha256 = bundleHash;
+  manifest.sha256 = bundleHash; // Legacy compatibility
 
   // 9. 更新 manifest 并重新打包
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
