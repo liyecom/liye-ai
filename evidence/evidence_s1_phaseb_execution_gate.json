@@ -1,0 +1,124 @@
+{
+  "evidence_id": "S1-PHASEB-EXEC-GATE-001",
+  "title": "S1 Phase B: Execution Gate Hardhook Verification",
+  "timestamp": "2026-02-19T20:35:00Z",
+  "status": "PASS",
+  "phase": "S1 Phase B",
+  "description": "Verification that execution_gate.preflightCheck() is enforced as hard prerequisite for all WRITE_LIMITED paths, with AGE execution request/receipt v0 protocol",
+
+  "verification_criteria": {
+    "gap_a_closed": {
+      "description": "execution_gate.preflightCheck() must be called before any write execution",
+      "status": "PASS",
+      "evidence": [
+        "src/adapters/write_executor/index.mjs imports and calls preflightCheck()",
+        "9/9 hardhook tests passing",
+        "Tier permission blocks WRITE_LIMITED in recommend/observe tiers",
+        "Kill switch blocks WRITE_LIMITED when active",
+        "Drift monitor blocks quarantined policies"
+      ]
+    },
+    "gap_b_closed": {
+      "description": "AGE has execution request/receipt v0 protocol for dry-run validation",
+      "status": "PASS",
+      "evidence": [
+        "src/execution/execute_request.py handles request validation (fail-closed)",
+        "15/15 AGE tests passing",
+        "Receipts written to JSONL (append-only)",
+        "DRY_RUN_APPLIED status on successful dry-run"
+      ]
+    }
+  },
+
+  "test_results": {
+    "liye_os_hardhook": {
+      "file": "tests/governance/test_execution_gate_hardhook.mjs",
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "tests": [
+        "recommend tier blocks WRITE_LIMITED",
+        "observe tier blocks WRITE_LIMITED",
+        "execute_limited tier allows WRITE_LIMITED",
+        "kill_switch blocks when active",
+        "drift/quarantine blocks execution",
+        "READ_ONLY allowed in any tier",
+        "receipts file exists and is append-only"
+      ]
+    },
+    "age_execution_request": {
+      "file": "tests/test_execution_request.py",
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "tests": [
+        "valid_request_passes",
+        "missing_run_id_fails",
+        "missing_tier_fails",
+        "invalid_tier_fails",
+        "execute_limited_without_approval_fails",
+        "empty_actions_fails",
+        "action_missing_type_fails",
+        "action_invalid_type_fails",
+        "dry_run_execution_succeeds",
+        "dry_run_produces_receipts",
+        "receipts_are_append_only",
+        "validation_failure_returns_error",
+        "action_hash_deterministic",
+        "different_actions_different_hash",
+        "s1_phaseb_dry_run_flow"
+      ]
+    }
+  },
+
+  "audit_trail": {
+    "fact_execution_gate": {
+      "path": "state/memory/facts/fact_execution_gate.jsonl",
+      "records": 12,
+      "sample_decisions": [
+        {"decision": "DENY", "reason": "tier_permission", "tier": "recommend"},
+        {"decision": "DENY", "reason": "kill_switch", "tier": "execute_limited"},
+        {"decision": "DENY", "reason": "drift/quarantine", "tier": "execute_limited"},
+        {"decision": "ALLOW", "reason": "all_checks_passed", "tier": "execute_limited"}
+      ]
+    },
+    "fact_execution_receipts": {
+      "path": "state/memory/facts/fact_execution_receipts.jsonl",
+      "records": 12,
+      "sample_statuses": [
+        {"status": "DENIED", "denied_by": "tier_permission"},
+        {"status": "DENIED", "denied_by": "kill_switch"},
+        {"status": "DENIED", "denied_by": "drift_monitor"},
+        {"status": "DRY_RUN_APPLIED", "success": true}
+      ]
+    }
+  },
+
+  "branches": {
+    "liye_os": {
+      "branch": "fix/s1-phaseb-execution-gate-hardhook",
+      "commit": "a18e3d4",
+      "message": "fix(governance): enforce execution_gate as hard preflight for all WRITE_LIMITED paths"
+    },
+    "amazon_growth_engine": {
+      "branch": "feat/s1-execution-receipt-v0",
+      "commit": "2866bde",
+      "message": "feat(execution): add execution request/receipt v0 (dry-run) for negative keyword write path"
+    }
+  },
+
+  "architecture_compliance": {
+    "deny_before_run": true,
+    "fail_closed": true,
+    "append_only_receipts": true,
+    "three_tier_execution": true,
+    "kill_switch_priority": ["env", "state_file", "default"]
+  },
+
+  "next_steps": [
+    "Create PR for LiYe OS: fix/s1-phaseb-execution-gate-hardhook",
+    "Create PR for AGE: feat/s1-execution-receipt-v0",
+    "Merge PR #117 after human approval",
+    "S1 Phase C: Full E2E test with OS → AGE → Receipt flow"
+  ]
+}
