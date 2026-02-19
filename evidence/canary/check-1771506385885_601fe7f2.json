@@ -1,0 +1,91 @@
+{
+  "evidence_id": "CANARY-1771506385886-601fe7f2",
+  "title": "S1.5 Production Canary: NEGATIVE_KEYWORD_ADD",
+  "timestamp": "2026-02-19T13:06:25.886Z",
+  "status": "SKIPPED",
+  "action": {
+    "kind": "NEGATIVE_KEYWORD_ADD",
+    "type": "WRITE_LIMITED",
+    "payload": {
+      "keyword_text": "canary test keyword",
+      "match_type": "negative_exact",
+      "campaign_id": "camp-canary-001",
+      "ad_group_id": "adg-canary-001"
+    },
+    "hash": "601fe7f26ee203d6"
+  },
+  "result": {
+    "status": "CHECK_ONLY",
+    "run_id": "check-1771506385885",
+    "timestamp": "2026-02-19T13:06:25.885Z",
+    "api_response": null,
+    "error": null
+  },
+  "preflight": {
+    "passed": true,
+    "checks_count": 7,
+    "checks": [
+      {
+        "check": "kill_switch",
+        "passed": true
+      },
+      {
+        "check": "action_kind_allowlist",
+        "passed": true,
+        "kind": "NEGATIVE_KEYWORD_ADD"
+      },
+      {
+        "check": "campaign_allowlist",
+        "passed": true,
+        "campaign_id": "camp-canary-001"
+      },
+      {
+        "check": "ad_group_allowlist",
+        "passed": true,
+        "ad_group_id": "adg-canary-001"
+      },
+      {
+        "check": "max_writes_cap",
+        "passed": true,
+        "max": 1,
+        "note": "Single action"
+      },
+      {
+        "check": "tier_gate",
+        "passed": true,
+        "tier": "execute_limited"
+      },
+      {
+        "check": "approval_gate",
+        "passed": true
+      }
+    ]
+  },
+  "rollback": {
+    "kind": "NEGATIVE_KEYWORD_REMOVE",
+    "payload": {
+      "keyword_text": "canary test keyword",
+      "match_type": "negative_exact",
+      "campaign_id": "camp-canary-001",
+      "ad_group_id": "adg-canary-001",
+      "original_action_hash": "601fe7f26ee203d6",
+      "original_run_id": "check-1771506385885",
+      "rollback_reason": "auto_generated"
+    },
+    "generated_at": "2026-02-19T13:06:25.886Z",
+    "expires_at": "2026-02-20T13:06:25.886Z"
+  },
+  "config_snapshot": {
+    "config_id": "s15_production_canary",
+    "caps": {
+      "max_writes_per_request": 1,
+      "max_writes_per_day": 5,
+      "write_cooldown_minutes": 30
+    },
+    "allowlist_summary": {
+      "action_kinds": 1,
+      "campaign_ids": 1,
+      "ad_group_ids": 1
+    }
+  }
+}
