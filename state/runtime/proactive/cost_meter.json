@@ -1,0 +1,17 @@
+{
+  "enabled_default": false,
+  "daily_budget_units": 200,
+  "deny_action": "skip_notify_only",
+  "notify_policy": "bundle_or_error",
+  "cost_weights": {
+    "discover_runs": 1,
+    "learning_pipeline": 2,
+    "bundle_build": 3,
+    "validate_bundle": 2,
+    "notifier": 5,
+    "operator_callback": 1,
+    "business_probe": 2
+  },
+  "error_policy": "fail_closed",
+  "window_timezone": "UTC"
+}

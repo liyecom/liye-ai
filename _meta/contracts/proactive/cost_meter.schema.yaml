@@ -1,0 +1,255 @@
+# Cost Meter Schema v1.0.0
+# SSOT: _meta/contracts/proactive/cost_meter.schema.yaml
+# Purpose: Machine-enforced contract for cost_meter configuration and events
+#
+# References:
+# - Heartbeat Runner: .claude/scripts/learning/heartbeat_runner.mjs
+# - Cost Meter: .claude/scripts/proactive/cost_meter.mjs
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/proactive/cost_meter.v1.yaml"
+version: "1.0.0"
+
+definitions:
+  # ============================================================================
+  # Cost Meter Configuration (state/runtime/proactive/cost_meter.json)
+  # ============================================================================
+  cost_meter_config:
+    type: object
+    required:
+      - enabled_default
+      - daily_budget_units
+      - deny_action
+      - notify_policy
+      - cost_weights
+      - error_policy
+      - window_timezone
+    properties:
+      enabled_default:
+        type: boolean
+        default: false
+        description: "Default enabled state (ENV > state > default). Merge-safe: false by default."
+
+      daily_budget_units:
+        type: integer
+        minimum: 1
+        maximum: 10000
+        default: 200
+        description: "Daily budget in abstract cost units (not USD)."
+
+      deny_action:
+        type: string
+        enum: ["skip_notify_only", "skip_all"]
+        default: "skip_notify_only"
+        description: |
+          Action when budget exceeded:
+          - skip_notify_only: Learning continues, but notifier suppressed
+          - skip_all: Entire heartbeat run skipped
+
+      notify_policy:
+        type: string
+        enum: ["off", "bundle_or_error", "always"]
+        default: "bundle_or_error"
+        description: "Notification policy (inherited from heartbeat)"
+
+      cost_weights:
+        type: object
+        required:
+          - discover_runs
+          - learning_pipeline
+          - bundle_build
+          - validate_bundle
+          - notifier
+          - operator_callback
+          - business_probe
+        properties:
+          discover_runs:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 1
+          learning_pipeline:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 2
+          bundle_build:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 3
+          validate_bundle:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 2
+          notifier:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 5
+            description: "High weight: noise = human cost, easy to lose control"
+          operator_callback:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 1
+          business_probe:
+            type: integer
+            minimum: 0
+            maximum: 100
+            default: 2
+        additionalProperties: false
+
+      error_policy:
+        type: string
+        enum: ["fail_closed", "fail_open"]
+        default: "fail_closed"
+        description: "Config error handling: fail_closed = SKIP + record facts"
+
+      window_timezone:
+        type: string
+        default: "UTC"
+        description: "Timezone for daily budget window reset"
+
+    additionalProperties: false
+
+  # ============================================================================
+  # Cost Meter State (state/runtime/proactive/cost_meter_state.json)
+  # ============================================================================
+  cost_meter_state:
+    type: object
+    required:
+      - version
+      - current_date_utc
+      - daily_used_units
+      - last_reset_at
+      - last_event_id
+      - total_events_today
+    properties:
+      version:
+        type: integer
+        const: 1
+
+      current_date_utc:
+        type: string
+        format: date
+        description: "Current date for budget window (UTC, format: YYYY-MM-DD)"
+
+      daily_used_units:
+        type: integer
+        minimum: 0
+        description: "Cost units used today"
+
+      last_reset_at:
+        type: string
+        format: date-time
+        description: "Last budget reset timestamp (ISO 8601)"
+
+      last_event_id:
+        type: string
+        nullable: true
+        description: "UUID of last recorded cost event"
+
+      total_events_today:
+        type: integer
+        minimum: 0
+        description: "Total cost events recorded today"
+
+    additionalProperties: false
+
+  # ============================================================================
+  # Cost Event (data/facts/fact_cost_events.jsonl line)
+  # ============================================================================
+  cost_event:
+    type: object
+    required:
+      - ts
+      - event_type
+      - run_id
+      - component
+      - quantity
+      - unit
+      - cost_units
+    properties:
+      ts:
+        type: string
+        format: date-time
+        description: "Event timestamp (ISO 8601)"
+
+      event_type:
+        type: string
+        enum:
+          - cost_event_recorded
+          - cost_budget_exceeded
+          - cost_meter_skipped
+          - cost_config_error
+          - cost_switch_resolved
+        description: "Event type for audit trail"
+
+      run_id:
+        type: string
+        minLength: 1
+        description: "Heartbeat run ID (required for audit)"
+
+      inputs_hash:
+        type: string
+        pattern: "^sha256:[a-f0-9]{64}$"
+        description: "SHA256 hash of inputs (optional but recommended)"
+
+      component:
+        type: string
+        enum:
+          - heartbeat_runner
+          - discover_runs
+          - learning_pipeline
+          - bundle_build
+          - validate_bundle
+          - notifier
+          - business_probe
+          - operator_callback
+        description: "Cost source component"
+
+      quantity:
+        type: number
+        minimum: 0
+        description: "Raw quantity (count, ms, bytes)"
+
+      unit:
+        type: string
+        enum: ["count", "ms", "bytes"]
+        description: "Quantity unit"
+
+      cost_units:
+        type: number
+        minimum: 0
+        description: "Computed cost units (quantity * weight)"
+
+      meta:
+        type: object
+        properties:
+          reason:
+            type: string
+            maxLength: 500
+          remaining_budget_units:
+            type: number
+          projected_cost_units:
+            type: number
+          config_errors:
+            type: array
+            items:
+              type: string
+          error_codes:
+            type: array
+            items:
+              type: string
+        additionalProperties: false
+        description: "Optional metadata for debugging/audit"
+
+    additionalProperties: false
+
+# Root schema for validation entry points
+oneOf:
+  - $ref: "#/definitions/cost_meter_config"
+  - $ref: "#/definitions/cost_meter_state"
+  - $ref: "#/definitions/cost_event"
