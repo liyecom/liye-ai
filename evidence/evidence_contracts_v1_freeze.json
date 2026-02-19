@@ -1,0 +1,71 @@
+{
+  "evidence_id": "contracts_v1_freeze",
+  "description": "Contracts v1.0.0 Freeze - Schema + Validator + CI Gate",
+  "created_at": "2026-02-19T03:50:00.000Z",
+  "base_git_sha": "af137b77c164656158be5bdbd7735a88b8b2cc9d",
+  "contracts": {
+    "learned_policy": {
+      "path": "_meta/contracts/learning/learned_policy.schema.yaml",
+      "version": "1.0.0",
+      "key_constraints": [
+        "additionalProperties: false",
+        "required: schema_version, scope, success_signals, confidence",
+        "confidence: number 0~1",
+        "success_signals: exec + operator + business"
+      ]
+    },
+    "engine_manifest": {
+      "path": "_meta/contracts/engine/engine_manifest.schema.yaml",
+      "version": "1.0.0",
+      "key_constraints": [
+        "additionalProperties: false",
+        "required: engine_id, domain, contracts_compat, playbooks, write_capability",
+        "write_capability: none | limited | full"
+      ]
+    },
+    "playbook_io": {
+      "path": "_meta/contracts/playbook/playbook_io.schema.yaml",
+      "version": "1.1.1",
+      "key_constraints": [
+        "additionalProperties: false",
+        "required: playbook_id, run_id, timestamp, inputs, outputs",
+        "outputs.verdict: OK | WARN | CRIT",
+        "recommendations[].tier: observe | recommend | execute_limited"
+      ]
+    }
+  },
+  "validator": {
+    "path": "_meta/contracts/scripts/validate-contracts.mjs",
+    "version": "1.1.0",
+    "exit_code_on_error": 1,
+    "features": [
+      "Schema validation",
+      "Directory partition check",
+      "Lifecycle rules (production approval)",
+      "SSOT check (single source of truth)",
+      "Bundle validation (--bundle mode)"
+    ]
+  },
+  "ci_workflow": {
+    "path": ".github/workflows/contracts-gate.yml",
+    "job_name": "Validate Contracts",
+    "triggers": ["pull_request", "push:main"],
+    "required_check": true
+  },
+  "runbook": {
+    "path": "docs/runbooks/contracts-v1-freeze.md",
+    "contents": [
+      "Boundary declaration (Control Plane vs Domain Engine)",
+      "v1.0.0 upgrade rules",
+      "Local validation commands",
+      "CI failure fix paths"
+    ]
+  },
+  "assertions": [
+    "All 3 contracts have version field",
+    "All 3 contracts have additionalProperties: false at root level",
+    "Validator exits 1 on any error (fail-closed)",
+    "CI gate runs on relevant path changes",
+    "Runbook covers common error scenarios"
+  ]
+}
