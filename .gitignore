@@ -324,6 +324,7 @@ docs/reasoning/demo_runs/*
 state/runtime/proactive/runs/
 state/runtime/proactive/facts/
 state/runtime/proactive/rate_limits.json
+state/runtime/proactive/cost_meter_state.json
 state/runtime/learning/
 state/runtime/rate_limits/
 state/runtime/security_events.jsonl
@@ -331,6 +332,8 @@ state/runtime/security_events.jsonl
 # Facts: append-only 事实文件，不进 main
 state/memory/facts/
 !state/memory/facts/.gitkeep
+data/facts/*.jsonl
+!data/facts/.gitkeep
 
 # Runs: 执行记录，不进 main（AGE 的 runs 也不进）
 data/runs/

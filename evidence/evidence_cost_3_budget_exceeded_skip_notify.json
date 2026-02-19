@@ -1,0 +1,58 @@
+{
+  "evidence_id": "evidence_cost_3_budget_exceeded_skip_notify",
+  "description": "P1 验收：预算超限，skip_notify_only 生效",
+  "created_at": "2026-02-19T01:22:00.000Z",
+  "inputs": {
+    "env": {
+      "LIYE_COST_METER_ENABLED": "true",
+      "LIYE_COST_DAILY_BUDGET_UNITS": "5",
+      "LIYE_COST_DENY_ACTION": "skip_notify_only"
+    },
+    "config": {
+      "enabled_default": false,
+      "daily_budget_units": 200
+    }
+  },
+  "output": {
+    "action": "ENABLED",
+    "heartbeat_action": "completed",
+    "budget_checked": true,
+    "budget_check": {
+      "passed": false,
+      "action": "skip_notify_only",
+      "projected_cost": 13,
+      "remaining_budget": 5
+    },
+    "notification": {
+      "should_notify": false,
+      "suppressed_by_cost": true
+    }
+  },
+  "facts_sample": [
+    {
+      "ts": "2026-02-19T01:22:00.000Z",
+      "event_type": "cost_budget_exceeded",
+      "run_id": "heartbeat-test-3",
+      "component": "heartbeat_runner",
+      "quantity": 1,
+      "unit": "count",
+      "cost_units": 0,
+      "meta": {
+        "projected_cost_units": 13,
+        "remaining_budget_units": 5,
+        "deny_action_applied": "skip_notify_only",
+        "denied_components": ["notifier"],
+        "reason": "daily_budget_exceeded"
+      }
+    }
+  ],
+  "assertions": [
+    "budget_check.passed === false",
+    "budget_check.action === 'skip_notify_only'",
+    "学习继续执行（heartbeat_action !== 'skipped'）",
+    "通知被抑制（suppressed_by_cost === true）",
+    "记录 cost_budget_exceeded 事实",
+    "denied_components: ['notifier'] 明确标识被阻止的组件",
+    "deny_action_applied: 'skip_notify_only' 明确标识应用的策略"
+  ]
+}

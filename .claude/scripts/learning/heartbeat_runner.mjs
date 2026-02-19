@@ -23,6 +23,14 @@ import { randomUUID } from 'crypto';
 import { discoverNewRuns } from './discover_new_runs.mjs';
 import { runLearningPipeline } from './learning_pipeline_v0_runner.mjs';
 import { buildOnChange } from './bundle_build_on_change.mjs';
+import {
+  resolveCostSwitch,
+  checkBudget,
+  recordCosts,
+  recordSwitchResolvedFact,
+  recordBudgetExceededFact,
+  checkAndRecordDayReset
+} from '../proactive/cost_meter.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
@@ -436,6 +444,61 @@ export async function runHeartbeat(options = {}) {
     return result;
   }
 
+  // Step 1.5: Cost Meter Preflight (budget check)
+  console.error('[heartbeat] Step 1.5: Cost meter preflight check...');
+  const runId = `heartbeat-${Date.now()}`;
+  const costSwitchResult = resolveCostSwitch();
+  result.steps.cost_switch = costSwitchResult;
+
+  // Record cost switch resolution (audit required, even if disabled)
+  if (!dryRun) {
+    recordSwitchResolvedFact(runId, costSwitchResult);
+    // Record day reset if UTC day boundary was crossed
+    checkAndRecordDayReset(runId);
+  }
+
+  // If cost meter is enabled, check budget
+  if (costSwitchResult.action === 'ENABLED') {
+    const projectedSteps = {
+      discover_runs: 1,
+      learning_pipeline: 1,
+      bundle_build: 1,
+      validate_bundle: 1,
+      notifier: 1
+    };
+    const budgetCheck = checkBudget(projectedSteps);
+    result.steps.budget_check = budgetCheck;
+
+    if (!budgetCheck.passed) {
+      console.error(`[heartbeat] Cost budget exceeded: projected=${budgetCheck.projected_cost}, remaining=${budgetCheck.remaining_budget}`);
+
+      // Record budget exceeded fact (audit required)
+      if (!dryRun) {
+        // Determine denied components based on deny_action
+        const deniedComponents = budgetCheck.action === 'skip_all' ? ['all'] : ['notifier'];
+        recordBudgetExceededFact(
+          runId,
+          budgetCheck.projected_cost,
+          budgetCheck.remaining_budget,
+          budgetCheck.action,
+          deniedComponents
+        );
+      }
+
+      // Apply deny_action
+      if (budgetCheck.action === 'skip_all') {
+        result.action = 'skipped';
+        result.steps.skip_reason = 'cost_budget_exceeded';
+        result.steps.cost_deny_action = 'skip_all';
+        return result;
+      } else {
+        // skip_notify_only: continue but flag notification suppression
+        result.steps.cost_suppress_notify = true;
+        console.error('[heartbeat] Cost budget exceeded but continuing (skip_notify_only)');
+      }
+    }
+  }
+
   // Step 2: Lock
   console.error('[heartbeat] Step 2: Acquiring lock...');
   const lockResult = tryAcquireLock(state);
@@ -515,11 +578,34 @@ export async function runHeartbeat(options = {}) {
     result.steps.facts_recorded = true;
 
     // Step 7: Notification
-    const shouldNotify = determineNotification(switchResult.effective.notify_policy, bundleResult, pipelineResult);
+    let shouldNotify = determineNotification(switchResult.effective.notify_policy, bundleResult, pipelineResult);
+
+    // Apply cost suppression if budget exceeded with skip_notify_only
+    if (result.steps.cost_suppress_notify) {
+      shouldNotify = false;
+      console.error('[heartbeat] Notification suppressed due to cost budget (skip_notify_only)');
+    }
+
     result.steps.notification = {
       should_notify: shouldNotify,
-      policy: switchResult.effective.notify_policy
+      policy: switchResult.effective.notify_policy,
+      suppressed_by_cost: result.steps.cost_suppress_notify || false
     };
+
+    // Step 7.5: Cost Recording (post-run)
+    console.error('[heartbeat] Step 7.5: Recording costs...');
+    if (!dryRun && costSwitchResult.action === 'ENABLED') {
+      const completedSteps = {
+        discover_runs: { count: 1, unit: 'count' },
+        learning_pipeline: { count: 1, unit: 'count' },
+        bundle_build: { count: bundleResult.content_sha_changed ? 1 : 0, unit: 'count' },
+        validate_bundle: { count: bundleResult.content_sha_changed ? 1 : 0, unit: 'count' },
+        notifier: { count: shouldNotify ? 1 : 0, unit: 'count' }
+      };
+
+      const costResult = recordCosts(runId, completedSteps);
+      result.steps.cost_recording = costResult;
+    }
 
     // Step 8: Update state
     if (!dryRun) {

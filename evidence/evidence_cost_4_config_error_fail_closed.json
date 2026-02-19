@@ -1,0 +1,52 @@
+{
+  "evidence_id": "evidence_cost_4_config_error_fail_closed",
+  "description": "P0 验收：配置错误导致 fail-closed",
+  "created_at": "2026-02-19T01:23:00.000Z",
+  "inputs": {
+    "env": {
+      "LIYE_COST_METER_ENABLED": "invalid_value"
+    },
+    "config": {
+      "enabled_default": false,
+      "daily_budget_units": 200,
+      "error_policy": "fail_closed"
+    }
+  },
+  "output": {
+    "action": "SKIP",
+    "heartbeat_action": "normal",
+    "config_errors": [
+      "Invalid boolean value for LIYE_COST_METER_ENABLED: \"invalid_value\""
+    ],
+    "error_codes": [
+      "ENV_BOOL_INVALID"
+    ]
+  },
+  "facts_sample": [
+    {
+      "ts": "2026-02-19T01:23:00.000Z",
+      "event_type": "cost_switch_resolved",
+      "run_id": "heartbeat-test-4",
+      "component": "heartbeat_runner",
+      "quantity": 1,
+      "unit": "count",
+      "cost_units": 0,
+      "meta": {
+        "action": "SKIP",
+        "config_errors": [
+          "Invalid boolean value for LIYE_COST_METER_ENABLED: \"invalid_value\""
+        ],
+        "error_codes": [
+          "ENV_BOOL_INVALID"
+        ]
+      }
+    }
+  ],
+  "assertions": [
+    "ENV 非法值触发 fail-closed",
+    "cost_switch.action === 'SKIP'",
+    "Heartbeat 正常运行（cost meter 被 fail-closed 跳过）",
+    "config_errors 记录在 facts 中",
+    "error_codes 提供机器可读的错误码"
+  ]
+}

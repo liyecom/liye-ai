@@ -1,0 +1,55 @@
+{
+  "evidence_id": "evidence_cost_2_env_enable",
+  "description": "P1 验收：ENV 启用 cost meter，预算检查通过",
+  "created_at": "2026-02-19T01:21:00.000Z",
+  "inputs": {
+    "env": {
+      "LIYE_COST_METER_ENABLED": "true"
+    },
+    "config": {
+      "enabled_default": false,
+      "daily_budget_units": 200
+    }
+  },
+  "output": {
+    "action": "ENABLED",
+    "heartbeat_action": "completed",
+    "budget_checked": true,
+    "budget_check": {
+      "passed": true,
+      "projected_cost": 13,
+      "remaining_budget": 200
+    }
+  },
+  "facts_sample": [
+    {
+      "ts": "2026-02-19T01:21:00.000Z",
+      "event_type": "cost_switch_resolved",
+      "run_id": "heartbeat-test-2",
+      "component": "heartbeat_runner",
+      "quantity": 1,
+      "unit": "count",
+      "cost_units": 0,
+      "meta": {
+        "action": "ENABLED",
+        "source": {
+          "enabled": "env"
+        }
+      }
+    },
+    {
+      "ts": "2026-02-19T01:21:01.000Z",
+      "event_type": "cost_event_recorded",
+      "run_id": "heartbeat-test-2",
+      "component": "discover_runs",
+      "quantity": 1,
+      "unit": "count",
+      "cost_units": 1
+    }
+  ],
+  "assertions": [
+    "ENV 优先级高于 config (source.enabled === 'env')",
+    "budget_check.passed === true",
+    "记录 cost_event_recorded 事实"
+  ]
+}
