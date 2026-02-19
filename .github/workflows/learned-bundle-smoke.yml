@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
           mkdir -p state/memory/learned/skills/{sandbox,production}
-          mkdir -p dist/bundles
+          mkdir -p state/artifacts/learned-bundles
 
       - name: Build learned bundle
         run: |
@@ -51,13 +51,13 @@ jobs:
 
       - name: List bundle output
         run: |
-          ls -la dist/bundles/
+          ls -la state/artifacts/learned-bundles/
           echo "---"
-          cat dist/bundles/*.manifest.json || true
+          cat state/artifacts/learned-bundles/*.manifest.json || true
 
       - name: Validate learned bundle
         run: |
-          BUNDLE=$(ls dist/bundles/*.tgz | head -1)
+          BUNDLE=$(ls state/artifacts/learned-bundles/*.tgz | head -1)
           echo "Validating: $BUNDLE"
           node .claude/scripts/learning/validate-learned-bundle.mjs "$BUNDLE"
 
@@ -66,5 +66,5 @@ jobs:
         if: always()
         with:
           name: learned-bundle-smoke-${{ github.run_number }}
-          path: dist/bundles/
+          path: state/artifacts/learned-bundles/
           retention-days: 7

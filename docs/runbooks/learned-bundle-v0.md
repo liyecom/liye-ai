@@ -22,7 +22,7 @@ node .claude/scripts/learning/build-learned-bundle.mjs 0.1.0
 ## 输出目录结构
 
 ```
-dist/bundles/
+state/artifacts/learned-bundles/
 ├── learned-bundle_0.1.0.tgz           # 打包的 bundle
 └── learned-bundle_0.1.0.manifest.json  # manifest 副本（调试用）
 ```
@@ -59,7 +59,7 @@ learned-bundle_0.1.0.tgz
 
 ```bash
 # 校验 bundle 完整性
-node .claude/scripts/learning/validate-learned-bundle.mjs dist/bundles/learned-bundle_0.1.0.tgz
+node .claude/scripts/learning/validate-learned-bundle.mjs state/artifacts/learned-bundles/learned-bundle_0.1.0.tgz
 ```
 
 ## 交付给 AGE
@@ -69,7 +69,7 @@ node .claude/scripts/learning/validate-learned-bundle.mjs dist/bundles/learned-b
 export LEARNED_BUNDLE_PATH=/absolute/path/to/learned-bundle_0.1.0.tgz
 
 # 方式 2：复制到 AGE 指定目录
-cp dist/bundles/learned-bundle_0.1.0.tgz /path/to/age/bundles/
+cp state/artifacts/learned-bundles/learned-bundle_0.1.0.tgz /path/to/age/bundles/
 ```
 
 ## CI 集成

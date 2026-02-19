@@ -330,7 +330,7 @@ async function main() {
   if (!bundlePath) {
     console.error(`Usage: node validate-learned-bundle.mjs <bundle.tgz>`);
     console.error(`\nExample:`);
-    console.error(`  node validate-learned-bundle.mjs dist/bundles/learned-bundle_0.1.0.tgz`);
+    console.error(`  node validate-learned-bundle.mjs state/artifacts/learned-bundles/learned-bundle_0.1.0.tgz`);
     process.exit(1);
   }
 
