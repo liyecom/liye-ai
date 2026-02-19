@@ -1,0 +1,1 @@
+{"timestamp":"2026-02-19T13:06:25.886Z","event_type":"canary_execution","evidence_id":"CANARY-1771506385886-601fe7f2","action_kind":"NEGATIVE_KEYWORD_ADD","status":"CHECK_ONLY","mode":"check","preflight_passed":true,"rollback_available":true}

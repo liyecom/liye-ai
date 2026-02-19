@@ -1,0 +1,113 @@
+# S1.5 Production Canary Configuration
+# SSOT: .claude/config/s15_production_canary.yaml
+#
+# This is the MOST RESTRICTIVE write configuration.
+# Every field is a hard constraint - fail-closed on any violation.
+
+schema_version: "1.0.0"
+config_id: "s15_production_canary"
+created_at: "2026-02-19T12:45:00Z"
+
+# =============================================================================
+# Hard Caps (non-negotiable)
+# =============================================================================
+
+caps:
+  # Single write per request - no batching in canary
+  max_writes_per_request: 1
+
+  # Daily limit across all requests
+  max_writes_per_day: 5
+
+  # Cooldown between writes (minutes)
+  write_cooldown_minutes: 30
+
+# =============================================================================
+# Allowlist (whitelist - everything else DENIED)
+# =============================================================================
+
+allowlist:
+  # Only these action kinds can be executed
+  action_kinds:
+    - NEGATIVE_KEYWORD_ADD
+
+  # Only these campaigns can be modified
+  campaign_ids:
+    - "camp-canary-001"  # Replace with real campaign ID
+
+  # Only these ad groups can be modified
+  ad_group_ids:
+    - "adg-canary-001"   # Replace with real ad group ID
+
+# =============================================================================
+# Required Gates (all must pass)
+# =============================================================================
+
+required_gates:
+  # Must be in execute_limited tier
+  tier: "execute_limited"
+
+  # Human approval required
+  require_approval: true
+
+  # Cost meter must be enabled
+  cost_meter_enabled: true
+
+  # Cost budget (in cents to avoid float issues)
+  cost_budget_cents: 5000  # $50
+
+  # Kill switch must be OFF
+  kill_switch_off: true
+
+# =============================================================================
+# Rollback Strategy
+# =============================================================================
+
+rollback:
+  # Automatically generate rollback action
+  auto_generate: true
+
+  # Rollback mapping: action -> inverse action
+  mapping:
+    NEGATIVE_KEYWORD_ADD: "NEGATIVE_KEYWORD_REMOVE"
+    BID_ADJUST: "BID_REVERT"
+
+  # Store rollback info in receipt
+  store_in_receipt: true
+
+  # Rollback window (hours) - after this, manual rollback required
+  window_hours: 24
+
+# =============================================================================
+# Evidence Requirements
+# =============================================================================
+
+evidence:
+  # Every write must produce evidence artifact
+  require_artifact: true
+
+  # Evidence must include before/after state
+  require_diff: true
+
+  # Evidence path pattern
+  artifact_path: "evidence/canary/{run_id}_{action_hash}.json"
+
+# =============================================================================
+# Monitoring & Alerts
+# =============================================================================
+
+monitoring:
+  # Alert on any ERROR status
+  alert_on_error: true
+
+  # Alert channel (feishu webhook ID)
+  alert_channel: "canary_alerts"
+
+  # Log all decisions to facts
+  log_to_facts: true
+
+  # Metric tracking
+  track_metrics:
+    - "canary_writes_total"
+    - "canary_errors_total"
+    - "canary_rollbacks_total"
