@@ -1,0 +1,59 @@
+{
+  "evidence_id": "S1-PHASEC-E2E-1771504874716",
+  "title": "S1 Phase C: Full E2E Execution Flow",
+  "timestamp": "2026-02-19T12:41:14.716Z",
+  "status": "PASS",
+  "phase": "S1 Phase C",
+  "description": "End-to-end flow: OS -> AGE -> Receipt ingestion",
+  "request_summary": {
+    "run_id": "run-1771504836523-4zyxi9",
+    "tier": "execute_limited",
+    "require_approval": true,
+    "actions_count": 3,
+    "inputs_hash": "94239e4b05b6e850",
+    "generated_at": "2026-02-19T12:40:36.523Z"
+  },
+  "receipt_summary": {
+    "total_receipts": 3,
+    "dry_run_applied": 3,
+    "applied": 0,
+    "denied": 0,
+    "errors": 0
+  },
+  "ingest_result": {
+    "facts_appended": 3,
+    "fact_path": "/Users/liye/github/liye_os/state/memory/facts/fact_execution_receipts.jsonl",
+    "ingested_at": "2026-02-19T12:41:14.715Z"
+  },
+  "verification": {
+    "request_actions_match_receipts": true,
+    "all_receipts_have_run_id": true,
+    "all_receipts_have_status": true,
+    "all_receipts_have_timestamp": true
+  },
+  "artifacts": {
+    "execution_request": "execution_request.json",
+    "receipt_file": "execution_receipts.jsonl",
+    "evidence_file": "evidence_phasec.json"
+  },
+  "receipts_detail": [
+    {
+      "action_hash": "c52635a4086d73fb",
+      "action_kind": "NEGATIVE_KEYWORD_ADD",
+      "status": "DRY_RUN_APPLIED",
+      "reason": null
+    },
+    {
+      "action_hash": "c775358e61da326c",
+      "action_kind": "BID_ADJUST",
+      "status": "DRY_RUN_APPLIED",
+      "reason": null
+    },
+    {
+      "action_hash": "c52635a4086d73fb",
+      "action_kind": "NEGATIVE_KEYWORD_ADD",
+      "status": "DRY_RUN_APPLIED",
+      "reason": null
+    }
+  ]
+}
