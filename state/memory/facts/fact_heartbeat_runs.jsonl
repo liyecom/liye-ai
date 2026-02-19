@@ -1,1 +1,2 @@
 {"timestamp":"2026-02-19T12:40:36.524Z","event_type":"heartbeat_run","run_id":"run-1771504836523-4zyxi9","tier":"execute_limited","actions_count":3,"preflight_checks":3,"request_emitted":true,"request_path":"/tmp/s1_phasec_e2e/execution_request.json"}
+{"timestamp":"2026-02-19T13:57:33.166Z","event_type":"heartbeat_run","run_id":"run-1771509453164-n2a82r","tier":"execute_limited","actions_count":3,"preflight_checks":3,"request_emitted":true,"request_path":"/tmp/s1_main_release_evidence/execution_request.json"}
