@@ -1,0 +1,206 @@
+{
+  "evidence_type": "week3_governance_implementation",
+  "version": "1.0.0",
+  "created_at": "2026-02-19T19:30:00Z",
+  "ssot": "evidence/evidence_week3_tier_drift_kill.json",
+
+  "summary": {
+    "description": "Week 3 Governance Implementation: Tier Manager, Drift Monitor, Kill Switch",
+    "scope": "observe → recommend → execute_limited execution tiers with fail-closed governance",
+    "status": "PASSED",
+    "tests_passed": 10,
+    "tests_failed": 0
+  },
+
+  "deliverables": {
+    "config": {
+      "path": ".claude/config/execution_tiers.yaml",
+      "description": "Three-tier execution configuration with promotion criteria",
+      "safety_baseline": "execute_limited.require_approval = true"
+    },
+    "validator": {
+      "path": "_meta/contracts/scripts/validate-execution-tiers.mjs",
+      "checks": 9,
+      "fail_closed": true
+    },
+    "tier_manager": {
+      "path": "src/governance/learning/tier_manager.mjs",
+      "features": [
+        "Three-signal evaluation (exec/operator/business)",
+        "Deterministic promotion decisions",
+        "Physical file movement (sandbox → candidate → production)",
+        "Append-only facts recording"
+      ]
+    },
+    "drift_monitor": {
+      "path": "src/governance/learning/drift_monitor.mjs",
+      "features": [
+        "Consecutive failure detection (threshold: 3)",
+        "Performance degradation detection (threshold: 20%)",
+        "Automatic demotion (production → candidate → quarantine)",
+        "WRITE_LIMITED blocking for drifted policies"
+      ]
+    },
+    "kill_switch": {
+      "path": "src/governance/learning/kill_switch.mjs",
+      "priority_chain": ["ENV", "state_file", "default"],
+      "features": [
+        "Full priority chain resolution",
+        "Audit trail (kill_switch_resolved, kill_switch_applied)",
+        "CLI management (--enable, --disable, --check)"
+      ]
+    },
+    "execution_gate": {
+      "path": "src/governance/learning/execution_gate.mjs",
+      "check_order": [
+        "config_load",
+        "kill_switch",
+        "tier_permission",
+        "require_approval",
+        "drift_monitor"
+      ],
+      "fail_closed": true
+    }
+  },
+
+  "test_results": {
+    "test_file": "tests/governance/test_week3_tier_drift_kill.mjs",
+    "execution_date": "2026-02-19",
+    "results": [
+      {
+        "id": 1,
+        "name": "Validator fails on missing required fields",
+        "status": "PASS",
+        "category": "validator"
+      },
+      {
+        "id": 2,
+        "name": "Validator fails when execute_limited.require_approval != true",
+        "status": "PASS",
+        "category": "validator"
+      },
+      {
+        "id": 3,
+        "name": "Kill switch blocks WRITE_LIMITED when active",
+        "status": "PASS",
+        "category": "kill_switch"
+      },
+      {
+        "id": 4,
+        "name": "Tier manager produces deterministic decisions",
+        "status": "PASS",
+        "category": "tier_manager"
+      },
+      {
+        "id": 5,
+        "name": "Promotion triggered when criteria met",
+        "status": "PASS",
+        "category": "tier_manager"
+      },
+      {
+        "id": 6,
+        "name": "No promotion with reason when criteria not met",
+        "status": "PASS",
+        "category": "tier_manager"
+      },
+      {
+        "id": 7,
+        "name": "Drift triggers on consecutive failures",
+        "status": "PASS",
+        "category": "drift_monitor"
+      },
+      {
+        "id": 8,
+        "name": "Single failure does not trigger drift (no false positive)",
+        "status": "PASS",
+        "category": "drift_monitor"
+      },
+      {
+        "id": 9,
+        "name": "Execution gate integrates tier/drift/kill checks",
+        "status": "PASS",
+        "category": "execution_gate"
+      },
+      {
+        "id": 10,
+        "name": "Execution gate denies WRITE_LIMITED in observe tier",
+        "status": "PASS",
+        "category": "execution_gate"
+      }
+    ]
+  },
+
+  "architecture_compliance": {
+    "fail_closed": {
+      "description": "All config/parse errors result in DENY, not permissive defaults",
+      "verified": true,
+      "evidence": "validator exits 1 on any error, execution_gate returns DENY on config_fail_closed"
+    },
+    "append_only_facts": {
+      "description": "All decisions recorded to JSONL files",
+      "verified": true,
+      "fact_files": [
+        "state/memory/facts/fact_tier_decisions.jsonl",
+        "state/memory/facts/fact_drift_events.jsonl",
+        "state/memory/facts/fact_kill_switch_events.jsonl",
+        "state/memory/facts/fact_execution_gate.jsonl"
+      ]
+    },
+    "deterministic_replay": {
+      "description": "Same inputs produce same outputs",
+      "verified": true,
+      "evidence": "Test 4 verifies tier_manager produces identical results on repeated runs"
+    },
+    "safety_baseline": {
+      "description": "execute_limited requires human approval",
+      "verified": true,
+      "constraint": "require_approval: true is enforced by validator"
+    }
+  },
+
+  "ci_integration": {
+    "workflow": ".github/workflows/execution-tiers-gate.yml",
+    "jobs": [
+      "validate-execution-tiers",
+      "governance-tests",
+      "integration-check"
+    ],
+    "triggers": [
+      ".claude/config/execution_tiers.yaml",
+      "src/governance/learning/**",
+      "_meta/contracts/scripts/validate-execution-tiers.mjs",
+      "tests/governance/**"
+    ]
+  },
+
+  "runbook": {
+    "path": "docs/runbooks/week3-tier-drift-kill.md",
+    "sections": [
+      "概述",
+      "核心组件",
+      "目录结构",
+      "测试",
+      "CI 集成",
+      "故障排查",
+      "紧急操作",
+      "安全约束"
+    ]
+  },
+
+  "north_star_alignment": {
+    "plan_reference": ".claude/plans/eager-crunching-sunset.md",
+    "week": 3,
+    "deliverables_completed": [
+      "execution_tiers.yaml",
+      "validate-execution-tiers.mjs",
+      "tier_manager.mjs",
+      "drift_monitor.mjs",
+      "kill_switch.mjs (enhanced)",
+      "execution_gate.mjs",
+      "test_week3_tier_drift_kill.mjs",
+      "execution-tiers-gate.yml",
+      "week3-tier-drift-kill.md (runbook)",
+      "evidence_week3_tier_drift_kill.json"
+    ]
+  }
+}

@@ -1,0 +1,188 @@
+# Execution Tiers Configuration v1.0.0
+# SSOT: .claude/config/execution_tiers.yaml
+#
+# 定义三层执行制度：observe → recommend → execute_limited
+# 每层声明允许的动作集合，以及写入约束
+#
+# 安全底线：execute_limited 层必须 require_approval: true
+#
+# 与其他治理组件协同：
+# - kill_switch: 最高优先级，开启时所有写入被阻断
+# - cost_meter: 预算超限时可降级通知或全跳过
+# - drift_monitor: 检测性能漂移，自动降级/冻结
+
+version: "1.0.0"
+schema: "https://liye.com/schemas/execution_tiers.v1.yaml"
+
+# 默认执行层级（新 policy 的初始层级）
+default_tier: observe
+
+# 三层执行制度
+tiers:
+  observe:
+    description: "只读观察层：收集数据、检测模式、生成 evidence（不产生任何写入动作）"
+    allowed_actions:
+      - READ_ONLY
+      - DETECT_PATTERN
+      - GENERATE_EVIDENCE
+    allow_write: false
+    tier_budget_units: 1
+    promotion_criteria:
+      min_runs: 20
+      exec_success_rate: 0.60
+      operator_approval_rate: 0.20
+      business_success_rate: 0.30
+      min_confidence: 0.60
+      min_days: 3
+
+  recommend:
+    description: "推荐层：生成提案并推送给 operator 审批（不自动执行写入）"
+    allowed_actions:
+      - READ_ONLY
+      - DETECT_PATTERN
+      - GENERATE_EVIDENCE
+      - RECOMMEND
+      - NOTIFY_OPERATOR
+    allow_write: false
+    tier_budget_units: 2
+    promotion_criteria:
+      min_runs: 50
+      exec_success_rate: 0.75
+      operator_approval_rate: 0.70
+      business_success_rate: 0.50
+      min_confidence: 0.75
+      min_days: 7
+
+  execute_limited:
+    description: "受限执行层：小流量自动写入（必须满足约束 + 可回滚 + 人工审批）"
+    allowed_actions:
+      - READ_ONLY
+      - DETECT_PATTERN
+      - GENERATE_EVIDENCE
+      - RECOMMEND
+      - NOTIFY_OPERATOR
+      - WRITE_LIMITED
+    allow_write: true
+    # 安全底线：生产写入必须要求审批
+    require_approval: true
+    tier_budget_units: 5
+    constraints:
+      max_actions_per_day: 10
+      max_bid_change_pct: 30
+      max_budget_change_pct: 10
+      traffic_percentage: 20
+      mandatory_rollback_plan: true
+      dry_run_required_before_write: true
+    # execute_limited 不再晋升，这是最高层级
+    # 降级条件在 drift_monitor 中定义
+
+# 动作白名单（用于 validator 校验）
+action_whitelist:
+  - READ_ONLY
+  - DETECT_PATTERN
+  - GENERATE_EVIDENCE
+  - RECOMMEND
+  - NOTIFY_OPERATOR
+  - WRITE_LIMITED
+
+# 状态转移规则
+transitions:
+  # 正向晋升
+  - from: observe
+    to: recommend
+    trigger: promotion
+    requires:
+      - tier_manager_approval
+      - criteria_met
+
+  - from: recommend
+    to: execute_limited
+    trigger: promotion
+    requires:
+      - tier_manager_approval
+      - criteria_met
+      - operator_explicit_approval
+
+  # 逆向降级
+  - from: execute_limited
+    to: recommend
+    trigger: demotion
+    requires:
+      - drift_detected
+      # OR
+      - operator_request
+
+  - from: recommend
+    to: observe
+    trigger: demotion
+    requires:
+      - consecutive_failures
+      # OR
+      - operator_request
+
+  # 紧急冻结
+  - from: "*"
+    to: quarantine
+    trigger: emergency
+    requires:
+      - kill_switch_active
+      # OR
+      - drift_critical
+
+# 与 kill_switch 的协同
+kill_switch_integration:
+  # kill_switch 开启时，所有 WRITE_LIMITED 动作被阻断
+  when_active:
+    deny_actions:
+      - WRITE_LIMITED
+    force_tier: recommend
+    facts_to_record:
+      - kill_switch_resolved
+      - kill_switch_applied
+
+# 与 drift_monitor 的协同
+drift_monitor_integration:
+  # 连续失败阈值
+  consecutive_failure_threshold: 3
+  # 性能下降阈值（百分比）
+  performance_degradation_pct: 20
+  # 触发后的处理
+  on_drift_triggered:
+    demote_to: recommend
+    block_actions:
+      - WRITE_LIMITED
+    facts_to_record:
+      - drift_evaluated
+      - drift_triggered
+      - policy_demoted
+
+# 审计字段要求
+audit_fields:
+  tier_decision_made:
+    required:
+      - timestamp
+      - from_tier
+      - to_tier
+      - reason
+      - thresholds
+      - policy_id
+      - scope
+      - primary_metric
+    optional:
+      - operator_id
+      - evidence_ref
+
+  kill_switch_resolved:
+    required:
+      - timestamp
+      - resolved_by
+      - effective_value
+      - affected_tiers
+      - denied_actions
+
+  kill_switch_applied:
+    required:
+      - timestamp
+      - action_type
+      - policy_id
+      - blocked_reason
