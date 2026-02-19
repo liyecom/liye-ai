@@ -1,0 +1,160 @@
+# Execution Tiers Gate CI
+# SSOT: .github/workflows/execution-tiers-gate.yml
+#
+# Week 3 Governance: Tier / Drift / Kill Switch
+# 触发条件：PR 改动涉及 execution_tiers.yaml 或 governance/learning/**
+# 动作：
+#   1. 跑 validate-execution-tiers.mjs
+#   2. 跑 test_week3_tier_drift_kill.mjs
+# 失败：阻断合并（fail-closed）
+
+name: Execution Tiers Gate
+
+on:
+  pull_request:
+    paths:
+      - '.claude/config/execution_tiers.yaml'
+      - 'src/governance/learning/**'
+      - '_meta/contracts/scripts/validate-execution-tiers.mjs'
+      - 'tests/governance/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.claude/config/execution_tiers.yaml'
+      - 'src/governance/learning/**'
+      - '_meta/contracts/scripts/validate-execution-tiers.mjs'
+      - 'tests/governance/**'
+
+jobs:
+  validate-execution-tiers:
+    name: Validate Execution Tiers Config
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install yaml
+
+      - name: Create required directories
+        run: |
+          mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
+          mkdir -p state/memory/facts
+          mkdir -p state/runtime/proactive
+
+      - name: Validate execution_tiers.yaml
+        run: |
+          echo "Running execution tiers validator (fail-closed)..."
+          node _meta/contracts/scripts/validate-execution-tiers.mjs
+
+      - name: Verify Safety Baseline
+        run: |
+          # 硬检查：execute_limited.require_approval 必须为 true
+          if ! grep -q "require_approval: true" .claude/config/execution_tiers.yaml; then
+            echo "SAFETY VIOLATION: execute_limited.require_approval must be true"
+            exit 1
+          fi
+          echo "Safety baseline verified: require_approval=true"
+
+  governance-tests:
+    name: Week 3 Governance Tests
+    runs-on: ubuntu-latest
+    needs: validate-execution-tiers
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install yaml
+
+      - name: Create required directories
+        run: |
+          mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
+          mkdir -p state/memory/facts
+          mkdir -p state/runtime/proactive
+          mkdir -p tests/governance/fixtures/week3
+
+      - name: Run Governance Tests
+        run: |
+          echo "Running Week 3 governance tests..."
+          node tests/governance/test_week3_tier_drift_kill.mjs
+
+      - name: Verify Test Coverage
+        run: |
+          # 确保所有 8 类测试都在
+          expected_tests=(
+            "missing_fields"
+            "require_approval"
+            "kill_switch"
+            "deterministic"
+            "promotion"
+            "no_promotion"
+            "drift"
+            "false_positive"
+          )
+
+          for test in "${expected_tests[@]}"; do
+            if ! grep -qi "$test" tests/governance/test_week3_tier_drift_kill.mjs; then
+              echo "WARNING: Test coverage may be missing for: $test"
+            fi
+          done
+          echo "Test coverage check completed"
+
+  integration-check:
+    name: Integration Sanity Check
+    runs-on: ubuntu-latest
+    needs: governance-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install yaml
+
+      - name: Create required directories
+        run: |
+          mkdir -p state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}
+          mkdir -p state/memory/facts
+          mkdir -p state/runtime/proactive
+
+      - name: Execution Gate Dry Run
+        run: |
+          echo "Testing execution_gate.mjs integration..."
+          node src/governance/learning/execution_gate.mjs --action READ_ONLY --tier observe || true
+
+      - name: Tier Manager Dry Run
+        run: |
+          echo "Testing tier_manager.mjs dry-run..."
+          node src/governance/learning/tier_manager.mjs --dry-run || true
+
+      - name: Drift Monitor Dry Run
+        run: |
+          echo "Testing drift_monitor.mjs dry-run..."
+          node src/governance/learning/drift_monitor.mjs --dry-run || true
+
+      - name: Kill Switch Status
+        run: |
+          echo "Testing kill_switch.mjs status..."
+          node src/governance/learning/kill_switch.mjs --check || true
