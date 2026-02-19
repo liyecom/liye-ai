@@ -40,7 +40,8 @@
       "meta": {
         "projected_cost_units": 13,
         "remaining_budget_units": 5,
-        "deny_action": "skip_notify_only",
+        "deny_action_applied": "skip_notify_only",
+        "denied_components": ["notifier"],
         "reason": "daily_budget_exceeded"
       }
     }
@@ -50,6 +51,8 @@
     "budget_check.action === 'skip_notify_only'",
     "学习继续执行（heartbeat_action !== 'skipped'）",
     "通知被抑制（suppressed_by_cost === true）",
-    "记录 cost_budget_exceeded 事实"
+    "记录 cost_budget_exceeded 事实",
+    "denied_components: ['notifier'] 明确标识被阻止的组件",
+    "deny_action_applied: 'skip_notify_only' 明确标识应用的策略"
   ]
 }

@@ -185,6 +185,7 @@ definitions:
           - cost_meter_skipped
           - cost_config_error
           - cost_switch_resolved
+          - cost_day_reset
         description: "Event type for audit trail"
 
       run_id:
@@ -235,6 +236,26 @@ definitions:
             type: number
           projected_cost_units:
             type: number
+            description: "Preflight estimated cost (before execution)"
+          actual_cost_units:
+            type: number
+            description: "Post-run actual cost (after execution)"
+          denied_components:
+            type: array
+            items:
+              type: string
+            description: "Components denied by budget gate (e.g., ['notifier'])"
+          deny_action_applied:
+            type: string
+            enum: ["skip_all", "skip_notify_only"]
+            description: "Which deny action was applied"
+          previous_date:
+            type: string
+            format: date
+            description: "Previous date before reset (for cost_day_reset)"
+          previous_used_units:
+            type: integer
+            description: "Units used before reset (for cost_day_reset)"
           config_errors:
             type: array
             items:

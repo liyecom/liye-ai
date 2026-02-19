@@ -28,7 +28,8 @@ import {
   checkBudget,
   recordCosts,
   recordSwitchResolvedFact,
-  recordBudgetExceededFact
+  recordBudgetExceededFact,
+  checkAndRecordDayReset
 } from '../proactive/cost_meter.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -452,6 +453,8 @@ export async function runHeartbeat(options = {}) {
   // Record cost switch resolution (audit required, even if disabled)
   if (!dryRun) {
     recordSwitchResolvedFact(runId, costSwitchResult);
+    // Record day reset if UTC day boundary was crossed
+    checkAndRecordDayReset(runId);
   }
 
   // If cost meter is enabled, check budget
@@ -471,11 +474,14 @@ export async function runHeartbeat(options = {}) {
 
       // Record budget exceeded fact (audit required)
       if (!dryRun) {
+        // Determine denied components based on deny_action
+        const deniedComponents = budgetCheck.action === 'skip_all' ? ['all'] : ['notifier'];
         recordBudgetExceededFact(
           runId,
           budgetCheck.projected_cost,
           budgetCheck.remaining_budget,
-          budgetCheck.action
+          budgetCheck.action,
+          deniedComponents
         );
       }
 

@@ -79,6 +79,9 @@ function loadConfig() {
   }
 }
 
+// Track if day reset was triggered (to record fact after state is initialized)
+let pendingDayReset = null;
+
 function loadState() {
   const today = new Date().toISOString().slice(0, 10);
   const defaultState = {
@@ -97,8 +100,15 @@ function loadState() {
   try {
     const state = JSON.parse(readFileSync(STATE_FILE, 'utf-8'));
 
-    // Check if we need to reset (new day)
+    // Check if we need to reset (new day in UTC)
     if (state.current_date_utc !== today) {
+      // Track reset for fact recording
+      pendingDayReset = {
+        previous_date: state.current_date_utc,
+        previous_used_units: state.daily_used_units,
+        new_date: today
+      };
+
       return {
         ...defaultState,
         current_date_utc: today,
@@ -408,8 +418,18 @@ export function recordMeterSkippedFact(runId, reason) {
 
 /**
  * Record cost_budget_exceeded event
+ * @param {string} runId - Heartbeat run ID
+ * @param {number} projectedCost - Preflight estimated cost
+ * @param {number} remainingBudget - Remaining budget before this run
+ * @param {string} denyAction - 'skip_all' or 'skip_notify_only'
+ * @param {string[]} deniedComponents - Components that will be denied (e.g., ['notifier'])
  */
-export function recordBudgetExceededFact(runId, projectedCost, remainingBudget, denyAction) {
+export function recordBudgetExceededFact(runId, projectedCost, remainingBudget, denyAction, deniedComponents = []) {
+  // Determine denied components based on deny_action
+  const components = deniedComponents.length > 0 ? deniedComponents :
+    denyAction === 'skip_all' ? ['all'] :
+    denyAction === 'skip_notify_only' ? ['notifier'] : [];
+
   return appendCostFact({
     event_type: 'cost_budget_exceeded',
     run_id: runId,
@@ -420,10 +440,44 @@ export function recordBudgetExceededFact(runId, projectedCost, remainingBudget, 
     meta: {
       projected_cost_units: projectedCost,
       remaining_budget_units: remainingBudget,
-      deny_action: denyAction,
+      deny_action_applied: denyAction,
+      denied_components: components,
       reason: 'daily_budget_exceeded'
     }
   });
+}
+
+/**
+ * Record cost_day_reset event (when budget window resets at UTC midnight)
+ */
+export function recordDayResetFact(runId, previousDate, previousUsedUnits, newDate) {
+  return appendCostFact({
+    event_type: 'cost_day_reset',
+    run_id: runId,
+    component: 'heartbeat_runner',
+    quantity: 1,
+    unit: 'count',
+    cost_units: 0,
+    meta: {
+      previous_date: previousDate,
+      previous_used_units: previousUsedUnits,
+      new_date: newDate,
+      reason: 'utc_day_boundary'
+    }
+  });
+}
+
+/**
+ * Check and record pending day reset (call after switch resolution)
+ */
+export function checkAndRecordDayReset(runId) {
+  if (pendingDayReset) {
+    const reset = pendingDayReset;
+    pendingDayReset = null;
+    recordDayResetFact(runId, reset.previous_date, reset.previous_used_units, reset.new_date);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -562,7 +616,7 @@ export function recordCosts(runId, steps, inputsHash = null) {
 
   return {
     recorded: true,
-    total_cost: totalCost,
+    actual_cost_units: totalCost,  // Post-run actual cost
     events_count: events.length
   };
 }
