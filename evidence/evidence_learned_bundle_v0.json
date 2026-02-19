@@ -1,0 +1,33 @@
+{
+  "evidence_id": "learned_bundle_v0",
+  "description": "Minimal Bundle v0 - OS Build + Validate + AGE Read-Only Consume",
+  "created_at": "2026-02-19T08:30:00.000Z",
+  "git_sha": "ece121116b16dce321c1ab44ea999657890adb38",
+  "scripts": {
+    "builder": ".claude/scripts/learning/build-learned-bundle.mjs",
+    "validator": ".claude/scripts/learning/validate-learned-bundle.mjs"
+  },
+  "output_path": "dist/bundles/",
+  "bundle_sha256": "6e27cd79efe52f160dbb7ae0e3baef9d995dcf8e8613ef5ee6ee356c39a3a899",
+  "contracts_versions": {
+    "learned_policy": "1.0.0",
+    "engine_manifest": "1.0.0",
+    "playbook_io": "1.1.1"
+  },
+  "included_policies_count": 2,
+  "validation_result": {
+    "passed": 4,
+    "warnings": 1,
+    "errors": 0,
+    "status": "PASSED"
+  },
+  "assertions": [
+    "Bundle builder outputs to dist/bundles/",
+    "Manifest includes git_sha and contracts versions",
+    "Manifest includes files array with path/sha256/size",
+    "Validator checks path traversal (ZipSlip protection)",
+    "Validator verifies file integrity (sha256 + size)",
+    "Validator enforces additionalProperties: false equivalent",
+    "fail-closed: exit 1 on any error"
+  ]
+}
