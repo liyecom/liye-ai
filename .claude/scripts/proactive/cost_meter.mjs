@@ -308,8 +308,20 @@ export function resolveCostSwitch() {
     notify_policy_source = existsSync(CONFIG_FILE) ? 'config' : 'default';
   }
 
-  // 6. Get cost weights
-  const cost_weights = config.cost_weights || DEFAULTS.cost_weights;
+  // 6. Validate and get cost weights (fail-closed on invalid)
+  if (!config.cost_weights || typeof config.cost_weights !== 'object' || Array.isArray(config.cost_weights)) {
+    config_errors.push('cost_weights must be a non-null object with component weights');
+    error_codes.push('INVALID_COST_WEIGHTS');
+  } else {
+    // Validate required weight keys
+    const requiredKeys = ['discover_runs', 'learning_pipeline', 'bundle_build', 'validate_bundle', 'notifier', 'operator_callback', 'business_probe'];
+    const missingKeys = requiredKeys.filter(k => typeof config.cost_weights[k] !== 'number');
+    if (missingKeys.length > 0) {
+      config_errors.push(`cost_weights missing or invalid keys: ${missingKeys.join(', ')}`);
+      error_codes.push('INCOMPLETE_COST_WEIGHTS');
+    }
+  }
+  const cost_weights = config.cost_weights && typeof config.cost_weights === 'object' ? config.cost_weights : DEFAULTS.cost_weights;
 
   // 7. Determine action
   let action;

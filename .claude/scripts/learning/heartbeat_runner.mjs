@@ -457,6 +457,15 @@ export async function runHeartbeat(options = {}) {
     checkAndRecordDayReset(runId);
   }
 
+  // Handle cost meter SKIP (fail-closed on config error)
+  if (costSwitchResult.action === 'SKIP') {
+    console.error('[heartbeat] Cost meter SKIP: fail-closed due to config errors');
+    result.action = 'skipped';
+    result.steps.skip_reason = 'cost_config_fail_closed';
+    result.steps.cost_config_errors = costSwitchResult.config_errors;
+    return result;
+  }
+
   // If cost meter is enabled, check budget
   if (costSwitchResult.action === 'ENABLED') {
     const projectedSteps = {
