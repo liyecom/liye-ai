@@ -24,7 +24,7 @@ import { tmpdir } from 'os';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 const POLICIES_DIR = join(PROJECT_ROOT, 'state', 'memory', 'learned', 'policies');
-const OUTPUT_DIR = join(PROJECT_ROOT, 'dist', 'bundles');
+const OUTPUT_DIR = join(PROJECT_ROOT, 'state', 'artifacts', 'learned-bundles');
 const CONTRACTS_DIR = join(PROJECT_ROOT, '_meta', 'contracts');
 
 // 颜色输出
