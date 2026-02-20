@@ -16,11 +16,13 @@ write_policy:
 allowlist:
   campaign_type: SP           # INVARIANT: SP only (learned from SB/SP mismatch)
   campaign_ids:
-    - "109003333028364"       # Validated SP campaign
+    - "109003333028364"       # 2.19-狗垫SP自动-拓词 (S1.5 validated)
+    - "21623488443879"        # B0C5Q8L7FP-LongTail-Auto
+    - "242035195914790"       # B0C5Q8L7FP-MuddyPaws-大词攻坚
   ad_group_ids:
-    - "283136640719075"       # Validated in S1.5
-    - "${S2A_AD_GROUP_2}"     # Add real ID before use
-    - "${S2A_AD_GROUP_3}"     # Add real ID before use
+    - "283136640719075"       # S1.5 validated (2.19-狗垫SP自动-拓词-AutoGroup)
+    - "305606411558900"       # Auto Targeting (B0C5Q8L7FP-LongTail-Auto)
+    - "494735400438928"       # Indoor Outdoor Keywords (B0C5Q8L7FP-MuddyPaws-大词攻坚)
 
 cost_meter:
   enabled: true

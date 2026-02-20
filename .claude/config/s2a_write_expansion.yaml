@@ -45,17 +45,17 @@ allowlist:
   # INVARIANT: SP only (SB requires different endpoint)
   ad_product: "SP"
 
-  # Single campaign (same as Stage 0)
-  # Use env override: S2A_CAMPAIGN_IDS
+  # Stage 1: Expand to 3 campaigns (all B0C5Q8L7FP related)
   campaign_ids:
-    - "${S2A_CAMPAIGN_ID_1:-109003333028364}"
+    - "109003333028364"       # 2.19-狗垫SP自动-拓词 (S1.5 validated)
+    - "21623488443879"        # B0C5Q8L7FP-LongTail-Auto
+    - "242035195914790"       # B0C5Q8L7FP-MuddyPaws-大词攻坚
 
   # Stage 1: Expand to 3 ad groups
-  # Use env override: S2A_AD_GROUP_IDS
   ad_group_ids:
-    - "${S2A_AD_GROUP_ID_1:-283136640719075}"  # Validated in S1.5
-    - "${S2A_AD_GROUP_ID_2:-}"  # Add real ID before use
-    - "${S2A_AD_GROUP_ID_3:-}"  # Add real ID before use
+    - "283136640719075"       # S1.5 validated (2.19-狗垫SP自动-拓词-AutoGroup)
+    - "305606411558900"       # Auto Targeting (B0C5Q8L7FP-LongTail-Auto)
+    - "494735400438928"       # Indoor Outdoor Keywords (B0C5Q8L7FP-MuddyPaws-大词攻坚)
 
 # =============================================================================
 # Required Gates (INVARIANTS)
