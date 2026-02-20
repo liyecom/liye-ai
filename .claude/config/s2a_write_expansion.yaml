@@ -1,0 +1,148 @@
+# S2-A Stage 1: Write Expansion Configuration
+# SSOT: .claude/config/s2a_write_expansion.yaml
+#
+# Stage 0 (baseline): 1 ad_group, max_writes_per_day=5
+# Stage 1 (current):  3 ad_groups, max_writes_per_day=10
+# Stage 2 (future):   5 ad_groups, max_writes_per_day=20
+# Stage 3 (far future): auto-scaling with success rate feedback
+#
+# HARDCODED INVARIANTS (never change across stages):
+# - max_writes_per_request: 1 (always)
+# - ad_product: SP only (learned from SB/SP mismatch incident)
+# - require_approval: true
+# - tier: execute_limited
+
+schema_version: "1.0.0"
+config_id: "s2a_write_expansion_stage1"
+stage: 1
+created_at: "2026-02-20T02:30:00Z"
+promoted_from: "s15_production_canary"
+
+# =============================================================================
+# Hard Caps (expanded from Stage 0)
+# =============================================================================
+
+caps:
+  # INVARIANT: Single write per request - NEVER batch
+  max_writes_per_request: 1
+
+  # Stage 1: 5 -> 10
+  max_writes_per_day: 10
+
+  # Cooldown between writes (minutes)
+  write_cooldown_minutes: 15  # Reduced from 30 for Stage 1
+
+# =============================================================================
+# Allowlist (expanded from 1 to 3 ad_groups)
+# =============================================================================
+
+allowlist:
+  # INVARIANT: Only negative keyword operations
+  action_kinds:
+    - NEGATIVE_KEYWORD_ADD
+    - NEGATIVE_KEYWORD_REMOVE  # For rollback
+
+  # INVARIANT: SP only (SB requires different endpoint)
+  ad_product: "SP"
+
+  # Single campaign (same as Stage 0)
+  # Use env override: S2A_CAMPAIGN_IDS
+  campaign_ids:
+    - "${S2A_CAMPAIGN_ID_1:-109003333028364}"
+
+  # Stage 1: Expand to 3 ad groups
+  # Use env override: S2A_AD_GROUP_IDS
+  ad_group_ids:
+    - "${S2A_AD_GROUP_ID_1:-283136640719075}"  # Validated in S1.5
+    - "${S2A_AD_GROUP_ID_2:-}"  # Add real ID before use
+    - "${S2A_AD_GROUP_ID_3:-}"  # Add real ID before use
+
+# =============================================================================
+# Required Gates (INVARIANTS)
+# =============================================================================
+
+required_gates:
+  tier: "execute_limited"
+  require_approval: true
+  cost_meter_enabled: true
+  cost_budget_cents: 10000  # $100 (doubled from Stage 0)
+  kill_switch_off: true
+
+# =============================================================================
+# Automatic Brakes (fail-safe)
+# =============================================================================
+
+brakes:
+  enabled: true
+
+  # Red line 1: FAILED count threshold
+  # If FAILED > 1 in current day -> stop all writes
+  stop_on_failed_gt: 1
+
+  # Red line 2: Rate limit (429) threshold
+  # If 429 count >= 1 -> stop all writes
+  stop_on_http_429_ge: 1
+
+  # Red line 3: Configuration mismatch
+  # If any campaign_type_mismatch or allowlist_mismatch -> stop immediately
+  stop_on_mismatch: true
+
+  # Actions when brakes engaged
+  on_brake_applied:
+    - action: "set_max_writes_per_day"
+      value: 0
+    - action: "write_facts"
+      event_type: "write_brake_applied"
+    - action: "alert"
+      channel: "canary_alerts"
+      severity: "critical"
+
+  # Recovery (next day auto-reset, or manual override)
+  recovery:
+    auto_reset_next_day: false  # Require manual review
+    manual_reset_command: "node scripts/s2a_reset_brakes.mjs"
+
+# =============================================================================
+# Rollback Strategy (same as Stage 0)
+# =============================================================================
+
+rollback:
+  auto_generate: true
+  mapping:
+    NEGATIVE_KEYWORD_ADD: "NEGATIVE_KEYWORD_REMOVE"
+  store_in_receipt: true
+  window_hours: 24
+
+# =============================================================================
+# Evidence Requirements (same as Stage 0)
+# =============================================================================
+
+evidence:
+  require_artifact: true
+  require_diff: true
+  artifact_path: "evidence/s2a/{run_id}_{action_hash}.json"
+
+# =============================================================================
+# Monitoring & Alerts
+# =============================================================================
+
+monitoring:
+  alert_on_error: true
+  alert_channel: "canary_alerts"
+  log_to_facts: true
+
+  track_metrics:
+    - "s2a_writes_total"
+    - "s2a_errors_total"
+    - "s2a_brakes_applied"
+    - "s2a_429_count"
+    - "s2a_success_rate"
+
+  # Daily report
+  daily_report:
+    enabled: true
+    metrics:
+      - "applied_count"
+      - "failed_count"
+      - "success_rate"
+      - "brake_events"
