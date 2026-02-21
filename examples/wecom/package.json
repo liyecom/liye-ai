@@ -1,0 +1,25 @@
+{
+  "name": "wecom-adapter",
+  "version": "1.0.0",
+  "description": "Enterprise WeChat Thin-Agent Adapter for LiYe OS",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.24.0"
+  },
+  "keywords": [
+    "wecom",
+    "enterprise-wechat",
+    "cloudflare-workers",
+    "liye-os"
+  ],
+  "author": "LiYe OS",
+  "license": "MIT"
+}
