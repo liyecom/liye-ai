@@ -1,14 +1,12 @@
----
-decision_id: ADR-0012
-domain: governance
-status: accepted
-tags: [ai-human-coexistence, governance, philosophy, corrigibility, mck]
-created: 2026-02-21
-owners: [LiYe, Claude]
-scope: systems
----
-
 # ADR-0012: AI-Human Coexistence Governance（AI×人类共生治理）
+
+- decision_id: ADR-0012
+- domain: governance
+- status: accepted
+- tags: [ai-human-coexistence, governance, philosophy, corrigibility, mck]
+- created: 2026-02-21
+- owners: [LiYe, Claude]
+- scope: systems
 
 ## Context
 
