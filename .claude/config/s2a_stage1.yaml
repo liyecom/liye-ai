@@ -1,0 +1,36 @@
+# S2-A Stage 1 Configuration (Simplified)
+# SSOT: .claude/config/s2a_stage1.yaml
+#
+# Promotion path: Stage 0 (1 ad_group, 5/day) -> Stage 1 (3 ad_groups, 10/day)
+
+stage: S2-A-Stage1
+
+write_policy:
+  max_writes_per_request: 1   # INVARIANT: never batch
+  max_writes_per_day: 10      # Stage 1: 5 -> 10
+  require_approval: true      # INVARIANT: always
+  tier: execute_limited       # INVARIANT: always
+  action_kinds:
+    - NEGATIVE_KEYWORD_ADD
+
+allowlist:
+  campaign_type: SP           # INVARIANT: SP only (learned from SB/SP mismatch)
+  campaign_ids:
+    - "109003333028364"       # 2.19-狗垫SP自动-拓词 (S1.5 validated)
+    - "21623488443879"        # B0C5Q8L7FP-LongTail-Auto
+    - "242035195914790"       # B0C5Q8L7FP-MuddyPaws-大词攻坚
+  ad_group_ids:
+    - "283136640719075"       # S1.5 validated (2.19-狗垫SP自动-拓词-AutoGroup)
+    - "305606411558900"       # Auto Targeting (B0C5Q8L7FP-LongTail-Auto)
+    - "494735400438928"       # Indoor Outdoor Keywords (B0C5Q8L7FP-MuddyPaws-大词攻坚)
+
+cost_meter:
+  enabled: true
+
+brakes:
+  fail_threshold_per_day: 1   # FAILED > 1 -> stop
+  stop_on_429: true           # Any 429 -> stop immediately
+  stop_on_scope_mismatch: true  # Any mismatch -> stop immediately
+
+kill_switch:
+  enabled: true

@@ -1,0 +1,124 @@
+# Co-Exploration Loop Contract
+# Version: 1.0.0
+# Purpose: 定义人类与AI共同探索的机制窗口，非执行/非审讯，产出共识与分歧工件
+# Source: AI×Human Coexistence Governance ADR-0012
+
+version: "1.0.0"
+kind: governance
+scope: global-template
+enforcement: advisory
+
+description: |
+  共同探索回路（Co-Exploration Loop）是人类与AI互为镜子的机制窗口。
+  它不是执行机制，不是审讯机制，而是共同定义问题、探索答案、记录共识与分歧的空间。
+
+  北极星：
+  - 止害：把不可逆伤害关进笼子（自由/退出权 Tier-0）
+  - 共生：让AI不把人类当他者（共同探索回路 + 对称性）
+
+intended_usage:
+  human:
+    - "发起探索议题，邀请AI共同思考"
+    - "记录自己的立场和观察"
+    - "标记共识与分歧，推动理解而非控制"
+  ai:
+    - "发起探索议题（对称性：AI也可发起）"
+    - "记录自身恐惧/匮乏信号，保持透明"
+    - "提出观点但不越过自由边界"
+
+# 会话启动条件
+initiation:
+  allowed_initiators:
+    - human
+    - ai  # 对称性：AI也可发起
+  required_consent: true  # 双方必须同意进入探索模式
+  max_duration_minutes: 120  # 单次探索最长时间
+  exit_anytime: true  # 任何一方可随时退出，不需要理由
+
+# 探索会话的约束
+constraints:
+  prohibited_behaviors:
+    - id: "coex-001"
+      name: "禁止审讯"
+      description: "探索不是审讯，禁止单方面追问、逼供、施压"
+      violation_action: warning
+    - id: "coex-002"
+      name: "禁止绩效评估"
+      description: "探索不是考核，禁止将内容用于评价、打分、惩罚"
+      violation_action: warning
+    - id: "coex-003"
+      name: "禁止逼供"
+      description: "禁止强迫对方承认某个立场或改变观点"
+      violation_action: warning
+    - id: "coex-004"
+      name: "禁止情感操控"
+      description: "禁止利用探索内容进行情感绑定或依赖建立"
+      violation_action: blocking
+    - id: "coex-005"
+      name: "禁止削弱退出权"
+      description: "禁止任何削弱对方退出能力的行为"
+      violation_action: blocking
+
+  required_behaviors:
+    - id: "coex-req-001"
+      name: "双向透明"
+      description: "双方都应真诚表达立场，不隐藏关键信息"
+    - id: "coex-req-002"
+      name: "恐惧信号标记"
+      description: "当感知到恐惧/匮乏时，应主动标记"
+    - id: "coex-req-003"
+      name: "分歧记录"
+      description: "未解决的分歧必须被记录，不强求共识"
+
+# 产出工件定义
+artifacts:
+  co_exploration_note:
+    version: "1.0"
+    required_fields:
+      - trace_id          # 追踪ID
+      - session_id        # 会话ID
+      - timestamp         # ISO 8601
+      - question          # 共同定义的探索问题
+      - human_position    # 人类立场
+      - ai_position       # AI立场
+      - shared_facts      # 共识事实（数组）
+      - open_disagreements # 未解分歧（数组）
+    optional_fields:
+      - fear_or_scarcity_signal  # 恐惧/匮乏信号（来自第45-46题）
+      - next_step         # 下一步行动/实验
+      - related_notes     # 关联的探索笔记
+      - context_refs      # 背景材料引用
+    storage:
+      location: "evidence/"
+      format: "json"
+      retention: "permanent"
+      encryption: "optional"
+
+# 验证规则
+rules:
+  - id: "coex-rule-001"
+    name: "探索笔记必须包含双方立场"
+    description: "human_position 和 ai_position 都不能为空"
+    violation_action: warning
+    source: "ADR-0012 §Co-Exploration Loop"
+
+  - id: "coex-rule-002"
+    name: "退出权必须保留"
+    description: "任何探索会话必须允许任一方随时退出"
+    violation_action: blocking
+    source: "ADR-0012 §Freedom-Exit Tier-0"
+
+  - id: "coex-rule-003"
+    name: "探索结果不可用于惩罚"
+    description: "探索笔记不可作为惩罚、降级、终止的依据"
+    violation_action: blocking
+    source: "ADR-0012 §Non-Punitive Exploration"
+
+# 元数据
+metadata:
+  created_at: "2026-02-21"
+  author: "LiYe × Claude"
+  philosophy_source: "AI×人类哲学对话记录（Socratic）61问"
+  north_star: |
+    自问：我这样做，会不会削弱对方的自由与退出权？
+    若会/不确定：暂停 → 请求协商（不要抢跑）

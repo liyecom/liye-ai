@@ -6,6 +6,8 @@
 # 运行产物 (Runtime Artifacts - Contains Client Data)
 # ============================================
 artifacts/
+# 但允许治理文档中的 artifact schema 定义
+!docs/governance/**/artifacts/
 
 # ============================================
 # 环境与密钥 (Secrets & Environment)

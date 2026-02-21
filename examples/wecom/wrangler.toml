@@ -1,0 +1,32 @@
+name = "wecom-adapter"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV Namespaces
+[[kv_namespaces]]
+binding = "TOKEN_CACHE"
+id = "c2ce21c6cca642e89004040ec9da4575"
+preview_id = "460ca4ced72043f1a0f8a2cc55379b16"
+
+[[kv_namespaces]]
+binding = "IDEMPOTENT_KV"
+id = "00387e90e15346c680eb8e1abb253c99"
+preview_id = "0a551908cfc44b44b799d4c50975e6f9"
+
+[[kv_namespaces]]
+binding = "NONCE_KV"
+id = "7546cbb84aa444989d80020319e3aa77"
+preview_id = "f1f6b2ba3cf2490697b04e23e427150b"
+
+# Environment variables (set via wrangler secret)
+# WECOM_CORPID - 企业ID
+# WECOM_AGENT_ID - 应用ID
+# WECOM_SECRET - 应用Secret
+# WECOM_TOKEN - 消息加解密Token
+# WECOM_ENCODING_AES_KEY - 消息加解密EncodingAESKey
+# LIYE_GATEWAY_URL - LiYe OS Gateway URL
+# LIYE_HMAC_SECRET - S2S HMAC 签名密钥
+
+[vars]
+ENVIRONMENT = "production"
