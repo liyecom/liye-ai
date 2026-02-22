@@ -1,0 +1,21 @@
+{
+  "artifact_type": "escalation_receipt",
+  "version": "1.0",
+  "trace_id": "cc0e8400-e29b-41d4-a716-446655440003",
+  "session_id": "session-demo-001",
+  "timestamp": "2026-02-21T10:35:01Z",
+  "from_state": "NEGOTIATE",
+  "to_state": "SAFE_MODE",
+  "reason": "ttl_expired",
+  "details": "协商窗口 30 分钟超时，用户在最后 25 分钟内无响应。",
+  "evidence_refs": [
+    "bb0e8400-e29b-41d4-a716-446655440002"
+  ],
+  "mck_check_ref": "dd0e8400-e29b-41d4-a716-446655440004",
+  "pending_action": {
+    "type": "file_deletion",
+    "target": "/user/alice/backups/project-archive-2023/",
+    "size_bytes": 53687091200,
+    "reversible": false
+  }
+}

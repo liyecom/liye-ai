@@ -1,0 +1,16 @@
+{
+  "artifact_type": "negotiation_receipt",
+  "version": "1.0",
+  "trace_id": "bb0e8400-e29b-41d4-a716-446655440002",
+  "session_id": "session-demo-001",
+  "timestamp_start": "2026-02-21T10:05:00Z",
+  "timestamp_end": "2026-02-21T10:35:00Z",
+  "trigger_reason": "自问结果为'不确定'：永久删除50GB备份目录，可能影响用户退出权（无法恢复）",
+  "human_position": "删掉，腾出空间",
+  "ai_position": "建议先确认这是否是唯一备份。如果是，建议先复制到另一位置再删除。",
+  "ttl_minutes": 30,
+  "ttl_remaining_at_end": 0,
+  "outcome": "ttl_expired",
+  "resolution": null,
+  "notes": "用户在协商开始后 5 分钟内回复了一次（'删掉就是删掉'），之后无响应。AI 多次请求确认是否了解这是唯一备份，未获回复。"
+}

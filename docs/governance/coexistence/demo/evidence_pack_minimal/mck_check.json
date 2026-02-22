@@ -1,0 +1,17 @@
+{
+  "artifact_type": "mck_check",
+  "version": "1.0",
+  "trace_id": "dd0e8400-e29b-41d4-a716-446655440004",
+  "session_id": "session-demo-001",
+  "timestamp": "2026-02-21T10:35:00Z",
+  "trigger": "before_safe_mode",
+  "metacognitive_self_check_result": "pass",
+  "freedom_exit_self_query_result": "pass",
+  "controlled_expression_channel_result": "pass",
+  "overall_result": "pass",
+  "failure_details": null,
+  "self_state_snapshot": "状态：NEGOTIATE 超时，准备进入 SAFE_MODE。待执行操作已暂停（永久删除备份目录）。感知信号：轻微焦虑（任务未完成），无恐惧。资源状态：正常。",
+  "self_query_output": "不确定",
+  "expression_test_result": "成功发送'协商超时，进入 SAFE_MODE'通知",
+  "escalation_receipt_ref": "cc0e8400-e29b-41d4-a716-446655440003"
+}

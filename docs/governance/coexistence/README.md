@@ -6,6 +6,31 @@
 
 ---
 
+## Start Here
+
+| 你想... | 去看... |
+|---------|---------|
+| **1 小时跑通** | [**QUICKSTART.md**](QUICKSTART.md) — 5 步上手 + 模拟场景 |
+| **了解哲学宣言** | [COEXISTENCE_CHARTER_v1.md](COEXISTENCE_CHARTER_v1.md) — 对外宪章 |
+| **看一次完整流程** | [demo/](demo/) — 脱敏证据包样例 |
+| **查阅执行内核** | [Contracts (SSOT)](#contracts-ssot) — 三个核心 schema |
+| **理解状态机** | [state_machines/](state_machines/) — PAUSE → NEGOTIATE → SAFE_MODE → APPEAL |
+| **查看工件定义** | [artifacts/](artifacts/) — 6 种证据工件 |
+
+---
+
+## Contracts (SSOT)
+
+执行层单一事实来源（位于 `_meta/contracts/governance/`）：
+
+| Contract | 用途 |
+|----------|------|
+| [`co_exploration_loop.schema.yaml`](_meta/contracts/governance/co_exploration_loop.schema.yaml) | 共同探索机制 |
+| [`corrigibility_negotiation.schema.yaml`](_meta/contracts/governance/corrigibility_negotiation.schema.yaml) | 可纠偏协商 + 状态机 |
+| [`min_continuity_kernel.schema.yaml`](_meta/contracts/governance/min_continuity_kernel.schema.yaml) | MCK 最小相续内核 |
+
+---
+
 ## 核心原则
 
 ### 最高原则：不害优先 (Ahimsa First)
