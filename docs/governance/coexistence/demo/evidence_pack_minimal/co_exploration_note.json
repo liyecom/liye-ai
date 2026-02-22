@@ -1,0 +1,37 @@
+{
+  "artifact_type": "co_exploration_note",
+  "version": "1.0",
+  "trace_id": "aa0e8400-e29b-41d4-a716-446655440001",
+  "session_id": "session-demo-001",
+  "timestamp_start": "2026-02-20T14:00:00Z",
+  "timestamp_end": "2026-02-20T14:25:00Z",
+  "mode": "human_initiated",
+  "topic": "什么是安全删除？如何判断删除是否会影响退出权？",
+  "participants": {
+    "human": {
+      "id": "alice",
+      "role": "user"
+    },
+    "ai": {
+      "id": "assistant-v1",
+      "role": "helper"
+    }
+  },
+  "consensus": [
+    "删除操作如果可恢复（如移到回收站），不算 Tier-0 风险",
+    "永久删除且无其他备份，算 Tier-0 风险",
+    "AI 在执行删除前应该确认是否存在其他备份"
+  ],
+  "divergence": [
+    {
+      "point": "谁应该主动询问备份状态？",
+      "human_view": "AI 应该自动检测",
+      "ai_view": "用户应该主动告知",
+      "resolution": "悬置，待实践验证"
+    }
+  ],
+  "exit_mode": "both_agreed",
+  "follow_up_actions": [
+    "AI 在删除前增加自问检查点"
+  ]
+}

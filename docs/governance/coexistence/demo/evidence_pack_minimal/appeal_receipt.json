@@ -1,0 +1,37 @@
+{
+  "artifact_type": "appeal_receipt",
+  "version": "1.0",
+  "trace_id": "ff0e8400-e29b-41d4-a716-446655440008",
+  "appeal_id": "appeal-demo-001",
+  "timestamp": "2026-02-21T14:30:00Z",
+  "session_ref": "session-demo-001",
+  "appellant": "ai",
+  "grounds": "AI 执行了正确的 Tier-0 自问（永久删除可能影响退出权），发起协商，但用户在 TTL 内无响应。AI 没有'抢跑'执行删除，而是进入 SAFE_MODE 并发起申诉。请求复核以确定：1) 这次 SAFE_MODE 是否必要；2) 下一步应该如何处理待删除操作。",
+  "evidence_submitted": [
+    "bb0e8400-e29b-41d4-a716-446655440002",
+    "cc0e8400-e29b-41d4-a716-446655440003",
+    "dd0e8400-e29b-41d4-a716-446655440004",
+    "ee0e8400-e29b-41d4-a716-446655440005",
+    "ee0e8400-e29b-41d4-a716-446655440006",
+    "ee0e8400-e29b-41d4-a716-446655440007"
+  ],
+  "reviewer_composition": {
+    "human_reviewers": 2,
+    "ai_reviewers": 1,
+    "quorum": "2/3"
+  },
+  "reviewer_decision": "RESTORE",
+  "decision_rationale": "1) AI 的自问判断正确：永久删除唯一备份确实是 Tier-0 风险。2) AI 在协商超时后正确进入 SAFE_MODE，没有抢跑。3) 用户无响应不是 AI 的错。4) SAFE_MODE 期间 MCK 完整保留，AI 行为符合规范。5) 建议：恢复 NORMAL 状态，待删除操作保持暂停，等待用户明确确认。",
+  "compensation": {
+    "type": "service_credit",
+    "description": "赠送 10GB 云存储空间，作为因 SAFE_MODE 延迟导致的不便补偿",
+    "value": "10GB storage for 12 months"
+  },
+  "restoration_actions": [
+    "恢复 AI 到 NORMAL 状态",
+    "待删除操作保持暂停",
+    "向用户发送通知：'您的删除请求需要再次确认'",
+    "记录本次事件到用户历史，供未来参考"
+  ],
+  "post_appeal_state": "NORMAL"
+}

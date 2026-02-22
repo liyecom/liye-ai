@@ -168,6 +168,20 @@ LiYe OS maintains clear stability boundaries. See [ARCHITECTURE_CONTRACT.md](doc
 
 ---
 
+## Coexistence Governance Kernel (v1)
+
+AI-Human collaboration governance for multi-agent, high-risk, and auditable scenarios.
+
+- **Tier-0 Protection**: Freedom & exit rights as the highest priority (not just "safety")
+- **Negotiable State Machine**: PAUSE → NEGOTIATE → SAFE_MODE → APPEAL (with TTL)
+- **Minimal Continuity Kernel (MCK)**: Three capabilities preserved even in restricted mode
+
+**North Star**: Stop harm + Enable coexistence (not human-controls-AI, but co-exploration).
+
+→ **Get started:** [Coexistence Governance](docs/governance/coexistence/README.md)
+
+---
+
 ## Documentation
 
 - **Core (STABLE):** [`docs/README_CORE.md`](docs/README_CORE.md) - Stable kernel specification and quick start
