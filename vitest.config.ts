@@ -6,6 +6,7 @@ export default defineConfig({
       'Extensions/**',
       'websites/**',
       'node_modules/**',
+      'tests/runtime/memory-gateway.test.mjs',
     ],
   },
 });
