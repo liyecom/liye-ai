@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.ai/contracts/governance/v1/gov_tool_call_response_v1.schema.json",
+  "title": "GovToolCallResponseV1",
+  "description": "Final response from LiYe Gateway after governed tool execution",
+  "type": "object",
+  "required": [
+    "version",
+    "trace_id",
+    "decision",
+    "verdict_summary",
+    "policy_version"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "GOV_TOOL_CALL_RESPONSE_V1"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Trace ID matching the request"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["ALLOW", "BLOCK", "DEGRADE", "PENDING"],
+      "description": "Governance decision"
+    },
+    "verdict_summary": {
+      "type": "string",
+      "description": "Human-readable summary of the decision"
+    },
+    "execution_result": {
+      "type": "object",
+      "description": "Result from capability execution (if ALLOW)"
+    },
+    "evidence_package": {
+      "type": "object",
+      "description": "Evidence for audit trail",
+      "properties": {
+        "report_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "time_range": {
+          "type": "object",
+          "properties": {
+            "start_date": { "type": "string" },
+            "end_date": { "type": "string" }
+          }
+        },
+        "analyzed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "policy_version": {
+      "type": "string",
+      "description": "Policy version used for this decision"
+    },
+    "mock_used": {
+      "type": "boolean",
+      "description": "Whether mock data was used (for testing)"
+    }
+  }
+}
