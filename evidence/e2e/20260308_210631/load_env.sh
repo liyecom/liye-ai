@@ -13,7 +13,7 @@ echo "📁 E2E_DIR=$E2E_DIR"
 # ──────────────────────────────────────────────
 # 1) Amazon Ads 凭证 (从 AGE .env.local 映射)
 # ──────────────────────────────────────────────
-AGE_ENV="$HOME/github/amazon-growth-engine/.env.local"
+AGE_ENV="${AGE_DIR:-$HOME/github/age-engine}/.env.local"
 if [ ! -f "$AGE_ENV" ]; then
   echo "❌ 找不到 $AGE_ENV"; return 1
 fi

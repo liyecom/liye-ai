@@ -4,10 +4,10 @@
 # Slack -> Proxy -> LiYe Gateway -> AGE (Amazon Ads)
 #
 # Prerequisites:
-#   - Amazon Ads credentials in ~/github/amazon-growth-engine/.env.local (ADS_* vars)
+#   - AGE_DIR env var pointing to AGE engine directory (with .env.local containing ADS_* vars)
 #   - Slack tokens in Extensions/slack-proxy/.env (SLACK_BOT_TOKEN, SLACK_APP_TOKEN)
 #   - LIYE_HMAC_SECRET set in .env or environment
-#   - Python 3 venv at ~/github/amazon-growth-engine/.venv/
+#   - Python 3 venv at $AGE_DIR/.venv/
 #
 # Usage:
 #   ./scripts/e2e_run.sh
@@ -18,7 +18,7 @@ set -euo pipefail
 # ── Paths ────────────────────────────────────────────────────────────
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SLACK_PROXY_DIR="$REPO_ROOT/Extensions/slack-proxy"
-AGE_DIR="$HOME/github/amazon-growth-engine"
+AGE_DIR="${AGE_DIR:?Set AGE_DIR to the AGE engine directory}"
 EVIDENCE_DIR="$REPO_ROOT/evidence/e2e/$(date +%Y%m%d_%H%M%S)"
 
 AGE_PORT=8765

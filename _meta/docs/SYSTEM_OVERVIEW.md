@@ -43,7 +43,7 @@
 | 系统 | 代码库 | 一句话定位 |
 |------|--------|-----------|
 | **LiYe OS** | `liye_os/` | 跨域治理框架：拥有调度、学习、策略晋升、世界模型 |
-| **AGE** | `amazon-growth-engine/` | Amazon 广告领域引擎：纯数据平面，输入→裁决→建议 |
+| **AGE** | `age-engine/` | Amazon 广告领域引擎：纯数据平面，输入→裁决→建议 |
 | **SilkBay** | `silkbay/` | 多品牌 DTC 电商中枢：订单、库存、品牌隔离 |
 | **GDP** | 定义于 `liye_os/` evidence 层 | 基准数据平台：类目均值、关键词量级、跨渠道归因 |
 | **Growth Hub** | `growth-hub/` | SEO 内容站群：Astro 驱动，向 storefronts 导流 |
@@ -102,7 +102,7 @@ execution_flags        ← 总开关：global readonly / auto_execution whitelis
 LiYe OS 通过 `engine_manifest.schema.yaml` 定义引擎插件协议。AGE 的 manifest 声明：
 
 ```yaml
-engine_id: amazon-growth-engine
+engine_id: age-engine
 write_capability: ads_api_gated  # AGE 拥有执行能力，但受 approval ticket 门控
 bundle_consumption:
   env_var: "LEARNED_BUNDLE_PATH"  # 通过环境变量接收学习后的策略包
