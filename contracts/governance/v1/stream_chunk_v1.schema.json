@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.ai/contracts/governance/v1/stream_chunk_v1.schema.json",
+  "title": "StreamChunkV1",
+  "description": "Streaming chunk from LiYe Gateway during governed tool execution",
+  "type": "object",
+  "required": [
+    "version",
+    "type",
+    "trace_id",
+    "phase",
+    "progress"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "STREAM_CHUNK_V1"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["chunk", "complete", "error"],
+      "description": "Chunk type"
+    },
+    "trace_id": {
+      "type": "string",
+      "description": "Trace ID for correlation"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["gate", "enforce", "route", "execute", "verdict"],
+      "description": "Current execution phase"
+    },
+    "progress": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Progress percentage (0-100)"
+    },
+    "data": {
+      "type": "object",
+      "description": "Phase-specific data",
+      "additionalProperties": true
+    }
+  }
+}
