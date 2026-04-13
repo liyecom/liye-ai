@@ -135,6 +135,42 @@ North Star: 站点复制效率 + attribution 完整性
 | OS→Loamwise 链路 | 概念对齐，无代码连接 | 协议先行，合约驱动 |
 | SilkBay 整合 | W0-W4 计划已定 | 按 W0→W4 顺序执行 |
 
+## 参考与卫星项目
+
+| Codebase | 性质 | 作用 | 上游 |
+|----------|------|------|------|
+| openclaw (fork) | 只读参考 | 个人 AI 网关架构参考（通信层、插件 hook、安全审计） | openclaw/openclaw |
+| hermes-agent (fork) | 只读参考 | 自进化 agent 架构参考（学习循环、纵深防御、会话检索） | NousResearch/hermes-agent |
+| openclaw-skillgate | Layer 0 扩展 | Skill 供应链治理插件（扫描、评分、隔离） | — |
+| claw-price-intel | Layer 2 数据源 | Amazon 价格情报 MCP server（Keepa 集成） | — |
+
+### Fork 纪律
+- 上游参考仓只提供 pattern benchmark，不作为实现主干，不直接作为 runtime 依赖
+- Fork 仓库只做只读参考，不进入长期 fork 维护
+- 需要的能力通过 ADR 决议后独立实现，不直接搬模块
+- 定期 fetch upstream 保持可查阅，不 merge 到本地分支
+
+## 进化路线（能力吸收）
+
+从 OpenClaw / Hermes Agent 吸收 runtime patterns 的路线图。
+**原则：先防火再繁殖，先 ADR 再代码，Loamwise 只吸收 patterns 不吸收产品人格。**
+
+| 顺序 | 代号 | 内容 | 执行位置 | 硬约束 |
+|------|------|------|---------|--------|
+| P1 | ADR | 4 份 Capability Harvest ADR（含 contract sketch） | liye_os/_meta/adr/ | 每份必须附最小 contract 草图 |
+| P2 | B1 | Content Threat Detection 最小集（3 个 Guard） | loamwise/govern/ | **必须先 shadow mode**（只观测不拦截） |
+| P3 | A1 | Governed Learning Loop candidate-only | loamwise/construct/ | **quarantine-first**，candidate 不是 skill |
+| P4 | C1 | Session Retrieval（truth-first） | loamwise/align/ | **先检索结构化真相，后检索会话文本** |
+| P5 | C2 | Context Compression | loamwise/reason/ | 仅限长任务场景 |
+| 不做 | — | Smart model routing / auto skill repair / Honcho 用户建模 | — | 不进路线图 |
+
+### Loamwise 吸收边界
+Loamwise 只吸收 Hermes 的 runtime pattern，不吸收它的产品人格：
+- 不引入重用户建模（Honcho）
+- 不引入 auto skill repair
+- 不引入 smart routing
+- 不引入"对话代理就是一切"的世界观
+
 ## 运维纪律
 
 - 改系统分层、角色、依赖方向 → **只改本文件**
