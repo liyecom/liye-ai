@@ -135,7 +135,51 @@ North Star: 站点复制效率 + attribution 完整性
 | OS→Loamwise 链路 | 概念对齐，无代码连接 | 协议先行，合约驱动 |
 | SilkBay 整合 | W0-W4 计划已定 | 按 W0→W4 顺序执行 |
 
-## 参考与卫星项目
+## 架构原则（BGHS Separation）
+
+LiYe Systems 所有组件归属四种 concern 之一（正交于 Layer 0/1/2/3）：
+
+- **Brain** — 当前模型能力下的 harness 逻辑（model-contingent，可随模型代际替换）
+- **Governance** — 跨模型代际的治理不变量（不得因模型升级而删除或放松）
+- **Hands** — 执行动作的 tools / executors / adapters
+- **Session** — 外部化、持久化的事件日志 + replay 契约
+
+规则（详见 `_meta/adr/ADR-Architecture-Doctrine-BGHS-Separation.md`，待写入）：
+- BGHS 是分类视角，不是 runtime 层级或目录结构
+- 每个 component 声明 primary_concern + 可选 secondary_concern
+- 混合组件允许，但必须声明未来拆分方向
+- Meta artifacts（Doctrine / ADR）不参与 BGHS 归类，用 Meta Declaration 模板
+- 不得据 BGHS 创建新目录或新 runtime 层级
+
+灵感来源：Anthropic Managed Agents（三分法），LiYe Systems 升级为四分法以保护显式治理。
+
+### 声明模板（三种，按 artifact 种类选用）
+
+**Component Declaration** — 用于 Codebase Registry 条目 / Skill / Agent / Crew / 可运行组件
+```
+artifact_scope: component
+component_name, layer (0|1|2|3)
+primary_concern (Brain|Governance|Hands|Session), secondary_concern
+model_contingent_items, model_independent_invariants
+session_source_of_truth, credential_path, wake_resume_entrypoint
+explicit_non_goals, future_split_direction
+```
+
+**Meta Declaration** — 用于 Doctrine / Contract ADR / Harvest ADR / Decision ADR
+```
+artifact_scope: meta
+artifact_name, artifact_role (doctrine|contract|harvest|decision)
+target_layer (0|1|2|3|cross|none)
+bghs_constrains (yes|no)  # 仅 doctrine = yes
+```
+
+**Reference Declaration** — 用于外部架构概念 / fork 的参考仓 / 论文 / 供应商文档
+```
+artifact_scope: reference
+artifact_name, source_kind (concept|fork|paper|vendor_doc), source_uri
+```
+
+## 参考与卫星项目（Codebases）
 
 | Codebase | 性质 | 作用 | 上游 |
 |----------|------|------|------|
@@ -150,19 +194,43 @@ North Star: 站点复制效率 + attribution 完整性
 - 需要的能力通过 ADR 决议后独立实现，不直接搬模块
 - 定期 fetch upstream 保持可查阅，不 merge 到本地分支
 
+## Architecture References（概念/文档）
+
+| Reference | 类型 | 来源 |
+|-----------|------|------|
+| Managed Agents | 架构原则 / 元视角（Brain-Hands-Session 三分法启发，LiYe 升级为 BGHS 四分法） | anthropic.com/engineering/managed-agents |
+
+此区块只收架构概念，不收可运行代码。与"参考与卫星项目"区分：Codebases 可 clone/fetch，Architecture References 仅为决策参考。
+
 ## 进化路线（能力吸收）
 
-从 OpenClaw / Hermes Agent 吸收 runtime patterns 的路线图。
+从 OpenClaw / Hermes Agent / Managed Agents 吸收 patterns 的路线图。
 **原则：先防火再繁殖，先 ADR 再代码，Loamwise 只吸收 patterns 不吸收产品人格。**
+
+### P1 — 8 份 ADR（Doctrine-first 顺序）
+
+| 代号 | ADR | artifact_role | target_layer |
+|------|-----|---------------|--------------|
+| P1-Doctrine | ADR-Architecture-Doctrine-BGHS-Separation | doctrine | cross |
+| P1-a | ADR-OpenClaw-Capability-Boundary | harvest | 0 |
+| P1-b | ADR-Hermes-Skill-Lifecycle | harvest | cross |
+| P1-c | ADR-Hermes-Memory-Orchestration | harvest | 1 |
+| P1-d | ADR-Loamwise-Guard-Content-Security | harvest | 1 |
+| P1-e | ADR-Session-and-Session-Adjacent-Taxonomy-Federated-Query | contract | cross |
+| P1-f | ADR-Credential-Mediation | contract | cross |
+| P1-g | ADR-AGE-Wake-Resume | contract | 2 |
+
+**写作顺序：** P1-Doctrine 必须第一个写（其他 7 份需引用）。
+
+### P2-P5 — 行为吸收（顺序不变）
 
 | 顺序 | 代号 | 内容 | 执行位置 | 硬约束 |
 |------|------|------|---------|--------|
-| P1 | ADR | 4 份 Capability Harvest ADR（含 contract sketch） | liye_os/_meta/adr/ | 每份必须附最小 contract 草图 |
 | P2 | B1 | Content Threat Detection 最小集（3 个 Guard） | loamwise/govern/ | **必须先 shadow mode**（只观测不拦截） |
 | P3 | A1 | Governed Learning Loop candidate-only | loamwise/construct/ | **quarantine-first**，candidate 不是 skill |
-| P4 | C1 | Session Retrieval（truth-first） | loamwise/align/ | **先检索结构化真相，后检索会话文本** |
+| P4 | C1 | Session Retrieval（truth-first） | loamwise/align/ | **先检索结构化真相，后检索会话文本**；基于 P1-e taxonomy |
 | P5 | C2 | Context Compression | loamwise/reason/ | 仅限长任务场景 |
-| 不做 | — | Smart model routing / auto skill repair / Honcho 用户建模 | — | 不进路线图 |
+| 不做 | — | Smart model routing / auto skill repair / Honcho 用户建模 / vault 基础设施 / 统一 session 存储 / monorepo | — | 不进路线图 |
 
 ### Loamwise 吸收边界
 Loamwise 只吸收 Hermes 的 runtime pattern，不吸收它的产品人格：
@@ -176,3 +244,5 @@ Loamwise 只吸收 Hermes 的 runtime pattern，不吸收它的产品人格：
 - 改系统分层、角色、依赖方向 → **只改本文件**
 - 改 repo 本地开发约束 → 只改 repo CLAUDE.md
 - 新增 domain 或产品线 → 先在本文件 Codebase Registry 注册，再创建 CLAUDE.md
+- 新 Component 必须附 Component Declaration；新 ADR 必须附 Meta Declaration
+- 架构原则（BGHS）改动 → 必须经 Doctrine ADR 修订，不得直接改本文件
