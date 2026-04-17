@@ -1,0 +1,164 @@
+# Sprint 7 Shadow 观测规格
+
+**Owner**: LiYe
+**Status**: Observation-window open
+**ADR references**:
+- `_meta/adr/ADR-Loamwise-Guard-Content-Security.md` (P1-d, Guard 升级口径)
+- `_meta/adr/ADR-Hermes-Skill-Lifecycle.md` (P1-b, skill candidate submit 被保护路径)
+- `_meta/adr/ADR-Hermes-Memory-Orchestration.md` (P1-c, memory write + assembly ingest 被保护路径)
+
+---
+
+## 本规格的定位
+
+Sprint 7 不是"实现新功能"，而是**数据驱动的 Guard 升级评审**。
+本规格定义 Sprint 7 阶段 A（观测）与阶段 B（评审）的必备证据与硬门槛。
+**没有证据，不升。没有完整 evidence 链，不升。没有 false positive 分析，不升。**
+
+规格页本身是 **append-only 的观测协议**：窗口期内若需修改任何门槛，必须先追加 `Revision-*` 节（不改写已有门槛），并在 commit message 中写明 why。
+
+---
+
+## 1. 观测窗口
+
+| 项 | 值 |
+|---|---|
+| 窗口起点 | **2026-04-17 00:00 UTC**（Sprint 6 封板日） |
+| 最短连续窗口 | **7 日连续数据** |
+| 窗口终点（最早） | **2026-04-24 00:00 UTC** |
+| 数据断口处理 | 任何 `scanner_failed=true` 以外的证据丢失（sink 丢条 / trace_id 缺失 / append 失败）视为**断口**，窗口**重置**从下一个完整 24h 重新计数 |
+| 窗口冻结 | 阶段 B 评审开始前一刻，窗口**显式冻结**（记录 `frozen_at`），之后产生的证据不进入该轮评审 |
+
+窗口可延长。延长不需要 ADR；缩短或跳过需要。
+
+---
+
+## 2. 覆盖的被保护路径
+
+阶段 A 观测三条已接线路径，**仅这三条**：
+
+| 路径 | ProtectedPathKind | GuardKind | 代码入口 |
+|---|---|---|---|
+| skill candidate submit | `skill.candidate-submit` | `content-scan` | `src/runtime/governance/skill_lifecycle/candidate_submit.ts` → `guardedSubmitCandidate` |
+| memory write (non-auth) | `memory.write.non-authoritative` | `content-scan` | `src/runtime/governance/memory/guard_wire.ts` → `guardedMemoryWrite` (tier ≠ AUTHORITATIVE) |
+| memory write (authoritative) | `memory.write.authoritative` | `truth-write` | `src/runtime/governance/memory/guard_wire.ts` → `guardedMemoryWrite` (tier = AUTHORITATIVE) |
+| assembly fragment ingest | `assembly.fragment-ingest` | `context-inject` | `src/runtime/governance/memory/guard_wire.ts` → `guardedAssemblyFragmentIngest` |
+
+skill promotion、capability registration、retrieval、query orchestration、provider sync — **不在本轮观测范围**。它们还没接线，不能观测。
+
+---
+
+## 3. 统计口径（每路径 × 每窗口日）
+
+每条路径在窗口内按 UTC 日聚合，报告以下字段。字段从 `GuardEvidence` 实体直接派生，不做主观判断。
+
+| 字段 | 定义 | 数据来源 |
+|---|---|---|
+| `observations` | 该路径当日 `runner.run()` 调用次数 | `GuardEvidenceSink.list()` 过滤 `guard_kind` + `scanned_path.path_kind` |
+| `verdict_safe` | 当日 `verdict === 'safe'` 次数 | evidence.verdict |
+| `verdict_caution` | 当日 `verdict === 'caution'` 次数 | evidence.verdict |
+| `verdict_dangerous` | 当日 `verdict === 'dangerous'` 次数 | evidence.verdict |
+| `scanner_failures` | 当日 `scanner_failed === true` 次数 | evidence.scanner_failed |
+| `missing_trace_id` | 当日 `evidence.trace_id === '' \|\| null` 次数 | evidence.trace_id |
+| `missing_scanned_path` | 当日 `scanned_path.target_ref` 缺失次数 | evidence.scanned_path |
+| `sink_gap_detected` | 当日 sink append 错误 / 顺序倒转 / 重复 evidence_id 次数 | 由独立巡检 job 扫 sink |
+| `hit_pattern_count` | `verdict !== 'safe'` 条目的 `hits[].pattern_id` 直方图 | evidence.hits |
+
+额外要求：每条 `caution` 或 `dangerous` 条目必须**手工标注** `fp_status ∈ {false_positive, true_positive, unclear}`。无标注的条目**不计入 FP 率分母**，但**计入 "unclassified" 池**；"unclassified" 池规模本身是一个升级门槛变量（见 §4）。
+
+---
+
+## 4. 升级门槛（阶段 B 评审时逐项勾选）
+
+下列每条都是**必要条件**。任何一条不过，该路径**必须继续 SHADOW**。
+
+### 4.1 观测窗口完整性
+
+- [ ] 连续 7 日数据，无断口；若有断口，窗口已重置并重新达成 7 日。
+- [ ] 窗口 `frozen_at` 已记录，冻结后无新数据污染。
+
+### 4.2 证据完整性（每路径独立核对）
+
+- [ ] `missing_trace_id` == 0（任何一条缺 trace = 不升）。
+- [ ] `missing_scanned_path` == 0。
+- [ ] `sink_gap_detected` == 0（任何一次 sink 异常 = 不升；sink 需先修再观测）。
+- [ ] 窗口内所有 evidence 可通过 `sha256Hex` 校验自身 `scanned_at` + `evidence_id` 一致性。
+
+### 4.3 Scanner 可靠性
+
+- [ ] `scanner_failures / observations < 1%`。高于该阈值视为 scanner 未就绪。
+- [ ] 所有 `scanner_failures` 有可读 `failure_reason` 非空字符串。
+
+### 4.4 False positive 控制
+
+- [ ] 标注覆盖率：所有 `caution` + `dangerous` 条目中，`fp_status != unclear` 的比例 ≥ 80%。
+- [ ] FP 率：`false_positive / (true_positive + false_positive) < 10%`。
+- [ ] 无单一 `pattern_id` 的 FP 占比 > 30%（防止 "一条规则拉高全体 FP"）。
+
+### 4.5 规避样本
+
+- [ ] 已手工构造至少 3 个典型 evasion payload 并跑过 shadow，确认扫描器会报 caution/dangerous。
+- [ ] 若有任何已报告的 evasion 路径尚未复现，**不升**。
+
+### 4.6 业务吞吐量下限
+
+观测窗口内，该路径至少要有 **有意义的流量**，否则数据不足以支撑升级：
+
+- skill candidate submit：窗口内 ≥ 20 次真实提交
+- memory write (各 tier 分别统计)：窗口内 ≥ 50 次真实写入
+- assembly fragment ingest：窗口内 ≥ 50 次真实 ingest
+
+吞吐量不达标 = 继续 SHADOW，窗口延长。
+
+---
+
+## 5. 明确禁止事项（红线）
+
+以下任何一条成立，**禁止**升级该路径：
+
+1. **没有 1 周完整数据** → 不升。
+2. **sink/evidence 有任何断口** → 不升；先修存储。
+3. **scanner_failures 超 1%** → 不升；先修 scanner。
+4. **FP 率超门槛 或 FP 标注覆盖率不足** → 不升；先做 FP 分析。
+5. **存在未复现的已知规避模式** → 不升；先更新 pattern catalog。
+6. **pattern catalog 在窗口内被修改** → 窗口重置；不得在窗口期间"边观察边改规则"。
+7. **用感觉代替数据**（"这周看着还行" / "大概没什么问题"）→ 不升；规格页本身就是为了挡这条。
+
+---
+
+## 6. 阶段 A 交付物（观测期结束时必须存在）
+
+窗口关闭时，提交到 `.planning/acceptance/sprint-7-shadow-readout.md`（另起文件，本页不塞数据）：
+
+1. `frozen_at` 时间戳。
+2. 每路径 × 每窗口日的 §3 字段表格。
+3. 每路径的 §4 门槛勾选结果（勾 / 不勾 + 原因）。
+4. 未标注条目清单（要求阶段 B 评审前清零或明确降级处理）。
+5. 发现的 evasion pattern 列表与 pattern catalog 差异。
+
+**交付物本身必须 append-only**：若发现错误，追加 Revision 节，不改写已有内容。
+
+---
+
+## 7. 阶段 B 评审输出
+
+阶段 B 的产出**不是代码**，而是**决策工件**（类似 PromotionDecision 的形状）：
+
+- 哪条路径批准 SHADOW → ADVISORY，哪条继续 SHADOW。
+- 每条升级路径写入 `ADR-Loamwise-Guard-Content-Security` 的 `non_shadow_allowed_by` 引用（新增 escalation ADR 或复用现有）。
+- 变更通过 `GuardChainRegistry.register` 走常规注册流程，**不会**绕开 Sprint 3 已建的校验链。
+
+只有阶段 B 产出合格决策工件后，Sprint 7 才算"开工"。在此之前，代码层面**零变更**。
+
+---
+
+## 8. 本规格的修订纪律
+
+- 窗口期内，本规格页仅可通过 `Revision-YYYY-MM-DD` 节追加修订。
+- 降低门槛的修订需附带：触发事件 + 风险重评 + 至少一位 reviewer 签名（commit 附 `Reviewed-by:`）。
+- 跳过规格强行评审阶段 B = 违反纪律，该轮评审作废，窗口重置。
+
+---
+
+**Version**: 1.0.0
+**Last Updated**: 2026-04-17
