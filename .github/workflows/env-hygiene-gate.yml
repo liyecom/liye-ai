@@ -1,0 +1,58 @@
+name: Env Hygiene Gate
+
+# Blocks NEW direct environment variable reads (process.env.X,
+# os.getenv(), os.environ[…], etc.) inside the gated scope
+# (src/**, builders/**, systems/**). Existing reads are recorded in
+# .security/env-audit.md but not enforced here.
+#
+# Mirrors the pre-commit Check 7 so CI refuses the same PRs that a
+# local commit would refuse.
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'builders/**'
+      - 'systems/**'
+      - '.claude/scripts/env_hygiene_gate.mjs'
+      - '.github/workflows/env-hygiene-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'builders/**'
+      - 'systems/**'
+      - '.claude/scripts/env_hygiene_gate.mjs'
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run env hygiene gate over PR diff
+        run: |
+          # Turn the PR diff (PR HEAD against the base) into the staged
+          # state, so the gate can use its normal `git diff --cached`
+          # path without needing an extra flag. `reset --soft` moves HEAD
+          # back to base while keeping every PR change staged.
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-parse HEAD~1)"
+          fi
+          # Need local refs; set identity for reset path.
+          git config user.email ci@liye.os
+          git config user.name "CI"
+          git reset --soft "$BASE_SHA"
+          node .claude/scripts/env_hygiene_gate.mjs
+
+      - name: Summary of env hygiene baseline (informational)
+        if: always()
+        run: node .claude/scripts/env_hygiene_gate.mjs --all || true
