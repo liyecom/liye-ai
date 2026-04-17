@@ -162,3 +162,49 @@ skill promotion、capability registration、retrieval、query orchestration、pr
 
 **Version**: 1.0.0
 **Last Updated**: 2026-04-17
+
+---
+
+## Revision-2026-04-17
+
+Append-only refinements per §8 修订纪律. These are **non-blocking
+clarifications** raised during规格页审核；they tighten existing rules,
+do **not** lower any gate. No reviewer signature required (gate
+unchanged).
+
+### R1. "真实" 流量口径（补充 §4.6）
+
+§4.6 吞吐量下限所指的"真实提交/写入/ingest"，在 readout 统计时必须
+**排除**以下流量，以防 2026-04-24 readout 被掺水：
+
+- 测试夹具（`vitest` / 任何 `tests/**` 产生的调用）
+- Replay / synthetic fixture（包括 `src/audit/replay/` 相关调用）
+- 手工重复灌样本（同一 `payload` + 相同 `scanned_path.target_ref` 在
+  5 分钟内重复 ≥2 次的条目，保留第 1 次，其余不计入吞吐量；仍计入 FP
+  标注总量，以便观察是否有人试图"刷门槛"）
+
+实现口径：readout 生成器按 evidence 的 `trace_id` + `scanned_path` +
+`scanned_at` 分桶，标记 `synthetic=true` 的条目从吞吐量分母中剔除；
+`synthetic` 的判定依据 trace_id 前缀 / 调用栈 / 显式 fixture 标记，
+由 readout 生成脚本落定。
+
+### R2. FP 标注责任（补充 §3）
+
+§3 要求对 `caution` / `dangerous` 条目手工标注 `fp_status`。为建立
+审计链，readout 表格每个标注行必须携带：
+
+- `reviewed_by`：标注者 `actor_id`（human user id 或 service id）
+- `reviewed_at`：标注时间 ISO 8601
+
+无 `reviewed_by` / `reviewed_at` 的标注视为 `unclear`，计入
+"unclassified" 池（§3 原规则），不计入 FP 率分母。
+
+### 对其他章节的影响
+
+- §4.6（吞吐量下限）分母口径收紧；门槛值本身不变。
+- §3（统计口径）标注字段扩展；无字段被删除。
+- §4.4（FP 控制）不受影响，规则不变，只是数据更可审计。
+- §5 红线禁止不受影响。
+
+**Revision-2026-04-17 由规格页作者追加，非降门槛修订，无需 reviewer
+签名；下一次修订若降低任何门槛，必须附 `Reviewed-by:`。**
