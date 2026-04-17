@@ -84,13 +84,27 @@ added when the operator closes the divergence).
 | Criterion | Status |
 |---|---|
 | All 3 stores executed | ✅ |
-| 2/3 IN SYNC | ✅ |
+| 2/3 IN SYNC (first pass) | ✅ |
 | Last 1 `SNAPSHOT_DIVERGED` surfaced, not auto-healed | ✅ (per discipline) |
-| Operator `--apply` on STR-358D075EFC | ⏳ **pending** |
-| Re-run confirms IN SYNC post-apply | ⏳ **pending** |
+| Operator `--apply` on STR-358D075EFC | ✅ 2026-04-17 |
+| Re-run confirms IN SYNC post-apply | ✅ 2026-04-17 |
 
-**C6 closure blocked on operator apply**. Once completed, tick the last
-two rows and mark Sprint 1 Wave 1.3 done.
+**C6 closed 2026-04-17**. 3/3 stores IN SYNC. Sprint 1 Wave 1.3 done.
+
+### Resolution record (STR-358D075EFC)
+
+- **Cause**: yaml-side drift on `last_verified_at` (yaml had
+  `2026-04-09T00:00:00Z`; jsonl had no VERIFIED event at that date,
+  only `evt_005` at `2026-03-11T00:00:00Z`).
+- **Handling**: chose option A (align yaml to jsonl) per the contract's
+  single source of truth rule. `--apply` executed; yaml
+  `last_verified_at` reconciled to `2026-03-11T00:00:00Z`.
+- **Rejected option B** (append a reconstructed VERIFIED event dated
+  2026-04-09 to jsonl): no independent evidence of a VERIFIED moment on
+  that date. Store is already flagged `record_provenance: reconstructed`
+  / `confidence: low`; reverse-engineering a jsonl event from a drifted
+  yaml without external proof would violate the append-only authoritative
+  semantics.
 
 ---
 
@@ -149,15 +163,45 @@ state.yaml DIFFERS from jsonl replay. Use --apply to write:
 
 ---
 
-## Next step for operator
+## Operator apply run (2026-04-17, STR-358D075EFC)
 
-1. Read this runbook.
-2. Decide on STR-358D075EFC: accept the jsonl-derived `last_verified_at`
-   (2026-03-11) or investigate whether a missing VERIFIED event should
-   be appended to the jsonl (not likely — nothing in the timeline
-   suggests a 2026-04-09 VERIFIED moment for this reconstructed store).
-3. Run `--apply` if accepting the jsonl value.
-4. Re-run without flag to confirm IN SYNC.
-5. Update this runbook's "C6 Exit status" table and append the two raw
-   outputs under a new "Operator apply run" section.
-6. Mark Sprint 1 Wave 1.3 completed.
+### `--apply`
+
+```
+state.yaml DIFFERS from jsonl replay. Use --apply to write:
+  = store_id: 'STR-358D075EFC'
+  = store_status: 'OPERATIONAL'
+  = provider_status.ads: 'VERIFIED'
+  = provider_status.spapi: 'VERIFIED'
+  = ops_mode: 'WRITE_ENABLED'
+  = discovery_done: True
+  = smoke_passed: True
+  - last_verified_at: '2026-04-09T00:00:00Z'
+  + last_verified_at: '2026-03-11T00:00:00Z'
+  = last_transition_at: '2026-03-11T00:00:00Z'
+  = total_events: 6
+  = record_provenance: 'reconstructed'
+  = confidence: 'low'
+
+Wrote state.yaml for STR-358D075EFC.
+```
+
+### Re-run without flag — confirmation
+
+```
+state.yaml is IN SYNC with jsonl (no changes).
+  = store_id: 'STR-358D075EFC'
+  = store_status: 'OPERATIONAL'
+  = provider_status.ads: 'VERIFIED'
+  = provider_status.spapi: 'VERIFIED'
+  = ops_mode: 'WRITE_ENABLED'
+  = discovery_done: True
+  = smoke_passed: True
+  = last_verified_at: '2026-03-11T00:00:00Z'
+  = last_transition_at: '2026-03-11T00:00:00Z'
+  = total_events: 6
+  = record_provenance: 'reconstructed'
+  = confidence: 'low'
+```
+
+All three stores IN SYNC. **Sprint 1 Wave 1.3 complete.**
