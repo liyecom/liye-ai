@@ -2,7 +2,7 @@
 
 **Vision**: Build a self-evolving personal operating system powered by dual AI engines (Claude Code + Antigravity)
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-04-17
 **Status**: Active Planning
 
 ---
@@ -17,6 +17,70 @@
 > - Public endpoint: `https://gateway.liye.ai`
 > - Runbook: `docs/ops/RUNBOOK_GATEWAY.md`
 > - Dify integration verified (ALLOW/BLOCK scenarios)
+
+---
+
+## 🧭 BGHS Track (2026-04-)
+
+> **双轨并存**：此 section 与上方 2025 Governance Gateway 轨道**正交**——「P1」等编号在两条轨道里含义不同，不得混用。BGHS Track 的 P 编号是 **Capability Harvest + Contract ADR 批次**，不是 Gateway 里程碑。
+
+### 轨道定义
+
+- **主题**：BGHS 四分类（Brain / Governance / Hands / Session）体系落地 + 参考项目（OpenClaw / Hermes / AGE）能力收割
+- **SSOT**：`_meta/adr/` 所有 `ADR-*-*.md`（YAML frontmatter 体系，**不是** 旧 MaaP `- decision_id: ADR-XXXX` 格式）
+- **ADR validator**：`.claude/scripts/validate_adr_bghs.mjs`（本 Track 专用，**不**复用 `validate_adr.mjs`）
+
+### P1 批次 · Capability Harvest + Contract ADR（已封板 2026-04-17）
+
+**Status**: SEALED ✅ · Accepted on 2026-04-17
+
+| ID | ADR 文件 | Role | Target Layer |
+|---|---|---|---|
+| Doctrine | [ADR-Architecture-Doctrine-BGHS-Separation.md](./adr/ADR-Architecture-Doctrine-BGHS-Separation.md) | doctrine | cross |
+| P1-a | [ADR-OpenClaw-Capability-Boundary.md](./adr/ADR-OpenClaw-Capability-Boundary.md) | harvest | 0 |
+| P1-b | [ADR-Hermes-Skill-Lifecycle.md](./adr/ADR-Hermes-Skill-Lifecycle.md) | harvest | cross |
+| P1-c | [ADR-Hermes-Memory-Orchestration.md](./adr/ADR-Hermes-Memory-Orchestration.md) | harvest | 1 |
+| P1-d | [ADR-Loamwise-Guard-Content-Security.md](./adr/ADR-Loamwise-Guard-Content-Security.md) | harvest | 1 |
+| P1-e | [ADR-Session-and-Session-Adjacent-Taxonomy-Federated-Query.md](./adr/ADR-Session-and-Session-Adjacent-Taxonomy-Federated-Query.md) | contract | cross |
+| P1-f | [ADR-Credential-Mediation.md](./adr/ADR-Credential-Mediation.md) | contract | cross |
+| P1-g | [ADR-AGE-Wake-Resume.md](./adr/ADR-AGE-Wake-Resume.md) | contract | 2 |
+
+**历史参考**（Superseded 2026-04-17，保留为审计痕迹，不再生效）：
+
+| 旧 ADR | Superseded-By |
+|---|---|
+| ADR-004-OpenClaw-Capability-Boundary.md | ADR-OpenClaw-Capability-Boundary.md |
+| ADR-005-Hermes-Skill-Lifecycle.md | ADR-Hermes-Skill-Lifecycle.md |
+| ADR-006-Hermes-Memory-Orchestration.md | ADR-Hermes-Memory-Orchestration.md |
+| ADR-007-Loamwise-Guard-Content-Security.md | ADR-Loamwise-Guard-Content-Security.md |
+
+### 实施阶段 · Sprint 0 → Sprint 7
+
+封板后的实施顺序严格按下表执行（非概念顺序，是**代码库实况兼容的施工顺序**）：
+
+| Sprint | 内容 | 关键路径 | 前置 |
+|---|---|---|---|
+| **0** | Baseline 收口：roadmap + `validate_adr_bghs.mjs` + 未提交代码盘点 | `_meta/`, `.claude/scripts/`, `.planning/baseline/` | — |
+| **1** | AGE 恢复闭环（P1-e StreamRegistry + P1-g wake validator + 3 store `--diff`） | `src/runtime/governance/session/`, `src/runtime/governance/wake/`, `/Users/liye/github/amazon-growth-engine/scripts/onboarding/_lib/wake_contract.py` | Sprint 0.3 |
+| **2** | P1-f CredentialBroker seam + env hygiene gate | `src/runtime/credential/`, `.claude/.githooks/pre-commit` (Check 7), `.github/workflows/env-hygiene-gate.yml` | — |
+| **3** | P1-d Guard runtime skeleton（**不接线**） | `src/runtime/governance/guard/`（evidence 走 `src/audit/evidence/`） | — |
+| **4** | P1-a BGHS CapabilityRegistry + README 硬边界 | `src/runtime/governance/capability/`（**不动** `src/control/registry.ts`） | — |
+| **5** | P1-b Skill Lifecycle + Guard 接线-1（skill candidate submit） | `src/runtime/governance/skill_lifecycle/`（**不动** `src/skill/`） | Sprint 3 |
+| **6** | P1-c Memory frozen + Guard 接线-2（memory write / assembly fragment ingest） | `src/runtime/governance/memory/`（**不动** `src/memory/`） | Sprint 3 |
+| **7** | Guard escalation 评审（SHADOW → ADVISORY） | 数据驱动；前置 Sprint 3 shadow ≥ 1 周数据 | Sprint 3, 5, 6 |
+
+### 架构硬约束（跨 Sprint 不变）
+
+1. **新 BGHS runtime 统一落 `src/runtime/governance/`**（不动 `src/control/` / `src/skill/` / `src/memory/` / `src/brokers/`——这些目录已有不同语义的占位者）
+2. **`src/runtime/governance/capability/` ⇎ `src/control/registry.ts` 不得跨 import**（BGHS capability vs AI agent capability，语义不同）
+3. **Evidence 只有一套基建**：`src/audit/evidence/`（不得建第三套 mjs/ts 变体）
+4. **P2 Guard 必须 SHADOW → ADVISORY → ACTIVE 逐级升级**（P1-d §5 强制）
+5. **P3 学习环必须 quarantine-first**（P1-b 强制）
+6. **P4 检索默认 strict_truth**（P1-c / P1-e 强制）
+
+### Track 版本
+
+- v1.0（2026-04-17）：P1 封板 · 8 ADR Accepted · 4 ADR Superseded · Sprint 0–7 计划就绪
 
 ---
 
