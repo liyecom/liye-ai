@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liye.os/contracts/phase1/SESSION_EVENT_STREAM_V1.json",
+  "title": "Session Event Stream v1",
+  "description": "Descriptor for an authoritative session event stream (ADR-Session-and-Session-Adjacent-Taxonomy-Federated-Query §2). `is_append_only` is mandatory (F1.1). `is_hash_chained` is captured as a boolean so provisional candidates that have not yet satisfied F1.3 can still be registered via registerProvisionalStream(); strict F1-compliant registration is enforced by the runtime validator, not this schema.",
+  "type": "object",
+  "required": [
+    "stream_id",
+    "owner",
+    "scope",
+    "format",
+    "storage_location",
+    "retention",
+    "is_append_only",
+    "is_hash_chained",
+    "hash_alg",
+    "registered_at",
+    "registered_by_adr"
+  ],
+  "properties": {
+    "stream_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._:-]*$",
+      "description": "Globally unique stream identifier, e.g. 'engine.amazon-growth.onboarding.STR-E438213024'."
+    },
+    "owner": {
+      "type": "object",
+      "required": ["component_id", "layer"],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "type": "integer",
+          "enum": [1, 2],
+          "description": "Only Layer 1 and Layer 2 may own authoritative session streams. Layer 0 and Layer 3 are forbidden (P1-Doctrine)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "required": ["scope_kind", "scope_keys"],
+      "properties": {
+        "scope_kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "e.g. 'engine-execution', 'orchestrator-trace', 'guard-runtime', or a domain-specific string."
+        },
+        "scope_keys": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "format": {
+      "type": "string",
+      "enum": ["ndjson.append", "per-event-json-dir", "per-trace-dir"]
+    },
+    "storage_location": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path or URI; multi-source is allowed (different stream_ids per location)."
+    },
+    "retention": {
+      "type": "object",
+      "required": ["min_retention_days"],
+      "properties": {
+        "min_retention_days": { "type": "integer", "minimum": 0 },
+        "immutable_after_days": { "type": ["integer", "null"], "minimum": 0 },
+        "delete_after_days": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "is_append_only": {
+      "const": true,
+      "description": "F1.1 — must be true for any session event stream."
+    },
+    "is_hash_chained": {
+      "type": "boolean",
+      "description": "F1.3 — true for F1-compliant streams. Provisional candidates may register with false via registerProvisionalStream(); strict registerStream() rejects false."
+    },
+    "hash_alg": {
+      "type": "string",
+      "enum": ["sha256", "blake3"]
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "registered_by_adr": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ADR filename or canonical path, e.g. 'ADR-AGE-Wake-Resume.md' or '_meta/adr/ADR-AGE-Wake-Resume.md'."
+    }
+  },
+  "additionalProperties": false
+}
