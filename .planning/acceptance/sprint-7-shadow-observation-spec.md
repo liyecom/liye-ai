@@ -6,6 +6,42 @@
 - `_meta/adr/ADR-Loamwise-Guard-Content-Security.md` (P1-d, Guard 升级口径)
 - `_meta/adr/ADR-Hermes-Skill-Lifecycle.md` (P1-b, skill candidate submit 被保护路径)
 - `_meta/adr/ADR-Hermes-Memory-Orchestration.md` (P1-c, memory write + assembly ingest 被保护路径)
+- `_meta/adr/ADR-Architecture-Doctrine-BGHS-Separation.md`（Layer 0 / Layer 1 分工总则）
+
+**Cross-repo references**（双向可追溯）:
+- 执行侧 runbook：`loamwise/docs/P2-O-observation-runbook.md`
+- 执行侧 SQL：`loamwise/docs/P2-O-observation-sql.md`
+- 执行侧 memo / log：`loamwise/docs/P2-O-observation-memo.md` · `loamwise/docs/P2-O-observation-log.md`
+- 执行侧 per-guard memo：`loamwise/docs/P2-A-shadow-observation-memo.md` · `P2-B-*` · `P2-C-*`
+- 执行侧 scanner 实现：`loamwise/govern/guards/content_scan_guard.py` · `truth_write_guard.py` · `context_inject_guard.py`
+- 执行侧 audit 后端：`loamwise/audit/backends/duckdb.py` → `loamwise/data/loamwise.duckdb`
+
+---
+
+## 0. Positioning / Layer Ownership（**最高优先级**）
+
+**本文件是 Layer 0 contract authority，不是 operational readout authority。**
+
+| 面向 | 归属 | 仓库 | 角色 |
+|---|---|---|---|
+| Shadow 观测的契约口径、边界语义、证据结构、评审前提 | Layer 0 contract | **liye_os**（本仓库） | **contract authority** |
+| 真实 scanner 执行、pattern 命中统计、AuditRecord 写入、运行期 observation readout | Layer 1 execution | **loamwise** | **execution / readout authority** |
+
+**不可混用的口径**：
+
+- 本规格定义 Shadow Observation 的 Layer 0 契约口径、边界语义与证据结构。
+- 真实扫描执行、pattern 命中统计、审计记录写入以及运行期 observation readout 由 loamwise 的 `docs/P2-O-observation-runbook.md` 与相关 observation artifacts 产出。
+- 因此，本文件是 **contract authority**，不是 operational readout authority。
+
+**2026-04-24 shadow → advisory 评审的单一口径**：
+
+> 真实观测数据以 **loamwise** 产出为准；契约合法性、字段语义与边界解释以 **liye_os** 定义为准。
+
+**与 liye_os Sprint 1–7 的关系**：
+
+- liye_os Sprint 1–7 完成的是 **Layer 0 契约与 seam**（`src/runtime/governance/*`：session / wake / capability / guard 骨架 + 夹具 scanner / skill_lifecycle / memory + guard 接线），**不等于 P2 实施本体**。
+- **P2 的真实实现与观测主体在 loamwise**（`govern/guards/*.py` + `P2-*` docs）。
+- liye_os 的 `guard/shadow_runner.ts` + `NoopScanner` / `AlwaysDangerousScanner` 是 **契约骨架 + 测试夹具**，不产出真实 pattern 命中；运行期的扫描命中全部在 loamwise。
 
 ---
 
@@ -208,3 +244,41 @@ unchanged).
 
 **Revision-2026-04-17 由规格页作者追加，非降门槛修订，无需 reviewer
 签名；下一次修订若降低任何门槛，必须附 `Reviewed-by:`。**
+
+---
+
+## Revision-2026-04-18
+
+Append-only clarification per §8 修订纪律. **非降门槛修订；纯定位声明 +
+跨仓库 cross-ref，不改变任何评审门槛。**
+
+**触发事件**：深度读码后发现 `loamwise/govern/guards/*.py` 已实现真实
+scanner（55 patterns，142 tests）+ `loamwise/docs/P2-*.md` 观测 memo 齐全；
+此前本规格页对 Layer 0 / Layer 1 分工描述不够显式，存在被误读为
+"Sprint 1–7 = P2 本体"的风险。
+
+**变更**：
+
+1. 新增 §0 Positioning / Layer Ownership，把"liye_os = contract
+   authority / loamwise = execution-readout authority"的分工钉死在最高
+   优先级节。
+2. 在文件首部的 ADR references 下新增 **Cross-repo references** 清单，
+   指向 loamwise 的 `docs/P2-O-*` / `docs/P2-A/B/C-*` / `govern/guards/*.py`
+   / `audit/backends/duckdb.py`。
+3. 确立"2026-04-24 shadow → advisory 评审的单一口径"：**真实观测数据
+   以 loamwise 产出为准；契约合法性、字段语义与边界解释以 liye_os 定义为准。**
+
+**不变项**（再次确认）：
+
+- §1 观测窗口：**2026-04-17 → 最早 2026-04-24**，口径不变。
+- §4 六类升级门槛值不变；仅补充 cross-ref，无降门槛动作。
+- §5 红线禁止项未变；pattern catalog 窗口期仍不得修改（适用于 loamwise
+  侧的 55 patterns + 3 个 catalog version）。
+
+**Cross-repo 对应修改**（同步落到 loamwise）：
+
+- `loamwise/docs/P2-O-observation-runbook.md` 新增 "Contract Source of Truth" 节
+- `loamwise/docs/P2-O-observation-memo.md` 新增 "Single Source of Truth Declaration" 节
+- `loamwise/docs/P2-O-observation-log.md` 新增 "Single Source of Truth Declaration" 节
+
+**Revision-2026-04-18 由规格页作者追加，非降门槛修订，无需 reviewer 签名。**

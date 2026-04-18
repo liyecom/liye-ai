@@ -56,6 +56,18 @@
 
 ### 实施阶段 · Sprint 0 → Sprint 7
 
+> **⚠️ Layer Ownership（2026-04-18 澄清，防误读）**：
+>
+> 本 Sprint 表记录的是 **liye_os 仓库内 Layer 0 契约与 seam** 的施工顺序，**不等于 P2（Content Threat Detection）本体**。
+>
+> - **P2 的真实实现与观测主体在 loamwise**（`govern/guards/*.py` + `docs/P2-*.md`），已基本完成并处于 shadow 观测期。
+> - **liye_os Sprint 1–7 完成的是 Layer 0 契约 + seam**（types / registries / shadow runner 骨架 + 夹具 scanner / guard 接线点 / memory-lifecycle 契约）。
+> - 禁止将"Sprint N = P2"作为任何对外表述。正确说法：
+>   - liye_os = Layer 0 **contract authority**
+>   - loamwise = Layer 1 **execution / readout authority**
+>
+> 2026-04-24 shadow → advisory 评审的数据来源见 `loamwise/docs/P2-O-observation-*`；契约尺度见 `liye_os/.planning/acceptance/sprint-7-shadow-observation-spec.md`。
+
 封板后的实施顺序严格按下表执行（非概念顺序，是**代码库实况兼容的施工顺序**）：
 
 | Sprint | 内容 | 关键路径 | 前置 |
