@@ -41,10 +41,10 @@ related:
 
 | # | Decision | 状态（截至 2026-04-26）|
 |---|----------|-----------------------|
-| 1 | Retire Session OS（删 6 slash command + 归档 snapshots/history） | 未执行（13 天未用，零风险）|
+| 1 | Retire Session OS（删 6 slash command + 归档 snapshots/history） | 2026-04-27 已执行（commit `293e14f`）：归档 `~/.claude/backups/session-os-retire-20260427/` (6 commands + 14 snapshots + 116 history files, deep SHA verified)；删除 `~/.claude/commands/{save,digest,refresh,restore,session,status}.md` + `~/.claude/{snapshots,history}/`；in-repo 删除 `.claude/.session/` (was gitignored) + `.claude/skills/session/session-start-enhanced.md`；保留 `~/.claude/commands/github-issue.md`；`.claude/skills/index.yaml` 无 session 引用 |
 | 2 | asin-growth SKILL.md 1600 → ~800 行拆解（契约层 vs MVP 脚手架）| 未执行（独立 3-4h session）|
 | 3 | loamwise-ops v0.5 观察窗 2026-04-26 到期处置（升级 / 收窄 / 退役）| 2026-04-27 user 拍板 **(D) 再观察 2 周**，新到期 2026-05-10；理由：3 周 0 friction batch + 1 meta observation 反 Phase C 证据，按 design 字面"<10 batch 延长 2 周"；exit-review.md 物化推到 Sprint 8 frozen 之后 (2026-05-03+) 且不晚于 2026-05-10 第二次 exit gate |
-| 4 | 自写 skill 砍 frontmatter（`version` / `triggers`）| 未执行（与 #1 合做）|
+| 4 | 自写 skill 砍 frontmatter（`version` / `triggers`）| 2026-04-27 **deferred / no valid target under current Skills/ tree**. Inspection found only one true user-authored skill, `ui-ux-pro-max`, but its `triggers` field is required by SFC v0.1 schema. Removing it would break `sfc_lint`. Therefore D-4 original action is spec drift and should not execute now. （顺带 discovery: `ui-ux/SKILL.md` 是 fork from `nextlevelbuilder/ui-ux-pro-max-skill` MIT，frontmatter 漏标 source — 已通过 separate commit E 修复 provenance）|
 | 5 | liye_os 24 commits push 卸载认知挂账 | 2026-04-27 **部分卸载**：本地 ahead 25（24 + 反思 doc commit `525ee76`）push 到 `archive/liye-os-local-batch-20260427`，remote SHA match local，消除 SSD 失败丢失风险；**main land 推迟**——main 是 protected (PR + 6 status checks)，25 commits = 111 files / 24983 insertions / 10 deletions，需 topic PR decomposition 独立 session 处理 |
 | 6 | Sprint 8 期间禁开 loamwise（read-only 到 2026-05-03T12:00Z）| 部分执行（纪律性）|
 | 7 | 每周 AGE-only 时间块 | 节奏层 |
@@ -187,7 +187,8 @@ related:
 | Action | 来源 | 触发时机 |
 |--------|------|---------|
 | 方向 1 Decision-3 loamwise-ops 处置 | 方向 1 | 2026-04-27 user 拍板 (D) 再观察 2 周 → 新窗口结束 **2026-05-10**；exit-review.md 物化时机 = Sprint 8 frozen (2026-05-03T12:00Z) 之后且不晚于 2026-05-10 |
-| 方向 1 Decision-1+4 Retire Session OS + 砍 frontmatter | 方向 1 | 待启动（30 min 可做完）|
+| 方向 1 Decision-1 Retire Session OS | 方向 1 | 2026-04-27 done (commit `293e14f`)；archive 永久保留 |
+| 方向 1 Decision-4 砍 frontmatter | 方向 1 | 2026-04-27 deferred / spec drift (no valid target; SFC schema 阻断；详见 8 Decisions 表 D-4 行) |
 | 方向 1 Decision-5 liye_os 24 commits push | 方向 1 | 2026-04-27 archive preservation done (`archive/liye-os-local-batch-20260427`, SHA `525ee76`)；main land deferred — requires topic PR decomposition (~5-6 PR：BGHS feat / sprint-7 docs / ADR seal / runtime baseline / .planning roll / 反思 doc)，独立 session |
 | 方向 1 Decision-2 SKILL.md 拆解 | 方向 1 | 独立 3-4h session（低优先）|
 | 方向 3 30 天决策盘点 | 方向 3 | brainstorm 完成后任意时刻；按 Q10 (r) 应在方向 2 跑完后 |
