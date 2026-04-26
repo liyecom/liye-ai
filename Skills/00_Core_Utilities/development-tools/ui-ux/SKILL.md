@@ -1,6 +1,9 @@
 ---
 name: ui-ux
 description: SFC patched skill. Use when "ui-ux" is relevant.
+source: nextlevelbuilder/ui-ux-pro-max-skill
+source_url: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+license: MIT
 
 # SFC v0.1 Required Fields
 skeleton: "reference"
