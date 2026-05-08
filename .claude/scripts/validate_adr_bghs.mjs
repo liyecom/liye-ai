@@ -38,8 +38,8 @@ import path from "path";
 import fg from "fast-glob";
 
 const ADR_DIR = "_meta/adr";
-const VALID_ROLES = new Set(["doctrine", "contract", "harvest", "component"]);
-const VALID_LAYERS = new Set(["0", "1", "2", "3", "cross"]);
+const VALID_ROLES = new Set(["doctrine", "contract", "harvest"]);
+const VALID_LAYERS = new Set(["0", "1", "2", "3", "cross", "none"]);
 const VALID_BOOL = new Set(["yes", "no", "true", "false"]);
 const VALID_STATUS = new Set([
   "Proposed",
