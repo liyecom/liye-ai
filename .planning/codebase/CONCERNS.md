@@ -42,7 +42,7 @@
 **Vitest Picks Up Third-Party Test Files:**
 - Issue: `vitest.config.ts` excludes `Extensions/**` and `websites/**` but does not exclude `examples/**`. The `examples/wecom/` directory contains `node_modules/` with test files (blake3-wasm, wrangler) that vitest discovers and fails on (13 failures in current test run).
 - Files: `vitest.config.ts`
-- Impact: `npm test` reports 13 false failures from third-party code, masking real test results. CI would always fail.
+- Impact: `npm test` reports 13 false failures from third-party code, masking real test results. Local test discovery can fail when `examples/wecom/node_modules` exists; clean CI is unaffected unless that ignored tree is present.
 - Fix approach: Add `'examples/**'` to the `exclude` array in `vitest.config.ts`.
 
 ## Known Bugs
