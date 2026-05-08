@@ -182,12 +182,43 @@ function validate(file) {
   return { meta, file };
 }
 
+function validateLegacySupersede(file) {
+  const md = fs.readFileSync(file, "utf8");
+  const status = md.match(/\*\*Status\*\*:\s*([^\s*]+)/)?.[1];
+
+  // Only enforce supersede markers when the legacy ADR claims to be Superseded.
+  // Active legacy ADRs (Accepted/Proposed) are out of scope; pre-existing missing-status
+  // ADRs are pre-PR-2 tech debt left untouched.
+  if (status !== "Superseded") return;
+
+  const supersededBy = md.match(/\*\*Superseded-By\*\*:\s*`?([^`\n]+?)`?\s*$/m)?.[1]?.trim();
+  const supersededDate = md.match(/\*\*Superseded-Date\*\*:\s*(\S+)/)?.[1];
+
+  if (!supersededBy) {
+    fail(file, "legacy ADR marked Superseded but missing **Superseded-By** marker");
+  }
+  if (!supersededDate || !DATE_RE.test(supersededDate)) {
+    fail(file, `legacy ADR marked Superseded but missing or malformed **Superseded-Date** (got "${supersededDate ?? "missing"}")`);
+  }
+}
+
 function main() {
   const all = fg.sync(`${ADR_DIR}/ADR-*.md`);
   // BGHS format = no numeric prefix after "ADR-"
   const bghsFiles = all.filter((f) => !/\/ADR-\d/.test(f));
+  const legacyFiles = all.filter((f) => /\/ADR-\d/.test(f));
+
+  if (legacyFiles.length > 0) {
+    console.log(`[BGHS ADR VALIDATION] Legacy supersede-marker check on ${legacyFiles.length} numeric-prefix file(s)...`);
+    for (const f of legacyFiles) validateLegacySupersede(f);
+  }
 
   if (bghsFiles.length === 0) {
+    if (errors.length > 0) {
+      console.error("\n❌ Legacy ADR supersede-marker check FAILED:");
+      for (const e of errors) console.error("  - " + e);
+      process.exit(1);
+    }
     console.log("[BGHS ADR VALIDATION] No BGHS-format ADRs found; nothing to check.");
     process.exit(0);
   }
