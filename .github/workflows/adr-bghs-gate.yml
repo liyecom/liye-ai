@@ -1,0 +1,38 @@
+name: BGHS ADR Gate
+
+# Validates BGHS-track ADRs (YAML frontmatter + bolded header) against the
+# schema in .claude/scripts/validate_adr_bghs.mjs.
+# Legacy numeric-prefix ADRs (ADR-004-*.md etc.) live in _meta/adr/ and are
+# NOT covered by validate_adr.mjs (which only scans docs/adr/**/*.md). The
+# BGHS validator therefore performs a lightweight supersede-marker check
+# on those files (Status: Superseded + Superseded-By + Superseded-Date)
+# while skipping full BGHS schema validation.
+
+on:
+  pull_request:
+    paths:
+      - '_meta/adr/ADR-*.md'
+      - '.claude/scripts/validate_adr_bghs.mjs'
+      - '.github/workflows/adr-bghs-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - '_meta/adr/ADR-*.md'
+      - '.claude/scripts/validate_adr_bghs.mjs'
+      - '.github/workflows/adr-bghs-gate.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install fast-glob
+        run: npm install --no-save fast-glob
+
+      - name: Validate BGHS ADRs
+        run: node .claude/scripts/validate_adr_bghs.mjs
