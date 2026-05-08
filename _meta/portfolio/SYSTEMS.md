@@ -97,7 +97,7 @@ attribution-kit → growth-hub     npm: @loudmirror/attribution-kit
 ### Engine 接入清单
 
 **D0 → D1 (Registered):**
-- [ ] 创建 engine_manifest.yaml 实例（参照 `liye_os/_meta/contracts/engine_manifest.schema.yaml`）
+- [ ] 创建 engine_manifest.yaml 实例（参照 `liye_os/_meta/contracts/engine/engine_manifest.schema.yaml`）
 - [ ] 声明 playbooks + required_permissions
 - [ ] 声明 data_sources + write_capability 级别
 - [ ] 通过 schema 验证
