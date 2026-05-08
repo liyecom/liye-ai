@@ -170,8 +170,11 @@ jobs:
           # Block owner-qualified references and repository URLs that disclose repo location.
           # Exclude this workflow file itself (it needs to reference patterns for detection)
           EXCLUDE_PATTERNS=".git|node_modules|\.github/workflows/amazon-leak-guard\.yml"
+          OWNER_REPO_PATTERN="(^|[^[:alnum:]_.:/@-])[[:alnum:]_.-]+/amazon-growth-engine([/.][^[:space:])]+|[^[:alnum:]_.-]|$)"
+          GITHUB_URL_PATTERN="github\.com/[^[:space:])]+/amazon-growth-engine"
+          GITHUB_SSH_PATTERN="git@github\.com:[^[:space:])]+/amazon-growth-engine"
 
-          FOUND=$(grep -rn -E "loudmirror/amazon-growth-engine|github\.com/[^[:space:])]+/amazon-growth-engine|git@github\.com:[^[:space:])]+/amazon-growth-engine" \
+          FOUND=$(grep -rn -E "${OWNER_REPO_PATTERN}|${GITHUB_URL_PATTERN}|${GITHUB_SSH_PATTERN}" \
             i18n _meta docs README* 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
 
           if [ -n "$FOUND" ]; then
