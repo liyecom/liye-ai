@@ -119,12 +119,13 @@ function matchesAny(token: string, tokenSet: Set<string>): boolean {
 }
 
 /**
- * Extract tags from skill IDs for capability requirement
+ * Derive capability tags by tokenizing atomic capability identifiers.
+ * Pure string manipulation; no cross-layer import.
  */
-function skillsToTags(skills: string[]): string[] {
+function extractCapabilityTags(capabilityIds: string[]): string[] {
   const tags = new Set<string>();
-  for (const skill of skills) {
-    for (const part of skill.split('_')) {
+  for (const id of capabilityIds) {
+    for (const part of id.split('_')) {
       if (part.length > 1) tags.add(part);
     }
   }
@@ -313,7 +314,7 @@ export class RuleBasedDecomposer {
             : [];
 
           return {
-            tags: [...new Set([...skillsToTags(skills), ...roleTags])],
+            tags: [...new Set([...extractCapabilityTags(skills), ...roleTags])],
             domain: domain ?? agent.agent.domain,
           };
         } catch {
