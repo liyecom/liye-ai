@@ -133,7 +133,7 @@
 ## 建议执行顺序（Sprint 0 收口时）
 
 1. **Owner 审 A3 diff** → 决定 keep / commit / revert
-2. **discard C1/C2/D1**：`rm -rf data/traces/ state/traces/ evidence/remote_branches_to_delete_20260311.txt`
+2. **discard C1/C2/D1**（按 Appendix · Cleanup Discipline 模板）：先 `git ls-files <dir>` + `git status --short <dir>` 枚举，仅按 untracked 子项精确删；混居目录禁用目录级 `rm -rf`。`evidence/remote_branches_to_delete_20260311.txt` 是单文件，可直接 `rm`。
 3. **补 `.gitignore`**：加 `data/traces/` + `state/traces/`
 4. **Commit #1（A1 + A2 + B1-B3）**：`feat(runtime): add control plane + orchestrator baseline with tests`
 5. **Commit #2（E1-E4 + 本文件）**：`docs(roadmap): add BGHS track + BGHS ADR validator + Sprint 0 triage`
