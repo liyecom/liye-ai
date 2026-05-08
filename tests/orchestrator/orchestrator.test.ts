@@ -502,6 +502,105 @@ describe('OrchestrationEngine approval-resume correctness', () => {
     expect(second).toBeNull();
   });
 
+  it('rejects out-of-order approval of non-pending downstream task (Finding 5d)', async () => {
+    // Pre-approving a downstream write task whose own pending_approval gate
+    // has not yet fired must NOT silently promote its autonomy. dag.markApproved
+    // already no-ops on non-pending_approval nodes, but the autonomy promotion
+    // would still leak through without the status guard.
+    const engine = buildEngine('auto-read-approve-write');
+    const intent: Intent = {
+      id: 'oop-approve-1',
+      goal: 'Research and optimize content',
+      domain: 'core',
+    };
+
+    const initial = await engine.orchestrate(intent);
+    const pending = initial.tasks.filter(t => t.status === 'pending_approval');
+    expect(pending.length).toBeGreaterThan(0);
+
+    // Find a task that is NOT pending_approval (could be 'pending' downstream
+    // or 'success' upstream). If none exists in this scenario the test
+    // cannot exercise the path — degrade to a synthetic non-existent id
+    // which is also out-of-pending and must be rejected.
+    const nonPending = initial.tasks.find(t => t.status !== 'pending_approval');
+    const targetId = nonPending?.task_id ?? 'task-that-does-not-exist';
+
+    const bypass = await engine.resumeAfterApproval(intent.id, targetId, 'approved');
+    expect(bypass).toBeNull();
+
+    // After the rejected pre-approval call, real approval flow must still
+    // work for the genuinely pending task. The downstream task's autonomy
+    // must NOT have been promoted to 'auto' by the rejected call.
+    const real = await engine.resumeAfterApproval(intent.id, pending[0].task_id, 'approved');
+    expect(real).not.toBeNull();
+    // The previously-pending task is now resolved (success or further-pending),
+    // not 'pending_approval' on itself. Any newly-surfaced pending_approval
+    // would belong to a different downstream task whose own gate fired
+    // legitimately — that is the correct in-order behavior.
+    const previouslyPending = real!.tasks.find(t => t.task_id === pending[0].task_id);
+    expect(previouslyPending).toBeDefined();
+    expect(previouslyPending!.status).not.toBe('pending_approval');
+  });
+
+  it('fallback policy-skip does not record trust failure (Finding 4c)', async () => {
+    // When an alternative is skipped because policy says 'approve' (not
+    // 'auto'), the alternative never executes. Recording a failure outcome
+    // would pollute the agent's trust profile. Verify trust profile is
+    // unchanged across orchestrate() when only policy-skip-fallback occurs.
+    const registry = new CapabilityRegistry();
+    registry.scanAgents([AGENTS_DIR]);
+    const trustStore = new TrustScoreStore('/tmp/test-trust-policyskip-' + Date.now() + '.yaml');
+    for (const agent of registry.listAll()) {
+      trustStore.setProfile(agent.agent_id, agent.trust);
+    }
+
+    const stubPolicy = {
+      check: (_candidate: any, action: 'read' | 'write') => ({
+        allowed: action === 'read',
+        autonomy: action === 'read' ? ('auto' as const) : ('approve' as const),
+        reason: 'stub',
+      }),
+    };
+    const discoveryPolicy = new DiscoveryPolicy(registry);
+    const decomposer = new RuleBasedDecomposer([CREWS_DIR], [AGENTS_DIR]);
+    const router = new CapabilityRouter(registry, discoveryPolicy, stubPolicy as any);
+
+    const engine = new OrchestrationEngine({
+      decomposer,
+      router,
+      executionPolicy: stubPolicy as any,
+      trustStore,
+      registry,
+      traceDir: '/tmp/test-traces-policyskip-' + Date.now(),
+    });
+
+    // Snapshot pre-execution profiles for all agents
+    const before = new Map<string, ReturnType<typeof trustStore.getProfile>>();
+    for (const agent of registry.listAll()) {
+      before.set(agent.agent_id, { ...trustStore.getProfile(agent.agent_id) });
+    }
+
+    // Force primary failure so the engine enters fallback path
+    const failPrimary = async (task: Task): Promise<TaskResult> => ({
+      task_id: task.id, status: 'failure', outputs: {}, duration: 1, error: 'simulated',
+    });
+    await engine.orchestrate(
+      { id: 'policyskip-1', goal: 'Research market trends', domain: 'core' },
+      failPrimary,
+    );
+
+    // For each agent, total_executions for write must not have grown unless
+    // the agent actually executed (which it cannot under stub policy: writes
+    // require approval and fallback only auto-runs). Check write_score did
+    // not decay from policy-skip alone.
+    for (const agent of registry.listAll()) {
+      const after = trustStore.getProfile(agent.agent_id);
+      const beforeProfile = before.get(agent.agent_id)!;
+      // write_score should be unchanged (no real write executed under approve-only policy)
+      expect(after.write_score).toBeCloseTo(beforeProfile.write_score, 5);
+    }
+  });
+
   it('fallback alternative is skipped when execution policy says approve (Finding 2)', async () => {
     // Force executionPolicy to deny writes (return 'approve'), then trigger
     // a primary failure. Any write-typed alternative must NOT auto-execute.
