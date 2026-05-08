@@ -140,6 +140,11 @@ export class OrchestrationEngine {
 
     if (decision === 'approved') {
       dag.markApproved(taskId);
+      // [Fix #5b] Promote autonomy so executeLoop's autonomy check at line ~241
+      // doesn't re-mark this task as pending_approval. The approval decision
+      // IS the autonomy escalation; once granted it persists for this run.
+      const rt = resolved.find(r => r.id === taskId);
+      if (rt) rt.autonomy = 'auto';
     } else {
       dag.markRejected(taskId);
       const rt = resolved.find(r => r.id === taskId);
@@ -159,7 +164,15 @@ export class OrchestrationEngine {
     }
 
     const trustUpdates: Record<string, Partial<TrustProfile>> = {};
-    return this.executeLoop(intent, dag, resolved, results, trustUpdates, startTime, executor);
+    const result = await this.executeLoop(intent, dag, resolved, results, trustUpdates, startTime, executor);
+
+    // [Fix #5c] Mirror orchestrate() cleanup: drop in-flight state once
+    // the run is no longer suspended on another approval.
+    if (result.status !== 'pending_approval') {
+      this.activeDags.delete(intentId);
+    }
+
+    return result;
   }
 
   /**
@@ -285,12 +298,42 @@ export class OrchestrationEngine {
           : 'read' as const;
 
         // [Fix #4] Fallback with separate trust recording
+        // [Fix #4b] Each alternative must re-pass execution policy. The
+        // primary's autonomy decision does NOT cover alternatives because
+        // their side_effect / trust profile / contract may differ. Without
+        // this check a read-auto primary could fall back to a write-approve
+        // alternative and execute it without the required approval (A2 rule
+        // violation).
         if (result.status === 'failure' && rt.alternatives.length > 0) {
           // Record primary failure
           this.trustStore.recordOutcome(rt.agent_id, kind, false);
 
           for (let i = 0; i < rt.alternatives.length; i++) {
             const alt = rt.alternatives[i];
+            const altCard = this.registry.findAgent(alt.agent_id);
+            if (!altCard) continue;
+            const altContract = altCard.contracts.find(c => c.id === alt.capability_id);
+            if (!altContract) continue;
+            const altAction = (altContract.side_effect === 'write' || altContract.side_effect === 'irreversible')
+              ? 'write' as const
+              : 'read' as const;
+            const altPolicy = this.executionPolicy.check({
+              agent_id: alt.agent_id,
+              capability_id: alt.capability_id,
+              matched_tags: rt.capability.tags,
+              side_effect: altContract.side_effect,
+              trust: altCard.trust,
+              source_contract: altContract,
+            }, altAction);
+
+            // Skip alternatives that need approval or are blocked. Fallback
+            // is auto-resolution; an approve-required alternative cannot be
+            // silently substituted for a failed primary.
+            if (altPolicy.autonomy !== 'auto') {
+              this.trustStore.recordOutcome(alt.agent_id, altAction, false);
+              continue;
+            }
+
             const altTask: Task = {
               ...task,
               agent: alt.agent_id,
@@ -303,10 +346,10 @@ export class OrchestrationEngine {
               actualAgent = alt.agent_id;
               fallbackUsed = true;
               fallbackRank = i + 1;
-              this.trustStore.recordOutcome(alt.agent_id, kind, true);
+              this.trustStore.recordOutcome(alt.agent_id, altAction, true);
               break;
             } else {
-              this.trustStore.recordOutcome(alt.agent_id, kind, false);
+              this.trustStore.recordOutcome(alt.agent_id, altAction, false);
             }
           }
         } else {
