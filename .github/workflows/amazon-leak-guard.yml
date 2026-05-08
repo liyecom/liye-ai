@@ -7,10 +7,11 @@
 #   - Actual Amazon code paths: Agents/amazon-growth/, Crews/amazon-growth/, etc.
 #   - Customer identifiers: TIMO, timo
 #   - Blocked ASINs from .security/blocklist.txt
-#   - Private repo disclosure: loudmirror/amazon-growth-engine, amazon-growth-engine in docs
+#   - Private repo disclosure: owner-qualified or URL references to amazon-growth-engine
 #
 # What is ALLOWED:
 #   - Generic references like "a private repository"
+#   - Public project name references to amazon-growth-engine in registry/documentation
 #
 # This gate complements .security/blocklist.txt pre-commit hooks
 # =============================================================================
@@ -165,24 +166,28 @@ jobs:
           echo "🔍 Checking for private repo disclosure in documentation..."
           echo ""
 
-          # Block private repo names/URLs in public-facing docs
+          # The public project name is allowed in portfolio/source registries.
+          # Block owner-qualified references and repository URLs that disclose repo location.
           # Exclude this workflow file itself (it needs to reference patterns for detection)
           EXCLUDE_PATTERNS=".git|node_modules|\.github/workflows/amazon-leak-guard\.yml"
+          OWNER_REPO_PATTERN="(^|[^[:alnum:]_.:/@-])[[:alnum:]_.-]+/amazon-growth-engine([/.][^[:space:])]+|[^[:alnum:]_.-]|$)"
+          GITHUB_URL_PATTERN="github\.com/[^[:space:])]+/amazon-growth-engine"
+          GITHUB_SSH_PATTERN="git@github\.com:[^[:space:])]+/amazon-growth-engine"
 
-          FOUND=$(grep -rn -E "loudmirror/amazon-growth-engine|github\.com/.*/amazon-growth-engine|amazon-growth-engine" \
+          FOUND=$(grep -rn -E "${OWNER_REPO_PATTERN}|${GITHUB_URL_PATTERN}|${GITHUB_SSH_PATTERN}" \
             i18n _meta docs README* 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
 
           if [ -n "$FOUND" ]; then
-            echo "::error::FORBIDDEN: Private repository disclosure detected in public documentation"
+            echo "::error::FORBIDDEN: Private repository location disclosure detected in public documentation"
             echo ""
-            echo "Files containing private repo references:"
+            echo "Files containing owner-qualified or URL repo references:"
             echo "$FOUND"
             echo ""
-            echo "Replace with 'a private repository' or remove the reference."
+            echo "Use the public project name without owner/URL, or replace with 'a private repository'."
             exit 1
           fi
 
-          echo "✅ No private repo disclosure found"
+          echo "✅ No private repo location disclosure found"
 
       - name: Summary
         run: |
@@ -198,6 +203,6 @@ jobs:
           echo "  - No customer identifiers in code"
           echo "  - No blocked ASINs"
           echo "  - No API key patterns"
-          echo "  - No private repo disclosure in docs"
+          echo "  - No private repo location disclosure in docs"
           echo ""
           echo "Note: Only actual code, data, and identifiers are blocked."

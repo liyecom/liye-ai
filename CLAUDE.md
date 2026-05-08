@@ -1,3 +1,12 @@
+## System Role
+- Layer: 0（制度底座 — 整个 LiYe Systems 的基础层）
+- **系统级 SSOT**: `_meta/portfolio/SYSTEMS.md` — 生态分层、角色、依赖、成熟度
+- **项目级 SSOT**: `_meta/contracts/`、`src/kernel/GOVERNANCE_RULES.yaml`、`Agents/`、`Crews/` — 本仓库内部的治理规则和能力定义
+- 讨论整个生态的角色/层级/依赖时，以 SYSTEMS.md 为准
+- 讨论本仓库内部的治理/contract/world model 时，以项目内文件为准
+
+---
+
 # CLAUDE.md (Kernel)
 
 This file is the **startup router / minimal resident context** for LiYe OS. Do not put long SOPs, protocols, or complete skill documentation here.
