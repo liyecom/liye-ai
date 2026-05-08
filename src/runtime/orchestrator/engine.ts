@@ -138,11 +138,25 @@ export class OrchestrationEngine {
 
     const { dag, resolved, intent, startTime, results } = active;
 
+    // [Fix #5d] Out-of-order approval bypass guard. Only act when the
+    // target task is actually awaiting approval. dag.markApproved() and
+    // dag.markRejected() silently no-op on non-pending_approval nodes,
+    // so without this guard a caller could pre-approve a downstream
+    // write task whose own pending_approval gate has not yet fired —
+    // the autonomy promotion at line ~146 would still flip rt.autonomy
+    // to 'auto', letting the task execute without approval when its
+    // turn arrives. Reject the call early instead.
+    if (dag.getNodeStatus(taskId) !== 'pending_approval') {
+      return null;
+    }
+
     if (decision === 'approved') {
       dag.markApproved(taskId);
       // [Fix #5b] Promote autonomy so executeLoop's autonomy check at line ~241
       // doesn't re-mark this task as pending_approval. The approval decision
       // IS the autonomy escalation; once granted it persists for this run.
+      // Safe because the guard above proves the task was genuinely awaiting
+      // approval — not a future downstream write being pre-cleared.
       const rt = resolved.find(r => r.id === taskId);
       if (rt) rt.autonomy = 'auto';
     } else {
@@ -329,8 +343,14 @@ export class OrchestrationEngine {
             // Skip alternatives that need approval or are blocked. Fallback
             // is auto-resolution; an approve-required alternative cannot be
             // silently substituted for a failed primary.
+            // [Fix #4c] Do NOT record a trust outcome here. The alternative
+            // never executed — recording recordOutcome(..., false) would
+            // inflate total_executions and decay write_score for an action
+            // the agent never attempted, polluting the profile. Policy-skip
+            // is a routing decision, not an execution result. (A dedicated
+            // audit channel for policy-skipped fallbacks can be added later
+            // without touching trust profiles.)
             if (altPolicy.autonomy !== 'auto') {
-              this.trustStore.recordOutcome(alt.agent_id, altAction, false);
               continue;
             }
 
