@@ -21,8 +21,34 @@ jobs:
       - name: Install dependencies
         run: npm install yaml fast-glob
 
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Ensure ripgrep is available
+        # ubuntu-latest runner images ship with ripgrep pre-installed; the
+        # previous unconditional `apt-get update && apt-get install -y
+        # ripgrep` step has hung GitHub Actions runners 12+ min on apt
+        # mirror flakes, blocking required gate. Strategy:
+        #   1. Fast path: if rg is on PATH, skip apt entirely.
+        #   2. Slow fallback: bounded retry with hard timeout (max 90s
+        #      total) so a wedged apt mirror fails the step quickly
+        #      instead of hanging the whole gate.
+        run: |
+          set -euo pipefail
+          if command -v rg >/dev/null 2>&1; then
+            echo "✅ ripgrep already available: $(rg --version | head -1)"
+            exit 0
+          fi
+          echo "ripgrep not found, attempting apt install with bounded retry"
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt/3"
+            if timeout 30 sudo apt-get update -qq && timeout 30 sudo apt-get install -y --no-install-recommends ripgrep; then
+              echo "✅ ripgrep installed via apt on attempt $attempt"
+              rg --version | head -1
+              exit 0
+            fi
+            echo "apt attempt $attempt failed or timed out, retrying"
+            sleep 5
+          done
+          echo "❌ Could not install ripgrep after 3 timed attempts (apt mirror likely unreachable)"
+          exit 1
 
       - name: Bootstrap memory (smoke test)
         run: node .claude/scripts/memory_bootstrap.mjs "memory gate smoke test"
