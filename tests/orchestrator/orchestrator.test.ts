@@ -542,6 +542,148 @@ describe('OrchestrationEngine approval-resume correctness', () => {
     expect(previouslyPending!.status).not.toBe('pending_approval');
   });
 
+  it('late approval after timeout does not execute task (Finding 5e)', async () => {
+    // Approval that arrives after the deadline must NOT promote a stale
+    // pending_approval task to executable. Without the late-approval
+    // guard, isTimedOut() === true is masked because executeLoop's
+    // timeout sweep only runs on the NEXT iteration; resumeAfterApproval
+    // would already have flipped status to ready and rt.autonomy to auto.
+    const registry = new CapabilityRegistry();
+    registry.scanAgents([AGENTS_DIR]);
+    const trustStore = new TrustScoreStore('/tmp/test-trust-late-' + Date.now() + '.yaml');
+    for (const agent of registry.listAll()) {
+      trustStore.setProfile(agent.agent_id, agent.trust);
+    }
+    const stubPolicy = {
+      check: (_c: any, action: 'read' | 'write') => ({
+        allowed: action === 'read',
+        autonomy: action === 'read' ? ('auto' as const) : ('approve' as const),
+        reason: 'stub',
+      }),
+    };
+    const discoveryPolicy = new DiscoveryPolicy(registry);
+    const decomposer = new RuleBasedDecomposer([CREWS_DIR], [AGENTS_DIR]);
+    const router = new CapabilityRouter(registry, discoveryPolicy, stubPolicy as any);
+    const engine = new OrchestrationEngine({
+      decomposer, router,
+      executionPolicy: stubPolicy as any,
+      trustStore, registry,
+      traceDir: '/tmp/test-traces-late-' + Date.now(),
+    });
+
+    // Track whether the supposedly-approved task ever actually executed.
+    let executed = false;
+    const trackingExecutor = async (task: Task): Promise<TaskResult> => {
+      executed = true;
+      return { task_id: task.id, status: 'success', outputs: {}, duration: 1 };
+    };
+
+    const intent: Intent = {
+      id: 'late-approval-1',
+      goal: 'Research and optimize content',
+      domain: 'core',
+    };
+    const initial = await engine.orchestrate(intent, trackingExecutor);
+    const pending = initial.tasks.filter(t => t.status === 'pending_approval');
+    expect(pending.length).toBeGreaterThan(0);
+
+    // Force the pending-approval node past its deadline by reaching into
+    // the active DAG — equivalent to wall-clock having advanced past the
+    // 5-minute default timeout. Public DAG exposes isTimedOut/markTimedOut;
+    // for the test we mutate approval_requested_at to far in the past via
+    // the public surface by passing a tiny timeout on a re-mark would
+    // require re-orchestrating, so we instead trust the engine's
+    // dag.isTimedOut() contract: we patch the active dag's pending entry
+    // to simulate elapsed time.
+    const targetId = pending[0].task_id;
+    const activeDagsField = (engine as any).activeDags as Map<string, any>;
+    const active = activeDagsField.get(intent.id);
+    expect(active).toBeDefined();
+    // Backdate the approval request so isTimedOut() returns true
+    const node = active.dag.nodes.get(targetId);
+    if (node?.approval_requested_at) {
+      node.approval_requested_at = Date.now() - 999_999_999;
+    }
+
+    const tasksRunBeforeResume = executed;
+    executed = false;
+    const resumed = await engine.resumeAfterApproval(intent.id, targetId, 'approved');
+    expect(resumed).not.toBeNull();
+
+    // Critical: the late-approved task did NOT execute under
+    // trackingExecutor's instrumentation
+    const resumedTask = resumed!.tasks.find(t => t.task_id === targetId);
+    expect(resumedTask).toBeDefined();
+    expect(resumedTask!.status).toBe('failure');
+    // The task's executor was never invoked again on this taskId
+    // (executed flag may flip if downstream tasks ran, but the late
+    //  task's outputs must be empty)
+    expect(resumedTask!.outputs).toEqual({});
+  });
+
+  it('fallback success records both primary decay and actual capability_id (Finding 4d/4e)', async () => {
+    // After a fallback succeeds, OrchestrationResult must surface BOTH:
+    //   - trust_updates entry for the primary agent (its failure decay)
+    //   - capability_id reflecting the actually-executed alternative,
+    //     not the primary's capability_id
+    const registry = new CapabilityRegistry();
+    registry.scanAgents([AGENTS_DIR]);
+    const trustStore = new TrustScoreStore('/tmp/test-trust-trace-' + Date.now() + '.yaml');
+    for (const agent of registry.listAll()) {
+      trustStore.setProfile(agent.agent_id, agent.trust);
+    }
+    const stubPolicy = {
+      check: () => ({ allowed: true, autonomy: 'auto' as const, reason: 'stub' }),
+    };
+    const discoveryPolicy = new DiscoveryPolicy(registry);
+    const decomposer = new RuleBasedDecomposer([CREWS_DIR], [AGENTS_DIR]);
+    const router = new CapabilityRouter(registry, discoveryPolicy, stubPolicy as any);
+    const engine = new OrchestrationEngine({
+      decomposer, router,
+      executionPolicy: stubPolicy as any,
+      trustStore, registry,
+      traceDir: '/tmp/test-traces-trace-' + Date.now(),
+    });
+
+    let callCount = 0;
+    const failPrimaryExec = async (task: Task): Promise<TaskResult> => {
+      callCount++;
+      // Fail the very first call, succeed all subsequent (alternatives)
+      if (callCount === 1) {
+        return { task_id: task.id, status: 'failure', outputs: {}, duration: 1, error: 'simulated' };
+      }
+      return { task_id: task.id, status: 'success', outputs: { from: 'fallback' }, duration: 1 };
+    };
+
+    const result = await engine.orchestrate(
+      { id: 'fallback-trace-1', goal: 'Research market trends', domain: 'core' },
+      failPrimaryExec,
+    );
+
+    const fb = result.tasks.find(t => t.fallback_used);
+    if (!fb) return; // No alternatives available in this scenario
+
+    // Finding 4e: capability_id must point at a contract that EXISTS on the
+    // actual_executor agent. Same-agent-different-capability fallback is
+    // a valid case (router picks an alternative skill on the same agent),
+    // so we don't require agent_id divergence — we require capability
+    // ownership consistency: the published capability_id must be one the
+    // actual_executor can actually run.
+    expect(fb.capability_id).not.toBe('');
+    const actualAgentCard = registry.findAgent(fb.actual_executor_agent_id);
+    expect(actualAgentCard).toBeDefined();
+    const matchingContract = actualAgentCard!.contracts.find(c => c.id === fb.capability_id);
+    expect(matchingContract).toBeDefined();
+
+    // Finding 4d: trust_updates must surface entries for the primary agent
+    // (its failure decay) AND the actual executor (its execution outcome).
+    // When primary_agent_id === actual_executor_agent_id, both writes hit
+    // the same key — that is correct: the published profile reflects the
+    // net of the primary failure + alternative success on that agent.
+    expect(result.trust_updates).toHaveProperty(fb.primary_agent_id);
+    expect(result.trust_updates).toHaveProperty(fb.actual_executor_agent_id);
+  });
+
   it('fallback policy-skip does not record trust failure (Finding 4c)', async () => {
     // When an alternative is skipped because policy says 'approve' (not
     // 'auto'), the alternative never executes. Recording a failure outcome
