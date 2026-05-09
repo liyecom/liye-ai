@@ -168,7 +168,7 @@ explicit_non_goals, future_split_direction
 **Meta Declaration** — 用于 Doctrine / Contract ADR / Harvest ADR / Decision ADR
 ```
 artifact_scope: meta
-artifact_name, artifact_role (doctrine|contract|harvest|decision)
+artifact_name, artifact_role (doctrine|contract|harvest)
 target_layer (0|1|2|3|cross|none)
 bghs_constrains (yes|no)  # 仅 doctrine = yes
 ```

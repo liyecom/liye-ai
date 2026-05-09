@@ -1,0 +1,12 @@
+# Remote branches scheduled for deletion — 2026-03-11
+# All branches have archive tags pushed to origin before deletion.
+# Recovery: git checkout -b <branch> archive/<branch>-20260311
+#
+origin/chore/p3-patches-deny-and-diagnostics
+origin/docs/coexistence-adoption-kit
+origin/docs/readme-start-here-router
+origin/feat/epiplexity-observe-v0
+origin/feat/p0-cost-meter
+origin/feat/p2b-evidence-artifact
+origin/feat/phase2w1-real-write-gray
+origin/feat/pr2-feishu-operator-loop-bid-recommend

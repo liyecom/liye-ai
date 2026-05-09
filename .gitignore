@@ -361,3 +361,9 @@ evidence/p1-*.tgz
 evidence/*.tgz
 # Bundle build outputs
 dist/bundles/
+
+# ============================================
+# Runtime traces (generated, not source)
+# ============================================
+data/traces/
+state/traces/
