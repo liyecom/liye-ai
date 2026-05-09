@@ -150,6 +150,38 @@ export class OrchestrationEngine {
       return null;
     }
 
+    // [Fix #5e] Late-approval guard. A node can be in pending_approval
+    // status AND already past its deadline — timeout detection only
+    // fires inside executeLoop's pre-iteration sweep. Without this
+    // check, a stale 'approved' decision arriving after the deadline
+    // would still flip status → ready and promote autonomy → 'auto',
+    // letting the task execute despite the timeout having lapsed
+    // (A2 deadline gate broken). Convert to timeout failure and
+    // continue executeLoop to cascade the failure to dependents.
+    if (dag.isTimedOut(taskId)) {
+      dag.markTimedOut(taskId);
+      const rt = resolved.find(r => r.id === taskId);
+      if (rt) {
+        results.set(taskId, {
+          task_id: taskId,
+          primary_agent_id: rt.agent_id,
+          actual_executor_agent_id: rt.agent_id,
+          capability_id: rt.capability_id,
+          status: 'failure',
+          fallback_used: false,
+          duration_ms: 0,
+          outputs: {},
+        });
+        this.trustStore.recordOutcome(rt.agent_id, 'write', false);
+      }
+      const trustUpdates: Record<string, Partial<TrustProfile>> = {};
+      const result = await this.executeLoop(intent, dag, resolved, results, trustUpdates, startTime, executor);
+      if (result.status !== 'pending_approval') {
+        this.activeDags.delete(intentId);
+      }
+      return result;
+    }
+
     if (decision === 'approved') {
       dag.markApproved(taskId);
       // [Fix #5b] Promote autonomy so executeLoop's autonomy check at line ~241
@@ -305,6 +337,8 @@ export class OrchestrationEngine {
         const taskStartTime = Date.now();
         let result = await execFn(task);
         let actualAgent = rt.agent_id;
+        let actualCapabilityId = rt.capability_id;
+        let primaryFailed = false;
         let fallbackUsed = false;
         let fallbackRank = 0;
         const kind = (rt.side_effect === 'write' || rt.side_effect === 'irreversible')
@@ -321,6 +355,7 @@ export class OrchestrationEngine {
         if (result.status === 'failure' && rt.alternatives.length > 0) {
           // Record primary failure
           this.trustStore.recordOutcome(rt.agent_id, kind, false);
+          primaryFailed = true;
 
           for (let i = 0; i < rt.alternatives.length; i++) {
             const alt = rt.alternatives[i];
@@ -364,6 +399,7 @@ export class OrchestrationEngine {
             if (altResult.status === 'success') {
               result = altResult;
               actualAgent = alt.agent_id;
+              actualCapabilityId = alt.capability_id;
               fallbackUsed = true;
               fallbackRank = i + 1;
               this.trustStore.recordOutcome(alt.agent_id, altAction, true);
@@ -380,7 +416,19 @@ export class OrchestrationEngine {
         const duration = Date.now() - taskStartTime;
         dag.markCompleted(task.id, result);
 
-        // Record trust updates
+        // [Fix #4d] Record trust updates for BOTH the primary (when it
+        // failed and triggered fallback) and the actual executor. The
+        // previous implementation only emitted trust_updates[actualAgent],
+        // hiding the primary's failure-induced score decay from the
+        // OrchestrationResult and any downstream replay/audit consumer.
+        if (primaryFailed && actualAgent !== rt.agent_id) {
+          const primaryProfile = this.trustStore.getProfile(rt.agent_id);
+          trustUpdates[rt.agent_id] = {
+            read_score: primaryProfile.read_score,
+            write_score: primaryProfile.write_score,
+            overall_score: primaryProfile.overall_score,
+          };
+        }
         const profile = this.trustStore.getProfile(actualAgent);
         trustUpdates[actualAgent] = {
           read_score: profile.read_score,
@@ -392,7 +440,13 @@ export class OrchestrationEngine {
           task_id: task.id,
           primary_agent_id: rt.agent_id,
           actual_executor_agent_id: actualAgent,
-          capability_id: rt.capability_id,
+          // [Fix #4e] Use the capability_id that actually executed. Was
+          // pinned to rt.capability_id (primary's), so a successful
+          // fallback emitted a result whose actual_executor_agent_id and
+          // capability_id pointed at different routing decisions —
+          // outputs would carry the fallback's skill while the field
+          // claimed the primary's capability.
+          capability_id: actualCapabilityId,
           status: result.status === 'success' ? 'success' : 'failure',
           fallback_used: fallbackUsed,
           fallback_rank: fallbackRank || undefined,
