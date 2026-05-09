@@ -24,15 +24,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Layer Dependency Guard
+        # Patterns are anchored to a real import/export/from statement at
+        # line start. Old loose patterns (e.g. "from.*runtime|import.*runtime")
+        # matched any prose line containing those keywords — caught block
+        # comments like " * boundary rule: never imports from src/runtime/"
+        # and forced unrelated PRs to rephrase docs to satisfy the gate.
+        # See tests/governance/layer-dep-regex.test.ts for the negative-case
+        # fixture pinning the new regex behavior.
         uses: liyecom/constitution-gate/.github/actions/layer-dependency@v1
         with:
           layer_rules: |
             [
-              {"from": "src/method", "to": "src/runtime", "pattern": "from.*runtime|import.*runtime"},
-              {"from": "src/method", "to": "src/skill", "pattern": "from.*skill|import.*skill"},
-              {"from": "src/skill", "to": "src/runtime", "pattern": "from.*runtime|import.*runtime"},
-              {"from": "src/skill", "to": "src/domain", "pattern": "from.*domain|import.*domain"},
-              {"from": "src/runtime", "to": "src/skill", "pattern": "from.*skill|import.*skill"}
+              {"from": "src/method", "to": "src/runtime", "pattern": "^[ \\t]*(import|from|export)[ \\t].*runtime"},
+              {"from": "src/method", "to": "src/skill", "pattern": "^[ \\t]*(import|from|export)[ \\t].*skill"},
+              {"from": "src/skill", "to": "src/runtime", "pattern": "^[ \\t]*(import|from|export)[ \\t].*runtime"},
+              {"from": "src/skill", "to": "src/domain", "pattern": "^[ \\t]*(import|from|export)[ \\t].*domain"},
+              {"from": "src/runtime", "to": "src/skill", "pattern": "^[ \\t]*(import|from|export)[ \\t].*skill"}
             ]
           file_extensions: "ts,js,py"
           exclude_dirs: "node_modules,dist,.git,__pycache__"

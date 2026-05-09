@@ -3,10 +3,10 @@
  * Location: src/runtime/governance/skill_lifecycle/types.ts
  *
  * Mirrors ADR-Hermes-Skill-Lifecycle §1–§8. This tree is the **governance
- * state machine** for skill candidates — it is NOT the execution face.
- * See README.md in this directory for the hard boundary rule (the two
- * sibling trees never reach into each other across the layer 0 / layer 2
- * line).
+ * state machine** for skill candidates — it is NOT the skill execution
+ * face (`src/skill/`). See README.md in this directory for the hard
+ * boundary rule: skill_lifecycle never imports from src/skill/, and
+ * src/skill/ never imports from here.
  *
  * Sprint 5 Wave 5.1 lands the declarative surface, the transition log,
  * and the registry. Actual dispatcher behavior (Loamwise promotion
