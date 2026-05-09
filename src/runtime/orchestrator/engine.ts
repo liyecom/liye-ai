@@ -158,6 +158,13 @@ export class OrchestrationEngine {
     // letting the task execute despite the timeout having lapsed
     // (A2 deadline gate broken). Convert to timeout failure and
     // continue executeLoop to cascade the failure to dependents.
+    // [Fix #5f] trust_updates must be a complete mirror of every
+    // recordOutcome() this method invokes. Without populating the
+    // map, late-timeout / rejected paths recorded trust decay in the
+    // store but returned trust_updates: {} — replay/audit consumers
+    // could not see the score change.
+    const trustUpdates: Record<string, Partial<TrustProfile>> = {};
+
     if (dag.isTimedOut(taskId)) {
       dag.markTimedOut(taskId);
       const rt = resolved.find(r => r.id === taskId);
@@ -173,8 +180,8 @@ export class OrchestrationEngine {
           outputs: {},
         });
         this.trustStore.recordOutcome(rt.agent_id, 'write', false);
+        this.publishTrustUpdate(rt.agent_id, trustUpdates);
       }
-      const trustUpdates: Record<string, Partial<TrustProfile>> = {};
       const result = await this.executeLoop(intent, dag, resolved, results, trustUpdates, startTime, executor);
       if (result.status !== 'pending_approval') {
         this.activeDags.delete(intentId);
@@ -206,10 +213,10 @@ export class OrchestrationEngine {
           outputs: {},
         });
         this.trustStore.recordOutcome(rt.agent_id, 'write', false);
+        this.publishTrustUpdate(rt.agent_id, trustUpdates);
       }
     }
 
-    const trustUpdates: Record<string, Partial<TrustProfile>> = {};
     const result = await this.executeLoop(intent, dag, resolved, results, trustUpdates, startTime, executor);
 
     // [Fix #5c] Mirror orchestrate() cleanup: drop in-flight state once
@@ -244,6 +251,8 @@ export class OrchestrationEngine {
           const rt = resolvedMap.get(pa.id);
           if (rt) {
             this.trustStore.recordOutcome(rt.agent_id, 'write', false);
+            // [Fix #5f] mirror the trust decay into trust_updates
+            this.publishTrustUpdate(rt.agent_id, trustUpdates);
             taskResults.set(pa.id, {
               task_id: pa.id,
               primary_agent_id: rt.agent_id,
@@ -406,6 +415,11 @@ export class OrchestrationEngine {
               break;
             } else {
               this.trustStore.recordOutcome(alt.agent_id, altAction, false);
+              // [Fix #5f] Publish the failed alternative's profile so
+              // trust_updates includes intermediate failures, not just
+              // primary + final actual executor. Without this the score
+              // decay was real but invisible to replay/audit.
+              this.publishTrustUpdate(alt.agent_id, trustUpdates);
             }
           }
         } else {
@@ -416,25 +430,13 @@ export class OrchestrationEngine {
         const duration = Date.now() - taskStartTime;
         dag.markCompleted(task.id, result);
 
-        // [Fix #4d] Record trust updates for BOTH the primary (when it
-        // failed and triggered fallback) and the actual executor. The
-        // previous implementation only emitted trust_updates[actualAgent],
-        // hiding the primary's failure-induced score decay from the
-        // OrchestrationResult and any downstream replay/audit consumer.
+        // [Fix #4d / #5f] Record trust updates for BOTH the primary
+        // (when it failed and triggered fallback) and the actual
+        // executor. publishTrustUpdate is a complete-mirror helper.
         if (primaryFailed && actualAgent !== rt.agent_id) {
-          const primaryProfile = this.trustStore.getProfile(rt.agent_id);
-          trustUpdates[rt.agent_id] = {
-            read_score: primaryProfile.read_score,
-            write_score: primaryProfile.write_score,
-            overall_score: primaryProfile.overall_score,
-          };
+          this.publishTrustUpdate(rt.agent_id, trustUpdates);
         }
-        const profile = this.trustStore.getProfile(actualAgent);
-        trustUpdates[actualAgent] = {
-          read_score: profile.read_score,
-          write_score: profile.write_score,
-          overall_score: profile.overall_score,
-        };
+        this.publishTrustUpdate(actualAgent, trustUpdates);
 
         taskResults.set(task.id, {
           task_id: task.id,
@@ -462,6 +464,26 @@ export class OrchestrationEngine {
     this.writeTrace(intent, finalResult);
 
     return finalResult;
+  }
+
+  /**
+   * [Fix #5f] Publish current trust profile of an agent into the
+   * trust_updates map. Use this after every trustStore.recordOutcome
+   * call so trust_updates is a complete mirror of the score mutations
+   * a run performed. Latest write wins on the same key — that is
+   * correct because the published profile already reflects the net
+   * sequence of recordOutcome calls.
+   */
+  private publishTrustUpdate(
+    agentId: string,
+    trustUpdates: Record<string, Partial<TrustProfile>>
+  ): void {
+    const profile = this.trustStore.getProfile(agentId);
+    trustUpdates[agentId] = {
+      read_score: profile.read_score,
+      write_score: profile.write_score,
+      overall_score: profile.overall_score,
+    };
   }
 
   /**
