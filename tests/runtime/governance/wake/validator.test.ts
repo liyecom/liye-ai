@@ -243,6 +243,56 @@ describe('WakeResumeRegistry — other guards', () => {
     expect(r2.ok).toBe(false);
     if (!r2.ok) expect(r2.code).toBe('DUPLICATE_ENTRYPOINT_ID');
   });
+
+  it('rejects empty stream_refs (MISSING_STREAM)', () => {
+    const { wake } = makeRegistryWithStream();
+    const wre = makeWRE({ stream_refs: [], snapshot_refs: [] });
+    const r = wake.register(wre);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe('MISSING_STREAM');
+  });
+
+  it('rejects empty entrypoint_id (ENTRYPOINT_UNRESOLVED)', () => {
+    const { wake } = makeRegistryWithStream();
+    const r = wake.register(makeWRE({ entrypoint_id: '' }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe('ENTRYPOINT_UNRESOLVED');
+  });
+
+  it('rejects empty component_id (ENTRYPOINT_UNRESOLVED)', () => {
+    const { wake } = makeRegistryWithStream();
+    const r = wake.register(makeWRE({ component_id: '' }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe('ENTRYPOINT_UNRESOLVED');
+  });
+
+  it('rejects empty declared_by_adr (ENTRYPOINT_UNRESOLVED)', () => {
+    const { wake } = makeRegistryWithStream();
+    const r = wake.register(makeWRE({ declared_by_adr: '' }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe('ENTRYPOINT_UNRESOLVED');
+  });
+
+  it('does NOT collapse duplicate-guard on empty entrypoint_id (two empties both rejected, not the second as duplicate)', () => {
+    const { wake } = makeRegistryWithStream();
+    const r1 = wake.register(makeWRE({ entrypoint_id: '' }));
+    const r2 = wake.register(makeWRE({ entrypoint_id: '' }));
+    expect(r1.ok).toBe(false);
+    expect(r2.ok).toBe(false);
+    if (!r1.ok) expect(r1.code).toBe('ENTRYPOINT_UNRESOLVED');
+    if (!r2.ok) expect(r2.code).toBe('ENTRYPOINT_UNRESOLVED');
+    expect(wake.size()).toBe(0);
+  });
+});
+
+describe('session barrel — runtime export of ArtifactClass', () => {
+  it('exposes ArtifactClass as a value (enum), not just a type', async () => {
+    const mod = await import('../../../../src/runtime/governance/session');
+    expect(mod.ArtifactClass).toBeDefined();
+    expect(mod.ArtifactClass.SESSION_EVENT_STREAM).toBe('session.event-stream');
+    expect(mod.ArtifactClass.SESSION_ADJACENT).toBe('session.adjacent');
+    expect(mod.ArtifactClass.NEITHER).toBe('neither');
+  });
 });
 
 describe('WakeResumeRegistry — AGE reference binding', () => {

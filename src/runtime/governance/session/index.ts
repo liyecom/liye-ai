@@ -3,8 +3,8 @@
  * Location: src/runtime/governance/session/index.ts
  */
 
+export { ArtifactClass } from './types';
 export type {
-  ArtifactClass,
   SessionEventStream,
   StreamOwner,
   StreamScope,

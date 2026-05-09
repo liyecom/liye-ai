@@ -37,6 +37,21 @@ export class WakeResumeRegistry {
   constructor(private streamRegistry?: StreamRegistry) {}
 
   register(wre: WakeResumeEntrypoint): RegisterResult {
+    // --- 0. Identity must be non-empty (catch-all for empty-string
+    // entrypoint_id / component_id / declared_by_adr — without these the
+    // registry can't do stable lookup or ADR-back attribution and the
+    // duplicate guard collapses on the empty key). Run BEFORE the duplicate
+    // check so empty strings are not accepted on first register. ---
+    if (!wre.entrypoint_id) {
+      return { ok: false, code: 'ENTRYPOINT_UNRESOLVED', detail: 'entrypoint_id is empty' };
+    }
+    if (!wre.component_id) {
+      return { ok: false, code: 'ENTRYPOINT_UNRESOLVED', detail: 'component_id is empty' };
+    }
+    if (!wre.declared_by_adr) {
+      return { ok: false, code: 'ENTRYPOINT_UNRESOLVED', detail: 'declared_by_adr is empty' };
+    }
+
     if (this.entries.has(wre.entrypoint_id)) {
       return { ok: false, code: 'DUPLICATE_ENTRYPOINT_ID', detail: wre.entrypoint_id };
     }
@@ -47,7 +62,13 @@ export class WakeResumeRegistry {
       return { ok: false, code: 'ENTRYPOINT_UNRESOLVED' };
     }
 
-    // --- 2. stream_refs registered (if a StreamRegistry was provided) ---
+    // --- 2. stream_refs must be non-empty (a wake entrypoint with no
+    // session source has no recovery surface — the entrypoint can never
+    // produce a deterministic resume) and each ref must resolve in the
+    // StreamRegistry when one is provided. ---
+    if (wre.stream_refs.length === 0) {
+      return { ok: false, code: 'MISSING_STREAM', detail: 'stream_refs is empty' };
+    }
     if (this.streamRegistry) {
       for (const sr of wre.stream_refs) {
         if (this.streamRegistry.lookupStream(sr.stream_id) === null) {
