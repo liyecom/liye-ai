@@ -104,6 +104,18 @@ fi
 
 echo "✅ Staged file gate passed"
 
+# ===== Env hygiene gate (Sprint 2 Wave 2.2) =====
+# Blocks NEW process.env.* / os.getenv(...) etc. in gated scope
+# (src/**, builders/**, systems/**). Exempt: .claude/scripts/**,
+# scripts/**, examples/**, tools/notion-sync/**. Whitelisted:
+# src/runtime/credential/**. See .claude/scripts/env_hygiene_gate.mjs
+# and .security/env-audit.md for the baseline.
+echo "🔐 Env hygiene gate (new env reads in gated scope)..."
+if ! node .claude/scripts/env_hygiene_gate.mjs; then
+  exit 1
+fi
+echo "✅ Env hygiene gate passed"
+
 # ===== Blocklist scan (customer IDs / real ASINs / key prefixes) =====
 echo "🛡️ Scanning staged files for blocklisted patterns..."
 
