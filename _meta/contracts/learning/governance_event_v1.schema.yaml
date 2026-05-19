@@ -1,0 +1,124 @@
+# Governance Event Contract v1.0.0
+# SSOT: _meta/contracts/learning/governance_event_v1.schema.yaml
+#
+# loamwise (Layer 1) → liye_os (Layer 0) 治理决策事件流，与 fact event 平级。
+# 落点 (per N-2 B-04 + I-02):
+#   liye_os/state/memory/governance/governance_event_records.jsonl
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-2 §3 B-04
+#
+# 双流原则 (N-2 B-04):
+# | 流 | event schema | 落账本路径 |
+# |---|---|---|
+# | 业务事实 | fact_run_outcome_event_v1 | state/memory/facts/fact_run_outcome_records.jsonl |
+# | 治理决策 | governance_event_v1 (本 schema) | state/memory/governance/governance_event_records.jsonl |
+#
+# 治理决策 ≠ AGE fact outcome。importer 双轨道，schema validate 各走各的。
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/governance_event.v1"
+title: "Governance Event Schema"
+description: "loamwise SkillReviewQueue / TrustMatrix / PolicyLifecycle 治理决策事件。"
+version: "1.0.0"
+type: object
+
+required:
+  # identity (5) — 与 fact event 共享
+  - source_system
+  - source_repo
+  - source_commit_sha
+  - source_branch
+  - source_worktree_id
+  # provenance (3) — 与 fact event 共享
+  - source_dirty
+  - manifest_hash
+  - emitted_at
+  # governance-specific (3)
+  - governance_event_type
+  - subject_ref
+  - decision_payload_ref
+  # hashes (2) — 与 fact event 同公式
+  - event_identity_key
+  - event_content_hash
+  # schema mgmt (1)
+  - schema_version
+
+properties:
+  source_system:
+    type: string
+    enum:
+      - amazon-growth-engine
+      - chaming
+      - loamwise
+    description: "通常 = loamwise（governance event 主要由 Layer 1 emit）"
+
+  source_repo:
+    type: string
+
+  source_commit_sha:
+    type: string
+    pattern: "^[0-9a-f]{40}$"
+
+  source_branch:
+    type: string
+
+  source_worktree_id:
+    type: string
+
+  source_dirty:
+    type: boolean
+
+  manifest_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+
+  emitted_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset (mandatory; emit MUST fail-closed if missing offset)"
+
+  governance_event_type:
+    type: string
+    enum:
+      - skill_review_promoted
+      - skill_review_demoted
+      - policy_lifecycle_committed
+      - trust_matrix_decision
+    description: "Governance decision category. 与 artifact_type (fact event) 完全不交叉。"
+
+  subject_ref:
+    type: string
+    description: |
+      Subject identity (subject system + key=value pair). Examples:
+        SkillReviewQueue:promoted_skill_id=skill_xyz123
+        PolicyLifecycle:transaction_id=txn_abc
+        TrustMatrix:decision_id=dec_def456
+
+  decision_payload_ref:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: |
+      Repo-relative path to detail JSON. Same path-traversal rules as fact event raw_payload_ref:
+        - leading "/" or "~" forbidden
+        - any ".." segment forbidden
+        - allowed chars: [a-zA-Z0-9_./-]
+      Importer ALSO canonicalizes and verifies.
+
+  event_identity_key:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: |
+      sha256(source_system + source_repo + governance_event_type + subject_ref
+             + decision_payload_ref + source_commit_sha)
+
+  event_content_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "sha256(canonical_governance_event_payload_excluding_volatile_fields)"
+
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+additionalProperties: false

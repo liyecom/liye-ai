@@ -1,0 +1,203 @@
+# Fact Run Outcome Record Contract v1.0.0
+# SSOT: _meta/contracts/learning/fact_run_outcome_record_v1.schema.yaml
+#
+# liye_os 端 importer (.claude/scripts/learning/discover_new_runs.mjs) 写入的 canonical record。
+# 落点 (per N-2 I-02):
+#   liye_os/state/memory/facts/fact_run_outcome_records.jsonl
+#
+# Schema 结构: event fields **展开 (NOT $ref/allOf)** + importer fields，本 schema 自封 (additionalProperties: false)。
+#
+# 为什么不用 allOf $ref fact_run_outcome_event_v1?
+#   draft-07 下 allOf 把每个 subschema 应用到同一对象；event_v1 自己有 additionalProperties: false，
+#   会拒绝 importer 加的 ingested_at/importer_version/canonical_record_hash/provenance 4 字段。
+#   两种解法: (a) 展开 event 字段; (b) 拆 unsealed base + sealed event_v1 + record_v1。
+#   N-3 EV2-I-03 锁定 Phase 0b 仅 9 schemas → 选 (a)。
+#   维护契约: 本文件 19 个 event 字段必须与 fact_run_outcome_event_v1.schema.yaml 保持同步。
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-1 §7.2 + N-2 §3 B-01
+#
+# 双 hash dedupe 流程:
+# 1. importer 读 event sidecar (out/facts/<utc_date>/<event_identity_key>.json)
+# 2. 计算 event_identity_key + event_content_hash 与 sidecar 字段比对
+# 3. 若 event_identity_key 已存在但 event_content_hash 不同 → 写 fact_conflicts/ (per D-13)
+# 4. 否则补 ingested_at / importer_version / canonical_record_hash / provenance，写 records.jsonl
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/fact_run_outcome_record.v1"
+title: "Fact Run Outcome Record Schema"
+description: "Canonical record stored after importer canonicalization. Event fields expanded inline."
+version: "1.0.0"
+type: object
+
+required:
+  # === event identity (5) ===
+  - source_system
+  - source_repo
+  - source_commit_sha
+  - source_branch
+  - source_worktree_id
+  # === event provenance (3) ===
+  - source_dirty
+  - manifest_hash
+  - emitted_at
+  # === event business (5) ===
+  - trace_id
+  - artifact_type
+  - artifact_path
+  - playbook_ref
+  - step_id
+  # === event payload reference (4) ===
+  - raw_payload_ref
+  - raw_payload_hash
+  - raw_payload_summary
+  - redaction_status
+  # === event hashes (2) ===
+  - event_identity_key
+  - event_content_hash
+  # === event schema mgmt (1) ===
+  - schema_version
+  # === importer-only (4) ===
+  - ingested_at
+  - importer_version
+  - canonical_record_hash
+  - provenance
+
+properties:
+  # === event field copies (kept in sync with fact_run_outcome_event_v1) ===
+
+  source_system:
+    type: string
+    enum:
+      - amazon-growth-engine
+      - chaming
+      - loamwise
+
+  source_repo:
+    type: string
+
+  source_commit_sha:
+    type: string
+    pattern: "^[0-9a-f]{40}$"
+
+  source_branch:
+    type: string
+
+  source_worktree_id:
+    type: string
+
+  source_dirty:
+    type: boolean
+
+  manifest_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+
+  emitted_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset (mandatory; emit MUST fail-closed if missing offset per EV2-I-01)"
+
+  trace_id:
+    type: string
+
+  artifact_type:
+    type: string
+    enum:
+      - verification_json
+      - policy_suggestions_json
+      - step_evaluation_instance
+      - regression_replay_result
+
+  artifact_path:
+    type: string
+
+  playbook_ref:
+    type: string
+
+  step_id:
+    type: string
+
+  raw_payload_ref:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: |
+      Repo-relative path. Regex constraints:
+        - leading "/" or "~" forbidden
+        - any ".." segment forbidden
+        - allowed chars: [a-zA-Z0-9_./-]
+      Importer ALSO canonicalizes and asserts resolved path startswith source_repo realpath
+      (defense-in-depth for symlink-pointing-outside-repo).
+
+  raw_payload_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+
+  raw_payload_summary:
+    type: object
+    maxProperties: 20
+
+  redaction_status:
+    type: string
+    enum:
+      - redacted
+      - no_sensitive_fields_detected
+      - unknown
+
+  event_identity_key:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+
+  event_content_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+  # === importer-only fields ===
+
+  ingested_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset. Time importer wrote this record."
+
+  importer_version:
+    type: string
+    pattern: "^discover_new_runs@\\d+\\.\\d+\\.\\d+$"
+
+  canonical_record_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "sha256(canonical record payload excluding volatile fields). Stable across replay."
+
+  provenance:
+    type: object
+    required:
+      - manifest_validator_status
+      - provenance_dirty
+    properties:
+      manifest_validator_status:
+        type: string
+        enum:
+          - PASS
+          - WARN
+          - FAIL
+        description: |
+          validate_manifest_reality.py verdict at import time (Phase 0c.4).
+          FAIL = soft fail (single source disabled) per D-07.
+
+      provenance_dirty:
+        type: boolean
+        description: |
+          MUST equal (importer enforces):
+            source_dirty == true
+            OR manifest_validator_status != PASS
+            OR source_branch not in source_registry.allowed_branches
+            OR manifest_hash != source_registry.expected_manifest_hash.value
+          True records may be ingested but excluded from promotion evidence.
+
+    additionalProperties: false
+
+additionalProperties: false
