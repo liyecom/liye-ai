@@ -1,0 +1,49 @@
+# Golden Packs Registry v1
+# SSOT: .claude/config/golden_packs.yaml
+#
+# Registry of golden regression packs used by policy_trial_evaluator (Phase 1c)
+# to compute confidence_basis.regression_pass_rate (one of 3 GHL confidence formula inputs).
+#
+# CRITICAL CONTRACT (per ADR §0d + N-2 + glossary):
+# - Each pack represents a fixed scenario/expected-outcome dataset that any candidate policy
+#   must replay-pass against.
+# - regression_pass_rate = pass_count / total_count across all enabled packs in this registry.
+# - system_verdict_reason_code "golden_pack_stale" triggered when a pack's last_validated_at is
+#   older than registry-level staleness threshold (evaluator config).
+# - Pilot 1 negative learning: registry MAY be empty; absent regression evidence →
+#   policy_trial.system_verdict_reason_codes includes "evidence_origin_insufficient".
+#
+# Schema discipline:
+# - This file is a config INSTANCE, not a JSON Schema definition.
+# - Registry schema (if added later) would live at _meta/contracts/learning/golden_packs_registry.schema.yaml
+#   — out of Phase 0d scope; structure validated by validate-contracts.mjs hardcoded check (Phase 0c.2).
+#
+# Phase: 0d (Checkpoint B1) per ADR §0d
+# Normative: ADR §0d + glossary (regression_pass_rate row) + policy_trial_v1 (system_verdict_reason_codes enum)
+
+version: 1
+
+# Initial state: empty.
+# AGE has existing regression scenarios at:
+#   amazon-growth-engine/eval/autoresearch/scenarios/keyword_kill/regression/*.yaml
+# but those are not yet admitted as golden until:
+#   (a) Sprint 9 readout signed
+#   (b) Phase 1c (policy_trial_evaluator) lands
+#   (c) Each scenario reviewed + acceptance_threshold set per glossary regression_pass_rate guidance
+#
+# Reserved structure (filled when AGE regression scenarios are admitted):
+#
+# packs:
+#   <pack_id>:
+#     pack_id: <stable identifier, kebab-case>
+#     domain: <Engine domain registry key, matches learning_sources.sources.<id>.domain>
+#     scope:
+#       type: <keyword_set | asin | brand | tenant | domain | global>
+#       keys: <object with applicable scope keys>
+#     golden_dataset_path: <repo-relative path to dataset>
+#     acceptance_threshold: <number 0.0-1.0; minimum pass rate to count toward regression_pass_rate>
+#     last_validated_at: <ISO 8601 with tz offset>
+#     enabled: <bool; false = present but skipped from regression_pass_rate calc>
+#     notes: <free-text>
+
+packs: {}

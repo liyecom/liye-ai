@@ -1,0 +1,57 @@
+# Learning Sources Registry v1
+# SSOT: .claude/config/learning_sources.yaml
+#
+# Registry of engines that emit facts into liye_os learning pipeline.
+# Per Hard Gate 5 (any接入 source 必须通过 manifest reality validator) and
+# per N-2 I-01 (allowed_branches + expected_manifest_hash required fields).
+#
+# CRITICAL CONTRACT (per ADR §0d + Pilot 1 scope):
+# - Pilot 1 = negative learning only, time-bounded ≥ 90 days from ADR Accept (2026-05-19 → ≥ 2026-08-17).
+# - AGE is the ONLY known source. emit_fact.py is time-locked to Sprint 9 readout (D-14, Phase 1a).
+# - enabled=false on all sources until both (a) Sprint 9 readout signed AND (b) Phase 1a complete.
+# - validate_manifest_reality.py (Phase 0c.4, gated on Sprint 9 readout) verifies each source's
+#   actual deployed manifest hash matches expected_manifest_hash here; mismatch → source flagged dirty.
+#
+# Schema discipline:
+# - This file is a config INSTANCE, not a JSON Schema definition.
+# - Structure mirrors ADR §0d / N-2 I-01 / EV2-I-01 (date-sharded UTC + event sidecar).
+# - Registry schema (if added later) would live at _meta/contracts/learning/learning_sources_registry.schema.yaml
+#   — out of Phase 0d scope; structure validated by validate-contracts.mjs hardcoded check (Phase 0c.2).
+#
+# Phase: 0d (Checkpoint B1) per ADR §0d
+# Normative: N-2 I-01 + D-14 + EV2-I-01 + Hard Gate 5
+
+version: 1
+
+sources:
+  amazon-growth-engine:
+    source_id: amazon-growth-engine
+    domain: amazon-advertising
+    engine_repo: https://github.com/liyecom/amazon-growth-engine
+
+    # Branch allowlist (per N-2 I-01). Source dirty if actual emit comes from branch not in this list.
+    allowed_branches:
+      - main
+
+    # Expected engine manifest hash (per N-2 I-01).
+    # Populated post-AGE manifest v2 migration (Phase 0c.3, time-locked to Sprint 9 readout).
+    # null = unverified; validate_manifest_reality.py must set to actual hash before enabling.
+    expected_manifest_hash: null
+
+    # Fact emission paths (per EV2-I-01 date-sharded UTC + event sidecar).
+    fact_emit_path: out/facts/<UTC_DATE>/fact_run_outcome_events.jsonl
+    event_sidecar_path: out/facts/<UTC_DATE>/<event_identity_key>.json
+
+    # Per D-14: form A explicit emit_fact (AGE writes; liye_os imports).
+    emit_script: scripts/learning/emit_fact.py
+
+    # Gate state:
+    # - false during Pilot 1 setup (until Sprint 9 readout + Phase 1a complete).
+    # - validate-contracts.mjs MAY warn but MUST NOT fail on enabled=false sources (registry presence-only check).
+    enabled: false
+
+    notes: |
+      Per D-14, AGE → liye_os fact flow is form A (AGE explicitly emits via emit_fact.py).
+      Phase 1a (AGE emit_fact.py landing) is time-locked to Sprint 9 readout (≥ 2026-05-13Z).
+      Sprint 9 readout ETA ≈ 2026-05-28Z (per project_ghl_baseline.md).
+      Until then, this source remains enabled=false; manifest_hash unverified.
