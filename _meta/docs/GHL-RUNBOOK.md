@@ -22,11 +22,13 @@
 **GHL = 复活 + 串联 + 限名 + 守门** of the existing liye_os v0.1 learning pipeline.
 GHL does **not** rebuild a new learning platform.
 
-**Pilot 1 scope (time-bounded ≥ 90 days from ADR Accept):**
+**Pilot 1 scope (time-bounded ≥ 90 days from baseline anchor 2026-05-09):**
+- Clock anchor: baseline `497919d` commit date 2026-05-09 (NOT ADR Accept 2026-05-19)
+- 90-day mark: 2026-08-07 (= 2026-05-09 + 90 days)
+- Operational review target: 2026-08-09 (90-day mark + 2-day buffer)
 - Negative learning only — system identifies unsafe reuse; operator validates
 - No production_write
 - No execute_limited tier
-- Operational review target: 2026-08-09 (precise 90-day = 2026-08-07 + 2-day buffer)
 
 **8 Hard Gates (per ADR §Hard Gates):**
 1. No new Trust system
