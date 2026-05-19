@@ -1,0 +1,59 @@
+# Confidence Formulas v1
+# SSOT: _meta/contracts/learning/confidence_formulas.yaml
+#
+# Formula contract for GHL confidence scoring. NOT executable code — this file is the
+# declaration consumed by evaluator/crystallizer/policy_loader (per N-1 §7.5).
+#
+# CRITICAL:
+# - This file is a formula INSTANCE (contract), not a JSON Schema definition.
+# - Confidence formulas reference learned_policy fields by JSON pointer-style paths.
+#   GHL canonical paths under $.confidence_basis.* (per P-01 patch resolution).
+# - legacy_aliases preserves $.success_signals.operator.approval_rate for evaluator
+#   backward-compat. Evaluator reads both and emits warning on >5% divergence over 30d.
+# - missing_input_policy: fail_closed (per N-1 §7.5). Evaluator MUST exit non-zero if input missing.
+# - boundary_output_policy: 0.0 and 1.0 are reviewable values (not auto-accept).
+# - Does NOT introduce a new promotion gate. Promotion gates remain in execution_tiers.yaml only.
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-1 §7.5 + v4.1-final P-01 (confidence_basis.* path migration with legacy alias)
+
+version: 1
+
+formulas:
+  ghl_confidence_v1:
+    valid_from: "2026-05-09"
+    deprecation_notice: null
+
+    # Input field paths into learned_policy_ghl_v1 instance documents.
+    # Format: JSON pointer-style ($.field.subfield).
+    inputs:
+      exec_success_rate:       "$.success_signals.exec.success_rate"
+      operator_agreement_rate: "$.confidence_basis.operator_agreement_rate"
+      business_score:          "$.confidence_basis.business_score"
+      regression_pass_rate:    "$.confidence_basis.regression_pass_rate"
+
+    # Backward-compatibility aliases. Evaluator reads BOTH canonical input path AND its legacy alias
+    # (if both present), emitting WARN on divergence >5% measured over 30-day window.
+    # P-01 motivation: rename success_signals.operator.approval_rate → confidence_basis.operator_agreement_rate
+    # without forcing legacy data rewrite.
+    legacy_aliases:
+      operator_agreement_rate_legacy: "$.success_signals.operator.approval_rate"
+
+    # Linear combination weights. Sum MUST = 1.0 (enforced by formula loader at startup).
+    weights:
+      exec_success_rate:       0.2
+      operator_agreement_rate: 0.3
+      business_score:          0.4
+      regression_pass_rate:    0.1
+
+    # Behavior when an input field is missing or null.
+    # fail_closed (per spec): evaluator exits non-zero; does NOT default to 0 or 0.5.
+    missing_input_policy: fail_closed
+
+    # Behavior when the computed confidence value lands at a boundary (0.0 or 1.0).
+    # requires_review: do NOT auto-promote; mark for operator review per execution_tiers.global_defaults.
+    boundary_output_policy:
+      values:
+        - 0.0
+        - 1.0
+      action: requires_review

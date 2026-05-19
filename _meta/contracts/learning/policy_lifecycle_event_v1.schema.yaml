@@ -1,0 +1,195 @@
+# Policy Lifecycle Event Contract v1.0.0
+# SSOT: _meta/contracts/learning/policy_lifecycle_event_v1.schema.yaml
+#
+# Append-only event log for policy lifecycle FSM transactions (Quarantine / Promote / Demote / etc).
+# 落点 (per N-1 §7.7):
+#   liye_os/state/runtime/learning/policy_lifecycle_events.jsonl
+#
+# CRITICAL CONTRACT (per N-1 §7.7 + D-09):
+# - **真 append-only**: 禁止 in-place mutation
+# - 多条 event 共享 transaction_id 组成一个 transaction
+# - last action 决定 transaction state (TXN_COMMITTED / TXN_ABORTED / 中断)
+# - 中断 transaction 由 runner 启动时扫描 + emit operator_alert（不自动决断）
+#
+# Phase: 0b (Checkpoint B1, D-09 决议把 lifecycle 纳入 Phase 0b 与 schemas 同期)
+# Normative: N-1 §7.7
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/policy_lifecycle_event.v1"
+title: "Policy Lifecycle Event Schema"
+description: "Single append-only event in a policy lifecycle transaction."
+version: "1.0.0"
+type: object
+
+required:
+  - event_id
+  - transaction_id
+  - action
+  - policy_id
+  - actor
+  - occurred_at
+  - schema_version
+
+properties:
+  event_id:
+    type: string
+    format: uuid
+    description: "UUID per event (unique within the log)"
+
+  transaction_id:
+    type: string
+    format: uuid
+    description: "UUID per transaction. Multiple events share this to form a transaction."
+
+  action:
+    type: string
+    enum:
+      - TXN_STARTED
+      - TXN_COMMITTED
+      - TXN_ABORTED
+      - POLICY_FILE_UPDATED
+      - FILE_MOVED
+      - INDEX_UPDATED
+      - COMPENSATING_RESTORE
+      - COMPENSATING_REVERT_MOVE
+    description: |
+      Event action type. Transaction lifecycle:
+        TXN_STARTED → [POLICY_FILE_UPDATED | FILE_MOVED | INDEX_UPDATED]* → (TXN_COMMITTED | TXN_ABORTED)
+      COMPENSATING_* used when aborting a partial transaction.
+
+  policy_id:
+    type: string
+    description: "Reference to learned_policy_ghl_v1.policy_id"
+
+  actor:
+    type: string
+    pattern: "^(human:sha256:[0-9a-f]{64}|system:[a-z0-9_.-]+)$"
+    description: |
+      Actor prefix (strict):
+        human:sha256:<64-hex> — operator decision (reviewer_id_hash, same hashing as operator_feedback_v1.reviewer_id_hash)
+        system:<subsystem>    — automated lifecycle; subsystem matches [a-z0-9_.-]+ (e.g. system:tier_manager)
+      Empty actor or arbitrary strings rejected.
+
+  occurred_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset"
+
+  intent:
+    type: string
+    enum:
+      - CREATE
+      - PROMOTE
+      - DEMOTE
+      - QUARANTINE
+      - RESTORE
+      - EXPIRE
+      - DISABLE
+    description: "Required when action=TXN_STARTED. Declares the intent of the transaction."
+
+  planned_from_path:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: "Planned source path (TXN_STARTED only). repo-relative; no leading / or ~, no .. segment."
+
+  planned_to_path:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: "Planned target path (TXN_STARTED only). repo-relative; no leading / or ~, no .. segment."
+
+  from_path:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: "Actual source path (FILE_MOVED / COMPENSATING_REVERT_MOVE). repo-relative; no leading / or ~, no .. segment."
+
+  to_path:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: "Actual target path (FILE_MOVED / COMPENSATING_REVERT_MOVE). repo-relative; no leading / or ~, no .. segment."
+
+  content_hash_before:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "Content hash before mutation (POLICY_FILE_UPDATED / COMPENSATING_RESTORE)"
+
+  content_hash_after:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "Content hash after mutation (POLICY_FILE_UPDATED / COMPENSATING_RESTORE)"
+
+  reason_code:
+    type: string
+    description: "Short reason identifier"
+
+  reason_text:
+    type: string
+    maxLength: 500
+    description: "Free-text reason (NO PII)"
+
+  compensating_actions:
+    type: array
+    items:
+      type: string
+    description: "List of event_ids being compensated (TXN_ABORTED / COMPENSATING_* only)"
+
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+# Conditional constraints (draft-07 if/then)
+# Each action carries a minimum payload so the append-only ledger keeps replay/recovery value.
+# Missing payload (e.g. FILE_MOVED without from_path/to_path) is rejected at schema validation, not at runner.
+allOf:
+  # 1. TXN_STARTED requires intent
+  - if:
+      properties:
+        action:
+          const: TXN_STARTED
+      required:
+        - action
+    then:
+      required:
+        - intent
+
+  # 2. FILE_MOVED / COMPENSATING_REVERT_MOVE require both endpoints
+  - if:
+      properties:
+        action:
+          enum:
+            - FILE_MOVED
+            - COMPENSATING_REVERT_MOVE
+      required:
+        - action
+    then:
+      required:
+        - from_path
+        - to_path
+
+  # 3. POLICY_FILE_UPDATED / INDEX_UPDATED / COMPENSATING_RESTORE require both content hashes
+  - if:
+      properties:
+        action:
+          enum:
+            - POLICY_FILE_UPDATED
+            - INDEX_UPDATED
+            - COMPENSATING_RESTORE
+      required:
+        - action
+    then:
+      required:
+        - content_hash_before
+        - content_hash_after
+
+  # 4. TXN_ABORTED requires reason_code + compensating_actions list
+  - if:
+      properties:
+        action:
+          const: TXN_ABORTED
+      required:
+        - action
+    then:
+      required:
+        - reason_code
+        - compensating_actions
+
+additionalProperties: false

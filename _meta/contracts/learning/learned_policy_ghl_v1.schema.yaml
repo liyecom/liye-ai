@@ -1,0 +1,546 @@
+# Learned Policy (GHL) Contract v1.0.0
+# SSOT: _meta/contracts/learning/learned_policy_ghl_v1.schema.yaml
+# Sibling: _meta/contracts/learning/learned_policy.schema.yaml (legacy v1, 22 fields: 16 req + 6 opt)
+#
+# 此 schema 是 GHL profile of learned_policy。在 legacy v1 字段全集基础上 inline 扩展 GHL-specific 字段。
+#
+# CRITICAL CONTRACT (per glossary + N-1 §7.5 + D-04 + D-11):
+# - 此 schema **不** 自我声明 promotion eligibility；promotion 决断 SSOT = execution_tiers.yaml
+# - confidence (number 0-1) = ghl_confidence_v1 formula 输出
+# - confidence_basis.* = GHL-specific formula inputs (operator_agreement_rate / business_score / regression_pass_rate);
+#   ghl_confidence_v1 第 4 个输入 exec_success_rate 仍读 legacy path $.success_signals.exec.success_rate (不在 confidence_basis 下)
+# - confidence 与 confidence_basis round-trip 一致由 evaluator startup-time 校验（schema 不强制等式）
+# - legacy success_signals.operator.approval_rate 保留，作 confidence_formulas legacy_alias 输入；>5% divergence 触发 evaluator WARN
+# - validation_status=quarantine 时 quarantine_reason 必填（audit completeness，**非** promotion gate）
+#
+# IMPORTANT — drift discipline (per Tranche 2 Blocking 1 lesson):
+# - 此文件 **inline** 了 legacy learned_policy v1 全部 16 required + 6 optional 字段，**未** 使用 allOf+$ref，
+#   原因：draft-07 sealed schema (additionalProperties: false) + $ref 无法正确叠加。
+# - 若 legacy schema 增/删/改字段，本文件 header + properties 段必须同期同步。
+# - 同步检查项请见 Phase 0c.2 validate-contracts.mjs dual-schema routing。
+#
+# Instance routing (validator dispatch):
+# - canonical instance path: state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}/*.yaml
+#   (与 legacy learned_policy 同目录；validator 在 0c.2 dual-schema routing 中按 schema_version + $schema_id 双重 dispatch)
+# - 可选 instance 头部字段 $schema_id (本 schema declare 为 optional property; const = 本 schema $id)
+#   提供时 validator 优先按 $schema_id 路由。缺省时按目录路径约定 + presence of confidence_basis 判别。
+# - 同 schema_version="1.0.0" 在 legacy schema 也 valid，但 GHL extension required (confidence_basis) 在 legacy
+#   schema 中不存在；路由错位时 GHL instance 会被 legacy schema fail-closed reject（缺 confidence_basis 不在
+#   legacy required 中，但 legacy additionalProperties: false 会 reject）→ 双向 fail-closed safety 已保证。
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-1 §7.5 / N-2 §3 / glossary GHL row / D-04 / D-11
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/learned_policy_ghl.v1"
+title: "Learned Policy (GHL) Schema v1"
+description: "GHL-extended profile of a learned policy. Inline expansion of legacy learned_policy v1 + GHL-specific fields. NOT a promotion gate."
+version: "1.0.0"
+type: object
+
+required:
+  # ====== legacy v1 required (16) ======
+  - schema_version
+  - policy_id
+  - domain
+  - learned_at
+  - scope
+  - risk_level
+  - validation_status
+  - confidence
+  - preconditions
+  - actions
+  - constraints
+  - rollback_plan
+  - success_signals
+  - evaluation_window_days
+  - expiry_at
+  - evidence
+  # ====== GHL extension required (1) ======
+  - confidence_basis
+
+properties:
+
+  # ============================================================
+  # Identity / version
+  # ============================================================
+  schema_version:
+    type: string
+    const: "1.0.0"
+    description: |
+      GHL schema family v1. Validator routes by $id + path convention.
+      Same const value as legacy learned_policy.schema_version is intentional;
+      mis-routed instances still fail-closed via additionalProperties seal.
+
+  $schema_id:
+    type: string
+    const: "https://liye.com/contracts/learning/learned_policy_ghl.v1"
+    description: |
+      Optional instance-level schema identity marker. NOT required.
+      When present, validator routes by this value (preferred over directory convention).
+      Const-pinned to this schema's $id; writers MAY omit but if present MUST match exactly.
+      Property declared here so instances can safely include it without tripping additionalProperties seal.
+
+  policy_id:
+    type: string
+    pattern: "^[A-Z0-9_]+$"
+    minLength: 3
+    maxLength: 64
+    description: "Same canonical form as legacy learned_policy.policy_id."
+
+  domain:
+    type: string
+    enum:
+      - amazon-advertising
+      - notion-sync
+      - medical-research
+      - geo-governance
+    description: "Engine domain registry key (matches legacy)."
+
+  learned_at:
+    type: string
+    format: date-time
+    description: "Policy 首次学习时间 (ISO 8601)."
+
+  # ============================================================
+  # Scope (legacy v1)
+  # ============================================================
+  scope:
+    type: object
+    required:
+      - type
+      - keys
+    properties:
+      type:
+        type: string
+        enum:
+          - keyword_set
+          - asin
+          - brand
+          - tenant
+          - domain
+          - global
+        description: "升级到 domain/global 需要 ADR (per legacy v1)."
+      keys:
+        type: object
+        additionalProperties: true
+        description: "至少含 tenant_id（除非 type=global）."
+    additionalProperties: false
+
+  risk_level:
+    type: string
+    enum:
+      - low
+      - medium
+      - high
+
+  validation_status:
+    type: string
+    enum:
+      - sandbox
+      - candidate
+      - production
+      - disabled
+      - quarantine
+    description: "Lifecycle status. Physically segregated dirs per N-1 §7.6."
+
+  # ============================================================
+  # confidence (formula OUTPUT) + confidence_basis (formula INPUTS, required)
+  # ============================================================
+  confidence:
+    type: number
+    minimum: 0.0
+    maximum: 1.0
+    description: |
+      Formula 输出。必须由 confidence_formulas.yaml::formulas.ghl_confidence_v1 计算。
+      evaluator startup-time 校验 confidence 与 confidence_basis 一致（schema 不强制等式）。
+      boundary values (0.0 / 1.0) → requires_review per formulas.boundary_output_policy。
+
+  confidence_basis:
+    type: object
+    description: |
+      Formula INPUTS — canonical SSOT for ghl_confidence_v1。
+      legacy operator approval rate 同时保留于 success_signals.operator.approval_rate (legacy_alias)。
+      evaluator 读取两侧，>5% divergence (30d window) emits WARN。
+    required:
+      - operator_agreement_rate
+      - business_score
+      - regression_pass_rate
+    properties:
+      operator_agreement_rate:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: "Per D-11: count(verdict=AGREE_WITH_SYSTEM) / count(non-NEEDS_MORE_EVIDENCE)."
+      business_score:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: "Aggregated business outcome score (per glossary)."
+      regression_pass_rate:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        description: "Golden-pack regression pass rate (per glossary)."
+    additionalProperties: false
+
+  # ============================================================
+  # primary_metric (legacy v1 optional)
+  # ============================================================
+  primary_metric:
+    type: object
+    properties:
+      name:
+        type: string
+        enum:
+          - acos
+          - roas
+          - wasted_spend
+          - conversion_rate
+          - cvr
+      anomaly_direction:
+        type: string
+        enum:
+          - low
+          - high
+      lookback_days:
+        type: integer
+        minimum: 1
+        maximum: 90
+    additionalProperties: false
+
+  require_approval:
+    type: boolean
+    default: true
+    description: "Top-level optional. Coexists with constraints.require_approval (legacy semantics)."
+
+  # ============================================================
+  # preconditions / actions / constraints / rollback_plan (legacy v1)
+  # ============================================================
+  preconditions:
+    type: object
+    description: "Legacy 允许 additionalProperties (match_rules array OR direct fields)；GHL 保持兼容。"
+    properties:
+      match_rules:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required:
+            - field
+            - operator
+            - value
+          properties:
+            field:
+              type: string
+            operator:
+              type: string
+              enum:
+                - eq
+                - ne
+                - gt
+                - gte
+                - lt
+                - lte
+                - in
+                - not_in
+            value: {}
+          additionalProperties: false
+      playbook_id:
+        type: string
+      match_type:
+        type: string
+      cvr_bucket:
+        type: string
+        enum:
+          - cvr_low
+          - cvr_mid
+          - cvr_high
+      acos_bucket:
+        type: string
+        enum:
+          - acos_low
+          - acos_mid
+          - acos_high
+      min_clicks:
+        type: integer
+        minimum: 0
+      thresholds:
+        type: object
+        additionalProperties: true
+    additionalProperties: true
+
+  actions:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - action_type
+        - parameters
+        - dry_run_compatible
+      properties:
+        action_type:
+          type: string
+          enum:
+            - bid_adjustment
+            - bid_adjust
+            - keyword_negation
+            - budget_reallocation
+            - alert
+            - investigate
+        parameters:
+          type: object
+          additionalProperties: true
+        dry_run_compatible:
+          type: boolean
+          description: "写入动作必须为 true."
+        requires_tier:
+          type: string
+          enum:
+            - observe
+            - recommend
+            - execute_limited
+      additionalProperties: false
+    description: "策略触发的动作列表."
+
+  constraints:
+    type: object
+    required:
+      - max_bid_change_pct
+      - max_actions_per_day
+    properties:
+      max_bid_change_pct:
+        type: number
+        minimum: 0
+        maximum: 100
+      max_actions_per_day:
+        type: integer
+        minimum: 1
+      max_budget_change_pct:
+        type: number
+        minimum: 0
+        maximum: 100
+      require_approval:
+        type: boolean
+        default: true
+        description: "production 目录中若为 false 且有写入动作，validate-contracts 必须 fail-closed (legacy)."
+    additionalProperties: false
+
+  rollback_plan:
+    type: object
+    required:
+      - type
+      - steps
+    properties:
+      type:
+        type: string
+        enum:
+          - automatic
+          - manual
+          - hybrid
+      steps:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      timeout_minutes:
+        type: integer
+        minimum: 1
+        default: 60
+      safe_window_hours:
+        type: integer
+        minimum: 1
+    additionalProperties: false
+
+  # ============================================================
+  # success_signals (legacy v1 三信号体系)
+  # operator.approval_rate 仍保留，作 confidence_formulas legacy_alias
+  # ============================================================
+  success_signals:
+    type: object
+    required:
+      - exec
+      - operator
+      - business
+    properties:
+      exec:
+        type: object
+        required:
+          - count
+          - success_rate
+        properties:
+          count:
+            type: integer
+            minimum: 0
+          success_rate:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+        additionalProperties: false
+        description: "ExecSuccess (legacy)."
+      operator:
+        type: object
+        required:
+          - approval_count
+          - rejection_count
+        properties:
+          approval_count:
+            type: integer
+            minimum: 0
+          rejection_count:
+            type: integer
+            minimum: 0
+          approval_rate:
+            type:
+              - number
+              - "null"
+            minimum: 0.0
+            maximum: 1.0
+            description: |
+              Legacy alias for confidence_basis.operator_agreement_rate (per confidence_formulas legacy_aliases).
+              evaluator emits WARN if divergence >5% measured over 30-day window.
+              NOT removed in GHL v1 — kept for backward read compat.
+        additionalProperties: false
+        description: "OperatorSuccess (legacy). 保留 approval_rate 作 legacy alias."
+      business:
+        type: object
+        required:
+          - metric_name
+          - baseline
+          - current
+          - improvement_pct
+        properties:
+          metric_name:
+            type:
+              - string
+              - "null"
+            enum:
+              - acos
+              - roas
+              - wasted_spend
+              - conversion_rate
+              - null
+          baseline:
+            type:
+              - number
+              - "null"
+          current:
+            type:
+              - number
+              - "null"
+          improvement_pct:
+            type:
+              - number
+              - "null"
+          sample_size:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+        additionalProperties: false
+        description: "BusinessSuccess (legacy)."
+    additionalProperties: false
+
+  evaluation_window_days:
+    type: integer
+    minimum: 1
+    maximum: 90
+
+  expiry_at:
+    type: string
+    format: date-time
+    description: "策略过期时间. 防止僵尸策略 (legacy)."
+
+  evidence:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - trace_id
+        - summary
+      properties:
+        trace_id:
+          type: string
+          pattern: "^(trace|run)-\\d{8}-[a-z0-9]+$"
+        summary:
+          type: string
+          maxLength: 500
+        outcome:
+          type: string
+          maxLength: 200
+      additionalProperties: false
+    description: "证据链 (legacy). 每个 policy 必须可追溯."
+
+  # ============================================================
+  # Legacy optional lifecycle markers
+  # ============================================================
+  promoted_at:
+    type: string
+    format: date-time
+
+  promoted_to_production_at:
+    type: string
+    format: date-time
+
+  disabled_at:
+    type: string
+    format: date-time
+
+  disabled_reason:
+    type: string
+    maxLength: 500
+
+  # ============================================================
+  # GHL extension fields (all optional except via if/then below)
+  # NOT a promotion gate; audit / observability only.
+  # ============================================================
+  last_evaluated_at:
+    type: string
+    format: date-time
+    description: "Last time evaluator rendered confidence + confidence_basis. ISO 8601 with tz offset."
+
+  trial_history:
+    type: array
+    items:
+      type: string
+      format: uuid
+    description: "Associated policy_trial.trial_id list (chronological, append-only by evaluator)."
+
+  lifecycle_version:
+    type: integer
+    minimum: 1
+    description: "Monotonic counter of FSM transitions. 1 = initial sandbox write."
+
+  quarantine_reason:
+    type: string
+    maxLength: 500
+    description: |
+      Reason if validation_status=quarantine. Required via allOf if/then (audit completeness).
+      Does NOT gate promotion — execution_tiers.yaml owns promotion.
+
+  tier_decision_inputs:
+    type: object
+    additionalProperties: true
+    description: |
+      Snapshot of evaluator inputs at last tier-decision time (per N-1 §7.5).
+      AUDIT TRAIL ONLY — execution_tiers.yaml owns the live decision; this is a frozen copy.
+
+# ============================================================
+# Conditional constraints (draft-07 if/then)
+# Only audit-completeness gates here. NO promotion gates.
+# ============================================================
+allOf:
+  # validation_status=quarantine requires quarantine_reason
+  - if:
+      properties:
+        validation_status:
+          const: quarantine
+      required:
+        - validation_status
+    then:
+      required:
+        - quarantine_reason
+
+additionalProperties: false
