@@ -8,6 +8,9 @@ dependencies = ["PyYAML>=6.0"]
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
 
+[project.scripts]
+phase-0b-parser = "phase_0b_parser.cli:main"
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"

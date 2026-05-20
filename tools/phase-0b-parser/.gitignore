@@ -12,3 +12,11 @@ htmlcov/
 .tox/
 .mypy_cache/
 .ruff_cache/
+
+# Un-ignore test fixtures (these contain *mock* tokens by design — pattern shape
+# matches sk_/pk_/jwt regex but values are deliberately fake "F1MOCK..." etc.).
+# Root .gitignore globs .env / .env.local / **/.env etc., but the parser test
+# suite needs these files committed so CI can reproduce M2 acceptance.
+!tests/fixtures/
+!tests/fixtures/**
+

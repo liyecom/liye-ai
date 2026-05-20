@@ -29,9 +29,15 @@ def test_version_string():
     assert __version__ == "0B-1.0.0"
 
 
-def test_scan_disk_stub_raises():
-    with pytest.raises(NotImplementedError, match="M2"):
-        scan_disk("/tmp")
+def test_scan_disk_callable_returns_set(tmp_path):
+    """M2 landed — scan_disk is real. Smoke: empty dir → empty set, no raise.
+
+    M1's NotImplementedError assertion was removed when M2 landed; remaining
+    M3-M6 stubs still raise NotImplementedError (see below).
+    """
+    result = scan_disk(tmp_path)
+    assert isinstance(result, set)
+    assert result == set()
 
 
 def test_scan_db_stub_raises():

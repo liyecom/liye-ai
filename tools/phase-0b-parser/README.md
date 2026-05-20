@@ -11,7 +11,7 @@ protected; do not modify here — see SPEC §14 for the modification flow).
 | Milestone | Status | SPEC ref |
 |---|---|---|
 | **M1 — skeleton + envelope + F10/F11** | **LANDED 2026-05-20** | §11.1 line 454 |
-| M2 — `scan_disk` + F1/F8/F12/F13 | pending | §11.1 line 455 |
+| **M2 — `scan_disk` + F1/F8/F12/F13 + CLI** | **LANDED 2026-05-20** | §11.1 line 455 |
 | M3 — `scan_db` + F14 | pending | §11.1 line 456 |
 | M4 — `scan_consumers` + F5/F6/F7/F7b/F15 | pending | §11.1 line 457 |
 | M5 — `classify_credentials` + F2/F3/F4 | pending | §11.1 line 458 |
@@ -41,7 +41,8 @@ tools/phase-0b-parser/
 │   ├── envelope.py               # M1 — schema double-threshold check (§8)
 │   ├── models.py                 # M1 — FingerprintRecord / SealedRegistry dataclasses (§5)
 │   ├── path_normalize.py         # M1 — ~/$HOME/realpath helper (§7 F11, target-classes line 3)
-│   ├── scan_disk.py              # M2 stub
+│   ├── scan_disk.py              # M2 — disk plaintext scan (sk_/pk_/jwt)
+│   ├── cli.py                    # M2 — `phase-0b-parser` entry point
 │   ├── scan_db.py                # M3 stub
 │   ├── scan_consumers.py         # M4 stub
 │   ├── classify_credentials.py   # M5 stub
@@ -49,9 +50,18 @@ tools/phase-0b-parser/
 │   └── verbs.py                  # is_sealed / is_ghost / is_orphan / is_live stubs
 └── tests/
     ├── fixtures/F10_target_classes_v3.yaml
+    ├── fixtures/F1_ghost/        # mock sk_ in storefronts/sf-mock/.env.local
+    ├── fixtures/F8_jwt/          # mock JWT in dotclaude/settings.local.json
+    ├── fixtures/F12_empty/       # zero-byte .env.local edge case
+    ├── fixtures/F13_malformed/   # broken JSON edge case
     ├── test_envelope.py          # F10 — 6 cases (incl. happy + sad path)
     ├── test_path_normalize.py    # F11 — 5 cases (tilde/$HOME/./../return-type)
-    └── test_signatures.py        # smoke — every stub raises NotImplementedError
+    ├── test_scan_disk_F1.py      # F1 — Ghost (disk only)
+    ├── test_scan_disk_F8.py      # F8 — JWT in user-level config
+    ├── test_scan_disk_F12.py     # F12 — empty .env.local
+    ├── test_scan_disk_F13.py     # F13 — malformed JSON WARN+skip
+    ├── test_scan_disk_smoke.py   # helpers + CLI flag/env/default precedence
+    └── test_signatures.py        # smoke — M3-M6 stubs still raise NotImplementedError
 ```
 
 ### Package naming note
@@ -60,6 +70,22 @@ SPEC §6.1 line 247 references `src/0b/` as an *illustrative* path. This project
 uses `src/phase_0b_parser/` because Python module names cannot start with a
 digit. The verb-prefix lint (`scripts/lint-verb-whitelist.sh`) reads the actual
 package path. No SPEC content was changed; this is a naming adapt only.
+
+## CLI (M2)
+
+```bash
+# Default — scans ~/github/ portfolio (allowlist applied per CLAUDE.md).
+phase-0b-parser
+
+# Explicit root (overrides env var).
+phase-0b-parser --portfolio-root /path/to/portfolio
+
+# Or via env var (CLI flag still takes precedence when both are set).
+LIYE_PORTFOLIO_ROOT=/path/to/portfolio phase-0b-parser
+```
+
+M2 output is count-only. Redacted fingerprints land in `sealed-registry.json`
+when M6 ships; raw tokens never leave RAM.
 
 ## Hard rules (don't touch from M2+)
 

@@ -2,6 +2,44 @@
 
 All notable changes to phase-0b-parser. SSOT: `PHASE-0B-SPEC.md` v3.
 
+## [0.2.0] — 2026-05-20 — M2: scan_disk + F1/F8/F12/F13 fixtures + CLI
+
+### Added
+
+- `scan_disk.py` real implementation (replaces M1 `NotImplementedError`
+  stub). Walks `~/.claude/**/*.json` + `<repo>/.claude/**/*.json` +
+  `**/.env*` + `**/.envrc` per SPEC §2 line 29-32. Token regexes cover
+  `sk_` / `pk_` / `jwt` (3 of 7 SPEC §5.2 line 186 key types). Fingerprint
+  formula matches SPEC §5.2 line 175 verbatim (`sha256(t.utf-8).hex[:12]`).
+- `PORTFOLIO_REPOS` allowlist (10 repos per liye_os/CLAUDE.md "Repo 索引");
+  out-of-scope repos (hermes-agent / openclaw / openclaw-skillgate /
+  claw-price-intel / age-main-cron / financial-services) silently skipped.
+- Fixture-mode auto-detection: when `portfolio_root` doesn't have any
+  PORTFOLIO_REPOS subdir OR sits inside `tests/fixtures/`, the scan
+  switches to flat traversal and skips the real `~/.claude/` glob to
+  prevent polluting fixture results with the host user's config.
+- `cli.py` + `[project.scripts] phase-0b-parser` entry point. Portfolio
+  root precedence: `--portfolio-root` flag > `LIYE_PORTFOLIO_ROOT` env
+  var > default `~/github/` (per SPEC §12 Q3 M2 default decision).
+- Fixtures: F1 (Ghost — mock `sk_` in `sf-mock/.env.local`), F8 (mock JWT
+  in `dotclaude/settings.local.json`), F12 (empty `.env.local`), F13
+  (malformed JSON triggering WARN + skip).
+- Tests: `test_scan_disk_F1.py` / `F8.py` / `F12.py` / `F13.py` and
+  `test_scan_disk_smoke.py` (helpers, CLI flag/env/default precedence).
+- `FingerprintRecord.__hash__` / `__eq__` keyed on
+  `fingerprint_sha256_12` so `Set[FingerprintRecord]` (SPEC §6.2 line 258)
+  is constructible.
+- `tools/phase-0b-parser/.gitignore` un-ignores `tests/fixtures/**` so
+  mock-token fixture files can be committed (root `.gitignore` globs
+  `**/.env` / `.env.local` which would otherwise hide them).
+
+### Notes
+
+- All fixture tokens are **mock** — pattern shape passes the regex but
+  values are deliberately fake (`F1MOCKghost...`, `mock-f8-user-level`).
+- CLI prints **counts only**; redacted/raw tokens never leak to stdout.
+- Production sanity scan over `~/github/` succeeded with finite count.
+
 ## [0.1.0] — 2026-05-20 — M1: project skeleton landed
 
 ### Added

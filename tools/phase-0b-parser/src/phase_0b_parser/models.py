@@ -39,13 +39,27 @@ class DbMetadata:
     created_at: str    # SPEC §5.2 line 157: ISO-8601 UTC
 
 
-@dataclass
+@dataclass(eq=False)
 class FingerprintRecord:
     """Per-credential record per PHASE-0B-SPEC.md §5.2 (line 141-170).
 
     Field-by-field SPEC line refs are noted below. M1 lands skeleton only;
     each downstream milestone (M2-M5) fills the corresponding fields.
+
+    Identity is the 12-char fingerprint (`fingerprint_sha256_12`). SPEC §6.2
+    line 258 requires `Set[FingerprintRecord]` return shape from `scan_disk`,
+    so equality & hash are keyed on the fingerprint string. Two records with
+    the same fingerprint are by definition the same credential (collision
+    handling is §5.3's upgrade path, not duplicate records).
     """
+
+    def __hash__(self) -> int:  # noqa: D401
+        return hash(self.fingerprint_sha256_12)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FingerprintRecord):
+            return NotImplemented
+        return self.fingerprint_sha256_12 == other.fingerprint_sha256_12
 
     # SPEC §5.2 line 143 — sha256[:12] lowercase hex; spec locked §5.2 line 173-182.
     fingerprint_sha256_12: str
