@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Lazy import keeps `--help` snappy and avoids pulling scan logic for
     # argv parse errors.
+    from .scan_consumers import _merge_records, scan_consumers
     from .scan_db import scan_db
     from .scan_disk import scan_disk
 
@@ -63,7 +64,19 @@ def main(argv: list[str] | None = None) -> int:
     admin_token = os.environ.get("MEDUSA_ADMIN_TOKEN")
     db_records = scan_db(args.db_url, admin_token)
     print(f"scan_db found {len(db_records)} DB records (db_url={args.db_url or 'unset'})")
-    # M3 stops here. M4 adds scan_consumers, M6 adds report_sealed_registry.
+
+    # M4 — disk ∪ db known fingerprint set drives consumer scan.
+    known_fps = {r.fingerprint_sha256_12 for r in disk_records | db_records}
+    consumer_map = scan_consumers(args.portfolio_root, known_fps)
+    total_paths = sum(len(v) for v in consumer_map.values())
+    print(
+        f"scan_consumers found {len(consumer_map)} fp with consumers, "
+        f"total {total_paths} consumer paths"
+    )
+
+    unified = _merge_records(disk_records, db_records, consumer_map)
+    print(f"unified: {len(unified)} merged FingerprintRecord")
+    # M4 stops here. M6 adds report_sealed_registry.
     return 0
 
 

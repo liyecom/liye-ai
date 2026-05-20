@@ -207,6 +207,8 @@ def _merge_db_row(
         records[fp] = rec
     rec.db_metadata = md
     rec.db_validity = "present"
+    # M4 additive — track origin for merge_records source_origins union.
+    rec.source_origins.add("db")
 
 
 def scan_db(db_url: str | None, admin_token: str | None = None) -> set[FingerprintRecord]:

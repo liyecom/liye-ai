@@ -288,6 +288,8 @@ def _merge_into(records: dict[str, FingerprintRecord], token: str, source: DiskS
         )
         records[fp] = rec
     rec.disk_sources.append(source)
+    # M4 additive — record origin so merge_records can union sources later.
+    rec.source_origins.add("disk")
 
 
 def _scan_user_claude(records: dict[str, FingerprintRecord]) -> None:

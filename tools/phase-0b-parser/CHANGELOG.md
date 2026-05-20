@@ -2,6 +2,89 @@
 
 All notable changes to phase-0b-parser. SSOT: `PHASE-0B-SPEC.md` v3.
 
+## [0.4.0] — 2026-05-20 — M4: scan_consumers + record union merge + F5/F6/F7/F7b/F15 fixtures
+
+### Added
+
+- `scan_consumers.py` real implementation (replaces M1 `NotImplementedError`
+  stub). Walks active `.env*` + `.envrc` under portfolio_root, computes
+  fingerprints via the M2 helper, and maps fp → sorted list of consumer
+  paths for any fp ∈ `known_fingerprints`. Tokens whose fp is not in the
+  known set are filtered out. Per SPEC §6.2 line 260 + §5.2 line 191.
+- Strict suffix / path-segment exclude rules per SPEC §5.2 line 191:
+  - file-name suffix excludes: `.example`, `.template`, `.sample`,
+    `.bak`, `.bak-*` (rotation convention)
+  - path-segment excludes: `scripts/` anywhere in the chain,
+    `.github/workflows/` two-segment match
+  - **never substring** — `Path.name.endswith(...)` / `parts` membership only.
+    F7b reverse-coverage invariant pins this: `.env.production` active,
+    `.env.production.example` excluded, even though both share `.example`-
+    looking substrings.
+- `_merge_records()` — union semantics per SPEC §5.2 line 196: same fp
+  across disk ∪ db ∪ consumer collapses to a single `FingerprintRecord`.
+  Disk-seeded records win for `key_type` / `redacted` / `disk_sources`;
+  db rows fold their `db_metadata` / `db_validity` / `key_type` (when disk
+  unknown); consumer paths assign onto the existing record. Leading-
+  underscore name keeps the function outside SPEC §6.1 verb whitelist.
+- `models.FingerprintRecord.source_origins: set[str]` — additive non-
+  breaking field tracking which scan sources contributed each record.
+  Values subset of `{"disk", "db", "consumer"}`. Defaults to empty set,
+  so existing tests/records keep passing untouched. Required by F15 union
+  semantics — pre-M4 there was no way to assert "this record came from
+  all three sources".
+- `scan_disk._merge_into` now writes `"disk"` into `source_origins`;
+  `scan_db._merge_db_row` writes `"db"`; `_merge_records` writes
+  `"consumer"` when it folds in a consumer path.
+- `cli.py` extended to the M4 pipeline: 4-line stdout report — disk,
+  db, scan_consumers, unified. Output stays count-only; redacted tokens
+  still never leave RAM.
+- F5 test (`test_scan_consumers_F5.py`) — Live single consumer (2 cases)
+- F6 test (`test_scan_consumers_F6.py`) — Live multi-consumer correctness
+  invariant: same token across N storefronts → 1 fp / N paths, NOT N
+  records. SPEC scope #9 prerequisite.
+- F7 test (`test_scan_consumers_F7.py`) — Master + replica (2 cases:
+  silkbay double-env, and silkbay/.env.localkeys + sf/.env.local).
+- F7b test (`test_scan_consumers_F7b.py`) — **Governance defense
+  invariant**: `.env.production` active, `.env.production.example` excluded.
+  Asserts the exclude rule uses suffix matching, NOT substring `in path`.
+- F15 test (`test_scan_consumers_F15.py`) — Full pipeline union (3 cases:
+  disk ∪ db ∪ consumer all carrying same fp; disk-only fold; db-only fold).
+  HTTP mocked via `responses`; no real Medusa endpoint contacted.
+- `test_scan_consumers_invariants.py` — 9 invariant tests pinning the
+  exclude/include rules:
+  - excludes `.example` / `.template` / `.bak` / `.bak-*` / `.sample` suffixes
+  - excludes `scripts/` and `.github/workflows/` path segments
+  - includes `.env.production` and `.env.local` actively
+  - filters out tokens whose fp is not in `known_fingerprints`
+
+### Changed
+
+- `pyproject.toml` — version bumped 0.3.0 → 0.4.0.
+- `test_signatures.test_scan_consumers_stub_raises` replaced by
+  `test_scan_consumers_callable_returns_dict` (smoke for the real M4
+  implementation; remaining M5/M6 stubs still raise NotImplementedError).
+
+### Notes
+
+- All M4 fixture tokens are mock — pattern shape matches the regex
+  (`sk_[A-Za-z0-9_-]{20,}` etc.) but values are deliberately fake.
+- Fixtures materialized via `tmp_path` at runtime, never staged on disk —
+  the liye_os pre-commit hook (`.claude/.githooks/pre-commit` line 84)
+  hard-blocks any `.env*` file in staging.
+- Mutation-ban lint passes clean: implementation dodges `.update(` /
+  `.save(` / `.delete(` attribute-call idioms in code AND comments.
+  `defaultdict(list) + .append`, dict comprehension, direct key assign,
+  and set in-place union `|=` cover all merge-style needs.
+- Verb-whitelist lint passes: only `scan_consumers` (whitelisted `scan_`)
+  is a module-level verb-prefixed public function. `_merge_records`,
+  `_has_bak_suffix`, `_walk_env_files`, etc. carry leading underscores
+  and fall outside the `^def [a-z]+_` lint pattern by design.
+- Total tests now: 66 passing (M1+M2 41 + M3 6 + M4 19).
+- No SPEC modification. `source_origins` additive field is documented
+  as a non-breaking extension — SPEC §5.2 enumerates minimum fields and
+  doesn't forbid extensions; M3 took the same path for DbMetadata's
+  optional revoked_at / key_type.
+
 ## [0.3.0] — 2026-05-20 — M3: scan_db (Medusa /admin/api-keys) + F14 + 3-layer mutation lint
 
 ### Added

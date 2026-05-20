@@ -13,7 +13,7 @@ protected; do not modify here — see SPEC §14 for the modification flow).
 | **M1 — skeleton + envelope + F10/F11** | **LANDED 2026-05-20** | §11.1 line 454 |
 | **M2 — `scan_disk` + F1/F8/F12/F13 + CLI** | **LANDED 2026-05-20** | §11.1 line 455 |
 | **M3 — `scan_db` + F14 + lint-mutation-ban 3-layer** | **LANDED 2026-05-20** | §11.1 line 456 |
-| M4 — `scan_consumers` + F5/F6/F7/F7b/F15 | pending | §11.1 line 457 |
+| **M4 — `scan_consumers` + record merge + F5/F6/F7/F7b/F15** | **LANDED 2026-05-20** | §11.1 line 457 |
 | M5 — `classify_credentials` + F2/F3/F4 | pending | §11.1 line 458 |
 | M6 — `report_sealed_registry` + `--strict` + write boundary | pending | §11.1 line 459 |
 | M7 — CI lint + full 15-fixture green | pending | §11.1 line 460 |
@@ -44,7 +44,7 @@ tools/phase-0b-parser/
 │   ├── scan_disk.py              # M2 — disk plaintext scan (sk_/pk_/jwt)
 │   ├── cli.py                    # M2/M3 — `phase-0b-parser` entry point
 │   ├── scan_db.py                # M3 — Medusa /admin/api-keys read-only
-│   ├── scan_consumers.py         # M4 stub
+│   ├── scan_consumers.py         # M4 — active .env* cross-ref + _merge_records union
 │   ├── classify_credentials.py   # M5 stub
 │   ├── report_sealed_registry.py # M6 stub
 │   └── verbs.py                  # is_sealed / is_ghost / is_orphan / is_live stubs

@@ -51,9 +51,15 @@ def test_scan_db_callable_returns_set_when_unconfigured():
     assert result == set()
 
 
-def test_scan_consumers_stub_raises():
-    with pytest.raises(NotImplementedError, match="M4"):
-        scan_consumers("/tmp", set())
+def test_scan_consumers_callable_returns_dict(tmp_path):
+    """M4 landed — scan_consumers is real. Smoke: empty dir → empty dict.
+
+    M1's NotImplementedError assertion was removed when M4 landed; remaining
+    M5-M6 stubs still raise NotImplementedError (see below).
+    """
+    result = scan_consumers(tmp_path, set())
+    assert isinstance(result, dict)
+    assert result == {}
 
 
 def test_classify_credentials_stub_raises():

@@ -94,6 +94,15 @@ class FingerprintRecord:
     # SPEC §5.2 line 163 + §5.2 line 190-192 — stale references (.example/.template/.bak/etc) (M4 fill).
     disk_duplicate_paths: list[str] = field(default_factory=list)
 
+    # M4 additive (non-breaking) — tracks which scan sources produced this record.
+    # Values: subset of {"disk", "db", "consumer"}. SPEC §5.2 enumerates minimum
+    # field set; this extension is required for §5.2 line 196 union semantics
+    # (merge_records collapses same-fp records across disk/db/consumer sources
+    # into one FingerprintRecord with source_origins union). Default empty set
+    # preserves backward compatibility — existing tests treating untouched
+    # records keep passing.
+    source_origins: set[str] = field(default_factory=set)
+
     # SPEC §5.2 line 164 — Ghost/Orphan/Live (M5 fill).
     classification: Classification | None = None
 
