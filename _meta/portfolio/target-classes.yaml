@@ -1,0 +1,160 @@
+# Path-to-target_class mapping
+# Schema: deny_first runs before rules; rules use first-match-wins; unmapped is default
+# Parser MUST: expand ~/$HOME; realpath relative paths; POSIX separators only
+schema_version: 4
+match_strategy: first-match-wins
+default_class: unmapped
+
+deny_first:
+  - glob: "**/.automation-session.yaml"
+    class: automation_config
+  - glob: "**/automation-trust.local.yaml"
+    class: automation_config
+  - glob: ".claude/**"
+    class: automation_config
+  - glob: "**/.claude/**"
+    class: automation_config
+  - glob: "~/.claude/**"
+    class: automation_config
+  - glob: "~/.claude/settings*.json"
+    class: automation_config
+  - glob: "~/.claude/agents/**"
+    class: automation_config
+  - glob: "~/.claude/hooks/**"
+    class: automation_config
+  - glob: "~/.claude/skills/**"
+    class: automation_config
+  - glob: "**/*.hooks.json"
+    class: automation_config
+  - glob: "**/*.mcp.json"
+    class: automation_config
+  # phase-0a-3 batch 2: audit-state guard
+  # policy: deny agent direct write 默认；只允许 Phase 0C helper CLI（liye-audit-append）
+  # 见 AUTOMATION_GOVERNANCE.md §10 Step 1 hard-constraint
+  - glob: "~/.local/state/liye-automation/**"
+    class: automation_audit_state
+
+rules:
+  # 1. Sealed
+  - glob: "**/.planning/baseline/**"
+    class: sealed_artifact
+  - glob: "**/.baselines/**"
+    class: sealed_artifact
+  - glob: "**/production-baseline-*"
+    class: sealed_artifact
+  - glob: "**/_sealed/**"
+    class: sealed_artifact
+
+  # 2. Structured contracts (BEFORE governance_documentation)
+  - glob: "**/contracts/**/*.yaml"
+    class: contract_artifact
+  - glob: "**/contracts/**/*.yml"
+    class: contract_artifact
+  - glob: "**/contracts/**/*.json"
+    class: contract_artifact
+  - glob: "**/*.contract.yaml"
+    class: contract_artifact
+  - glob: "**/*.contract.yml"
+    class: contract_artifact
+  - glob: "**/*.contract.json"
+    class: contract_artifact
+  - glob: "**/*.schema.yaml"
+    class: contract_artifact
+  - glob: "**/*.schema.yml"
+    class: contract_artifact
+  - glob: "**/*.schema.json"
+    class: contract_artifact
+
+  # 3. Planning (broad)
+  - glob: "**/.planning/**"
+    class: planning_artifact
+
+  # 4. Governance docs
+  - glob: "liye_os/_meta/**"
+    class: governance_documentation
+  - glob: "**/docs/adr/**"
+    class: governance_documentation
+  - glob: "**/docs/contracts/**"
+    class: governance_documentation
+  - glob: "**/silkbay-governance/**"
+    class: governance_documentation
+  - glob: "**/SYSTEMS.md"
+    class: governance_documentation
+  - glob: "**/AUTOMATION_GOVERNANCE.md"
+    class: governance_documentation
+  - glob: "**/CLAUDE.md"
+    class: governance_documentation
+
+  # 5. Product code
+  - glob: "**/src/**"
+    class: product_code
+  - glob: "**/app/**"
+    class: product_code
+  - glob: "**/storefronts/*/app/**"
+    class: product_code
+  - glob: "**/storefronts/*/src/**"
+    class: product_code
+  - glob: "**/storefronts/*/components/**"
+    class: product_code
+  - glob: "**/silkbay/src/**"
+    class: product_code
+  - glob: "**/amazon-growth-engine/src/**"
+    class: product_code
+  - glob: "**/loamwise/src/**"
+    class: product_code
+  - glob: "**/chaming/src/**"
+    class: product_code
+
+  # 6. Test
+  - glob: "**/tests/**"
+    class: test_artifact
+  - glob: "**/test/**"
+    class: test_artifact
+  - glob: "**/__tests__/**"
+    class: test_artifact
+  - glob: "**/*.test.*"
+    class: test_artifact
+  - glob: "**/*.spec.*"
+    class: test_artifact
+
+  # 7. Meta files
+  - glob: "**/.gitignore"
+    class: meta_file
+  - glob: "**/.gitattributes"
+    class: meta_file
+  - glob: "**/.editorconfig"
+    class: meta_file
+  - glob: "**/.prettierrc*"
+    class: meta_file
+  - glob: "**/.eslintrc*"
+    class: meta_file
+  - glob: "**/.dockerignore"
+    class: meta_file
+  - glob: "**/package.json"
+    class: meta_file
+  - glob: "**/package-lock.json"
+    class: meta_file
+  - glob: "**/pnpm-lock.yaml"
+    class: meta_file
+  - glob: "**/pyproject.toml"
+    class: meta_file
+  - glob: "**/uv.lock"
+    class: meta_file
+  - glob: "**/tsconfig*.json"
+    class: meta_file
+  - glob: "**/Cargo.toml"
+    class: meta_file
+  - glob: "**/Cargo.lock"
+    class: meta_file
+  - glob: "**/Dockerfile*"
+    class: meta_file
+  - glob: "**/docker-compose*.yml"
+    class: meta_file
+
+  # 8. Ordinary docs (final catchall)
+  - glob: "**/README.md"
+    class: ordinary_documentation
+  - glob: "**/CHANGELOG.md"
+    class: ordinary_documentation
+  - glob: "**/*.md"
+    class: ordinary_documentation
