@@ -1,0 +1,51 @@
+# Phase 0B Parser CI
+#
+# Lint + test gate for tools/phase-0b-parser/.
+# Path-filtered to avoid cross-project CI noise in this mono-repo.
+#
+# Reference: _meta/portfolio/PHASE-0B-SPEC.md v3 §6.1 (verb whitelist),
+#            §6.4 (mutation ban), §11.1 (milestone acceptance).
+
+name: Phase 0B Parser CI
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'tools/phase-0b-parser/**'
+      - '.github/workflows/phase-0b-parser-ci.yml'
+  push:
+    branches: ["main"]
+    paths:
+      - 'tools/phase-0b-parser/**'
+      - '.github/workflows/phase-0b-parser-ci.yml'
+
+jobs:
+  test-and-lint:
+    name: Test + Lint (verb whitelist + mutation ban)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/phase-0b-parser
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: pytest -v
+
+      - name: Verb prefix whitelist lint (SPEC §6.1)
+        run: bash scripts/lint-verb-whitelist.sh
+
+      - name: Mutation ban lint (SPEC §6.4, M3/M4 enforcement pending)
+        run: bash scripts/lint-mutation-ban.sh
