@@ -62,9 +62,15 @@ def test_scan_consumers_callable_returns_dict(tmp_path):
     assert result == {}
 
 
-def test_classify_credentials_stub_raises():
-    with pytest.raises(NotImplementedError, match="M5"):
-        classify_credentials(set())
+def test_classify_credentials_callable_returns_set():
+    """M5 landed — classify_credentials is real. Smoke: empty set in → empty set out.
+
+    M1's NotImplementedError assertion was removed when M5 landed; remaining
+    M6 stubs still raise NotImplementedError (see below).
+    """
+    result = classify_credentials(set())
+    assert isinstance(result, set)
+    assert result == set()
 
 
 def test_report_sealed_registry_stub_raises():
@@ -77,22 +83,22 @@ def test_is_sealed_stub_raises():
         is_sealed("/tmp/foo")
 
 
-def test_is_ghost_stub_raises():
+def test_is_ghost_returns_false_for_unclassified():
+    """M5 landed — is_ghost is real. Pre-classify record (classification=None) → False."""
     rec = FingerprintRecord(fingerprint_sha256_12="0" * 12)
-    with pytest.raises(NotImplementedError):
-        is_ghost(rec)
+    assert is_ghost(rec) is False
 
 
-def test_is_orphan_stub_raises():
+def test_is_orphan_returns_false_for_unclassified():
+    """M5 landed — is_orphan is real. Pre-classify record → False."""
     rec = FingerprintRecord(fingerprint_sha256_12="0" * 12)
-    with pytest.raises(NotImplementedError):
-        is_orphan(rec)
+    assert is_orphan(rec) is False
 
 
-def test_is_live_stub_raises():
+def test_is_live_returns_false_for_unclassified():
+    """M5 landed — is_live is real. Pre-classify record → False."""
     rec = FingerprintRecord(fingerprint_sha256_12="0" * 12)
-    with pytest.raises(NotImplementedError):
-        is_live(rec)
+    assert is_live(rec) is False
 
 
 def test_fingerprint_record_dataclass_shape():

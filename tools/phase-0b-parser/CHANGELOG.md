@@ -2,6 +2,91 @@
 
 All notable changes to phase-0b-parser. SSOT: `PHASE-0B-SPEC.md` v3.
 
+## [0.5.0] — 2026-05-20 — M5: classify_credentials + Ghost/Orphan/Live + F2/F3/F4/F9 fixtures
+
+### Added
+
+- `classify_credentials.py` real implementation (replaces M1
+  `NotImplementedError` stub). Three-way Ghost/Orphan/Live dispatch per the
+  M5 dispatch brief truth table; returns a fresh `set[FingerprintRecord]`
+  (input never mutated; built via `dataclasses.replace`). Per SPEC §6.2
+  line 261 + §11.1 line 458.
+- `verbs.is_ghost` / `is_orphan` / `is_live` real implementations
+  (replace M1 stubs). Mutual-exhaustion invariant: for every classified
+  record exactly ONE returns True. SPEC §6.2 line 263.
+- `disk_duplicate_paths` field population landed (was M4 deferred item;
+  SPEC §6.2 line 260). When the same fp lands at ≥2 disk paths, the
+  classifier fills `disk_duplicate_paths` with the sorted POSIX path list.
+- Title-signal scoring helper `_score_title` — case-insensitive substring
+  match against `("default", "admin", "bootstrap", "system", "seed")`.
+  Per SPEC §5.2 line 188 (0B-1 binary 0/1).
+- F2 fixture test (`test_classify_F2.py`) — Ghost from stale
+  `.env.production.example`. Full pipeline (scan_disk catches `.example`
+  per SPEC §2 line 28 ground truth; scan_consumers excludes `.example`
+  per SPEC §5.2 line 191; no DB → ghost/archive).
+- F3 fixture test (`test_classify_F3.py`) — Orphan/ad-hoc. DB returns
+  token with title "ImportTool Migration 2026-Q1" (no seed keyword) +
+  zero consumers → orphan, sub=ad-hoc, disposition=revoke,
+  requires_human=False. HTTP mocked via `responses`.
+- F4 fixture test (`test_classify_F4.py`) — Orphan/system-seed-suspected.
+  DB returns token with title "Default Admin Token" + zero consumers →
+  orphan, sub=system-seed-suspected, title_signal_score=1,
+  requires_human=True, disposition=human-review.
+- F9 fixture test (`test_classify_F9.py`) — **Governance defense
+  invariant**: DB title "System Seed - Storefront Bootstrap" + 1 active
+  `.env.local` consumer → classification MUST be `live`, NOT
+  `orphan/system-seed-suspected`. Consumer anchor wins over title-keyword
+  trigger; `title_signal_score=1` still recorded for ops visibility but
+  `sub_classification=None` because live has no sub-class dimension.
+- `test_classify_truth_table.py` — 9 parametrize cases (8 brief truth-table
+  rows + 1 governance row) verifying full classification tuple; plus the
+  same 9 cases re-asserted under `is_ghost_orphan_live_mutex_exhaustive`
+  for mutual-exhaustion invariant; plus a `title_signal_score` recording
+  invariant for live records with seed-keyword titles.
+- `test_classify_edge_cases.py` — 4 cases for the `db_validity="unknown"`
+  override (forces `requires_human=True` + `disposition` suffix
+  `+verify-db-when-reachable`) and the `disk_duplicate_paths` fill logic
+  (sorted POSIX list when ≥2 disk_sources; empty when 1).
+- `cli.py` extended to the M5 pipeline: classification phase appends 2
+  more output lines (ghosts/orphans/lives counts + human-review count) to
+  the existing M4 4-line summary.
+
+### Changed
+
+- `models.py` — `Classification` Literal narrowed to lowercase
+  `("ghost", "orphan", "live")` to match the M5 dispatch brief truth
+  table (SPEC §5.2 line 164's TitleCase example payload was illustrative
+  JSON, not a normative enum spelling; captured as additive drift for
+  v4 SPEC ceremony).
+- `models.py` — `SubClassification` Literal narrowed to brief spelling
+  `("ad-hoc", "system-seed-suspected")` (SPEC §5.2 line 193 retained
+  `-orphan` suffix is redundant since the field only fills when
+  classification == "orphan"). Additive drift for v4 SPEC ceremony.
+- `test_signatures.py` — removed `NotImplementedError` assertions on
+  `classify_credentials` / `is_ghost` / `is_orphan` / `is_live` (real
+  implementations landed). Replaced with smoke-callable assertions that
+  exercise the real codepath. M6 stubs (`report_sealed_registry`,
+  `is_sealed`) keep their NotImplementedError assertions.
+- Version: `0.4.0` → `0.5.0`.
+
+### SPEC drift (additive — v4 ceremony pending)
+
+- `FingerprintRecord.title_signal_score` (int 0/1) — already on dataclass
+  from M1 scaffold; populated by M5.
+- `FingerprintRecord.sub_classification` — M5 fills `"ad-hoc"` /
+  `"system-seed-suspected"`. M5 only TAGS; behavior activation is Phase
+  0B-2 (SPEC §3.1 / §11.2 M8).
+- `FingerprintRecord.requires_human_confirmation` — bool, populated by M5.
+- `FingerprintRecord.recommended_disposition` — string disposition string
+  populated by M5 (`archive` / `revoke` / `human-review` /
+  `keep+rotate-when-ready` / `keep+investigate-source`, optionally
+  suffixed `+verify-db-when-reachable`).
+- Classification enum case (lowercase) and sub_classification spelling
+  (no `-orphan` suffix) — documented above under **Changed**.
+
+`FingerprintRecord.disk_duplicate_paths` is NOT drift — SPEC §6.2 line 260
+already declared the field; M5 completes the M4-deferred populate logic.
+
 ## [0.4.0] — 2026-05-20 — M4: scan_consumers + record union merge + F5/F6/F7/F7b/F15 fixtures
 
 ### Added

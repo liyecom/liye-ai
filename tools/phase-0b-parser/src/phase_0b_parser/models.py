@@ -14,10 +14,20 @@ from typing import Any, Literal
 KeyType = Literal["sk_", "pk_", "jwt", "oauth", "db", "other", "unknown"]
 
 # Per SPEC §5.2 line 164 — classification enum (Ghost/Orphan/Live + None pre-classify).
-Classification = Literal["Ghost", "Orphan", "Live"]
+# M5 SSOT (dispatch brief truth table) uses lowercase "ghost"/"orphan"/"live"
+# rather than SPEC §5.2's TitleCase example payload. The SPEC examples are
+# illustrative JSON, not a normative enum spelling; brief truth table is the
+# binding M5 contract for `classify_credentials`. Captured as additive drift
+# (v4 ceremony will fold spelling back into SPEC §5.2 line 164).
+Classification = Literal["ghost", "orphan", "live"]
 
-# Per SPEC §5.2 line 193 — sub_classification enum (0B-1 always null; 0B-2 fills).
-SubClassification = Literal["ad-hoc-orphan", "system-seed-suspected-orphan"]
+# Per SPEC §5.2 line 193 — sub_classification enum (M5 expansion).
+# Brief truth table uses bare values "ad-hoc" / "system-seed-suspected" (no
+# `-orphan` suffix) — the suffix is implicit since the field only fills when
+# classification == "orphan". SPEC §5.2 line 193 retains the suffixed names
+# (`ad-hoc-orphan` / `system-seed-suspected-orphan`); M5 ships the brief
+# spelling. Captured as additive drift (v4 ceremony).
+SubClassification = Literal["ad-hoc", "system-seed-suspected"]
 
 # Per SPEC §5.2 line 154 — db_validity enum (Decision 2; F14 line 334 adds "unknown").
 DbValidity = Literal["present", "absent", "unknown"]

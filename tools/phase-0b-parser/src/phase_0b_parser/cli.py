@@ -53,9 +53,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # Lazy import keeps `--help` snappy and avoids pulling scan logic for
     # argv parse errors.
+    from .classify_credentials import classify_credentials
     from .scan_consumers import _merge_records, scan_consumers
     from .scan_db import scan_db
     from .scan_disk import scan_disk
+    from .verbs import is_ghost, is_live, is_orphan
 
     disk_records = scan_disk(args.portfolio_root)
     print(f"scan_disk found {len(disk_records)} fingerprint records under {args.portfolio_root}")
@@ -76,7 +78,19 @@ def main(argv: list[str] | None = None) -> int:
 
     unified = _merge_records(disk_records, db_records, consumer_map)
     print(f"unified: {len(unified)} merged FingerprintRecord")
-    # M4 stops here. M6 adds report_sealed_registry.
+
+    # M5 — Ghost/Orphan/Live three-way classification.
+    classified = classify_credentials(unified)
+    ghosts = [r for r in classified if is_ghost(r)]
+    orphans = [r for r in classified if is_orphan(r)]
+    lives = [r for r in classified if is_live(r)]
+    human_review = sum(1 for r in classified if r.requires_human_confirmation)
+    print(
+        f"classification: {len(ghosts)} ghosts / "
+        f"{len(orphans)} orphans / {len(lives)} lives"
+    )
+    print(f"human review needed: {human_review}")
+    # M5 stops here. M6 adds report_sealed_registry.
     return 0
 
 

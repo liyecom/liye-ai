@@ -14,7 +14,7 @@ protected; do not modify here — see SPEC §14 for the modification flow).
 | **M2 — `scan_disk` + F1/F8/F12/F13 + CLI** | **LANDED 2026-05-20** | §11.1 line 455 |
 | **M3 — `scan_db` + F14 + lint-mutation-ban 3-layer** | **LANDED 2026-05-20** | §11.1 line 456 |
 | **M4 — `scan_consumers` + record merge + F5/F6/F7/F7b/F15** | **LANDED 2026-05-20** | §11.1 line 457 |
-| M5 — `classify_credentials` + F2/F3/F4 | pending | §11.1 line 458 |
+| **M5 — `classify_credentials` + Ghost/Orphan/Live + F2/F3/F4/F9** | **LANDED 2026-05-20** | §11.1 line 458 |
 | M6 — `report_sealed_registry` + `--strict` + write boundary | pending | §11.1 line 459 |
 | M7 — CI lint + full 15-fixture green | pending | §11.1 line 460 |
 
