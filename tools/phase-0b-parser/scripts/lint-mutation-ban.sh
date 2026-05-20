@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Mutation-ban lint skeleton — per PHASE-0B-SPEC.md §6.4 line 287-309.
+# Mutation-ban lint — per PHASE-0B-SPEC.md §6.4 line 287-309.
 #
-# Two-layer ban (full enforcement lands with scan_db in M3 / scan_consumers in M4):
+# Three-layer ban (full enforcement enabled in M3 when scan_db ships):
 #   1. subprocess layer  — no `subprocess.{run,Popen,call,check_output}` / `os.system`
 #      except read-only with `# noqa: read-only-exec` comment exemption
-#   2. SDK/HTTP layer    — no requests.{post,put,delete,patch} / httpx mutators
-#                         / Medusa SDK apiKeyService.{create,revoke,update,delete}
-#                         / any ORM .save/.delete/.update/.insert
+#   2. HTTP write methods — no requests.{post,put,delete,patch} / httpx mutators
+#   3. SDK/ORM mutation  — no Medusa SDK apiKeyService.{create,revoke,update,delete}
+#                         / remoteLink.{create,delete} / ORM .save/.delete/.update
 #
-# M1 source has zero DB/HTTP code, so this lint is a no-op skeleton. The full
-# grep set per SPEC §6.4 line 297-309 will be wired in M3/M4.
+# Defensive even though Medusa SDK is unavailable in this standalone tool —
+# the lint catches future drift before it lands.
 
 set -euo pipefail
 
@@ -22,16 +22,39 @@ if [ ! -d "$SRC_DIR" ]; then
     exit 1
 fi
 
-# TODO M3/M4: enable the grep set below once scan_db / scan_consumers land.
-#
-# grep -rE 'subprocess\.(run|Popen|call|check_output)|os\.system' "$SRC_DIR" \
-#     | grep -v '# noqa: read-only-exec' \
-#     && exit 1 || true
-#
-# grep -rE 'requests\.(post|put|delete|patch)|httpx\.(post|put|delete|patch)' \
-#     "$SRC_DIR" && exit 1 || true
-#
-# grep -rE 'apiKeyService\.(create|revoke|update|delete)|remoteLink\.(create|delete)' \
-#     "$SRC_DIR" && exit 1 || true
+# ---------------------------------------------------------------------------
+# Layer 1 — subprocess mutation ban (SPEC §6.4 line 297-302).
+# `# noqa: read-only-exec` line-suffix exempts read-only invocations only.
+# ---------------------------------------------------------------------------
+SUBPROCESS_VIOLATIONS=$(grep -rnE --include='*.py' 'subprocess\.(run|Popen|call|check_output)|os\.system' "$SRC_DIR" \
+    | grep -v '# noqa: read-only-exec' || true)
+if [ -n "$SUBPROCESS_VIOLATIONS" ]; then
+    echo "FAIL: subprocess mutation calls detected (no '# noqa: read-only-exec' exemption):"
+    echo "$SUBPROCESS_VIOLATIONS"
+    exit 1
+fi
 
-echo "OK: mutation-ban skeleton (M3/M4 full enforcement pending per SPEC §6.4)"
+# ---------------------------------------------------------------------------
+# Layer 2 — HTTP write-method ban (SPEC §6.4 line 304-308).
+# `requests.get` / `httpx.get` allowed; only mutation verbs blocked.
+# ---------------------------------------------------------------------------
+HTTP_VIOLATIONS=$(grep -rnE --include='*.py' 'requests\.(post|put|delete|patch)|httpx\.(post|put|delete|patch)' "$SRC_DIR" || true)
+if [ -n "$HTTP_VIOLATIONS" ]; then
+    echo "FAIL: HTTP write-method calls detected:"
+    echo "$HTTP_VIOLATIONS"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Layer 3 — SDK / ORM mutation ban (SPEC §6.4 line 291-294).
+# Defensive: SDK is unavailable in this standalone tool, but lint enforced
+# anyway to catch drift before it lands.
+# ---------------------------------------------------------------------------
+SDK_VIOLATIONS=$(grep -rnE --include='*.py' 'apiKeyService\.(create|revoke|update|delete)|remoteLink\.(create|delete)|\.save\(|\.delete\(\)|\.update\(' "$SRC_DIR" || true)
+if [ -n "$SDK_VIOLATIONS" ]; then
+    echo "FAIL: SDK/ORM mutation calls detected:"
+    echo "$SDK_VIOLATIONS"
+    exit 1
+fi
+
+echo "OK: mutation-ban full enforcement (subprocess + HTTP + SDK/ORM layers)"

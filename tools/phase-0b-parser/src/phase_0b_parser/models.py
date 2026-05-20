@@ -33,10 +33,19 @@ class DiskSource:
 
 @dataclass
 class DbMetadata:
-    """Per SPEC §5.2 line 154-158 — Medusa DB row metadata (read-only)."""
+    """Per SPEC §5.2 line 154-158 — Medusa DB row metadata (read-only).
+
+    Non-breaking extension (M3): `revoked_at` and `key_type` carried as
+    optional fields. SPEC §5.2 line 154-158 enumerates id/title/created_at
+    only, but the Medusa /admin/api-keys payload includes type + revoked_at
+    natively and downstream classification (M5) needs them to distinguish
+    active vs revoked rows. Default None preserves SPEC backward compatibility.
+    """
     id: str            # SPEC §5.2 line 155: api_key.id (apk_*)
     title: str         # SPEC §5.2 line 156: api_key.title
     created_at: str    # SPEC §5.2 line 157: ISO-8601 UTC
+    revoked_at: str | None = None   # Medusa /admin/api-keys returns this; None = active.
+    key_type: str | None = None     # "secret" | "publishable" from Medusa API.
 
 
 @dataclass(eq=False)

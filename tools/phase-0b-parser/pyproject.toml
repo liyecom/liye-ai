@@ -1,12 +1,18 @@
 [project]
 name = "phase-0b-parser"
-version = "0.1.0"
+version = "0.3.0"
 description = "Phase 0B-1 parser per PHASE-0B-SPEC.md v3 — credential scan + classifier + sealed-registry emitter (read-only)"
 requires-python = ">=3.10"
-dependencies = ["PyYAML>=6.0"]
+dependencies = [
+    "PyYAML>=6.0",
+    "requests>=2.31",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+dev = [
+    "pytest>=7.0",
+    "responses>=0.24",
+]
 
 [project.scripts]
 phase-0b-parser = "phase_0b_parser.cli:main"

@@ -12,7 +12,7 @@ protected; do not modify here — see SPEC §14 for the modification flow).
 |---|---|---|
 | **M1 — skeleton + envelope + F10/F11** | **LANDED 2026-05-20** | §11.1 line 454 |
 | **M2 — `scan_disk` + F1/F8/F12/F13 + CLI** | **LANDED 2026-05-20** | §11.1 line 455 |
-| M3 — `scan_db` + F14 | pending | §11.1 line 456 |
+| **M3 — `scan_db` + F14 + lint-mutation-ban 3-layer** | **LANDED 2026-05-20** | §11.1 line 456 |
 | M4 — `scan_consumers` + F5/F6/F7/F7b/F15 | pending | §11.1 line 457 |
 | M5 — `classify_credentials` + F2/F3/F4 | pending | §11.1 line 458 |
 | M6 — `report_sealed_registry` + `--strict` + write boundary | pending | §11.1 line 459 |
@@ -42,8 +42,8 @@ tools/phase-0b-parser/
 │   ├── models.py                 # M1 — FingerprintRecord / SealedRegistry dataclasses (§5)
 │   ├── path_normalize.py         # M1 — ~/$HOME/realpath helper (§7 F11, target-classes line 3)
 │   ├── scan_disk.py              # M2 — disk plaintext scan (sk_/pk_/jwt)
-│   ├── cli.py                    # M2 — `phase-0b-parser` entry point
-│   ├── scan_db.py                # M3 stub
+│   ├── cli.py                    # M2/M3 — `phase-0b-parser` entry point
+│   ├── scan_db.py                # M3 — Medusa /admin/api-keys read-only
 │   ├── scan_consumers.py         # M4 stub
 │   ├── classify_credentials.py   # M5 stub
 │   ├── report_sealed_registry.py # M6 stub
@@ -71,21 +71,28 @@ uses `src/phase_0b_parser/` because Python module names cannot start with a
 digit. The verb-prefix lint (`scripts/lint-verb-whitelist.sh`) reads the actual
 package path. No SPEC content was changed; this is a naming adapt only.
 
-## CLI (M2)
+## CLI (M2 + M3)
 
 ```bash
-# Default — scans ~/github/ portfolio (allowlist applied per CLAUDE.md).
+# Disk-only scan — default ~/github/ portfolio (allowlist per CLAUDE.md).
 phase-0b-parser
 
-# Explicit root (overrides env var).
-phase-0b-parser --portfolio-root /path/to/portfolio
+# Disk + DB scan — provide Medusa admin endpoint via env or flag.
+MEDUSA_ADMIN_URL=http://localhost:9000 \
+MEDUSA_ADMIN_TOKEN=<bearer> \
+phase-0b-parser
 
-# Or via env var (CLI flag still takes precedence when both are set).
-LIYE_PORTFOLIO_ROOT=/path/to/portfolio phase-0b-parser
+# Explicit DB URL (CLI flag wins over env). Token always env-only.
+MEDUSA_ADMIN_TOKEN=<bearer> phase-0b-parser \
+  --portfolio-root /path/to/portfolio \
+  --db-url http://localhost:9000
 ```
 
-M2 output is count-only. Redacted fingerprints land in `sealed-registry.json`
-when M6 ships; raw tokens never leave RAM.
+Token (`$MEDUSA_ADMIN_TOKEN`) is **never** accepted as a CLI flag — that would
+land it in shell history. URL is safe either way.
+
+Output is count-only. Redacted fingerprints land in `sealed-registry.json`
+when M6 ships; raw tokens never leave RAM and never appear in stdout/stderr.
 
 ## Hard rules (don't touch from M2+)
 

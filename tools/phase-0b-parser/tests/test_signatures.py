@@ -40,9 +40,15 @@ def test_scan_disk_callable_returns_set(tmp_path):
     assert result == set()
 
 
-def test_scan_db_stub_raises():
-    with pytest.raises(NotImplementedError, match="M3"):
-        scan_db()
+def test_scan_db_callable_returns_set_when_unconfigured():
+    """M3 landed — scan_db is real. Smoke: no db_url → empty set, no raise.
+
+    M1's NotImplementedError assertion was removed when M3 landed; remaining
+    M4-M6 stubs still raise NotImplementedError (see below).
+    """
+    result = scan_db(db_url=None, admin_token=None)
+    assert isinstance(result, set)
+    assert result == set()
 
 
 def test_scan_consumers_stub_raises():
