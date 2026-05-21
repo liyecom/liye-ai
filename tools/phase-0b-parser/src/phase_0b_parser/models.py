@@ -131,6 +131,16 @@ class FingerprintRecord:
     # SPEC §5.2 line 169 — "monitor" | "rotate" | "revoke" | "investigate" etc. (M5 fill).
     recommended_disposition: str | None = None
 
+    # M6 additive (non-breaking) — True iff record has been written into the
+    # current `sealed-registry.json` snapshot. Captures the "frozen into
+    # registry" semantic, independent of `requires_human_confirmation` (human
+    # review is an ops flag and does NOT prevent freezing). SPEC §5.2 enumerates
+    # the minimum field set; this extension is required by SPEC §6.2 line 262
+    # `is_sealed` predicate. Default False preserves backward compatibility —
+    # existing M1-M5 records constructed without this field stay unaffected.
+    # Drift captured for v4 SPEC ceremony.
+    sealed: bool = False
+
 
 @dataclass
 class SealedRegistry:

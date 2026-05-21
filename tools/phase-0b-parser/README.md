@@ -15,7 +15,7 @@ protected; do not modify here — see SPEC §14 for the modification flow).
 | **M3 — `scan_db` + F14 + lint-mutation-ban 3-layer** | **LANDED 2026-05-20** | §11.1 line 456 |
 | **M4 — `scan_consumers` + record merge + F5/F6/F7/F7b/F15** | **LANDED 2026-05-20** | §11.1 line 457 |
 | **M5 — `classify_credentials` + Ghost/Orphan/Live + F2/F3/F4/F9** | **LANDED 2026-05-20** | §11.1 line 458 |
-| M6 — `report_sealed_registry` + `--strict` + write boundary | pending | §11.1 line 459 |
+| **M6 — `report_sealed_registry` + `--strict` + write boundary + is_sealed** | **LANDED 2026-05-21** | §11.1 line 459 |
 | M7 — CI lint + full 15-fixture green | pending | §11.1 line 460 |
 
 ## Quick start
@@ -45,9 +45,9 @@ tools/phase-0b-parser/
 │   ├── cli.py                    # M2/M3 — `phase-0b-parser` entry point
 │   ├── scan_db.py                # M3 — Medusa /admin/api-keys read-only
 │   ├── scan_consumers.py         # M4 — active .env* cross-ref + _merge_records union
-│   ├── classify_credentials.py   # M5 stub
-│   ├── report_sealed_registry.py # M6 stub
-│   └── verbs.py                  # is_sealed / is_ghost / is_orphan / is_live stubs
+│   ├── classify_credentials.py   # M5 — Ghost/Orphan/Live three-way classifier
+│   ├── report_sealed_registry.py # M6 — sealed-registry.json emitter + write boundary
+│   └── verbs.py                  # is_sealed (M6) / is_ghost / is_orphan / is_live (M5)
 └── tests/
     ├── fixtures/F10_target_classes_v3.yaml
     ├── fixtures/F1_ghost/        # mock sk_ in storefronts/sf-mock/.env.local
@@ -91,8 +91,56 @@ MEDUSA_ADMIN_TOKEN=<bearer> phase-0b-parser \
 Token (`$MEDUSA_ADMIN_TOKEN`) is **never** accepted as a CLI flag — that would
 land it in shell history. URL is safe either way.
 
-Output is count-only. Redacted fingerprints land in `sealed-registry.json`
-when M6 ships; raw tokens never leave RAM and never appear in stdout/stderr.
+Output is count-only on stdout. Redacted fingerprints land in
+`sealed-registry.json` (written by M6 `report_sealed_registry`). Raw
+tokens never leave RAM and never appear in stdout/stderr.
+
+## CLI (M6 — sealed-registry emit)
+
+```bash
+# Default output path: var/sealed-registry.json (whitelisted under
+# tools/phase-0b-parser/var/).
+phase-0b-parser --portfolio-root ~/github
+
+# Explicit output path (must satisfy SPEC §6.4 whitelist: build/dist/
+# .cache/var/tmp dir name in any path part; banned: .claude/.git/
+# _meta/source dirs/.env* filenames).
+phase-0b-parser --output /tmp/sealed-registry.json
+
+# Strict mode per SPEC §8.6 — escalatable WARN (db_validity=unknown /
+# fp_collision / requires_human_confirmation) abort with exit code 2.
+# CI callers should pass --strict.
+phase-0b-parser --strict --output build/sealed-registry.json
+```
+
+Exit codes:
+- `0` — happy path; sealed-registry.json written
+- `2` — strict-mode violation (escalatable WARN with `--strict`)
+- `3` — output path violation (path outside §6.4 whitelist)
+
+## sealed-registry.json shape
+
+```json
+{
+  "schema_version": 1,
+  "schema": "sealed_registry",
+  "generated_at": "2026-05-21T14:30:00Z",
+  "summary": {
+    "total_records": 42,
+    "by_classification": {"ghost": 5, "orphan": 8, "live": 29},
+    "collision_detected": false,
+    "system_seed_suspected_count": 2,
+    "unknown_db_validity_count": 0,
+    "requires_human_confirmation_count": 2
+  },
+  "records": [ /* lex-sorted by fingerprint_sha256_12 — see SPEC §5.2 */ ]
+}
+```
+
+All keys snake_case lowercase. Records are lex-sorted by
+`fingerprint_sha256_12` for deterministic output. The `collision_detected`
+field is always `false` in M6 (Phase 0B-2 will activate real fp[:12]
+collision detection via a `fingerprint_full` additive field).
 
 ## Hard rules (don't touch from M2+)
 

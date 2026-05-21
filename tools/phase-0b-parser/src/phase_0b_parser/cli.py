@@ -1,6 +1,4 @@
-"""Phase 0B parser CLI entry. M3 phase: scan_disk + scan_db count summaries.
-
-Future milestones extend with sub-commands (M6 report_sealed_registry, etc.).
+"""Phase 0B parser CLI entry. M6 phase: full pipeline + sealed-registry emit.
 
 Portfolio root precedence (per SPEC §12 Q3 M2 default decision):
     CLI flag `--portfolio-root` > env `LIYE_PORTFOLIO_ROOT` > default `~/github/`.
@@ -13,8 +11,13 @@ Per liye_os/CLAUDE.md "Repo Root" section the default `~/github/` is the
 canonical portfolio root for governance scans.
 
 Output is **count-only** by design — neither raw nor redacted tokens are
-printed. Redacted fingerprints belong inside `sealed-registry.json` (sealed
-artifact, M6 deliverable), not stdout.
+printed on stdout. Redacted fingerprints land in `sealed-registry.json`
+when --output writes succeed; raw tokens never leave RAM.
+
+Exit codes (M6):
+    0 — happy path; sealed-registry.json written
+    2 — strict-mode violation (§8.6 escalatable WARN with --strict)
+    3 — output path violation (§6.4 whitelist rejection)
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import sys
 from pathlib import Path
 
 
@@ -46,6 +50,27 @@ def main(argv: list[str] | None = None) -> int:
             "only; never accept it as a CLI flag (avoids shell history leak)."
         ),
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("var/sealed-registry.json"),
+        help=(
+            "Sealed registry JSON output path (default: var/sealed-registry.json). "
+            "Path is asserted against the SPEC §6.4 whitelist; banned paths "
+            "(~/.claude/**, .git/, _meta/, .env*, source dirs) raise OutputPathViolation "
+            "BEFORE any filesystem activity (exit code 3)."
+        ),
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help=(
+            "Strict mode per SPEC §8.6 — escalatable WARN signals "
+            "(db_validity=unknown / fp_collision / requires_human_confirmation) "
+            "abort with StrictModeViolation (exit code 2). CI callers should "
+            "pass --strict."
+        ),
+    )
     args = parser.parse_args(argv)
 
     # WARN level so graceful-degrade messages from scan_db reach stderr.
@@ -54,6 +79,11 @@ def main(argv: list[str] | None = None) -> int:
     # Lazy import keeps `--help` snappy and avoids pulling scan logic for
     # argv parse errors.
     from .classify_credentials import classify_credentials
+    from .report_sealed_registry import (
+        OutputPathViolation,
+        StrictModeViolation,
+        report_sealed_registry,
+    )
     from .scan_consumers import _merge_records, scan_consumers
     from .scan_db import scan_db
     from .scan_disk import scan_disk
@@ -90,7 +120,32 @@ def main(argv: list[str] | None = None) -> int:
         f"{len(orphans)} orphans / {len(lives)} lives"
     )
     print(f"human review needed: {human_review}")
-    # M5 stops here. M6 adds report_sealed_registry.
+
+    # M6 — emit sealed-registry.json via report_sealed_registry.
+    try:
+        summary = report_sealed_registry(
+            classified,
+            args.output,
+            strict=args.strict,
+        )
+    except OutputPathViolation as exc:
+        print(f"ERROR: output path violation — {exc.reason}", file=sys.stderr)
+        return 3
+    except StrictModeViolation as exc:
+        print(
+            "ERROR: strict-mode violation — " + "; ".join(exc.warnings),
+            file=sys.stderr,
+        )
+        return 2
+
+    print(f"sealed registry written: {args.output}")
+    print(f"  total: {summary['total_records']}")
+    print(f"  classifications: {summary['by_classification']}")
+    print(f"  human review: {summary['requires_human_confirmation_count']}")
+    print(f"  system-seed suspected: {summary['system_seed_suspected_count']}")
+    print(f"  db_validity unknown: {summary['unknown_db_validity_count']}")
+    if summary.get("collision_detected"):
+        print("  WARNING: FP collision detected — investigate!")
     return 0
 
 

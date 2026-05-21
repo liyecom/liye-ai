@@ -73,14 +73,31 @@ def test_classify_credentials_callable_returns_set():
     assert result == set()
 
 
-def test_report_sealed_registry_stub_raises():
-    with pytest.raises(NotImplementedError, match="M6"):
-        report_sealed_registry(set(), "/tmp/sealed-registry.json")
+def test_report_sealed_registry_callable_empty(tmp_path):
+    """M6 landed — report_sealed_registry is real. Smoke: empty set in →
+    summary returned + JSON file materialized under tmp_path (whitelisted).
+    """
+    out = tmp_path / "var" / "sealed-registry.json"
+    summary = report_sealed_registry(set(), out)
+    assert isinstance(summary, dict)
+    assert summary["total_records"] == 0
+    assert summary["collision_detected"] is False
+    assert out.exists()
 
 
-def test_is_sealed_stub_raises():
-    with pytest.raises(NotImplementedError):
-        is_sealed("/tmp/foo")
+def test_is_sealed_returns_false_for_unsealed():
+    """M6 landed — is_sealed is real. Default record.sealed=False → False."""
+    rec = FingerprintRecord(fingerprint_sha256_12="0" * 12)
+    assert is_sealed(rec) is False
+
+
+def test_is_sealed_returns_true_when_record_sealed():
+    """M6 — is_sealed reflects record.sealed flag."""
+    import dataclasses
+
+    rec = FingerprintRecord(fingerprint_sha256_12="0" * 12)
+    sealed = dataclasses.replace(rec, sealed=True)
+    assert is_sealed(sealed) is True
 
 
 def test_is_ghost_returns_false_for_unclassified():
@@ -117,6 +134,7 @@ def test_fingerprint_record_dataclass_shape():
     assert rec.last_rotated_at is None
     assert rec.requires_human_confirmation is False
     assert rec.recommended_disposition is None
+    assert rec.sealed is False
 
 
 def test_sealed_registry_dataclass_shape():

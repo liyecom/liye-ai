@@ -2,6 +2,133 @@
 
 All notable changes to phase-0b-parser. SSOT: `PHASE-0B-SPEC.md` v3.
 
+## [0.9.0] — 2026-05-21 — M6: report_sealed_registry + summary + --strict + write boundary + is_sealed
+
+### Added
+
+- `report_sealed_registry.py` real implementation (replaces M1
+  `NotImplementedError` stub). Emits `sealed-registry.json` per SPEC §5.1
+  / §5.4 / §8.2 with R1 envelope wrap (`schema_version` + `schema` +
+  `generated_at` + `summary` + `records`). Atomic write via `os.replace`
+  (POSIX rename — tmp staging + atomic rename; no in-place edit).
+  Records lex-sorted by `fingerprint_sha256_12` for deterministic output.
+  Set fields (`source_origins`) rendered as sorted list (JSON has no
+  set primitive). Per SPEC §11.1 M6 line 459.
+- `_assert_output_path_whitelist` — SPEC §6.4 write boundary guard.
+  Whitelist dir names: `build` / `dist` / `.cache` / `var` / `tmp`
+  (any `Path.parts` member match accepts). Hard-block: `.claude` /
+  `.git` / `_meta` parts; `.env*` filename prefix; `src` / `tests` /
+  `scripts` source dirs (outside tmp tree). Pytest `tmp_path` macOS
+  `/private/var/folders/...` / linux `/tmp/pytest-*` always accept.
+  Raises `OutputPathViolation` BEFORE any filesystem activity (CLI exit 3).
+- `_check_strict_warnings` + `StrictModeViolation` — SPEC §8.6 R3 strict
+  mode. Escalatable WARN signals (any one triggers `StrictModeViolation`):
+  `unknown_db_validity_count > 0` / `collision_detected == True` /
+  `requires_human_confirmation_count > 0`. Non-escalatable INFO signals
+  (informational only): ghost records detected; system_seed_suspected_count
+  (captured by requires_human flag). CLI exit code 2 on strict raise.
+- `models.FingerprintRecord.sealed: bool = False` — additive non-breaking
+  field. M6 brief semantics: True iff record has been written into the
+  current `sealed-registry.json` snapshot. Independent of
+  `requires_human_confirmation` (human review is an ops flag and does
+  NOT prevent freezing). `report_sealed_registry` flips this via
+  `dataclasses.replace` (input set never mutated). Phase 0C will add
+  `status=tentative` window as a separate flag.
+- `verbs.is_sealed` real implementation — replaces M1 path-based stub
+  with record-based predicate (the M5 verbs.py signature was `is_sealed(path)`
+  per the M1 scaffold; M6 rewrites to `is_sealed(record)` per SPEC §6.2
+  line 262 / Phase 0C PreToolUse hook integration contract). Returns
+  `record.sealed`. Last verb stub closed — all 5 whitelist verbs now
+  have real implementations.
+- `cli.py` — full M6 pipeline. New flags: `--output` (default
+  `var/sealed-registry.json`) and `--strict`. Exit codes documented in
+  module docstring: 0 happy / 2 strict violation / 3 output path violation.
+  Summary stdout block surfaces total / classifications / human review /
+  system-seed suspected / db_validity unknown counts; collision warning
+  surfaces inline when (future) collision detection trips.
+- F-M6 fixtures (`tests/test_report_M6.py`) — 32 cases across 7 test
+  classes:
+  - `TestRoundTrip` (4 cases) — envelope shape + set field sorted list
+    serialization + explicit `generated_at` passthrough + input
+    immutability invariant.
+  - `TestStrictMode` (6 cases) — happy path + 3 sad cases (db_unknown,
+    human review, collision predicate) + 2 non-strict-proceeds cases.
+  - `TestOutputPathWhitelist` (11 cases) — banned: `.claude` / `.git` /
+    `_meta` / `.env*` filename / `src` / `tests` / default-reject;
+    whitelist: `build` / `var` / `.cache` / `dist`; sad path verifies
+    no file created (path violation raises BEFORE any filesystem activity).
+  - `TestCollisionDetection` (3 cases) — collision always False (M6
+    stub per §5.3) + module docstring `"Phase 0B-2"` keyword present.
+  - `TestAtomicWrite` (3 cases) — no leftover `.tmp` after rename +
+    overwrites stale content + strict-raise leaves pre-existing file
+    untouched (atomic semantics).
+  - `TestIsSealed` (3 cases) — default False + True after report writes +
+    orthogonal to ghost/orphan/live mutex.
+  - `TestSummaryAggregation` (2 cases) — empty shape + all dimensions
+    counted correctly.
+
+### Changed
+
+- `verbs.py` — `is_sealed` signature changed from `is_sealed(path: str|Path)`
+  to `is_sealed(record: FingerprintRecord)`. The M1 path-based stub was a
+  placeholder for Phase 0C PreToolUse hook integration; SPEC §6.2 line 262
+  binds `is_sealed` to the per-record sealed snapshot semantic and Phase 0C
+  hook integration moves to a separate `is_sealed_path` predicate (Phase 0C
+  scope, not M6).
+- `test_signatures.py` — removed `NotImplementedError` assertions on
+  `report_sealed_registry` and `is_sealed` (real implementations landed).
+  Replaced with smoke-callable assertions: empty-set round-trip writes
+  envelope JSON; `is_sealed` default False; `is_sealed` after
+  `dataclasses.replace(..., sealed=True)` returns True. The
+  `FingerprintRecord` dataclass shape test now also asserts default
+  `sealed is False`.
+- `pyproject.toml` — version bumped 0.5.0 → 0.9.0 (M6 LANDED; 0.10.0
+  reserved for M7 CI lint integration; 1.0.0 reserved for Phase 0B-1 ship).
+- `README.md` — status table M6 LANDED; sealed-registry section added.
+
+### SPEC drift (additive — v4 ceremony pending)
+
+- `FingerprintRecord.sealed` (bool, default False) — M6 additive non-
+  breaking field. SPEC §5.2 line 200 hints at sealed-but-untouched but
+  M1 envelope did not wrap it; M6 lands the populate path.
+- `sealed_registry` envelope `generated_at` (ISO 8601 UTC, RFC 3339 form
+  with trailing `Z`) — SPEC §8.2 envelope wrap does not list the field;
+  M6 brief pre-resolved decision to ship under the `sealed_registry`
+  schema_version 1 envelope (no schema bump because the field is purely
+  metadata / additive).
+- sealed-registry.json snake_case lowercase convention locked across the
+  entire envelope (`fingerprint_sha256_12` / `by_classification` /
+  `collision_detected` / `system_seed_suspected_count` /
+  `requires_human_confirmation_count` / `unknown_db_validity_count`).
+  SPEC §5.1 / §5.4 example payloads use snake_case; M6 pins the
+  convention as the naming SSOT for v4 ceremony.
+
+### Notes
+
+- Total tests now: 126 passing (M1+M2 41 + M3 6 + M4 19 + M5 27 + M6 32 +
+  1 dataclass shape update). All under 6 seconds on local venv.
+- Mutation-ban lint passes clean: implementation uses
+  `dataclasses.replace`, dict comprehension, defaultdict + append. No
+  banned mutator idioms (`.update(` / `.save(` / `.delete(`) appear in
+  code OR docstrings (the M5 lint catches docstring drift too).
+- Verb-whitelist lint passes: `report_sealed_registry` (whitelisted
+  `report_`) + `is_sealed` (whitelisted `is_`); all helpers carry
+  leading underscore (`_assert_output_path_whitelist`,
+  `_check_strict_warnings`, `_summarize`, `_atomic_write_json`,
+  `_serialize_*`) and fall outside the `^def [a-z]+_` lint pattern.
+- Output path whitelist sad-path tests verify no file gets materialized
+  even mid-rejection. The whitelist test for `.env*` filename ALSO
+  satisfies the liye_os pre-commit hook `.env*` block: fixture files
+  never land on disk because path violation raises BEFORE write.
+- Collision detection per SPEC §5.3: M6 always reports
+  `collision_detected: False`. Module docstring captures the Phase 0B-2
+  activation contract (`fingerprint_full` additive field). Real-world
+  rate at portfolio scale ~2e-13; deferring to 0B-2 is safe.
+- CLI exit codes verified via smoke test: empty portfolio + default
+  output → exit 0 with `sealed registry written: ...`; output path
+  `~/.claude/test.json` → exit 3 with stderr `output path violation`;
+  no file created at the banned path (resolved.exists() False).
+
 ## [0.5.0] — 2026-05-20 — M5: classify_credentials + Ghost/Orphan/Live + F2/F3/F4/F9 fixtures
 
 ### Added
