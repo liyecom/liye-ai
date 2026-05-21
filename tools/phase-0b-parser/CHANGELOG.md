@@ -2,6 +2,31 @@
 
 All notable changes to phase-0b-parser. SSOT: `PHASE-0B-SPEC.md` v3.
 
+## [1.0.0] - 2026-05-21 — Phase 0B-1 SHIP
+
+### M7 — CI integration + production ship
+
+- CI workflow extended with pytest + 3 lint layers + mutator self-grep
+  defense-in-depth (.github/workflows/phase-0b-parser-ci.yml)
+- 4 ship-readiness CLI smoke tests verified (--help / happy / output-path
+  violation / --strict happy)
+- README full rewrite as production-grade tool documentation with
+  quickstart / CLI usage / exit codes / output schema / governance /
+  known limitations / roadmap sections
+- Version bump 0.9.0 → 1.0.0 signaling stable API contract for callers
+  (Phase 0C integration layer can now depend on this surface)
+
+### Phase 0B-1 implementation complete
+
+- 126/126 pytest cases passed (M1 27 + M2 14 + M3 6 + M4 19 + M5 27 + M6 32 + shape 1)
+- 15 F-fixtures (F1-F15 + F7b reverse-coverage) all landed
+- 5 M1 NotImplementedError stubs all replaced with real implementations
+- 3 mutation-ban lint layers active (subprocess + HTTP write + SDK/ORM)
+- Zero hard-constraint violations across M1-M7
+- 18 atomic commits (this commit = #19 = M7 SHIP commit)
+- 13 SPEC drift items documented for v3→v4 ceremony (all additive +
+  naming + signature divergence, all backward-compatible)
+
 ## [0.9.0] — 2026-05-21 — M6: report_sealed_registry + summary + --strict + write boundary + is_sealed
 
 ### Added
