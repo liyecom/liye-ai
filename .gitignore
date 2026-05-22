@@ -367,3 +367,11 @@ dist/bundles/
 # ============================================
 data/traces/
 state/traces/
+
+# Automation governance (Phase 0A-5)
+_meta/portfolio/automation-trust.local.yaml
+.automation-session.yaml
+
+# Phase 0a-3 / Phase 0B paste-only patch backups (rm -P 1-2 weeks after stable)
+*.bak-patch*
+*.bak-phase*

@@ -1,0 +1,96 @@
+# Public MCP / external-tool trust registry
+# Committed. No secrets. Local bindings in automation-trust.local.yaml (gitignored)
+# production_access enum: forbidden | not_applicable | requires_explicit_flag | allowed_readonly
+# PENDING entries: see AUTOMATION_GOVERNANCE.md §4.7 Activation Checklist
+schema_version: 3
+last_updated: 2026-05-19
+
+mcp_servers:
+  claude-mem-read:
+    tool_patterns:
+      - "mcp__plugin_claude-mem_mem-search__search"
+      - "mcp__plugin_claude-mem_mem-search__get_observation"
+      - "mcp__plugin_claude-mem_mem-search__get_observations"
+      - "mcp__plugin_claude-mem_mem-search__get_recent_context"
+      - "mcp__plugin_claude-mem_mem-search__get_context_timeline"
+      - "mcp__plugin_claude-mem_mem-search__get_session"
+      - "mcp__plugin_claude-mem_mem-search__get_schema"
+      - "mcp__plugin_claude-mem_mem-search__get_prompt"
+      - "mcp__plugin_claude-mem_mem-search__timeline"
+      - "mcp__plugin_claude-mem_mem-search__help"
+    purpose: cross-session memory read
+    data_scope: local-conversation-history
+    write_capability: false
+    production_access: not_applicable
+    install_layer: L3
+    use_layer: L0
+    requires_local_binding: false
+    requires_session: false
+    approved_by: liye
+    approved_at: 2026-04-13
+    notes: grandfathered; pre-existed governance
+
+  claude-mem-write:
+    tool_patterns: []
+    purpose: write new memory observations / mutate memory store
+    data_scope: local-conversation-history
+    write_capability: true
+    production_access: not_applicable
+    install_layer: L3
+    use_layer: L2
+    requires_local_binding: false
+    requires_session: true
+    approved_by: PENDING
+    approved_at: null
+    notes: |
+      Reserved. Any future memory-write tool MUST be added to tool_patterns here,
+      NOT grandfathered into claude-mem-read. Until approved_at is set,
+      any matching tool name is BLOCKED per §4.4 (5).
+
+  context7:
+    tool_patterns: []
+    tool_patterns_expected_prefix: "mcp__context7__"
+    purpose: live library docs lookup
+    data_scope: public-docs
+    write_capability: false
+    production_access: not_applicable
+    install_layer: L3
+    use_layer: L0
+    requires_local_binding: false
+    requires_session: false
+    approved_by: PENDING
+    approved_at: null
+    notes: |
+      Phase 2 candidate. Activation requires §4.7 checklist.
+
+  postgres-silkbay-ro:
+    tool_patterns: []
+    tool_patterns_expected_prefix: "mcp__postgres-silkbay-ro__"
+    purpose: silkbay schema/data read-only query
+    data_scope: silkbay-db
+    write_capability: false
+    production_access: forbidden
+    install_layer: L3
+    use_layer: L1
+    requires_local_binding: true
+    requires_session: true
+    output_constraints:
+      - must_not_export_to: ["**/.planning/**", "**/silkbay-governance/**"]
+    approved_by: PENDING
+    approved_at: null
+
+  duckdb-age-evals:
+    tool_patterns: []
+    tool_patterns_expected_prefix: "mcp__duckdb-age-evals__"
+    purpose: AGE cross-run evals read
+    data_scope: age-eval-files
+    write_capability: false
+    production_access: not_applicable
+    install_layer: L3
+    use_layer: L0
+    requires_local_binding: true
+    requires_session: false
+    output_constraints:
+      - must_emit: ["run_window", "baseline_anchor"]
+    approved_by: PENDING
+    approved_at: null
