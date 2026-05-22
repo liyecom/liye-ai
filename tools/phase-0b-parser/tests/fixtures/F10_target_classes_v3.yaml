@@ -1,0 +1,9 @@
+# F10 fixture — schema backward-compat probe per PHASE-0B-SPEC.md §7 line 330.
+# Mock data ONLY — NOT a copy of portfolio/target-classes.yaml.
+# Only the schema_version field is load-bearing for this fixture.
+schema_version: 3
+match_strategy: first-match-wins
+default_class: unmapped
+
+deny_first: []
+rules: []
