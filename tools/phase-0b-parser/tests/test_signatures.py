@@ -26,7 +26,7 @@ from phase_0b_parser.verbs import is_ghost, is_live, is_orphan, is_sealed
 
 def test_version_string():
     """SPEC §5.2 line 187 — parser_version semver-like."""
-    assert __version__ == "0B-1.0.0"
+    assert __version__ == "0B-1.0.1"
 
 
 def test_scan_disk_callable_returns_set(tmp_path):

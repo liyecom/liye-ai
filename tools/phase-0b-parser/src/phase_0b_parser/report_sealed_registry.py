@@ -44,9 +44,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from . import __version__ as PARSER_VERSION
 from .models import FingerprintRecord
 
 logger = logging.getLogger(__name__)
+
+# Per SPEC §5.1 lines 123-133 — 9 scope identifiers the parser covers.
+# This is the canonical scope tracked on every sealed-registry.json emit;
+# Phase 0C consumers may depend on this list for envelope compatibility checks.
+SCOPE_COVERED: list[str] = [
+    "user_claude_json",
+    "repo_claude_json",
+    "envstar",
+    "envrc",
+    "medusa_db_api_key",
+    "admin_credential_registry_framework",
+    "ghost_orphan_live_classification",
+    "multi_consumer_sync",
+    "disk_duplicate_detection",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +210,7 @@ def _summarize(records: set[FingerprintRecord]) -> dict[str, Any]:
     system_seed_count = 0
     unknown_db_validity_count = 0
     requires_human_count = 0
+    disk_duplicate_records_count = 0
 
     for rec in records:
         cls = rec.classification or "ghost"  # defensive: unclassified counts as ghost bucket
@@ -205,6 +222,8 @@ def _summarize(records: set[FingerprintRecord]) -> dict[str, Any]:
             unknown_db_validity_count += 1
         if rec.requires_human_confirmation:
             requires_human_count += 1
+        if rec.disk_duplicate_paths:  # non-empty list per SPEC §5.4 line 215
+            disk_duplicate_records_count += 1
 
     return {
         "total_records": len(records),
@@ -213,6 +232,7 @@ def _summarize(records: set[FingerprintRecord]) -> dict[str, Any]:
         "system_seed_suspected_count": system_seed_count,
         "unknown_db_validity_count": unknown_db_validity_count,
         "requires_human_confirmation_count": requires_human_count,
+        "disk_duplicate_records_count": disk_duplicate_records_count,
     }
 
 
@@ -392,6 +412,8 @@ def report_sealed_registry(
     envelope: dict[str, Any] = {
         "schema_version": 1,
         "schema": "sealed_registry",
+        "parser_version": PARSER_VERSION,  # per SPEC §5.1 line 121 — 0C envelope check contract
+        "scope_covered": SCOPE_COVERED,  # per SPEC §5.1 lines 123-133 — 9-item coverage list
         "generated_at": generated_at,
         "summary": summary,
         "records": records_serialized,
