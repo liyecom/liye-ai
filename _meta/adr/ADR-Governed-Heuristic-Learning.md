@@ -30,7 +30,7 @@ Conflict resolution: N-3 > N-2 > N-1. Any ADR clause conflicting with the latest
 - S-1: `.planning/baseline/GHL-v4.1-readiness-report.md` (10-item read-only audit @ 2026-05-10)
 - S-2: `.planning/baseline/GHL-v4.1-to-ADR-intake.md` (ADR drafting checklist @ 2026-05-10)
 
-**Commit anchor**: `497919d` on `liye_os/main` — landed 6 planning files (3 normative + 2 supporting + 1 archived) on 2026-05-14.
+**Commit anchor**: normative inputs (N-1, N-2, N-3) and supporting references (S-1, S-2) are landed by this PR as the GHL v4.1 baseline; their paths above are the canonical references. The post-squash merge commit on `liye_os/main` becomes the durable anchor; no pre-squash SHA is normative.
 
 ---
 
