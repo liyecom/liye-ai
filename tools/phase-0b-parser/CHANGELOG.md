@@ -2,6 +2,48 @@
 
 All notable changes to phase-0b-parser. SSOT: `PHASE-0B-SPEC.md` v3.
 
+## [1.0.1] - 2026-05-23 — Group 0 envelope conformance fix
+
+Surfaced during v3→v4 SPEC ceremony prep. M6 envelope was missing 3
+SPEC-required fields. Pure additive impl-side fix — no SPEC change, no
+breaking change for existing consumers.
+
+### Added
+
+- `envelope.parser_version` (per SPEC §5.1 line 121) — emits `__version__`
+  string. Critical for §9 line 428 "0B↔0C envelope compatibility contract".
+- `envelope.scope_covered` (per SPEC §5.1 lines 123-133) — 9-item list
+  declaring the parser's coverage surface (user_claude_json, repo_claude_json,
+  envstar, envrc, medusa_db_api_key, admin_credential_registry_framework,
+  ghost_orphan_live_classification, multi_consumer_sync,
+  disk_duplicate_detection). Module-level `SCOPE_COVERED` constant.
+- `summary.disk_duplicate_records_count` (per SPEC §5.4 line 215) —
+  count of records whose `disk_duplicate_paths` is non-empty.
+- 5 new pytest cases under `TestEnvelopeConformance` covering all 3 fields
+  (parser_version matches `__version__` + literal `0B-1.0.1` /
+  scope_covered exact list / disk_duplicate_records_count: zero / single /
+  multi-record).
+
+### Changed
+
+- Version `0B-1.0.0` → `0B-1.0.1` (`__init__.py` `__version__`,
+  `pyproject.toml` `version` synced).
+- `test_round_trip_envelope_shape` extended to assert the 2 new envelope
+  fields exist with correct values (regression coverage for SPEC §5.1
+  required envelope shape).
+
+### Rationale
+
+V4 ceremony prep verification (2026-05-23) revealed 3 impl-side gaps where
+M6 was missing SPEC-required fields. Choosing impl-align over SPEC-drop
+preserves 0C handoff envelope check capability. This patch is intentionally
+narrow — only `report_sealed_registry.py` + `__init__.py` + `pyproject.toml`
++ tests. No SPEC modification, no PR #138 work, no Phase 0B-2 planning.
+
+After this patch lands, v4 SPEC ceremony resumes with 3 fewer Behavior
+Divergence drifts (D14a / D14b / D18d closed via conformance fix instead of
+ceremony decision).
+
 ## [1.0.0] - 2026-05-21 — Phase 0B-1 SHIP
 
 ### M7 — CI integration + production ship

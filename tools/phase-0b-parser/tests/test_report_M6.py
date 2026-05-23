@@ -129,6 +129,20 @@ class TestRoundTrip:
         assert payload["generated_at"].endswith("Z")
         assert "T" in payload["generated_at"]  # ISO 8601
 
+        # Group 0 conformance — SPEC §5.1 required envelope fields
+        assert payload["parser_version"] == "0B-1.0.1"
+        assert payload["scope_covered"] == [
+            "user_claude_json",
+            "repo_claude_json",
+            "envstar",
+            "envrc",
+            "medusa_db_api_key",
+            "admin_credential_registry_framework",
+            "ghost_orphan_live_classification",
+            "multi_consumer_sync",
+            "disk_duplicate_detection",
+        ]
+
         # Summary matches return value
         assert payload["summary"] == summary
         assert summary["total_records"] == 3
@@ -173,6 +187,90 @@ class TestRoundTrip:
         # The original record remains in the input set with sealed=False
         for rec in records:
             assert rec.sealed is False
+
+
+# ===========================================================================
+# Group 0 — SPEC §5.1 / §5.4 envelope conformance fields (2026-05-23)
+# ===========================================================================
+class TestEnvelopeConformance:
+    """Verify M6 envelope satisfies SPEC v3 §5.1 + §5.4 required fields.
+
+    Group 0 fix closes the impl-side gap surfaced during v4 ceremony prep:
+    parser_version + scope_covered (envelope) + disk_duplicate_records_count
+    (summary) are SPEC-required but were missing in the original M6 emit.
+    """
+
+    def test_envelope_parser_version_matches_module_version(self, tmp_path):
+        from phase_0b_parser import __version__
+
+        out = tmp_path / "var" / "sealed-registry.json"
+        report_sealed_registry(set(), out)
+        payload = json.loads(out.read_text(encoding="utf-8"))
+        assert payload["parser_version"] == __version__
+        assert payload["parser_version"] == "0B-1.0.1"
+
+    def test_envelope_scope_covered_is_spec_9_item_list(self, tmp_path):
+        out = tmp_path / "var" / "sealed-registry.json"
+        report_sealed_registry(set(), out)
+        payload = json.loads(out.read_text(encoding="utf-8"))
+        # Per SPEC §5.1 lines 123-133 — exact list, exact order.
+        assert payload["scope_covered"] == [
+            "user_claude_json",
+            "repo_claude_json",
+            "envstar",
+            "envrc",
+            "medusa_db_api_key",
+            "admin_credential_registry_framework",
+            "ghost_orphan_live_classification",
+            "multi_consumer_sync",
+            "disk_duplicate_detection",
+        ]
+
+    def test_summary_disk_duplicate_records_count_zero_when_no_duplicates(self, tmp_path):
+        records = {_live_record("a" * 12), _ghost_record("b" * 12)}
+        out = tmp_path / "var" / "sealed-registry.json"
+        summary = report_sealed_registry(records, out)
+        assert summary["disk_duplicate_records_count"] == 0
+
+    def test_summary_disk_duplicate_records_count_counts_records_with_duplicates(self, tmp_path):
+        # Build a record with non-empty disk_duplicate_paths (>= 2 disk sources).
+        rec = _live_record("a" * 12)
+        rec = dataclasses.replace(
+            rec,
+            disk_sources=[
+                DiskSource(path="storefronts/sf-a/.env.local", line=1, env_var="X"),
+                DiskSource(path="storefronts/sf-b/.env.local", line=1, env_var="X"),
+            ],
+            disk_duplicate_paths=[
+                "storefronts/sf-a/.env.local",
+                "storefronts/sf-b/.env.local",
+            ],
+        )
+        out = tmp_path / "var" / "sealed-registry.json"
+        summary = report_sealed_registry({rec}, out)
+        assert summary["disk_duplicate_records_count"] == 1
+
+    def test_summary_disk_duplicate_records_count_multi_records(self, tmp_path):
+        dup_paths = [
+            "storefronts/sf-x/.env.local",
+            "storefronts/sf-y/.env.local",
+        ]
+        dup_sources = [DiskSource(path=p, line=1, env_var="X") for p in dup_paths]
+        rec1 = dataclasses.replace(
+            _live_record("a" * 12),
+            disk_sources=dup_sources,
+            disk_duplicate_paths=dup_paths,
+        )
+        rec2 = dataclasses.replace(
+            _ghost_record("b" * 12),
+            disk_sources=dup_sources,
+            disk_duplicate_paths=dup_paths,
+        )
+        # rec3 has no duplicates — should not count.
+        rec3 = _live_record("c" * 12)
+        out = tmp_path / "var" / "sealed-registry.json"
+        summary = report_sealed_registry({rec1, rec2, rec3}, out)
+        assert summary["disk_duplicate_records_count"] == 2
 
 
 # ===========================================================================
@@ -412,6 +510,7 @@ class TestSummaryAggregation:
             "system_seed_suspected_count": 0,
             "unknown_db_validity_count": 0,
             "requires_human_confirmation_count": 0,
+            "disk_duplicate_records_count": 0,
         }
 
     def test_summary_counts_all_dimensions(self):
