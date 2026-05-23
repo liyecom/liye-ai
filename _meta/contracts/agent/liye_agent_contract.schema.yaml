@@ -1,0 +1,390 @@
+# LiYe Agent Unit Contract v0.1.0
+# SSOT: _meta/contracts/agent/liye_agent_contract.schema.yaml
+#
+# Defines the manifest shape for agent-shaped workflows that can run under
+# Loamwise or another runtime surface without losing governance boundaries.
+# This is a schema sketch harvested from Anthropic financial-services patterns;
+# it is vendor-neutral and does not imply Claude Managed Agents as runtime.
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/agent/liye_agent_contract.v0_1"
+title: "LiYe Agent Unit Contract"
+description: "Agent-shaped workflow declaration: canonical source, runtime surfaces, worker topology, trust boundaries, handoffs, outputs, and human signoff."
+version: "0.1.0"
+type: object
+additionalProperties: false
+
+required:
+  - agent_id
+  - agent_version
+  - owner_layer
+  - purpose
+  - source
+  - runtime_surfaces
+  - bghs
+  - skills
+  - workers
+  - trust_boundaries
+  - outputs
+  - handoffs
+  - human_signoff
+  - invariants
+
+properties:
+  agent_id:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9-]{2,63}$"
+    description: "Stable agent identifier, lowercase kebab-case."
+
+  agent_version:
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+    description: "SemVer for this agent unit contract instance."
+
+  owner_layer:
+    type: integer
+    enum: [0, 1, 2, 3]
+    description: "LiYe layer owning this agent unit declaration."
+
+  purpose:
+    type: string
+    minLength: 1
+    maxLength: 500
+    description: "Human-readable workflow purpose."
+
+  source:
+    type: object
+    additionalProperties: false
+    required:
+      - canonical_system_prompt
+      - source_of_truth
+      - bundled_skill_policy
+    properties:
+      canonical_system_prompt:
+        type: string
+        minLength: 1
+        description: "Path or URI to the canonical agent prompt / instruction artifact."
+      source_of_truth:
+        type: string
+        enum:
+          - repo-local
+          - engine-manifest
+          - external-reference
+          - generated-candidate
+        description: "Where authority for this agent source lives."
+      bundled_skill_policy:
+        type: string
+        enum:
+          - none
+          - vendored-with-drift-check
+          - referenced-only
+          - generated-candidate
+        description: "How skills are packaged relative to their canonical source."
+      source_hash:
+        type: string
+        pattern: "^sha256:[0-9a-f]{64}$"
+        description: "Optional hash of canonical source bundle."
+
+  runtime_surfaces:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - surface
+        - wrapper_manifest
+      properties:
+        surface:
+          type: string
+          enum:
+            - loamwise-dispatch
+            - managed-agent
+            - cowork-plugin
+            - cli-command
+            - product-embedded
+            - dry-run-reference
+          description: "Runtime surface. This is not the source of truth."
+        wrapper_manifest:
+          type: string
+          minLength: 1
+          description: "Path or URI to surface-specific wrapper manifest."
+        enabled:
+          type: boolean
+          default: false
+
+  bghs:
+    type: object
+    additionalProperties: false
+    required:
+      - primary_concern
+      - model_contingent_items
+      - model_independent_invariants
+      - session_source_of_truth
+      - credential_path
+      - wake_resume_entrypoint
+    properties:
+      primary_concern:
+        $ref: "#/definitions/bghs_concern"
+      secondary_concern:
+        type: array
+        items:
+          $ref: "#/definitions/bghs_concern"
+      model_contingent_items:
+        type: array
+        items:
+          type: string
+      model_independent_invariants:
+        type: array
+        items:
+          type: string
+      session_source_of_truth:
+        type: string
+        minLength: 1
+      credential_path:
+        type: string
+        minLength: 1
+      wake_resume_entrypoint:
+        type: string
+        minLength: 1
+
+  skills:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - skill_id
+        - source_path
+        - trust_source
+        - lifecycle_state
+      properties:
+        skill_id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]{1,63}$"
+        source_path:
+          type: string
+          minLength: 1
+        source_hash:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+        trust_source:
+          type: string
+          enum:
+            - internal-vetted
+            - engine-published
+            - agent-generated
+            - external
+        lifecycle_state:
+          type: string
+          enum:
+            - quarantine
+            - candidate
+            - active
+            - disabled
+            - rejected
+        required_tools:
+          type: array
+          items:
+            $ref: "#/definitions/tool_name"
+
+  workers:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - worker_id
+        - role
+        - touches_untrusted_input
+        - can_write
+        - can_shell
+        - allowed_tools
+      properties:
+        worker_id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]{1,63}$"
+        role:
+          type: string
+          enum:
+            - orchestrator
+            - reader
+            - extractor
+            - critic
+            - resolver
+            - writer
+            - publisher
+            - executor
+        touches_untrusted_input:
+          type: boolean
+        can_write:
+          type: boolean
+        can_shell:
+          type: boolean
+        allowed_tools:
+          type: array
+          items:
+            $ref: "#/definitions/tool_name"
+        mcp_servers:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]{1,63}$"
+        output_schema_ref:
+          type: string
+          description: "Schema that must validate this worker output before context merge."
+        input_contract_ref:
+          type: string
+          description: "Optional schema for worker input."
+
+  trust_boundaries:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - boundary_id
+        - input_kind
+        - isolation_rule
+      properties:
+        boundary_id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]{1,63}$"
+        input_kind:
+          type: string
+          enum:
+            - trusted-internal
+            - untrusted-external
+            - mixed
+        isolation_rule:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        applies_to_workers:
+          type: array
+          items:
+            type: string
+
+  outputs:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - artifact_type
+        - path_policy
+        - stage
+        - evidence_required
+      properties:
+        artifact_type:
+          type: string
+          enum:
+            - report
+            - workbook
+            - presentation
+            - json
+            - receipt
+            - staged-action
+            - evidence-package
+            - other
+        path_policy:
+          type: string
+          description: "Allowed output location policy, e.g. ./out/ only."
+        stage:
+          type: string
+          enum:
+            - draft
+            - staged
+            - final
+        evidence_required:
+          type: boolean
+
+  handoffs:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - target_agent_id
+        - event_schema_ref
+        - allowlisted
+      properties:
+        target_agent_id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]{2,63}$"
+        event_schema_ref:
+          type: string
+          minLength: 1
+        allowlisted:
+          type: boolean
+        context_ref_policy:
+          type: string
+          description: "How much context may cross the handoff boundary."
+
+  human_signoff:
+    type: object
+    additionalProperties: false
+    required:
+      - required_for
+    properties:
+      required_for:
+        type: array
+        items:
+          type: string
+          enum:
+            - external-send
+            - system-of-record-write
+            - ledger-posting
+            - kyc-approval
+            - trade-execution
+            - bid-budget-keyword-write
+            - legal-tax-accounting-advice
+            - investment-recommendation-publication
+      approver_role:
+        type: string
+        maxLength: 120
+      signoff_receipt_ref:
+        type: string
+
+  invariants:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      enum:
+        - single-writer-leaf
+        - untrusted-reader-no-write
+        - untrusted-reader-no-shell
+        - untrusted-reader-no-privileged-connector
+        - writer-no-raw-untrusted-input
+        - reader-output-schema-required
+        - handoff-typed-session-event
+        - handoff-target-allowlist-required
+        - staged-high-risk-output
+        - skill-provenance-required
+
+definitions:
+  bghs_concern:
+    type: string
+    enum:
+      - Brain
+      - Governance
+      - Hands
+      - Session
+
+  tool_name:
+    type: string
+    enum:
+      - read
+      - grep
+      - glob
+      - write
+      - edit
+      - bash
+      - mcp
+      - agent
+      - browser
+      - external-send
+
