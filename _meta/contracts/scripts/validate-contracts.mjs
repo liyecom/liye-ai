@@ -848,6 +848,8 @@ function parseArgs() {
       i++;
     } else if (args[i] === '--self-test') {
       result.mode = 'self-test';
+    } else if (args[i] === '--check-ssot') {
+      result.mode = 'check-ssot';
     } else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`
 Usage: node validate-contracts.mjs [options]
@@ -855,11 +857,13 @@ Usage: node validate-contracts.mjs [options]
 Options:
   --bundle <path>   Validate a learned-bundle.tgz file
   --self-test       Run inline fixtures verifying engine_manifest dual-routing (Phase 0c.2)
+  --check-ssot      Run only SSOT (Single Source of Truth) checks (delegated from contracts-gate workflow)
   --help, -h        Show this help message
 
 Examples:
   node validate-contracts.mjs
   node validate-contracts.mjs --self-test
+  node validate-contracts.mjs --check-ssot
   node validate-contracts.mjs --bundle state/artifacts/learned-bundles/learned-bundle_0.2.0.tgz
 `);
       process.exit(0);
@@ -879,6 +883,22 @@ async function main() {
   if (args.mode === 'self-test') {
     runSelfTest();
     return;
+  }
+
+  // SSOT-only mode (delegated entry for contracts-gate workflow)
+  // Runs only checkSSOT() which correctly treats legacy learned_policy.schema and
+  // GHL learned_policy_ghl_v1.schema as two independent single-instance contracts.
+  if (args.mode === 'check-ssot') {
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('           SSOT Check (delegated entry)');
+    console.log('═══════════════════════════════════════════════════════════');
+    checkSSOT();
+    if (errorCount > 0) {
+      console.log(`\n${RED}FAILED: ${errorCount} SSOT error(s).${RESET}\n`);
+      process.exit(1);
+    }
+    console.log(`\n${GREEN}PASSED: SSOT check OK.${RESET}\n`);
+    process.exit(0);
   }
 
   // Bundle 模式
