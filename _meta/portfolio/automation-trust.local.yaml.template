@@ -1,0 +1,14 @@
+# Local MCP bindings — NEVER commit
+# Copy to automation-trust.local.yaml when needed
+# Secrets MUST be referenced via env var name, not embedded
+schema_version: 1
+
+bindings:
+  # postgres-silkbay-ro:
+  #   dsn_env: SILKBAY_DB_RO_URL
+  #   environment_assertion: dev
+  #   forbidden_host_substrings: [prod, production, replica-prod]
+  #
+  # duckdb-age-evals:
+  #   file_path: /Users/liye/github/amazon-growth-engine/data/evals.duckdb
+  #   readonly: true

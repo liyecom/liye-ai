@@ -1,0 +1,67 @@
+# Phase 0B Parser CI
+#
+# Lint + test gate for tools/phase-0b-parser/.
+# Path-filtered to avoid cross-project CI noise in this mono-repo.
+#
+# Reference: _meta/portfolio/PHASE-0B-SPEC.md v3 §6.1 (verb whitelist),
+#            §6.4 (mutation ban), §11.1 (milestone acceptance).
+#
+# M7 (Phase 0B-1 SHIP) — adds defense-in-depth mutator self-grep step
+# on top of M3 lint-mutation-ban.sh. Belt-and-suspenders: the lint script
+# is the SSOT; the grep here exists so a tampered or accidentally-skipped
+# script still cannot let `.update(` / `.save(` / `.delete(` slip through.
+
+name: Phase 0B Parser CI
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'tools/phase-0b-parser/**'
+      - '.github/workflows/phase-0b-parser-ci.yml'
+  push:
+    branches: ["main"]
+    paths:
+      - 'tools/phase-0b-parser/**'
+      - '.github/workflows/phase-0b-parser-ci.yml'
+
+jobs:
+  test-and-lint:
+    name: Test + Lint (verb whitelist + mutation ban)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/phase-0b-parser
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: pytest -v
+
+      - name: Verb prefix whitelist lint (SPEC §6.1)
+        run: bash scripts/lint-verb-whitelist.sh
+
+      - name: Mutation ban lint (SPEC §6.4, M3/M4 enforcement pending)
+        run: bash scripts/lint-mutation-ban.sh
+
+      - name: Mutator self-grep (defense-in-depth)
+        working-directory: tools/phase-0b-parser
+        run: |
+          # 0 hits expected — fail CI if any .update( / .save( / .delete( appears in src/ or tests/
+          if grep -rnE '\.update\(|\.save\(|\.delete\(' src/ tests/ 2>/dev/null; then
+            echo "FAIL: mutator idiom detected (defense-in-depth grep)"
+            exit 1
+          else
+            echo "OK: 0 mutator idioms in src/ + tests/"
+          fi
