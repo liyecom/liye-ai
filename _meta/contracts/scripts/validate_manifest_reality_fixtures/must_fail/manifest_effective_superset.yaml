@@ -1,0 +1,64 @@
+# Self-test fixture: R4 FAIL only — effective='full' exceeds declared='limited'.
+# engine_id deliberately != 'amazon-growth-engine' so R6 (Pilot 1 invariant)
+# does not also fire, isolating the failure to R4.
+schema_version: "2.0"
+engine_id: fixture-non-pilot1-engine
+engine_version: "1.0.0"
+domain: fixture-domain
+contracts_compat: ">=2.0 <3.0"
+
+playbooks:
+  - id: anomaly_detect
+    entrypoint: src/playbooks/anomaly_detect.py
+    description: "fixture placeholder"
+    required_permissions:
+      - read:metrics
+    io_schema:
+      inputs: {}
+      outputs: {}
+    status: placeholder
+  - id: alert_score
+    entrypoint: src/playbooks/alert_score.py
+    description: "fixture placeholder"
+    required_permissions:
+      - read:alert_history
+    io_schema:
+      inputs: {}
+      outputs: {}
+    status: placeholder
+  - id: bid_recommend
+    entrypoint: src/playbooks/bid_recommend.py
+    description: "fixture placeholder"
+    required_permissions:
+      - read:ads_api
+    io_schema:
+      inputs: {}
+      outputs: {}
+    status: placeholder
+
+data_sources:
+  - type: ads_api
+    description: "fixture placeholder"
+    required: true
+
+# effective='full' > declared='limited' → R4 trips
+write_capability_declared: limited
+write_capability_effective: full
+
+capabilities:
+  - id: emit_fact_run_outcome
+    description: "fixture placeholder"
+    boundary: fact_emit
+    required_permissions:
+      - write:fact_events
+    runtime_gate_refs:
+      - emit_fact_enabled
+    status: placeholder
+
+runtime_gates:
+  - id: emit_fact_enabled
+    kind: env_var
+    var_name: AGE_FACT_EMIT_ENABLED
+    description: "fixture placeholder"
+    default_state: closed
+    evidence_required_for_open: "Phase 1a impl + 30d PASS"
