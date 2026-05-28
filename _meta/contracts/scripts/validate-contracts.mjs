@@ -454,23 +454,23 @@ function validateEngineManifests() {
   const manifestSchemaV1 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
   const manifestSchemaV2 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'));
 
-  // 在当前项目和外部 Engine 仓库中查找 engine_manifest.yaml
-  // 外部 Engine 路径通过环境变量 ENGINE_MANIFEST_PATH 指定
-  const searchPaths = [PROJECT_ROOT];
+  // 候选 manifest 路径列表。
+  // ENGINE_MANIFEST_PATH（如设置）优先；视为完整文件路径，用于跨仓库 manifest 发现
+  // （e.g. /Users/liye/github/amazon-growth-engine/engine_manifest.yaml）。
+  // Fallback: 在当前项目 root 下查找 engine_manifest.yaml。
+  const manifestPaths = [];
 
-  // 添加外部 Engine 路径（如果指定）
   const externalEnginePath = process.env.ENGINE_MANIFEST_PATH;
-  if (externalEnginePath) {
-    searchPaths.push(externalEnginePath);
+  if (externalEnginePath && existsSync(externalEnginePath) && statSync(externalEnginePath).isFile()) {
+    manifestPaths.push(externalEnginePath);
   }
 
-  for (const searchPath of searchPaths) {
-    if (!existsSync(searchPath)) {
-      continue;
-    }
+  const projectManifest = join(PROJECT_ROOT, 'engine_manifest.yaml');
+  if (existsSync(projectManifest) && !manifestPaths.includes(projectManifest)) {
+    manifestPaths.push(projectManifest);
+  }
 
-    const manifestPath = join(searchPath, 'engine_manifest.yaml');
-
+  for (const manifestPath of manifestPaths) {
     if (existsSync(manifestPath)) {
       try {
         const content = readFileSync(manifestPath, 'utf-8');
