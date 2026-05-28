@@ -144,10 +144,12 @@ function validateAgainstSchema(data, schema, filePath) {
     }
   }
 
-  // 特殊校验：schema_version 必须是 SemVer 格式
+  // 特殊校验：schema_version 必须是 numeric-dot-numeric 形式（允许 2 或 3 段）
+  // 严格版本契约由各 schema 自己的 enum/pattern 强制（e.g. engine_manifest.schema.v2.yaml
+  // 的 schema_version.enum: ["2.0"] 是 SSOT）。此处只做基础形态检查。
   if ('schema_version' in data) {
-    if (!/^\d+\.\d+\.\d+$/.test(data.schema_version)) {
-      errors.push(`Field 'schema_version' must be SemVer format (x.y.z), got: ${data.schema_version}`);
+    if (!/^\d+\.\d+(\.\d+)?$/.test(data.schema_version)) {
+      errors.push(`Field 'schema_version' must be numeric (x.y or x.y.z), got: ${data.schema_version}`);
     }
   }
 
