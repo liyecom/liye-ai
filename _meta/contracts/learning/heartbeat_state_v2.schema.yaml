@@ -1,0 +1,220 @@
+# Heartbeat Learning State Contract v2.0.0
+# SSOT: _meta/contracts/learning/heartbeat_state_v2.schema.yaml
+# Predecessor: liye_os/state/runtime/proactive/heartbeat_learning_state.json (v1, dormant since 2026-02-14)
+#
+# Schema validating the heartbeat runner state file.
+# 落点 (runtime instance, NOT this schema):
+#   liye_os/state/runtime/proactive/heartbeat_learning_state.json
+#
+# v2 key changes from v1:
+# - 7 explicit feature flags (enabled / evaluator_enabled / trial_write_enabled / candidate_write_enabled /
+#   candidate_write_target_status / promotion_enabled / production_write_enabled) per D-06
+# - current_phase 9 enum derived from feature flags per N-1 §7.3 phase decision table
+# - _runtime_owned_fields const list — pre-commit hook MUST reject diff against these fields
+# - Invalid feature flag combinations encoded as if/then (6 combos per N-1 §7.3); runner MUST fail-closed
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-1 §7.3 + D-06
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/heartbeat_state.v2"
+title: "Heartbeat Learning State Schema v2"
+description: "Schema for the heartbeat runner state file. v2 introduces 7 feature flags + 9-phase derivation + runtime-owned field guard."
+version: "2.0.0"
+type: object
+
+required:
+  - version
+  - enabled
+  - evaluator_enabled
+  - trial_write_enabled
+  - candidate_write_enabled
+  - candidate_write_target_status
+  - promotion_enabled
+  - production_write_enabled
+  - source_allowlist
+  - max_trials_per_day
+  - kill_switch_required
+  - cooldown_minutes
+  - _runtime_owned_fields
+  - current_phase
+  - current_phase_derived_at
+  - last_run_at
+
+properties:
+  version:
+    type: integer
+    const: 2
+    description: "schema version. v2 only; v1 (dormant) lives in legacy location."
+
+  enabled:
+    type: boolean
+    description: "Master switch. False → current_phase=paused regardless of other flags."
+
+  evaluator_enabled:
+    type: boolean
+    description: "Gates whether evaluator runs (writes trial outputs IF trial_write_enabled also true)."
+
+  trial_write_enabled:
+    type: boolean
+    description: "Gates writes to policy_trials.jsonl. Pilot 1 dry_run = false."
+
+  candidate_write_enabled:
+    type: boolean
+    description: "Gates writes to candidate policy files."
+
+  candidate_write_target_status:
+    type: string
+    enum:
+      - sandbox
+      - candidate
+    description: "Where candidate writes land. sandbox = isolated path, candidate = standard."
+
+  promotion_enabled:
+    type: boolean
+    description: "Gates promotion via execution_tiers.yaml promotion_guardrails."
+
+  production_write_enabled:
+    type: boolean
+    description: "Gates production writes (execute_limited tier). Pilot 1 MUST = false (Hard Gate 8)."
+
+  source_allowlist:
+    type: array
+    items:
+      type: string
+    description: "Source registry keys allowed by current runner config."
+
+  max_trials_per_day:
+    type: integer
+    minimum: 0
+    description: |
+      Cap on policy_trial writes per day. Runner enforces the cap at write time; not modeled in phase derivation.
+      cap=0 with trial_write_enabled=true is a valid admin state (functionally pauses new trials
+      while preserving evaluator/schema state) — runner short-circuits writes; phase stays as derived.
+
+  kill_switch_required:
+    type: boolean
+    description: "If true, kill-switch artifact must exist for runner to start."
+
+  cooldown_minutes:
+    type: integer
+    minimum: 0
+    description: "Minimum minutes between runner invocations."
+
+  _runtime_owned_fields:
+    type: array
+    const:
+      - current_phase
+      - current_phase_derived_at
+      - last_run_at
+    description: |
+      RUNTIME-OWNED fields. Pre-commit hook MUST reject diff against these fields in version control;
+      they are set by heartbeat runner only and reflect runtime state, not config.
+
+  current_phase:
+    type: string
+    enum:
+      - paused
+      - paused_no_active_source
+      - ingesting_only
+      - evaluating_metrics_only
+      - trialing
+      - candidate_writing_sandbox
+      - candidate_writing
+      - promoting
+      - executing_limited
+    description: |
+      RUNTIME-OWNED. Set by heartbeat runner only. Derived per N-1 §7.3 phase decision table:
+        enabled=false                                                  → paused
+        source_allowlist active count = 0                              → paused_no_active_source
+        evaluator_enabled=false                                        → ingesting_only
+        evaluator_enabled=true ∧ trial_write_enabled=false             → evaluating_metrics_only
+        trial_write_enabled=true ∧ candidate_write_enabled=false       → trialing
+        candidate_write_enabled=true ∧ target=sandbox ∧ promo=false    → candidate_writing_sandbox
+        candidate_write_enabled=true ∧ target=candidate ∧ promo=false  → candidate_writing
+        promotion_enabled=true ∧ production_write_enabled=false        → promoting
+        production_write_enabled=true                                  → executing_limited
+
+  current_phase_derived_at:
+    type: string
+    format: date-time
+    description: "RUNTIME-OWNED. ISO 8601 with tz offset. Time current_phase was last derived."
+
+  last_run_at:
+    type: string
+    format: date-time
+    description: "RUNTIME-OWNED. ISO 8601 with tz offset. Time of last runner invocation."
+
+# Invalid feature flag combinations (per N-1 §7.3, fail-closed at runner load)
+# Each if/then represents an invalid combination — schema MUST reject the instance.
+allOf:
+  # 1. production_write_enabled=true ∧ promotion_enabled=false → invalid
+  - if:
+      properties:
+        production_write_enabled: { const: true }
+      required: [production_write_enabled]
+    then:
+      properties:
+        promotion_enabled: { const: true }
+      required: [promotion_enabled]
+
+  # 2. promotion_enabled=true ∧ candidate_write_enabled=false → invalid
+  - if:
+      properties:
+        promotion_enabled: { const: true }
+      required: [promotion_enabled]
+    then:
+      properties:
+        candidate_write_enabled: { const: true }
+      required: [candidate_write_enabled]
+
+  # 3. candidate_write_enabled=false ∧ candidate_write_target_status=candidate → invalid
+  - if:
+      properties:
+        candidate_write_enabled: { const: false }
+      required: [candidate_write_enabled]
+    then:
+      properties:
+        candidate_write_target_status: { const: sandbox }
+      required: [candidate_write_target_status]
+
+  # 4. trial_write_enabled=true ∧ evaluator_enabled=false → invalid
+  - if:
+      properties:
+        trial_write_enabled: { const: true }
+      required: [trial_write_enabled]
+    then:
+      properties:
+        evaluator_enabled: { const: true }
+      required: [evaluator_enabled]
+
+  # 5. trial_write_enabled=false ∧ candidate_write_enabled=true → invalid
+  - if:
+      properties:
+        candidate_write_enabled: { const: true }
+      required: [candidate_write_enabled]
+    then:
+      properties:
+        trial_write_enabled: { const: true }
+      required: [trial_write_enabled]
+
+  # 6. enabled=false ∧ (any write/eval flag = true) → invalid
+  - if:
+      properties:
+        enabled: { const: false }
+      required: [enabled]
+    then:
+      properties:
+        evaluator_enabled: { const: false }
+        trial_write_enabled: { const: false }
+        candidate_write_enabled: { const: false }
+        promotion_enabled: { const: false }
+        production_write_enabled: { const: false }
+      required:
+        - evaluator_enabled
+        - trial_write_enabled
+        - candidate_write_enabled
+        - promotion_enabled
+        - production_write_enabled
+
+additionalProperties: false

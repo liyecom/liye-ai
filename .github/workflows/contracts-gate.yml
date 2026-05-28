@@ -55,14 +55,11 @@ jobs:
 
       - name: Check SSOT (Single Source of Truth)
         run: |
-          # 确保 learned_policy.schema 只有一个位置
-          count=$(find . -name "*learned_policy*schema*" -not -path "./node_modules/*" | wc -l)
-          if [ "$count" -ne 1 ]; then
-            echo "ERROR: Multiple learned_policy.schema files found!"
-            find . -name "*learned_policy*schema*" -not -path "./node_modules/*"
-            exit 1
-          fi
-          echo "SSOT check passed: single learned_policy.schema found"
+          # Delegate to validator's own checkSSOT() — accepts legacy learned_policy.schema
+          # and GHL learned_policy_ghl_v1.schema as two independent single-instance contracts.
+          # Previous bash-glob form (find -name "*learned_policy*schema*") incorrectly flagged
+          # the GHL B1-introduced learned_policy_ghl_v1.schema as a duplicate of legacy.
+          node _meta/contracts/scripts/validate-contracts.mjs --check-ssot
 
       - name: Boundary Gate Check
         run: |

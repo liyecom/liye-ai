@@ -1,0 +1,167 @@
+# Fact Run Outcome Event Contract v1.0.0
+# SSOT: _meta/contracts/learning/fact_run_outcome_event_v1.schema.yaml
+#
+# AGE 端 emit_fact.py (D-14) 写入的 source event。
+# 落点 (per EV2-I-01 date-sharded UTC log):
+#   amazon-growth-engine/out/facts/<UTC_DATE_FROM_emitted_at>/fact_run_outcome_events.jsonl
+#   amazon-growth-engine/out/facts/<UTC_DATE_FROM_emitted_at>/<event_identity_key>.json (event sidecar)
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-1 §7.1 + N-3 §4 EV2-I-01
+# Importer (discover_new_runs.mjs) 读取后写 fact_run_outcome_record_v1 (allOf event + importer fields)
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/fact_run_outcome_event.v1"
+title: "Fact Run Outcome Event Schema"
+description: "AGE-emitted source event capturing one run outcome artifact. Importer wraps this into fact_run_outcome_record_v1."
+version: "1.0.0"
+type: object
+
+required:
+  # identity (5)
+  - source_system
+  - source_repo
+  - source_commit_sha
+  - source_branch
+  - source_worktree_id
+  # provenance (3)
+  - source_dirty
+  - manifest_hash
+  - emitted_at
+  # business (5)
+  - trace_id
+  - artifact_type
+  - artifact_path
+  - playbook_ref
+  - step_id
+  # payload reference (4) — NOT raw_payload itself
+  - raw_payload_ref
+  - raw_payload_hash
+  - raw_payload_summary
+  - redaction_status
+  # hashes (2)
+  - event_identity_key
+  - event_content_hash
+  # schema mgmt (1)
+  - schema_version
+
+properties:
+  source_system:
+    type: string
+    enum:
+      - amazon-growth-engine
+      - chaming
+      - loamwise
+    description: "Layer-2/Layer-1 engine identifier emitting the event"
+
+  source_repo:
+    type: string
+    description: "Engine repo identifier (e.g. amazon-growth-engine)"
+
+  source_commit_sha:
+    type: string
+    pattern: "^[0-9a-f]{40}$"
+    description: "Full 40-char git commit SHA at emit time"
+
+  source_branch:
+    type: string
+    description: "Git branch name at emit time"
+
+  source_worktree_id:
+    type: string
+    description: "Worktree identifier (engines often have multiple worktrees)"
+
+  source_dirty:
+    type: boolean
+    description: "True if working tree has uncommitted changes at emit time"
+
+  manifest_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "sha256 of engine_manifest.yaml at emit time; importer compares against registry.expected_manifest_hash"
+
+  emitted_at:
+    type: string
+    format: date-time
+    description: |
+      ISO 8601 with timezone offset (mandatory).
+      emit_fact.py MUST fail-closed if emitted_at lacks tz offset.
+      UTC date of this field is the path partition key (EV2-I-01).
+
+  trace_id:
+    type: string
+    description: "Originating run/trial trace identifier"
+
+  artifact_type:
+    type: string
+    enum:
+      - verification_json
+      - policy_suggestions_json
+      - step_evaluation_instance
+      - regression_replay_result
+    description: |
+      Engine artifact category. Restricted to AGE evaluation/inference/replay artifacts.
+      Governance decisions (PROMOTED / DEMOTED / lifecycle / trust_matrix) use governance_event_v1 (per N-2 B-04).
+
+  artifact_path:
+    type: string
+    description: "Repo-relative path to artifact at emit time (raw_payload location)"
+
+  playbook_ref:
+    type: string
+    description: "Playbook identifier producing the artifact"
+
+  step_id:
+    type: string
+    description: "Step identifier within the playbook"
+
+  raw_payload_ref:
+    type: string
+    pattern: '^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$'
+    description: |
+      Repo-relative path. Regex constraints:
+        - leading "/" or "~" forbidden
+        - any ".." segment forbidden
+        - allowed chars: [a-zA-Z0-9_./-]
+      Importer ALSO canonicalizes and asserts resolved path startswith source_repo realpath
+      (defense-in-depth for symlink-pointing-outside-repo).
+
+  raw_payload_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "sha256 of raw payload file content"
+
+  raw_payload_summary:
+    type: object
+    maxProperties: 20
+    description: "Schema-defined summary keys only. NO PII fields."
+
+  redaction_status:
+    type: string
+    enum:
+      - redacted
+      - no_sensitive_fields_detected
+      - unknown
+
+  event_identity_key:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: |
+      sha256(source_system + source_repo + trace_id + artifact_type
+             + artifact_path + playbook_ref + step_id + source_commit_sha)
+      Stable across emit/import. Duplicate event_identity_key with different content_hash
+      triggers fact_conflicts/ write (per D-13 + N-2 B-05).
+
+  event_content_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: |
+      sha256(canonical_event_payload_excluding_volatile_fields)
+      Excludes: [emitted_at, raw_payload_summary.metric_formatting_hint]
+      Content fingerprint for duplicate-vs-replica detection.
+
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+additionalProperties: false

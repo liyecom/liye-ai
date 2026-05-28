@@ -157,4 +157,19 @@ else
   echo "⚠️ .security/blocklist.txt not found, skipping blocklist scan"
 fi
 
+# ===== Forbidden Name Lint Gate (Phase 0f / EV2-B-01) =====
+# Identifier-level lint: blocks declarations of [Tt]rust* (Hard Gate 1),
+# bare 'candidate', bare 'evaluator', bare 'trial'. Reads STAGED BLOB
+# (not working tree) so post-stage working-tree cleanup cannot mask a violation.
+# See tools/lint_forbidden_names.sh header for full spec.
+if [ -f "tools/lint_forbidden_names.sh" ]; then
+  if ! bash tools/lint_forbidden_names.sh; then
+    echo ""
+    echo "❌ Commit blocked: forbidden-name lint failed (per EV2-B-01)"
+    exit 1
+  fi
+else
+  echo "⚠️ tools/lint_forbidden_names.sh not found, skipping forbidden-name lint"
+fi
+
 exit 0

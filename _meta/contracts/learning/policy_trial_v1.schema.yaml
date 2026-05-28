@@ -1,0 +1,103 @@
+# Policy Trial Contract v1.0.0
+# SSOT: _meta/contracts/learning/policy_trial_v1.schema.yaml
+#
+# liye_os evaluator (src/reasoning/policy_trial_evaluator.mjs) 写入。
+# 落点 (per N-1 §3 Phase 1c):
+#   liye_os/state/runtime/learning/policy_trials.jsonl
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-2 §3 B-05
+#
+# 关键区分 (per B-05):
+# - policy_trial.system_verdict_reason_codes — 系统为什么这么判
+# - policy_trial.operator_feedback.reason_codes — operator 为什么同意/反对系统
+# 两套 reason_codes 词表完全独立 (per B-05)。
+#
+# duplicate_conflict 双落点规则 (per B-05 + D-13):
+# - 无 policy_id 的 duplicate (importer-level) → 仅写 fact_conflicts/，不生成 policy_trial
+# - 已绑 policy_id 的 duplicate → fact_conflicts/ + 额外 policy_trial (verdict=NEEDS_HUMAN, reason_codes=[duplicate_conflict])
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/policy_trial.v1"
+title: "Policy Trial Schema"
+description: "System verdict on a policy candidate, with optional async operator feedback."
+version: "1.0.0"
+type: object
+
+required:
+  - trial_id
+  - policy_id
+  - system_verdict
+  - system_verdict_reason_codes
+  - evidence_origin
+  - evaluated_at
+  - schema_version
+
+properties:
+  trial_id:
+    type: string
+    format: uuid
+    description: "UUID for the trial"
+
+  policy_id:
+    type: string
+    description: "Reference to learned_policy_ghl_v1.policy_id"
+
+  system_verdict:
+    type: string
+    enum:
+      - PASS
+      - FAIL
+      - DOWNGRADED
+      - NEEDS_HUMAN
+    description: "System's verdict on the policy candidate"
+
+  system_verdict_reason_codes:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      enum:
+        - duplicate_conflict
+        - golden_pack_stale
+        - data_safety_unknown
+        - regression_failure_severe
+        - confidence_below_threshold
+        - evidence_origin_insufficient
+        - manifest_validator_failed
+        - source_dirty
+        - sample_size_insufficient
+        - boundary_confidence_value
+        - acceptable
+    description: |
+      Why the system gave this verdict. Independent vocabulary from operator_feedback.reason_codes.
+      D-12 negative evidence gate is computed using operator_feedback (NOT system_verdict_reason_codes):
+        - System verdict NEEDS_HUMAN + later attached operator_feedback.reason_codes contains one of
+          {unsafe_reuse, regression_failed, business_context_changed} → counts as negative evidence.
+      The 3 negative codes live in operator_feedback_v1.reason_codes enum (NOT here).
+
+  evidence_origin:
+    type: string
+    enum:
+      - production_observed
+      - historical_replay
+      - golden_regression
+      - synthetic
+    description: "Evidence origin class. Pilot 1 negative learning uses production_observed primarily."
+
+  evaluated_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset"
+
+  operator_feedback:
+    $ref: "operator_feedback_v1.schema.yaml#"
+    description: |
+      Optional. May be added asynchronously after system verdict.
+      operator_feedback.reason_codes uses an independent vocabulary (per B-05).
+
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+additionalProperties: false

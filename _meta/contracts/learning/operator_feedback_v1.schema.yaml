@@ -1,0 +1,83 @@
+# Operator Feedback Contract v1.0.0
+# SSOT: _meta/contracts/learning/operator_feedback_v1.schema.yaml
+#
+# Operator (人) 对系统 verdict 的反馈结构，独立 schema。
+# 作为 policy_trial_v1.operator_feedback 的 $ref 目标。
+#
+# Phase: 0b (Checkpoint B1) per EV2-I-03
+# Normative: N-2 §3 B-05 拆出独立文件 + N-1 §7.6
+#
+# 关键区分 (per B-05):
+# - operator_feedback.verdict — 人对系统 verdict 的反应（同意/反对/证据不足）
+# - operator_feedback.reason_codes — 人为什么这么反应（独立词表）
+# 与 policy_trial.system_verdict_reason_codes 完全独立（不能混用同一 enum）。
+#
+# 关键指标 (per D-11):
+# - operator_agreement_rate = count(verdict=AGREE_WITH_SYSTEM) / count(non-NEEDS_MORE_EVIDENCE) ≥ 0.7 (软)
+# - critical_false_negative_count = count(verdict=DISAGREE_WITH_SYSTEM AND reason ∈ {unsafe_reuse, ...}) = 0 (硬)
+#
+# NEEDS_HUMAN 算 negative evidence 的限制 (per D-12):
+# 仅当 reason_codes ∩ {unsafe_reuse, regression_failed, business_context_changed}
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/operator_feedback.v1"
+title: "Operator Feedback Schema"
+description: "Operator (人) 对 policy_trial.system_verdict 的反馈。可异步追加。"
+version: "1.0.0"
+type: object
+
+required:
+  - reviewer_id_hash
+  - verdict
+  - reason_codes
+  - reviewed_at
+
+properties:
+  reviewer_id_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: |
+      sha256 of reviewer identity (e.g. operator email salted with project namespace).
+      NO PII; only stable identity hash.
+
+  verdict:
+    type: string
+    enum:
+      - AGREE_WITH_SYSTEM
+      - DISAGREE_WITH_SYSTEM
+      - NEEDS_MORE_EVIDENCE
+    description: |
+      Operator 对系统 verdict 的反应。
+      - AGREE_WITH_SYSTEM: 计入 agreement_rate 分子
+      - DISAGREE_WITH_SYSTEM: 计入 agreement_rate 分母不分子
+      - NEEDS_MORE_EVIDENCE: 不计入 agreement_rate（既不算同意也不算反对）
+
+  reason_codes:
+    type: array
+    minItems: 1
+    items:
+      type: string
+      enum:
+        - unsafe_reuse
+        - weak_evidence
+        - business_context_changed
+        - regression_failed
+        - acceptable
+    description: |
+      为什么这么反馈。词表独立于 policy_trial.system_verdict_reason_codes。
+      D-12 negative evidence gate: system NEEDS_HUMAN verdict + operator_feedback.reason_codes 包含
+      (unsafe_reuse / regression_failed / business_context_changed) 之一，才算 negative evidence。
+      critical_false_negative_count (D-11 硬 gate): operator_feedback.verdict=DISAGREE_WITH_SYSTEM
+      AND operator_feedback.reason_codes 包含上述 3 codes 之一。
+
+  reviewed_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset. 反馈写入时刻。"
+
+  note:
+    type: string
+    maxLength: 500
+    description: "Optional free-text. NO PII (per project privacy policy)."
+
+additionalProperties: false

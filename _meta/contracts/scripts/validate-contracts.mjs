@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 /**
- * Contracts Validator v1.1.0
+ * Contracts Validator v1.2.0
  * SSOT: _meta/contracts/scripts/validate-contracts.mjs
  *
- * 校验 4 种模式：
+ * 校验模式：
  * 1. 默认模式：Schema + 目录分区 + Lifecycle 校验
+ *    含 Phase 0c.2 engine_manifest dual-routing (v1 legacy ↔ v2 by schema_version field).
+ *    含 GHL Phase 0b 新增 9 learning schemas + confidence_formulas formula instance.
  * 2. Bundle 模式（--bundle <path>）：校验 learned-bundle.tgz
+ * 3. Self-test 模式（--self-test）：内联 fixture 验证 routeManifestSchema (Phase 0c.2)
  *
  * 运行：
  *   node _meta/contracts/scripts/validate-contracts.mjs
+ *   node _meta/contracts/scripts/validate-contracts.mjs --self-test
  *   node _meta/contracts/scripts/validate-contracts.mjs --bundle <path.tgz>
  *
  * 退出码：0 = 全部通过，1 = 有错误（fail-closed）
@@ -140,10 +144,12 @@ function validateAgainstSchema(data, schema, filePath) {
     }
   }
 
-  // 特殊校验：schema_version 必须是 SemVer 格式
+  // 特殊校验：schema_version 必须是 numeric-dot-numeric 形式（允许 2 或 3 段）
+  // 严格版本契约由各 schema 自己的 enum/pattern 强制（e.g. engine_manifest.schema.v2.yaml
+  // 的 schema_version.enum: ["2.0"] 是 SSOT）。此处只做基础形态检查。
   if ('schema_version' in data) {
-    if (!/^\d+\.\d+\.\d+$/.test(data.schema_version)) {
-      errors.push(`Field 'schema_version' must be SemVer format (x.y.z), got: ${data.schema_version}`);
+    if (!/^\d+\.\d+(\.\d+)?$/.test(data.schema_version)) {
+      errors.push(`Field 'schema_version' must be numeric (x.y or x.y.z), got: ${data.schema_version}`);
     }
   }
 
@@ -309,36 +315,178 @@ function validateLearnedPolicies() {
 }
 
 /**
- * 校验所有 engine manifests
+ * 路由 engine_manifest schema 版本（Phase 0c.2 dual-schema routing）
+ *
+ * 规则（fail-closed）：
+ * - 缺 schema_version 字段（或 null）→ v1 schema (legacy)
+ * - schema_version === "2.0"        → v2 schema
+ * - 其他值（含 "1.0" / "1.0.0" / "2.1" 等显式但未声明的版本）→ 拒绝 (fail-closed)
+ *
+ * 注：legacy v1 schema 自身未声明 schema_version 字段；v2 schema 强制 enum ["2.0"]（Tranche 1 fix）.
+ */
+function routeManifestSchema(data, v1Schema, v2Schema) {
+  const sv = data && Object.prototype.hasOwnProperty.call(data, 'schema_version') ? data.schema_version : undefined;
+  if (sv === undefined || sv === null) {
+    return { schema: v1Schema, route: 'v1-legacy-no-schema-version' };
+  }
+  if (sv === '2.0') {
+    return { schema: v2Schema, route: 'v2' };
+  }
+  return {
+    error: `Unsupported engine_manifest schema_version: ${JSON.stringify(sv)}. Valid: omit (=v1) | "2.0" (=v2). Fail-closed per Phase 0c.2.`,
+  };
+}
+
+/**
+ * 校验 formula instance contracts (e.g. confidence_formulas.yaml)
+ * 不是 JSON Schema，而是公式声明 instance contract.
+ * 检查范围：parseable + version + formulas.ghl_confidence_v1 完整性 (inputs / weights sum=1.0 / missing_input_policy).
+ */
+function validateFormulaInstances() {
+  console.log('\n📋 Validating Formula Instances...\n');
+
+  const formulaFile = join(CONTRACTS_DIR, 'learning', 'confidence_formulas.yaml');
+  if (!existsSync(formulaFile)) {
+    logError(formulaFile, 'Formula instance file not found');
+    return;
+  }
+
+  try {
+    const content = readFileSync(formulaFile, 'utf-8');
+    const data = parseYaml(content);
+    const errors = [];
+
+    if (!('version' in (data || {}))) {
+      errors.push('Missing required field: version');
+    }
+    if (!data || !data.formulas || typeof data.formulas !== 'object') {
+      errors.push('Missing required object: formulas');
+    } else if (!('ghl_confidence_v1' in data.formulas)) {
+      errors.push("Missing required formula: formulas.ghl_confidence_v1");
+    } else {
+      const formula = data.formulas.ghl_confidence_v1;
+      if (!formula.inputs || typeof formula.inputs !== 'object') {
+        errors.push('ghl_confidence_v1: missing inputs object');
+      }
+      if (!formula.weights || typeof formula.weights !== 'object') {
+        errors.push('ghl_confidence_v1: missing weights object');
+      } else {
+        const sum = Object.values(formula.weights).reduce((a, b) => a + b, 0);
+        if (Math.abs(sum - 1.0) > 1e-9) {
+          errors.push(`ghl_confidence_v1: weights must sum to 1.0, got ${sum}`);
+        }
+      }
+      if (formula.missing_input_policy !== 'fail_closed') {
+        errors.push(`ghl_confidence_v1: missing_input_policy must be 'fail_closed', got: ${JSON.stringify(formula.missing_input_policy)}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      for (const err of errors) logError(formulaFile, err);
+    } else {
+      logPass(formulaFile);
+    }
+  } catch (e) {
+    logError(formulaFile, `Failed to parse YAML: ${e.message}`);
+  }
+}
+
+/**
+ * Self-test: 内联 fixture 验证 routeManifestSchema (Phase 0c.2)
+ * fail-closed: 任何 fixture 偏离 expected 即 exit 1.
+ */
+function runSelfTest() {
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('           Validator Self-Test (Phase 0c.2)');
+  console.log('═══════════════════════════════════════════════════════════');
+
+  const v1Schema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
+  const v2Schema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'));
+
+  const fixtures = [
+    { name: 'legacy manifest (no schema_version) → v1',     data: { engine_id: 'legacy' },                       expect: { route: 'v1-legacy-no-schema-version' } },
+    { name: 'schema_version="2.0" → v2',                    data: { schema_version: '2.0', engine_id: 'v2' },    expect: { route: 'v2' } },
+    { name: 'schema_version="9.9.9" → fail-closed',         data: { schema_version: '9.9.9' },                   expect: { error: true } },
+    { name: 'schema_version="1.0" (legacy explicit) → fail-closed', data: { schema_version: '1.0' },             expect: { error: true } },
+    { name: 'schema_version=null → v1 (null=absent)',       data: { schema_version: null, engine_id: 'null' },   expect: { route: 'v1-legacy-no-schema-version' } },
+    { name: 'schema_version="2.1" → fail-closed',           data: { schema_version: '2.1' },                     expect: { error: true } },
+    { name: 'schema_version=2.0 (number, not string) → fail-closed', data: { schema_version: 2.0 },              expect: { error: true } },
+  ];
+
+  let pass = 0, fail = 0;
+  for (const fx of fixtures) {
+    const routed = routeManifestSchema(fx.data, v1Schema, v2Schema);
+    const gotErr = !!routed.error;
+    const wantErr = !!fx.expect.error;
+    let ok;
+    if (wantErr) {
+      ok = gotErr;
+    } else {
+      ok = !gotErr && routed.route === fx.expect.route;
+    }
+    if (ok) {
+      console.log(`  ${GREEN}✅ ${fx.name}${RESET}` + (gotErr ? '' : ` → ${routed.route}`));
+      pass++;
+    } else {
+      console.log(`  ${RED}❌ ${fx.name}${RESET}`);
+      console.log(`     got=${gotErr ? 'error' : routed.route}, want=${wantErr ? 'error' : fx.expect.route}`);
+      if (routed.error) console.log(`     error msg: ${routed.error}`);
+      fail++;
+    }
+  }
+
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log(`  Pass: ${pass}, Fail: ${fail}`);
+  console.log('═══════════════════════════════════════════════════════════\n');
+
+  if (fail > 0) {
+    console.log(`${RED}Self-test FAILED.${RESET}\n`);
+    process.exit(1);
+  }
+  console.log(`${GREEN}Self-test passed.${RESET}\n`);
+  process.exit(0);
+}
+
+/**
+ * 校验所有 engine manifests (Phase 0c.2 dual-routing)
  */
 function validateEngineManifests() {
   console.log('\n📋 Validating Engine Manifests...\n');
 
-  const manifestSchema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
+  const manifestSchemaV1 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
+  const manifestSchemaV2 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'));
 
-  // 在当前项目和外部 Engine 仓库中查找 engine_manifest.yaml
-  // 外部 Engine 路径通过环境变量 ENGINE_MANIFEST_PATH 指定
-  const searchPaths = [PROJECT_ROOT];
+  // 候选 manifest 路径列表。
+  // ENGINE_MANIFEST_PATH（如设置）优先；视为完整文件路径，用于跨仓库 manifest 发现
+  // （e.g. /Users/liye/github/amazon-growth-engine/engine_manifest.yaml）。
+  // Fallback: 在当前项目 root 下查找 engine_manifest.yaml。
+  const manifestPaths = [];
 
-  // 添加外部 Engine 路径（如果指定）
   const externalEnginePath = process.env.ENGINE_MANIFEST_PATH;
-  if (externalEnginePath) {
-    searchPaths.push(externalEnginePath);
+  if (externalEnginePath && existsSync(externalEnginePath) && statSync(externalEnginePath).isFile()) {
+    manifestPaths.push(externalEnginePath);
   }
 
-  for (const searchPath of searchPaths) {
-    if (!existsSync(searchPath)) {
-      continue;
-    }
+  const projectManifest = join(PROJECT_ROOT, 'engine_manifest.yaml');
+  if (existsSync(projectManifest) && !manifestPaths.includes(projectManifest)) {
+    manifestPaths.push(projectManifest);
+  }
 
-    const manifestPath = join(searchPath, 'engine_manifest.yaml');
-
+  for (const manifestPath of manifestPaths) {
     if (existsSync(manifestPath)) {
       try {
         const content = readFileSync(manifestPath, 'utf-8');
         const data = parseYaml(content);
 
-        const schemaErrors = validateAgainstSchema(data, manifestSchema, manifestPath);
+        // Phase 0c.2: route by schema_version
+        const routed = routeManifestSchema(data, manifestSchemaV1, manifestSchemaV2);
+        if (routed.error) {
+          logError(manifestPath, routed.error);
+          continue;
+        }
+        console.log(`  ↪ routed to ${routed.route}`);
+
+        const schemaErrors = validateAgainstSchema(data, routed.schema, manifestPath);
 
         if (schemaErrors.length > 0) {
           for (const error of schemaErrors) {
@@ -361,9 +509,22 @@ function validateContractSchemas() {
   console.log('\n📋 Validating Contract Schemas...\n');
 
   const schemaFiles = [
+    // Legacy schemas (pre-GHL)
     join(CONTRACTS_DIR, 'learning', 'learned_policy.schema.yaml'),
     join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'),
     join(CONTRACTS_DIR, 'playbook', 'playbook_io.schema.yaml'),
+    // GHL Phase 0b learning schemas (per EV2-I-03 lock, committed in Tranches 1-3 of Wave 1)
+    join(CONTRACTS_DIR, 'learning', 'learned_policy_ghl_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'fact_run_outcome_event_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'fact_run_outcome_record_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'governance_event_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'policy_trial_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'operator_feedback_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'policy_lifecycle_event_v1.schema.yaml'),
+    join(CONTRACTS_DIR, 'learning', 'heartbeat_state_v2.schema.yaml'),
+    // GHL Phase 0b engine manifest v2
+    join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'),
+    // Note: confidence_formulas.yaml is a formula INSTANCE (not a JSON Schema) — validated by validateFormulaInstances()
   ];
 
   for (const schemaFile of schemaFiles) {
@@ -627,12 +788,12 @@ async function validateBundle(bundlePath) {
 }
 
 /**
- * 检查 SSOT：确保 learned_policy.schema 只有一个位置
+ * 检查 SSOT：legacy learned_policy.schema 与 GHL learned_policy_ghl_v1.schema 各自单一位置.
+ * Post Wave 1 Tranche 3: 双 schema 同时存在为合法状态；各自必须单实例.
  */
 function checkSSOT() {
   console.log('\n📋 Checking SSOT (Single Source of Truth)...\n');
 
-  // 搜索所有 learned_policy.schema 文件
   const findSchemas = (dir, results = []) => {
     if (!existsSync(dir)) return results;
 
@@ -644,8 +805,8 @@ function checkSSOT() {
 
         if (stat.isDirectory() && !item.startsWith('.') && item !== 'node_modules') {
           findSchemas(fullPath, results);
-        } else if (item.includes('learned_policy') && item.includes('schema')) {
-          results.push(fullPath);
+        } else if (item === 'learned_policy.schema.yaml' || item === 'learned_policy_ghl_v1.schema.yaml') {
+          results.push({ name: item, path: fullPath });
         }
       }
     } catch (e) {
@@ -655,15 +816,22 @@ function checkSSOT() {
     return results;
   };
 
-  const schemaFiles = findSchemas(PROJECT_ROOT);
+  const found = findSchemas(PROJECT_ROOT);
+  const legacy = found.filter((f) => f.name === 'learned_policy.schema.yaml');
+  const ghl    = found.filter((f) => f.name === 'learned_policy_ghl_v1.schema.yaml');
 
-  if (schemaFiles.length === 0) {
-    logError('SSOT', 'No learned_policy.schema found');
-  } else if (schemaFiles.length === 1) {
-    logPass(`SSOT: learned_policy.schema at ${schemaFiles[0]}`);
-  } else {
-    logError('SSOT', `Multiple learned_policy.schema files found: ${schemaFiles.join(', ')}`);
-  }
+  const checkOne = (label, files) => {
+    if (files.length === 0) {
+      logError('SSOT', `No ${label} found`);
+    } else if (files.length === 1) {
+      logPass(`SSOT: ${label} at ${files[0].path}`);
+    } else {
+      logError('SSOT', `Multiple ${label} files found: ${files.map((f) => f.path).join(', ')}`);
+    }
+  };
+
+  checkOne('learned_policy.schema.yaml (legacy)', legacy);
+  checkOne('learned_policy_ghl_v1.schema.yaml (GHL)', ghl);
 }
 
 /**
@@ -678,16 +846,24 @@ function parseArgs() {
       result.mode = 'bundle';
       result.bundlePath = args[i + 1];
       i++;
+    } else if (args[i] === '--self-test') {
+      result.mode = 'self-test';
+    } else if (args[i] === '--check-ssot') {
+      result.mode = 'check-ssot';
     } else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`
 Usage: node validate-contracts.mjs [options]
 
 Options:
   --bundle <path>   Validate a learned-bundle.tgz file
+  --self-test       Run inline fixtures verifying engine_manifest dual-routing (Phase 0c.2)
+  --check-ssot      Run only SSOT (Single Source of Truth) checks (delegated from contracts-gate workflow)
   --help, -h        Show this help message
 
 Examples:
   node validate-contracts.mjs
+  node validate-contracts.mjs --self-test
+  node validate-contracts.mjs --check-ssot
   node validate-contracts.mjs --bundle state/artifacts/learned-bundles/learned-bundle_0.2.0.tgz
 `);
       process.exit(0);
@@ -702,6 +878,28 @@ Examples:
  */
 async function main() {
   const args = parseArgs();
+
+  // Self-test mode (Phase 0c.2 routing fixtures)
+  if (args.mode === 'self-test') {
+    runSelfTest();
+    return;
+  }
+
+  // SSOT-only mode (delegated entry for contracts-gate workflow)
+  // Runs only checkSSOT() which correctly treats legacy learned_policy.schema and
+  // GHL learned_policy_ghl_v1.schema as two independent single-instance contracts.
+  if (args.mode === 'check-ssot') {
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('           SSOT Check (delegated entry)');
+    console.log('═══════════════════════════════════════════════════════════');
+    checkSSOT();
+    if (errorCount > 0) {
+      console.log(`\n${RED}FAILED: ${errorCount} SSOT error(s).${RESET}\n`);
+      process.exit(1);
+    }
+    console.log(`\n${GREEN}PASSED: SSOT check OK.${RESET}\n`);
+    process.exit(0);
+  }
 
   // Bundle 模式
   if (args.mode === 'bundle') {
@@ -728,20 +926,23 @@ async function main() {
 
   // 默认模式
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('           Contracts Validator v1.1.0');
+  console.log('           Contracts Validator v1.2.0 (Phase 0c.2 dual-routing)');
   console.log('           SSOT: _meta/contracts/**');
   console.log('═══════════════════════════════════════════════════════════');
 
   // 1. 检查 SSOT
   checkSSOT();
 
-  // 2. 校验 contracts schemas 自身
+  // 2. 校验 contracts schemas 自身（含 GHL Phase 0b 新增 9 schemas）
   validateContractSchemas();
+
+  // 2.5. 校验 formula instance contracts (confidence_formulas.yaml)
+  validateFormulaInstances();
 
   // 3. 校验 learned policies
   validateLearnedPolicies();
 
-  // 4. 校验 engine manifests
+  // 4. 校验 engine manifests (dual-route v1/v2 by schema_version)
   validateEngineManifests();
 
   // 汇总

@@ -1,0 +1,356 @@
+# Engine Manifest Contract v2.0.0
+# SSOT: _meta/contracts/engine/engine_manifest.schema.v2.yaml
+# Predecessor: engine_manifest.schema.yaml (v1.x, retained for ≥ 30d compat)
+#
+# Domain Engine 能力声明规范 v2 — 引入 declared/effective 分层与 runtime_gates。
+# 由 GHL ADR (Accepted 2026-05-19, commit 67e6fea) 引入。
+#
+# 迁移要点 (per errata-v1 §3 B-02 + errata-v2 §6 EV2-I-03)：
+# - schema_version 字段 required，明示版本（"2.0" / "2.1"）
+# - write_capability 拆为 _declared (manifest 静态意图) 和 _effective (runtime 实际)
+# - capabilities 显式列举每个能力 + boundary 归属 + 所需 permissions + runtime_gate_refs
+# - runtime_gates 显式列举所有 env-var / feature-flag / manual-approval 闸门
+# - 兼容期 ≥ 30 天：v2.0 接受 deprecated_but_accepted 字段 `write_capability`；v2.1 移除
+# - validate-contracts.mjs 须按 manifest.schema_version 路由 (Phase 0c.2)
+#
+# Phase 归属: Phase 0c step 1 (per EV2-I-03)
+# - 0c.2 = validate-contracts.mjs 双 schema 路由
+# - 0c.3 = AGE engine_manifest.yaml 迁移到 v2.0 (gated on Sprint 9 readout per D-14)
+# - 0c.4 = validate_manifest_reality.py (依赖 0c.3 完成)
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/engine/engine_manifest.v2"
+title: "Engine Manifest Schema v2"
+description: "Domain Engine 能力声明 v2 — declared/effective 分层 + runtime_gates 显式化。"
+version: "2.0.0"
+type: object
+
+required:
+  - schema_version
+  - engine_id
+  - engine_version
+  - domain
+  - contracts_compat
+  - playbooks
+  - data_sources
+  - write_capability_declared
+  - write_capability_effective
+  - capabilities
+  - runtime_gates
+
+properties:
+  schema_version:
+    type: string
+    enum:
+      - "2.0"
+    description: |
+      manifest 自身的 schema 版本。validate-contracts.mjs 按本字段路由到对应 schema：
+      - "2.0": 当前活动版本（deprecated_but_accepted: write_capability）
+      未声明 schema_version 的 manifest 视为 v1.x（fallback 走 engine_manifest.schema.yaml）。
+      v2.1（移除 write_capability）将在 Phase 4 单独开 schema 文件，不在本 schema 内做条件分支以避免 conditional required 复杂度。
+    examples:
+      - "2.0"
+
+  engine_id:
+    type: string
+    pattern: "^[a-z0-9-]+$"
+    minLength: 3
+    maxLength: 64
+    description: "Engine 唯一标识符，小写字母+数字+连字符"
+    examples:
+      - amazon-growth-engine
+      - chaming
+      - notion-sync-engine
+
+  engine_version:
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+    description: "Engine 版本号 (SemVer)"
+    examples:
+      - "1.0.0"
+      - "2.1.0"
+
+  domain:
+    type: string
+    description: "所属领域，必须与 learned_policy_ghl_v1.domain 对应"
+    examples:
+      - amazon-advertising
+      - domain-investment
+      - notion-sync
+
+  contracts_compat:
+    type: string
+    pattern: "^>=\\d+\\.\\d+(\\.\\d+)? <\\d+\\.\\d+(\\.\\d+)?$"
+    description: "兼容的 contract schema 版本范围 (SemVer range)"
+    examples:
+      - ">=2.0 <3.0"
+
+  playbooks:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - entrypoint
+        - description
+        - required_permissions
+        - io_schema
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Playbook 唯一标识符"
+        entrypoint:
+          type: string
+          description: "可执行路径，相对 engine repo root"
+        description:
+          type: string
+          maxLength: 200
+        required_permissions:
+          type: array
+          items:
+            type: string
+            enum:
+              - read:metrics
+              - read:ads_api
+              - read:learned_bundle
+              - read:alert_history
+              - read:duckdb
+              - read:fact_events
+              - write:bids
+              - write:keywords
+              - write:budget
+              - write:evidence_package
+              - write:fact_events
+          description: "所需权限。GHL 引入 read:fact_events / write:fact_events 用于 emit_fact pipeline (D-14)。"
+        io_schema:
+          type: object
+          required:
+            - inputs
+            - outputs
+          properties:
+            inputs:
+              type: object
+              additionalProperties: true
+            outputs:
+              type: object
+              additionalProperties: true
+          additionalProperties: false
+        status:
+          type: string
+          enum:
+            - active
+            - deprecated
+            - placeholder
+          default: active
+      additionalProperties: false
+    description: "Engine 提供的 playbooks 列表"
+
+  data_sources:
+    type: array
+    items:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          enum:
+            - ads_api
+            - duckdb
+            - qdrant
+            - postgres
+            - sqlite
+            - api
+            - fact_events_log
+          description: "数据源类型。GHL 引入 fact_events_log 用于 emit_fact pipeline (D-14)。"
+        description:
+          type: string
+          maxLength: 200
+        required:
+          type: boolean
+          default: true
+      additionalProperties: false
+    description: "数据源声明 (不含凭据)"
+
+  write_capability_declared:
+    type: string
+    enum:
+      - none
+      - limited
+      - full
+    description: |
+      manifest 静态声明的写入能力 (policy 设计意图):
+      - none: 只读 (推荐 GHL Pilot 1)
+      - limited: 有限写入 (需 OS execute_limited 层级许可)
+      - full: 完整写入 (需特殊审批)
+      GHL Pilot 1 期间 (≥ 90 天 from 2026-05-09) 所有 engine 必须声明 declared=none，per Hard Gate 8。
+
+  write_capability_effective:
+    type: string
+    enum:
+      - none
+      - limited
+      - full
+    description: |
+      runtime 实际可执行的写入能力 (declared ∩ runtime_gates 实际状态)。
+      约束 (由 validate_manifest_reality.py 验证, Phase 0c.4):
+      - effective ≤ declared (manifest 不能 effective 比 declared 更宽)
+      - effective = none if Pilot 1 期间 (Hard Gate 8)
+      - effective 由所有 runtime_gates 共同决定 (任一 gate=closed → effective 降级)
+
+  write_capability:
+    type: string
+    enum:
+      - none
+      - limited
+      - full
+    deprecated: true
+    description: |
+      DEPRECATED in v2.0, REMOVED in v2.1。
+      v1.x 字段，v2.0 兼容期 ≥ 30 天接受。
+      新 manifest 必须用 write_capability_declared + write_capability_effective。
+
+  capabilities:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - description
+        - boundary
+        - required_permissions
+        - runtime_gate_refs
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Capability 唯一标识符 (engine 范围内)"
+          examples:
+            - emit_fact_run_outcome
+            - submit_skill_candidate
+            - apply_bid_adjustment
+        description:
+          type: string
+          maxLength: 200
+        boundary:
+          type: string
+          enum:
+            - content_guard
+            - truth_write_guard
+            - context_inject_guard
+            - shadow_guard
+            - fact_emit
+            - none
+          description: |
+            Capability 归属的 loamwise P3 boundary (per ADR-Loamwise-P3-Candidate-Operation-Guard-Coverage)。
+            fact_emit = GHL emit_fact pipeline 新引入 (D-14)。
+            none = capability 不经过任何 guard (例如纯读)。
+        required_permissions:
+          type: array
+          items:
+            type: string
+        runtime_gate_refs:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9_]+$"
+          description: "引用 runtime_gates[].id；所有引用 gate 必须 = open 才能 effective"
+        status:
+          type: string
+          enum:
+            - active
+            - deprecated
+            - placeholder
+          default: active
+      additionalProperties: false
+    description: "Engine 显式列举的 capabilities 及其 boundary / gates 归属"
+
+  runtime_gates:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - kind
+        - default_state
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Gate 唯一标识符 (engine 范围内)"
+        kind:
+          type: string
+          enum:
+            - env_var
+            - feature_flag
+            - manual_approval
+        var_name:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]*$"
+          description: "若 kind=env_var，对应环境变量名 (大写蛇形)"
+          examples:
+            - AGE_BD_SP_WRITE_ENABLED
+            - AGE_FACT_EMIT_ENABLED
+        description:
+          type: string
+          maxLength: 200
+        default_state:
+          type: string
+          enum:
+            - open
+            - closed
+          description: "未配置时的默认状态"
+        evidence_required_for_open:
+          type: string
+          description: "什么样的 evidence 才能让此 gate 转 open (审计可读)"
+      additionalProperties: false
+    description: "Engine 所有 runtime 闸门的显式列表 (per validate_manifest_reality.py 验证 reality)"
+
+  bundle_consumption:
+    type: object
+    properties:
+      env_var:
+        type: string
+        default: "LEARNED_BUNDLE_PATH"
+      required:
+        type: boolean
+        default: false
+      min_version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+    additionalProperties: false
+    description: "Bundle 消费配置 (v1 保留)"
+
+  health_check:
+    type: object
+    properties:
+      entrypoint:
+        type: string
+      timeout_seconds:
+        type: integer
+        minimum: 1
+        maximum: 60
+        default: 10
+    additionalProperties: false
+    description: "健康检查配置 (v1 保留)"
+
+  metadata:
+    type: object
+    properties:
+      maintainer:
+        type: string
+      repository:
+        type: string
+        format: uri
+      documentation:
+        type: string
+        format: uri
+    additionalProperties: false
+    description: "元数据 (v1 保留)"
+
+additionalProperties: false
