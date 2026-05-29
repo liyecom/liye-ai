@@ -125,6 +125,24 @@ Claude:
   4. Please see: [file path]
 ```
 
+## Surgical Changes
+
+**Touch only what the task requires; clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting that the task didn't ask you to touch.
+- Don't refactor things that aren't broken; match the existing style even if you'd do it differently.
+- If you notice unrelated dead code, mention it — don't delete it.
+- Remove only the imports/variables/functions that YOUR change made unused; leave pre-existing dead code unless asked.
+
+**The test:** every changed line should trace directly to the request.
+
+**Distinct from Write Preflight:** amazon-growth-engine `CLAUDE.md` "Write Preflight Discipline" checks *whether the environment matches* before you mutate (branch / repo / dirty); Surgical Scope governs *what* you change once you proceed. Complementary, not the same rule.
+
+**Authority:** governed by Policy 9 (Surgical Scope) in `_meta/policies/DEFAULT_SKILL_POLICY.md`. This section is the longer-form playbook, not a second source of truth.
+
+**Source:** paraphrased from karpathy-guidelines §3.
+
 ## Quality Gates
 
 ### Pre-commit Checklist

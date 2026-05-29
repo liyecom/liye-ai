@@ -27,7 +27,7 @@ Playbook (SKILL.md)       →  defines HOW (implementation)
 
 ---
 
-## Default Policies (8)
+## Default Policies (9)
 
 ### Policy 1: Test Before Code (TDD)
 
@@ -164,6 +164,25 @@ Playbook (SKILL.md)       →  defines HOW (implementation)
 
 ---
 
+### Policy 9: Surgical Scope
+
+**Statement:** When editing existing code, change only what the task requires — every changed line should trace to the request. Don't improve adjacent code, refactor what isn't broken, or reformat to taste. Note unrelated dead code rather than deleting it; remove only the orphans your own change created.
+
+**applies_to:** Editing or refactoring existing files, multi-file changes, any state-mutating Write/Edit on code or config
+
+**can_override:** Yes
+
+**typical_override_reason:**
+- User explicitly scopes a broader cleanup or refactor
+- Mechanical codebase-wide migration with a stated blast radius
+- Isolated, clearly-labeled formatting-only commits
+
+**Source:** karpathy-guidelines §3 (paraphrased); related repo discipline: amazon-growth-engine CLAUDE.md "Write Preflight Discipline"
+
+**Related authority (not restated here):** anti-overengineering / YAGNI → `_meta/docs/ARCHITECTURE_CONSTITUTION.md` 第2条 (最小完备原则); evidence-before-claims → `_meta/governance/SKILL_CONSTITUTION_v0.1.md` Rule 1 + Rule 6
+
+---
+
 ## Override Protocol
 
 To override a policy in a specific Skill:
@@ -198,3 +217,4 @@ A Policy may be promoted to Constitutional Rule when:
 | Version | Date | Changes |
 |---------|------|---------|
 | v0.1 | 2026-01-16 | Initial release - 8 policies promoted from skill-guidelines.md |
+| v0.2 | 2026-05-29 | Add Policy 9 (Surgical Scope), paraphrased from karpathy-guidelines §3; anti-overengineering and evidence-before-claims referenced as pointers, not restated |
