@@ -7,6 +7,8 @@
 > **优先级规则：** 当 repo-local CLAUDE.md 与本文件冲突时，
 > 系统角色、层级、依赖方向以本文件为准；
 > 本地开发约束（编码规则、commit 纪律）以 repo CLAUDE.md 为准。
+> commit 纪律 = portfolio 执行基线（指针）+ repo delta；repo delta 可收紧、不得放松。
+> 执行基线定义见 `_meta/policies/DEFAULT_SKILL_POLICY.md` Policy 9 (Surgical Scope)。
 
 ## 四层架构
 
