@@ -1,0 +1,14 @@
+{
+  "description": "Golden fixture from REAL AGE emit_fact.py (LIVE+tmp seam, zero AGE mutation). Regenerate via golden_harness.py. Node import_facts recompute MUST byte-equal declared_* below.",
+  "source_provenance": {
+    "source_commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    "source_branch": "main",
+    "source_worktree_id": "amazon-growth-engine",
+    "source_dirty": false
+  },
+  "emitted_at_override": "2026-05-20T02:07:35+00:00",
+  "sidecar_text": "{\"artifact_path\":\"out/facts/golden/verification.json\",\"artifact_type\":\"verification_json\",\"emitted_at\":\"2026-05-20T02:07:35+00:00\",\"event_content_hash\":\"sha256:c3d18c2b895010a57dd437f0f7cab12daa07ff7235c1a7ea10fc05990fbb0482\",\"event_identity_key\":\"sha256:f1d72491cc8f4127b1af1eaf6ea2c115be88632db656fa5aee887390f4fb65d8\",\"manifest_hash\":\"sha256:06e586871b70dea82d528d6cb1f8bbc49ef73be5cb355753b70a0689c5b9b69b\",\"playbook_ref\":\"bid_recommend\",\"raw_payload_hash\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"raw_payload_ref\":\"out/facts/golden/raw_payload.json\",\"raw_payload_summary\":{\"acos\":\"0.42\",\"clicks\":\"1200\",\"cvr\":\"0.1305\",\"metric_formatting_hint\":{\"acos\":\"percent\"},\"note_unicode\":\"café-é\"},\"redaction_status\":\"no_sensitive_fields_detected\",\"schema_version\":\"1.0.0\",\"source_branch\":\"main\",\"source_commit_sha\":\"0123456789abcdef0123456789abcdef01234567\",\"source_dirty\":false,\"source_repo\":\"amazon-growth-engine\",\"source_system\":\"amazon-growth-engine\",\"source_worktree_id\":\"amazon-growth-engine\",\"step_id\":\"step-01\",\"trace_id\":\"20260520T020735Z\"}",
+  "declared_identity": "sha256:f1d72491cc8f4127b1af1eaf6ea2c115be88632db656fa5aee887390f4fb65d8",
+  "declared_content": "sha256:c3d18c2b895010a57dd437f0f7cab12daa07ff7235c1a7ea10fc05990fbb0482",
+  "declared_canonical_record_hash": "sha256:740ff696be006ab3d9c61321b25fa91ddcecd4f6c7ae96dd273c7058aa9cc961"
+}
