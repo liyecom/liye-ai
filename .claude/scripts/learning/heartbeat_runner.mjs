@@ -1,692 +1,579 @@
 #!/usr/bin/env node
 /**
- * Heartbeat Learning Runner v2.0.0
- * SSOT: .claude/scripts/learning/heartbeat_runner.mjs
+ * heartbeat_runner.mjs - Phase 1d GHL heartbeat v2 control-plane state manager.
+ * SSOT: .claude/scripts/learning/heartbeat_runner.mjs (File A, learning domain).
  *
- * Heartbeat Orchestrator：自动运行学习流水线
+ * Normative: SPEC .planning/phase-1d/SPEC.md v1.0 (blob a5349b52).
+ * Consumes (READ-ONLY, frozen 0b): _meta/contracts/learning/heartbeat_state_v2.schema.yaml.
+ * Emits (NEW 1d): _meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml.
  *
- * 双开关治理：
- * - A（ENV）= 点火按钮：LIYE_HEARTBEAT_ENABLED, LIYE_HEARTBEAT_NOTIFY_POLICY, LIYE_HEARTBEAT_COOLDOWN_MINUTES
- * - B（state/config）= 长期默认策略：heartbeat_learning_state.json
- * - 优先级：ENV > state/config > default(false)
- * - Fail-closed：非法 ENV → 强制 SKIP + 记录 facts
+ * WHAT THIS DOES (SPEC scope - control-plane ONLY):
+ *   - Reads the committed bootstrap template + the gitignored live state.
+ *   - Derives current_phase from the 7 feature flags (full 9-phase decision table).
+ *   - Fails closed on the 6 schema invalid-combinations AND a runner-side Pilot-1
+ *     ceiling (1d locks the 4 escalation flags false; production_write is Pilot-1-wide
+ *     locked per Hard Gate 8). Never auto-corrects, never writes a half-baked state.
+ *   - Validates the assembled live state against the frozen v2 schema (ajv).
+ *   - Holds the first-boot evaluating_metrics_only posture (trial_write_enabled=false,
+ *     Hard Gate 7) behind an explicit bootstrap-confirm env-gate.
+ *   - Appends a phase-transition log entry (heartbeat_phase_transition_v1) on every
+ *     phase change (bootstrap / operator / kill_switch), never silently.
  *
- * 用法:
- *   node heartbeat_runner.mjs [--dry-run] [--json] [--fixtures <dir>]
+ * WHAT THIS DOES NOT DO (deferred - SPEC §6 / Hard NO):
+ *   - Does NOT spawn/import the 1c policy_trial_evaluator (control-plane only). The
+ *     forward seam for wiring is an advisory note in the cursor sidecar
+ *     (evaluator_invocation_mode_advisory: "dry_run"); advisory only, never a call.
+ *   - Does NOT orchestrate the learning pipeline / discover_new_runs / cost_meter.
+ *   - Does NOT write policy_trials, candidate/promotion/production artifacts.
+ *   - No scheduler (manual / library trigger only).
+ *
+ * Two "dry_run" senses are deliberately separate (SPEC §1.1):
+ *   - system dry_run posture = trial_write_enabled=false -> current_phase=
+ *     evaluating_metrics_only. A control-plane STATE, held false throughout 1d.
+ *   - --dry-run CLI flag = the runner rehearses (derive+validate+report) and
+ *     persists NOTHING (no state / sidecar / transition / lock).
+ *
+ * Usage:
+ *   node heartbeat_runner.mjs [--dry-run] [--fixtures <dir>] [--json] [--help]
+ * Env:
+ *   LIYE_HEARTBEAT_BOOTSTRAP_CONFIRM=1   required on first boot (no live state present)
+ *   LIYE_HEARTBEAT_ENABLED={true,false}  retained master-switch override (ENV > state)
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from 'fs';
+import {
+  readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync,
+  openSync, closeSync, renameSync, unlinkSync, realpathSync,
+} from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
-
-import { discoverNewRuns } from './discover_new_runs.mjs';
-import { runLearningPipeline } from './learning_pipeline_v0_runner.mjs';
-import { buildOnChange } from './bundle_build_on_change.mjs';
-import {
-  resolveCostSwitch,
-  checkBudget,
-  recordCosts,
-  recordSwitchResolvedFact,
-  recordBudgetExceededFact,
-  checkAndRecordDayReset
-} from '../proactive/cost_meter.mjs';
+import { parse as parseYaml } from 'yaml';
+import Ajv from 'ajv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');
 
-const STATE_FILE = join(PROJECT_ROOT, 'state', 'runtime', 'proactive', 'heartbeat_learning_state.json');
-const FACTS_FILE = join(PROJECT_ROOT, 'state', 'memory', 'facts', 'fact_run_outcomes.jsonl');
-const KILL_SWITCH_FILE = join(PROJECT_ROOT, 'state', 'runtime', 'proactive', 'kill_switch.json');
-const LOCK_TIMEOUT_MS = 20 * 60 * 1000;
+// --------------------------------------------------------------------------- //
+// Locked constants
+// --------------------------------------------------------------------------- //
 
-// ============================================================================
-// 双开关解析（ENV > state > default）
-// ============================================================================
+const STATE_SCHEMA_PATH = join(PROJECT_ROOT, '_meta/contracts/learning/heartbeat_state_v2.schema.yaml');
+const TRANSITION_SCHEMA_PATH = join(PROJECT_ROOT, '_meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml');
+const DEFAULT_TEMPLATE_PATH = join(PROJECT_ROOT, '_meta/contracts/learning/heartbeat_state_v2.bootstrap.json');
 
-const VALID_BOOLEAN_VALUES = {
-  'true': true, '1': true, 'yes': true, 'on': true,
-  'false': false, '0': false, 'no': false, 'off': false
-};
+const STATE_DIR_REL = 'state/runtime/learning';
+const LIVE_STATE_REL = `${STATE_DIR_REL}/heartbeat_learning_state.json`;
+const CURSOR_SIDECAR_REL = `${STATE_DIR_REL}/heartbeat_learning_runtime.json`;
+const TRANSITIONS_REL = `${STATE_DIR_REL}/heartbeat_phase_transitions.jsonl`;
+const LOCK_REL = `${STATE_DIR_REL}/heartbeat.lock`;
 
-const VALID_NOTIFY_POLICIES = ['off', 'bundle_or_error', 'always'];
+// The 11 config keys the bootstrap template carries (7 flags + 4 registry). The
+// remaining 5 schema-required keys (version + _runtime_owned_fields + the 3
+// runtime-owned fields) are runner-assembled, NEVER template/config/env sourced.
+const CONFIG_KEYS = [
+  'enabled', 'evaluator_enabled', 'trial_write_enabled', 'candidate_write_enabled',
+  'candidate_write_target_status', 'promotion_enabled', 'production_write_enabled',
+  'source_allowlist', 'max_trials_per_day', 'kill_switch_required', 'cooldown_minutes',
+];
 
-const DEFAULTS = {
-  enabled: false,           // 合并即安全
-  notify_policy: 'bundle_or_error',
-  cooldown_minutes: 30
-};
+// RUNTIME-OWNED fields, in the exact order the frozen v2 schema pins as a const array.
+const RUNTIME_OWNED_FIELDS = ['current_phase', 'current_phase_derived_at', 'last_run_at'];
+
+// The 7 control flags surfaced in the report (schema enforces them in the state).
+const REPORT_FLAG_KEYS = [
+  'enabled', 'evaluator_enabled', 'trial_write_enabled', 'candidate_write_enabled',
+  'candidate_write_target_status', 'promotion_enabled', 'production_write_enabled',
+];
+
+// Pilot-1 / 1d escalation ceiling (runner-side, additive to the 6 schema combos;
+// the schema PERMITS trial_write_enabled=true since that is the 2a flip). 1d locks
+// all four false; production_write_enabled is the Pilot-1-wide lock (Hard Gate 8).
+const ESCALATION_FLAGS = [
+  'trial_write_enabled', 'candidate_write_enabled', 'promotion_enabled', 'production_write_enabled',
+];
+
+const EXIT = { SUCCESS: 0, FAIL_CLOSED: 2, UNEXPECTED: 1 };
+
+// Advisory-only forward seam (cursor sidecar; never the live state). NOT a contract.
+const ADVISORY_INVOCATION_MODE = 'dry_run';
+
+// Distinct error kinds so the CLI maps the lock/template/config failures to exit 1
+// (UNEXPECTED), keeping fail-closed (exit 2) for state/combo/ceiling/bootstrap.
+class HeartbeatLockError extends Error { constructor(m) { super(m); this.name = 'HeartbeatLockError'; } }
+class HeartbeatTemplateError extends Error { constructor(m) { super(m); this.name = 'HeartbeatTemplateError'; } }
+class HeartbeatConfigError extends Error { constructor(m) { super(m); this.name = 'HeartbeatConfigError'; } }
+
+// --------------------------------------------------------------------------- //
+// ajv validators (lazy, cached). Draft-07, strict off, formats off (matches the
+// 1b/1c convention; the runtime sets the date-time fields itself via toISOString).
+// --------------------------------------------------------------------------- //
+
+let _stateValidator = null;
+let _transitionValidator = null;
+
+function getStateValidator() {
+  if (!_stateValidator) {
+    const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });
+    _stateValidator = ajv.compile(parseYaml(readFileSync(STATE_SCHEMA_PATH, 'utf-8')));
+  }
+  return _stateValidator;
+}
+
+function getTransitionValidator() {
+  if (!_transitionValidator) {
+    const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });
+    _transitionValidator = ajv.compile(parseYaml(readFileSync(TRANSITION_SCHEMA_PATH, 'utf-8')));
+  }
+  return _transitionValidator;
+}
+
+function firstError(validate) {
+  const e = validate.errors && validate.errors[0];
+  if (!e) return 'schema invalid';
+  return `${e.instancePath || '<root>'} ${e.message}`;
+}
+
+/** Boolean validity check of a full 16-key state against the frozen v2 schema (exported per SPEC §1.1). */
+export function validateHeartbeatState(state) {
+  return getStateValidator()(state) === true;
+}
+
+// --------------------------------------------------------------------------- //
+// Derivation + fail-closed layers (pure functions; exported for unit coverage).
+// --------------------------------------------------------------------------- //
 
 /**
- * 解析布尔环境变量（fail-closed）
- * @returns {{ value: boolean|null, source: string, error: string|null }}
+ * Derive current_phase from the feature flags. Full 9-row decision table, priority
+ * short-circuit (SPEC §1.4 / frozen schema N-1 §7.3). Data mapping, not policy.
  */
-function resolveBooleanEnv(name) {
-  const raw = process.env[name];
-  if (raw === undefined || raw === '') {
-    return { value: null, source: 'not_set', error: null };
-  }
-
-  const normalized = raw.toLowerCase().trim();
-  if (normalized in VALID_BOOLEAN_VALUES) {
-    return { value: VALID_BOOLEAN_VALUES[normalized], source: 'env', error: null };
-  }
-
-  // 非法值 → fail-closed
-  return {
-    value: null,
-    source: 'env_invalid',
-    error: `Invalid boolean value for ${name}: "${raw}". Expected: true|false|1|0|yes|no|on|off`,
-    error_code: 'ENV_BOOL_INVALID'
-  };
+export function deriveCurrentPhase(flags) {
+  if (flags.enabled === false) return 'paused';
+  if (!Array.isArray(flags.source_allowlist) || flags.source_allowlist.length === 0) return 'paused_no_active_source';
+  if (flags.evaluator_enabled === false) return 'ingesting_only';
+  if (flags.evaluator_enabled === true && flags.trial_write_enabled === false) return 'evaluating_metrics_only';
+  if (flags.trial_write_enabled === true && flags.candidate_write_enabled === false) return 'trialing';
+  if (flags.candidate_write_enabled === true && flags.candidate_write_target_status === 'sandbox' && flags.promotion_enabled === false) return 'candidate_writing_sandbox';
+  if (flags.candidate_write_enabled === true && flags.candidate_write_target_status === 'candidate' && flags.promotion_enabled === false) return 'candidate_writing';
+  if (flags.promotion_enabled === true && flags.production_write_enabled === false) return 'promoting';
+  if (flags.production_write_enabled === true) return 'executing_limited';
+  throw new HeartbeatConfigError(`deriveCurrentPhase: no phase matched (flags=${JSON.stringify(flags)})`);
 }
 
 /**
- * 解析数字环境变量（fail-closed）
- * @returns {{ value: number|null, source: string, error: string|null }}
+ * Mirror of the 6 invalid feature-flag combinations encoded as allOf if/then in the
+ * frozen v2 schema. Checked in code (before the generic ajv pass) so the report can
+ * label kind="invalid_combo" distinctly from a structural schema failure, and so an
+ * ENV override that creates a combo is caught (SPEC §1.5 Layer-A).
  */
-function resolveNumberEnv(name, { min = 1, max = 1440 } = {}) {
-  const raw = process.env[name];
-  if (raw === undefined || raw === '') {
-    return { value: null, source: 'not_set', error: null };
+export function checkInvalidCombos(f) {
+  if (f.production_write_enabled === true && f.promotion_enabled === false) {
+    return invalid(1, ['production_write_enabled', 'promotion_enabled'], 'production_write_enabled=true requires promotion_enabled=true');
   }
+  if (f.promotion_enabled === true && f.candidate_write_enabled === false) {
+    return invalid(2, ['promotion_enabled', 'candidate_write_enabled'], 'promotion_enabled=true requires candidate_write_enabled=true');
+  }
+  if (f.candidate_write_enabled === false && f.candidate_write_target_status === 'candidate') {
+    return invalid(3, ['candidate_write_enabled', 'candidate_write_target_status'], 'candidate_write_target_status=candidate requires candidate_write_enabled=true');
+  }
+  if (f.trial_write_enabled === true && f.evaluator_enabled === false) {
+    return invalid(4, ['trial_write_enabled', 'evaluator_enabled'], 'trial_write_enabled=true requires evaluator_enabled=true');
+  }
+  if (f.candidate_write_enabled === true && f.trial_write_enabled === false) {
+    return invalid(5, ['candidate_write_enabled', 'trial_write_enabled'], 'candidate_write_enabled=true requires trial_write_enabled=true');
+  }
+  if (f.enabled === false && (
+    f.evaluator_enabled === true || f.trial_write_enabled === true || f.candidate_write_enabled === true ||
+    f.promotion_enabled === true || f.production_write_enabled === true)) {
+    return invalid(6, ['enabled'], 'enabled=false requires all eval/write flags false (master switch zeroes everything)');
+  }
+  return { invalid: false };
+}
 
-  const num = parseInt(raw, 10);
-  if (isNaN(num)) {
+function invalid(combo, offending, detail) {
+  return { invalid: true, combo, offending, detail };
+}
+
+/**
+ * Pilot-1 / 1d ceiling (SPEC §1.5 Layer-B). Additive to the schema combos. Any of the
+ * four escalation flags true -> fail closed. 2a relaxes trial_write_enabled (phase-
+ * versioned); production_write_enabled stays Pilot-1-wide locked (Hard Gate 8).
+ */
+export function checkCeiling(f) {
+  const offending = ESCALATION_FLAGS.filter((k) => f[k] === true);
+  if (offending.length > 0) {
     return {
-      value: null,
-      source: 'env_invalid',
-      error: `Invalid number value for ${name}: "${raw}". Expected integer.`,
-      error_code: 'ENV_NUMBER_INVALID'
+      hit: true,
+      offending,
+      detail: `Pilot-1 ceiling: ${offending.join(', ')} must be false in Phase 1d (production_write_enabled is Pilot-1-wide locked per Hard Gate 8)`,
     };
   }
-
-  if (num < min || num > max) {
-    return {
-      value: null,
-      source: 'env_invalid',
-      error: `Value for ${name} out of range: ${num}. Expected ${min}-${max}.`,
-      error_code: 'ENV_NUMBER_OUT_OF_RANGE'
-    };
-  }
-
-  return { value: num, source: 'env', error: null };
+  return { hit: false };
 }
 
+// --------------------------------------------------------------------------- //
+// Phase-transition window age (SPEC §1.8 single definition). now - transition_at of
+// the FIRST contiguous entry that established the CURRENT phase.
+// --------------------------------------------------------------------------- //
+
+export function getPhaseWindowAge(transitionsPath, currentPhase = null) {
+  if (!existsSync(transitionsPath)) return null;
+  const entries = [];
+  for (const line of readFileSync(transitionsPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let obj;
+    try { obj = JSON.parse(trimmed); } catch { continue; }
+    if (obj && typeof obj.to === 'string' && typeof obj.transition_at === 'string') entries.push(obj);
+  }
+  if (entries.length === 0) return null;
+  const target = currentPhase || entries[entries.length - 1].to;
+  if (entries[entries.length - 1].to !== target) return null; // current phase has no open window
+  let anchor = entries[entries.length - 1].transition_at;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].to !== target) break;
+    anchor = entries[i].transition_at;
+  }
+  const ageMs = Date.now() - Date.parse(anchor);
+  return ageMs < 0 ? 0 : Math.floor(ageMs / 1000);
+}
+
+// --------------------------------------------------------------------------- //
+// State assembly + I/O helpers.
+// --------------------------------------------------------------------------- //
+
+function nowIso() { return new Date().toISOString(); } // ...Z == +00:00 offset
+
+function ensureDir(dir) { if (!existsSync(dir)) mkdirSync(dir, { recursive: true }); }
+
+function readJson(path) { return JSON.parse(readFileSync(path, 'utf-8')); }
+
+/** Atomic write: full content to a temp sibling, then rename (no torn writes). */
+function writeJsonAtomic(path, obj) {
+  ensureDir(dirname(path));
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, `${JSON.stringify(obj, null, 2)}\n`);
+  renameSync(tmp, path);
+}
+
+function acquireLock(lockPath) {
+  ensureDir(dirname(lockPath));
+  let fd;
+  try { fd = openSync(lockPath, 'wx'); } // O_CREAT | O_EXCL
+  catch (err) {
+    if (err.code === 'EEXIST') throw new HeartbeatLockError(`heartbeat lock held: ${lockPath}`);
+    throw err;
+  }
+  try { writeSyncLine(fd, `${nowIso()} pid=${process.pid}\n`); } finally { closeSync(fd); }
+}
+
+function writeSyncLine(fd, text) { writeFileSync(fd, text); }
+
+function releaseLock(lockPath) { try { unlinkSync(lockPath); } catch { /* already gone */ } }
+
 /**
- * 解析通知策略环境变量
- * @returns {{ value: string|null, source: string, error: string|null }}
+ * Read + validate the committed bootstrap template. It MUST be exactly the 11 config
+ * keys: any runtime-owned key (or other extra key) is a contract violation (those are
+ * runner-set, never template-sourced), and a missing key is template corruption.
  */
-function resolveNotifyPolicyEnv() {
-  const raw = process.env.LIYE_HEARTBEAT_NOTIFY_POLICY;
-  if (raw === undefined || raw === '') {
-    return { value: null, source: 'not_set', error: null };
+function readTemplate(templatePath) {
+  if (!existsSync(templatePath)) throw new HeartbeatTemplateError(`bootstrap template not found: ${templatePath}`);
+  let obj;
+  try { obj = readJson(templatePath); }
+  catch (e) { throw new HeartbeatTemplateError(`bootstrap template not parseable: ${e.message}`); }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    throw new HeartbeatTemplateError('bootstrap template must be a JSON object');
   }
-
-  const normalized = raw.toLowerCase().trim();
-  if (VALID_NOTIFY_POLICIES.includes(normalized)) {
-    return { value: normalized, source: 'env', error: null };
+  const allowed = new Set(CONFIG_KEYS);
+  for (const k of Object.keys(obj)) {
+    if (!allowed.has(k)) {
+      throw new HeartbeatTemplateError(
+        `bootstrap template has forbidden key '${k}' (runtime-owned fields are runner-set; template must be exactly the 11 config keys)`);
+    }
   }
+  for (const k of CONFIG_KEYS) {
+    if (!(k in obj)) throw new HeartbeatTemplateError(`bootstrap template missing config key '${k}'`);
+  }
+  return obj;
+}
 
+function extractConfigFlags(source) {
+  const out = {};
+  for (const k of CONFIG_KEYS) out[k] = source[k];
+  return out;
+}
+
+function pickReportFlags(flags) {
+  const out = {};
+  for (const k of REPORT_FLAG_KEYS) out[k] = flags[k];
+  return out;
+}
+
+/** Assemble the authoritative full 16-key v2 state (runtime-owned fields runner-set). */
+function assembleState(flags, phase, iso) {
   return {
-    value: null,
-    source: 'env_invalid',
-    error: `Invalid notify_policy: "${raw}". Expected: ${VALID_NOTIFY_POLICIES.join('|')}`,
-    error_code: 'ENV_NOTIFY_POLICY_INVALID'
+    version: 2,
+    enabled: flags.enabled,
+    evaluator_enabled: flags.evaluator_enabled,
+    trial_write_enabled: flags.trial_write_enabled,
+    candidate_write_enabled: flags.candidate_write_enabled,
+    candidate_write_target_status: flags.candidate_write_target_status,
+    promotion_enabled: flags.promotion_enabled,
+    production_write_enabled: flags.production_write_enabled,
+    source_allowlist: flags.source_allowlist,
+    max_trials_per_day: flags.max_trials_per_day,
+    kill_switch_required: flags.kill_switch_required,
+    cooldown_minutes: flags.cooldown_minutes,
+    _runtime_owned_fields: [...RUNTIME_OWNED_FIELDS],
+    current_phase: phase,
+    current_phase_derived_at: iso,
+    last_run_at: iso,
   };
 }
 
-/**
- * 检查 kill switch（最高优先级）
- * @returns {{ active: boolean, source: string }}
- */
-function checkKillSwitch() {
-  // ENV kill switch（最高优先级）
-  const envKill = process.env.LIYE_KILL_SWITCH;
-  if (envKill !== undefined && envKill !== '') {
-    const normalized = envKill.toLowerCase().trim();
-    if (normalized in VALID_BOOLEAN_VALUES && VALID_BOOLEAN_VALUES[normalized]) {
-      return { active: true, source: 'env' };
-    }
-  }
-
-  // State file kill switch
-  if (existsSync(KILL_SWITCH_FILE)) {
-    try {
-      const switches = JSON.parse(readFileSync(KILL_SWITCH_FILE, 'utf-8'));
-      // learning_heartbeat=false 表示禁用
-      if (switches.learning_heartbeat === false) {
-        return { active: true, source: 'state' };
-      }
-    } catch (e) {
-      // 解析失败 → fail-closed
-      return { active: true, source: 'state_parse_error' };
-    }
-  }
-
-  return { active: false, source: 'none' };
-}
-
-/**
- * 解析双开关配置（核心函数）
- * 优先级：kill_switch > ENV > state > default
- * @returns {{ effective, source, config_errors, action }}
- */
-function resolveSwitches() {
-  const state = loadState();
-  const config_errors = [];
-  const error_codes = [];  // 建议 1：统一错误码
-
-  // 1. Kill Switch（最高优先级）
-  const killSwitch = checkKillSwitch();
-
-  // 2. 解析 enabled（ENV > state > default）
-  const envEnabled = resolveBooleanEnv('LIYE_HEARTBEAT_ENABLED');
-  if (envEnabled.error) {
-    config_errors.push(envEnabled.error);
-    if (envEnabled.error_code) error_codes.push(envEnabled.error_code);
-  }
-
-  let effective_enabled, enabled_source;
-  if (envEnabled.value !== null) {
-    effective_enabled = envEnabled.value;
-    enabled_source = 'env';
-  } else if (envEnabled.source === 'env_invalid') {
-    // 非法 ENV → fail-closed
-    effective_enabled = false;
-    enabled_source = 'env_invalid_fail_closed';
-  } else if (state.enabled !== undefined) {
-    effective_enabled = state.enabled;
-    enabled_source = 'state';
-  } else {
-    effective_enabled = DEFAULTS.enabled;
-    enabled_source = 'default';
-  }
-
-  // 3. 解析 notify_policy（ENV > state > default）
-  const envNotify = resolveNotifyPolicyEnv();
-  if (envNotify.error) {
-    config_errors.push(envNotify.error);
-    if (envNotify.error_code) error_codes.push(envNotify.error_code);
-  }
-
-  let effective_notify_policy, notify_source;
-  if (envNotify.value !== null) {
-    effective_notify_policy = envNotify.value;
-    notify_source = 'env';
-  } else if (envNotify.source === 'env_invalid') {
-    effective_notify_policy = DEFAULTS.notify_policy;
-    notify_source = 'env_invalid_use_default';
-  } else if (state.notify_policy !== undefined) {
-    effective_notify_policy = state.notify_policy;
-    notify_source = 'state';
-  } else {
-    effective_notify_policy = DEFAULTS.notify_policy;
-    notify_source = 'default';
-  }
-
-  // 4. 解析 cooldown_minutes（ENV > state > default）
-  const envCooldown = resolveNumberEnv('LIYE_HEARTBEAT_COOLDOWN_MINUTES', { min: 1, max: 1440 });
-  if (envCooldown.error) {
-    config_errors.push(envCooldown.error);
-    if (envCooldown.error_code) error_codes.push(envCooldown.error_code);
-  }
-
-  let effective_cooldown_minutes, cooldown_source;
-  if (envCooldown.value !== null) {
-    effective_cooldown_minutes = envCooldown.value;
-    cooldown_source = 'env';
-  } else if (envCooldown.source === 'env_invalid') {
-    effective_cooldown_minutes = DEFAULTS.cooldown_minutes;
-    cooldown_source = 'env_invalid_use_default';
-  } else if (state.cooldown_minutes !== undefined) {
-    effective_cooldown_minutes = state.cooldown_minutes;
-    cooldown_source = 'state';
-  } else {
-    effective_cooldown_minutes = DEFAULTS.cooldown_minutes;
-    cooldown_source = 'default';
-  }
-
-  // 5. 最终决策
-  let action;
-  if (killSwitch.active) {
-    action = 'SKIP';
-  } else if (config_errors.length > 0 && enabled_source === 'env_invalid_fail_closed') {
-    action = 'SKIP';  // fail-closed
-  } else if (effective_enabled) {
-    action = 'RUN';
-  } else {
-    action = 'SKIP';
-  }
-
+/** Inert cursor sidecar (schema-external runtime cursors). 1d carries only defaults. */
+function buildCursorSidecar() {
   return {
-    effective: {
-      enabled: effective_enabled,
-      notify_policy: effective_notify_policy,
-      cooldown_minutes: effective_cooldown_minutes
-    },
-    source: {
-      enabled: enabled_source,
-      notify_policy: notify_source,
-      cooldown_minutes: cooldown_source
-    },
-    kill_switch: killSwitch,
-    config_errors,
-    error_codes,  // 建议 1：统一错误码
-    action
+    notify_policy: 'bundle_or_error',
+    last_window_end: null,
+    last_processed_run_id: null,
+    bundle: { last_content_sha: null, last_version: null, last_artifact_path: null },
+    evaluator_invocation_mode_advisory: ADVISORY_INVOCATION_MODE,
   };
-}
-
-// ============================================================================
-// 状态管理
-// ============================================================================
-
-function loadState() {
-  if (!existsSync(STATE_FILE)) {
-    return {
-      version: 1,
-      enabled: false,  // 默认禁用（合并即安全）
-      notify_policy: 'bundle_or_error',
-      cooldown_minutes: 30,
-      last_run_at: null,
-      last_window_end: null,
-      last_processed_run_id: null,
-      lock: { locked_at: null, lock_id: null },
-      bundle: { last_content_sha: null, last_version: '0.4.0', last_artifact_path: null }
-    };
-  }
-  return JSON.parse(readFileSync(STATE_FILE, 'utf-8'));
-}
-
-function saveState(state) {
-  const dir = dirname(STATE_FILE);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-}
-
-function checkCooldown(state, effectiveCooldownMinutes) {
-  if (!state.last_run_at) return { passed: true, remaining_minutes: 0 };
-  const lastRun = new Date(state.last_run_at);
-  const now = new Date();
-  const elapsedMinutes = (now - lastRun) / (1000 * 60);
-  if (elapsedMinutes < effectiveCooldownMinutes) {
-    return { passed: false, remaining_minutes: Math.ceil(effectiveCooldownMinutes - elapsedMinutes) };
-  }
-  return { passed: true, remaining_minutes: 0 };
-}
-
-function tryAcquireLock(state) {
-  const now = Date.now();
-  if (state.lock.locked_at && state.lock.lock_id) {
-    const lockAge = now - new Date(state.lock.locked_at).getTime();
-    if (lockAge < LOCK_TIMEOUT_MS) {
-      return { acquired: false, reason: 'lock_held', held_by: state.lock.lock_id };
-    }
-  }
-  const lockId = randomUUID().slice(0, 8);
-  state.lock.locked_at = new Date().toISOString();
-  state.lock.lock_id = lockId;
-  return { acquired: true, lock_id: lockId };
-}
-
-function releaseLock(state) {
-  state.lock.locked_at = null;
-  state.lock.lock_id = null;
-}
-
-// ============================================================================
-// Facts 记录（append-only）
-// ============================================================================
-
-function appendFact(fact) {
-  const dir = dirname(FACTS_FILE);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const record = { timestamp: new Date().toISOString(), ...fact };
-  appendFileSync(FACTS_FILE, JSON.stringify(record) + '\n');
-}
-
-function appendSwitchResolvedFact(switchResult) {
-  appendFact({
-    event_type: 'heartbeat_switch_resolved',
-    effective: switchResult.effective,
-    source: switchResult.source,
-    kill_switch: switchResult.kill_switch,
-    config_errors: switchResult.config_errors,
-    error_codes: switchResult.error_codes,  // 建议 1：统一错误码
-    action: switchResult.action
-  });
 }
 
 /**
- * 建议 2：当 enabled 从 false→true 时记录点火事件
+ * Classify the transition reason + actor (SPEC §1.8). 1d-reachable: bootstrap (first
+ * boot), kill_switch (enabled=false -> paused; combo#6 forces all flags zeroed),
+ * operator (any other operator-driven phase change). operator_rollback (graceful
+ * trial_write true->false) is 2a-only and unreachable in 1d (the ceiling locks
+ * trial_write false, so a trial_write=true prior state never persists).
  */
-function appendIgnitedFact(switchResult) {
-  appendFact({
-    event_type: 'heartbeat_ignited',
-    effective: switchResult.effective,
-    source: switchResult.source,
-    ignited_via: switchResult.source.enabled  // env/state
-  });
+function classifyReason(firstBoot, flags) {
+  if (firstBoot) return { reason: 'bootstrap', actor: 'runtime' };
+  if (flags.enabled === false) return { reason: 'kill_switch', actor: 'operator' };
+  return { reason: 'operator', actor: 'operator' };
 }
 
-function appendHeartbeatFact(fact) {
-  appendFact({ event_type: 'heartbeat_learning_run', ...fact });
+function appendTransition(transitionsPath, entry) {
+  const v = getTransitionValidator();
+  if (!v(entry)) return { ok: false, error: firstError(v) };
+  ensureDir(dirname(transitionsPath));
+  appendFileSync(transitionsPath, `${JSON.stringify(entry)}\n`);
+  return { ok: true };
 }
 
-// ============================================================================
-// 主流程
-// ============================================================================
+// --------------------------------------------------------------------------- //
+// Public API
+// --------------------------------------------------------------------------- //
 
-export async function runHeartbeat(options = {}) {
-  const { dryRun = false, fixturesDir = null } = options;
+/**
+ * Run one heartbeat control-plane cycle.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.dryRun=false]        rehearse only; persist nothing (no state/sidecar/transition/lock)
+ * @param {string}  [options.rootDir]             state I/O root (test seam); default PROJECT_ROOT
+ * @param {string}  [options.templatePath]        bootstrap template path; default the committed contract artifact
+ * @param {boolean} [options.bootstrapConfirm]    mirrors LIYE_HEARTBEAT_BOOTSTRAP_CONFIRM=1 (required on first boot)
+ * @param {boolean} [options.enabledOverride]     mirrors LIYE_HEARTBEAT_ENABLED (master-switch override, ENV > state)
+ * @returns {object} HeartbeatRunReport (audit; NOT the live state)
+ */
+export function runHeartbeat(options = {}) {
+  const dryRun = options.dryRun === true;
+  const rootDir = options.rootDir ? realpathSync(options.rootDir) : PROJECT_ROOT;
+  const templatePath = options.templatePath || DEFAULT_TEMPLATE_PATH;
+  const bootstrapConfirm = options.bootstrapConfirm === true;
+  const enabledOverride = typeof options.enabledOverride === 'boolean' ? options.enabledOverride : undefined;
 
-  const result = {
-    status: 'success',
-    action: 'completed',
-    timestamp: new Date().toISOString(),
-    dry_run: dryRun,
-    steps: {},
-    error: null
+  const liveStatePath = join(rootDir, LIVE_STATE_REL);
+  const cursorPath = join(rootDir, CURSOR_SIDECAR_REL);
+  const transitionsPath = join(rootDir, TRANSITIONS_REL);
+  const lockPath = join(rootDir, LOCK_REL);
+  const stateDir = join(rootDir, STATE_DIR_REL);
+
+  const iso = nowIso();
+  const firstBoot = !existsSync(liveStatePath);
+
+  const report = {
+    mode: dryRun ? 'rehearse' : 'persist',
+    current_phase: null,
+    current_phase_derived_at: null,
+    phase_window_age_seconds: null,
+    flags: null,
+    fail_closed: { kind: null, detail: null },
+    evaluator_invocation_mode_advisory: ADVISORY_INVOCATION_MODE,
+    transition_appended: false,
+    last_run_at: iso,
   };
 
-  // Step 0: 双开关解析
-  console.error('[heartbeat] Step 0: Resolving switches (ENV > state > default)...');
-  const switchResult = resolveSwitches();
-  result.steps.switch_resolution = switchResult;
-
-  // 记录开关决策到 facts（审计必需）
-  if (!dryRun) {
-    appendSwitchResolvedFact(switchResult);
-  }
-
-  // Kill switch 检查
-  if (switchResult.kill_switch.active) {
-    result.action = 'skipped';
-    result.steps.skip_reason = 'kill_switch';
-    result.steps.skip_source = switchResult.kill_switch.source;
-    console.error(`[heartbeat] SKIP: kill_switch active (source: ${switchResult.kill_switch.source})`);
-    return result;
-  }
-
-  // Config errors → fail-closed
-  if (switchResult.config_errors.length > 0 && switchResult.action === 'SKIP') {
-    result.action = 'skipped';
-    result.steps.skip_reason = 'config_error_fail_closed';
-    result.steps.config_errors = switchResult.config_errors;
-    console.error(`[heartbeat] SKIP: config errors (fail-closed): ${switchResult.config_errors.join('; ')}`);
-    return result;
-  }
-
-  // Enabled 检查
-  if (!switchResult.effective.enabled) {
-    result.action = 'skipped';
-    result.steps.skip_reason = 'disabled';
-    result.steps.disabled_source = switchResult.source.enabled;
-    console.error(`[heartbeat] SKIP: disabled (source: ${switchResult.source.enabled})`);
-    return result;
-  }
-
-  // 建议 2：记录点火事件（enabled=true 时）
-  if (!dryRun && switchResult.effective.enabled) {
-    appendIgnitedFact(switchResult);
-    console.error(`[heartbeat] IGNITED via ${switchResult.source.enabled}`);
-  }
-
-  const state = loadState();
-
-  // Step 1: Cooldown
-  console.error('[heartbeat] Step 1: Cooldown check...');
-  const cooldownCheck = checkCooldown(state, switchResult.effective.cooldown_minutes);
-  result.steps.cooldown = cooldownCheck;
-  if (!cooldownCheck.passed) {
-    result.action = 'skipped';
-    result.steps.skip_reason = 'cooldown';
-    return result;
-  }
-
-  // Step 1.5: Cost Meter Preflight (budget check)
-  console.error('[heartbeat] Step 1.5: Cost meter preflight check...');
-  const runId = `heartbeat-${Date.now()}`;
-  const costSwitchResult = resolveCostSwitch();
-  result.steps.cost_switch = costSwitchResult;
-
-  // Record cost switch resolution (audit required, even if disabled)
-  if (!dryRun) {
-    recordSwitchResolvedFact(runId, costSwitchResult);
-    // Record day reset if UTC day boundary was crossed
-    checkAndRecordDayReset(runId);
-  }
-
-  // Handle cost meter SKIP (fail-closed on config error)
-  if (costSwitchResult.action === 'SKIP') {
-    console.error('[heartbeat] Cost meter SKIP: fail-closed due to config errors');
-    result.action = 'skipped';
-    result.steps.skip_reason = 'cost_config_fail_closed';
-    result.steps.cost_config_errors = costSwitchResult.config_errors;
-    return result;
-  }
-
-  // If cost meter is enabled, check budget
-  if (costSwitchResult.action === 'ENABLED') {
-    const projectedSteps = {
-      discover_runs: 1,
-      learning_pipeline: 1,
-      bundle_build: 1,
-      validate_bundle: 1,
-      notifier: 1
+  // Bootstrap env-gate (SPEC §1.1/§1.2, ruling N): first boot requires explicit
+  // confirmation regardless of dry-run -- a merge never triggers a write.
+  if (firstBoot && !bootstrapConfirm) {
+    report.fail_closed = {
+      kind: 'bootstrap_unconfirmed',
+      detail: 'first boot requires LIYE_HEARTBEAT_BOOTSTRAP_CONFIRM=1 (no live state present)',
     };
-    const budgetCheck = checkBudget(projectedSteps);
-    result.steps.budget_check = budgetCheck;
-
-    if (!budgetCheck.passed) {
-      console.error(`[heartbeat] Cost budget exceeded: projected=${budgetCheck.projected_cost}, remaining=${budgetCheck.remaining_budget}`);
-
-      // Record budget exceeded fact (audit required)
-      if (!dryRun) {
-        // Determine denied components based on deny_action
-        const deniedComponents = budgetCheck.action === 'skip_all' ? ['all'] : ['notifier'];
-        recordBudgetExceededFact(
-          runId,
-          budgetCheck.projected_cost,
-          budgetCheck.remaining_budget,
-          budgetCheck.action,
-          deniedComponents
-        );
-      }
-
-      // Apply deny_action
-      if (budgetCheck.action === 'skip_all') {
-        result.action = 'skipped';
-        result.steps.skip_reason = 'cost_budget_exceeded';
-        result.steps.cost_deny_action = 'skip_all';
-        return result;
-      } else {
-        // skip_notify_only: continue but flag notification suppression
-        result.steps.cost_suppress_notify = true;
-        console.error('[heartbeat] Cost budget exceeded but continuing (skip_notify_only)');
-      }
-    }
+    return report;
   }
 
-  // Step 2: Lock
-  console.error('[heartbeat] Step 2: Acquiring lock...');
-  const lockResult = tryAcquireLock(state);
-  result.steps.lock = lockResult;
-  if (!lockResult.acquired) {
-    result.action = 'skipped';
-    result.steps.skip_reason = 'lock_held';
-    return result;
-  }
-  if (!dryRun) saveState(state);
-
+  // Lock only when we will persist (--dry-run never persists, so never locks).
+  let locked = false;
+  if (!dryRun) { ensureDir(stateDir); acquireLock(lockPath); locked = true; }
   try {
-    // Step 3: Discover
-    console.error('[heartbeat] Step 3: Discovering new runs...');
-    const discoverResult = discoverNewRuns({
-      since: state.last_window_end,
-      sinceRunId: state.last_processed_run_id,
-      fixturesDir
-    });
-    result.steps.discover = discoverResult;
+    // 1) Obtain the 11 config flags from the template (bootstrap) or live state.
+    let prevPhase = null;
+    let loadedState = null;
+    let configSource;
+    if (firstBoot) {
+      configSource = readTemplate(templatePath);
+    } else {
+      try { loadedState = readJson(liveStatePath); }
+      catch (e) { report.fail_closed = { kind: 'schema', detail: `live state not parseable: ${e.message}` }; return report; }
+      prevPhase = loadedState && typeof loadedState.current_phase === 'string' ? loadedState.current_phase : null;
+      configSource = loadedState;
+    }
+    const flags = extractConfigFlags(configSource);
 
-    if (discoverResult.new_run_ids.length === 0) {
-      result.action = 'skipped';
-      result.steps.skip_reason = 'no_new_runs';
-      if (!dryRun) {
-        state.last_run_at = new Date().toISOString();
-        state.last_window_end = discoverResult.window_end;
-        releaseLock(state);
-        saveState(state);
-      }
-      return result;
+    // Master-switch override (ENV > state); only `enabled` is ENV-controllable (N6).
+    if (enabledOverride !== undefined) flags.enabled = enabledOverride;
+    report.flags = pickReportFlags(flags);
+
+    // 2) Layer-A fail-closed: the 6 invalid feature-flag combinations.
+    const combo = checkInvalidCombos(flags);
+    if (combo.invalid) {
+      report.fail_closed = { kind: 'invalid_combo', detail: combo.detail, combo: combo.combo, offending_flags: combo.offending };
+      return report;
+    }
+    // 3) Layer-B fail-closed: Pilot-1 / 1d ceiling.
+    const ceiling = checkCeiling(flags);
+    if (ceiling.hit) {
+      report.fail_closed = { kind: 'ceiling', detail: ceiling.detail, offending_flags: ceiling.offending };
+      return report;
+    }
+    // 4) Existing states: enforce the full v2 schema on the operator-written file
+    //    (additionalProperties:false, version=2, runtime-owned const, types).
+    if (!firstBoot) {
+      const v = getStateValidator();
+      if (!v(loadedState)) { report.fail_closed = { kind: 'schema', detail: firstError(v) }; return report; }
     }
 
-    // Step 4: Pipeline
-    console.error('[heartbeat] Step 4: Running pipeline...');
-    const pipelineResult = runLearningPipeline({
-      windowStart: discoverResult.window_start,
-      windowEnd: discoverResult.window_end,
-      dryRun
-    });
-    result.steps.pipeline = pipelineResult;
+    // 5) Derive + assemble the authoritative 16-key state.
+    const phase = deriveCurrentPhase(flags);
+    const state = assembleState(flags, phase, iso);
 
-    if (pipelineResult.status === 'error') {
-      result.status = 'error';
-      result.action = 'failed';
-      result.error = pipelineResult.error;
-      if (!dryRun) appendHeartbeatFact({ status: 'error', error: pipelineResult.error });
-      return result;
+    // 6) Defense-in-depth: the assembled state must pass the frozen v2 schema.
+    const v2 = getStateValidator();
+    if (!v2(state)) { report.fail_closed = { kind: 'schema', detail: `assembled state invalid: ${firstError(v2)}` }; return report; }
+
+    report.current_phase = phase;
+    report.current_phase_derived_at = iso;
+
+    // 7) Transition: append on phase change (never silent). Append BEFORE writing the
+    //    live state so a silent audit gap is impossible; at worst a crash over-logs a
+    //    duplicate entry, which is strictly preferable to a missing transition.
+    const phaseChanged = prevPhase !== phase;
+    if (phaseChanged && !dryRun) {
+      const { reason, actor } = classifyReason(firstBoot, flags);
+      const entry = { transition_at: iso, from: prevPhase, to: phase, reason, actor };
+      const appended = appendTransition(transitionsPath, entry);
+      if (!appended.ok) { report.fail_closed = { kind: 'schema', detail: `transition entry invalid: ${appended.error}` }; return report; }
+      report.transition_appended = true;
     }
 
-    // Step 5: Bundle
-    console.error('[heartbeat] Step 5: Building bundle on change...');
-    const bundleResult = buildOnChange({
-      baseVersion: state.bundle.last_version,
-      dryRun
-    });
-    result.steps.bundle = bundleResult;
-
-    // Step 6: Facts
-    console.error('[heartbeat] Step 6: Recording facts...');
+    // 8) Persist live state + cursor sidecar (skipped under --dry-run).
     if (!dryRun) {
-      appendHeartbeatFact({
-        status: 'success',
-        window: { start: discoverResult.window_start, end: discoverResult.window_end },
-        pipeline: {
-          patterns_count: pipelineResult.stages.pattern_detector.patterns_count,
-          policies_generated: pipelineResult.stages.policy_crystallizer.policies_generated,
-          promotions: pipelineResult.stages.promotion.promotions
-        },
-        bundle: {
-          changed: bundleResult.content_sha_changed,
-          version: bundleResult.bundle_version,
-          sha: bundleResult.content_sha
-        }
-      });
-    }
-    result.steps.facts_recorded = true;
-
-    // Step 7: Notification
-    let shouldNotify = determineNotification(switchResult.effective.notify_policy, bundleResult, pipelineResult);
-
-    // Apply cost suppression if budget exceeded with skip_notify_only
-    if (result.steps.cost_suppress_notify) {
-      shouldNotify = false;
-      console.error('[heartbeat] Notification suppressed due to cost budget (skip_notify_only)');
+      writeJsonAtomic(liveStatePath, state);
+      writeJsonAtomic(cursorPath, buildCursorSidecar());
     }
 
-    result.steps.notification = {
-      should_notify: shouldNotify,
-      policy: switchResult.effective.notify_policy,
-      suppressed_by_cost: result.steps.cost_suppress_notify || false
-    };
-
-    // Step 7.5: Cost Recording (post-run)
-    console.error('[heartbeat] Step 7.5: Recording costs...');
-    if (!dryRun && costSwitchResult.action === 'ENABLED') {
-      const completedSteps = {
-        discover_runs: { count: 1, unit: 'count' },
-        learning_pipeline: { count: 1, unit: 'count' },
-        bundle_build: { count: bundleResult.content_sha_changed ? 1 : 0, unit: 'count' },
-        validate_bundle: { count: bundleResult.content_sha_changed ? 1 : 0, unit: 'count' },
-        notifier: { count: shouldNotify ? 1 : 0, unit: 'count' }
-      };
-
-      const costResult = recordCosts(runId, completedSteps);
-      result.steps.cost_recording = costResult;
-    }
-
-    // Step 8: Update state
-    if (!dryRun) {
-      state.last_run_at = new Date().toISOString();
-      state.last_window_end = discoverResult.window_end;
-      if (discoverResult.new_run_ids.length > 0) {
-        state.last_processed_run_id = discoverResult.new_run_ids[discoverResult.new_run_ids.length - 1];
-      }
-      releaseLock(state);
-      saveState(state);
-    }
-
-    result.action = 'completed';
-    console.error('[heartbeat] Completed successfully.');
-
-  } catch (error) {
-    result.status = 'error';
-    result.action = 'failed';
-    result.error = error.message;
-    if (!dryRun) appendHeartbeatFact({ status: 'error', error: error.message });
+    // 9) Window age for the current phase (post-append, so a fresh phase reads ~0).
+    report.phase_window_age_seconds = getPhaseWindowAge(transitionsPath, phase);
+    report.last_run_at = iso;
+    return report;
   } finally {
-    if (!dryRun) {
-      releaseLock(state);
-      saveState(state);
-    }
-  }
-
-  return result;
-}
-
-/**
- * 根据通知策略决定是否发送通知
- */
-function determineNotification(notifyPolicy, bundleResult, pipelineResult) {
-  switch (notifyPolicy) {
-    case 'off':
-      return false;
-    case 'bundle_or_error':
-      return bundleResult.content_sha_changed || pipelineResult.status === 'error';
-    case 'always':
-      return true;
-    default:
-      return bundleResult.content_sha_changed;
+    if (locked) releaseLock(lockPath);
   }
 }
 
-// ============================================================================
+/** Class wrapper (whitelisted compound name) around the functional core. */
+export class LearningHeartbeatRunner {
+  constructor(options = {}) { this.options = options; }
+  run() { return runHeartbeat(this.options); }
+}
+
+// --------------------------------------------------------------------------- //
 // CLI
-// ============================================================================
+// --------------------------------------------------------------------------- //
 
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const options = { dryRun: false, json: false, fixturesDir: null };
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--dry-run') options.dryRun = true;
-    else if (arg === '--json') options.json = true;
-    else if (arg === '--fixtures' && args[i + 1]) options.fixturesDir = args[++i];
+const HELP = `heartbeat_runner.mjs - Phase 1d GHL heartbeat v2 control-plane state manager
+
+Usage:
+  node heartbeat_runner.mjs [options]
+
+Options:
+  --dry-run            Rehearse: derive + validate + report, persist nothing
+                       (NOT the system dry_run posture; that is trial_write_enabled=false).
+  --fixtures <dir>     State I/O root (test seam); isolates state/sidecar/transitions/lock.
+  --json               Print the HeartbeatRunReport as JSON on stdout.
+  --help               Show this help and exit 0.
+
+Env:
+  LIYE_HEARTBEAT_BOOTSTRAP_CONFIRM=1   Required on first boot (no live state present).
+  LIYE_HEARTBEAT_ENABLED={true,false}  Master-switch override (ENV > state).
+
+Exit codes:
+  0  success (state persisted, or --dry-run rehearsed)
+  2  fail-closed: schema-invalid / invalid-combo / Pilot-1 ceiling / bootstrap-unconfirmed
+     (read report.fail_closed.kind to distinguish)
+  1  unexpected: missing/corrupt template, lock contention, bad LIYE_HEARTBEAT_ENABLED, I/O
+`;
+
+function parseArgs(argv) {
+  const opts = { dryRun: false, json: false, fixtures: null, help: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--help' || a === '-h') opts.help = true;
+    else if (a === '--dry-run') opts.dryRun = true;
+    else if (a === '--json') opts.json = true;
+    else if (a === '--fixtures') opts.fixtures = argv[++i];
+    else process.stderr.write(`unknown argument: ${a}\n`);
   }
-  return options;
+  return opts;
 }
 
-async function main() {
-  const options = parseArgs();
-  const result = await runHeartbeat({ dryRun: options.dryRun, fixturesDir: options.fixturesDir });
-  if (options.json) {
-    console.log(JSON.stringify(result, null, 2));
+function resolveEnabledEnv() {
+  const raw = process.env.LIYE_HEARTBEAT_ENABLED;
+  if (raw === undefined || raw === '') return undefined;
+  const n = raw.toLowerCase().trim();
+  if (['true', '1', 'yes', 'on'].includes(n)) return true;
+  if (['false', '0', 'no', 'off'].includes(n)) return false;
+  throw new HeartbeatConfigError(`invalid LIYE_HEARTBEAT_ENABLED='${raw}' (expected true|false|1|0|yes|no|on|off)`);
+}
+
+function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  if (opts.help) { process.stdout.write(HELP); return EXIT.SUCCESS; }
+  let report;
+  try {
+    report = runHeartbeat({
+      dryRun: opts.dryRun,
+      rootDir: opts.fixtures || undefined,
+      bootstrapConfirm: process.env.LIYE_HEARTBEAT_BOOTSTRAP_CONFIRM === '1',
+      enabledOverride: resolveEnabledEnv(),
+    });
+  } catch (err) {
+    process.stderr.write(`[heartbeat_runner] ${err.name || 'Error'}: ${err.message}\n`);
+    return EXIT.UNEXPECTED;
+  }
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  } else if (report.fail_closed.kind) {
+    process.stderr.write(`[heartbeat_runner] FAIL_CLOSED (${report.fail_closed.kind}): ${report.fail_closed.detail}\n`);
   } else {
-    console.log(`Status: ${result.status}, Action: ${result.action}`);
+    process.stdout.write(
+      `[heartbeat_runner] mode=${report.mode} current_phase=${report.current_phase} ` +
+      `window_age_s=${report.phase_window_age_seconds} transition_appended=${report.transition_appended}\n`);
   }
-  process.exit(result.status === 'error' ? 1 : 0);
+  return report.fail_closed.kind ? EXIT.FAIL_CLOSED : EXIT.SUCCESS;
 }
 
-const isMain = process.argv[1] && fileURLToPath(import.meta.url).includes(process.argv[1]);
-if (isMain) main();
+const invokedDirectly = process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
+if (invokedDirectly) process.exit(main());
