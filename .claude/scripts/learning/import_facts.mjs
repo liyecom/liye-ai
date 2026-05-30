@@ -224,7 +224,7 @@ function runManifestValidator(engineRepoReal) {
  * provenance_dirty = literal OR of 4 clauses; per-clause reasons for audit.
  * Today (expected_manifest_hash=null) clause 4 is always true → all 1b records dirty.
  */
-function computeProvenanceDirty(eventObj, validatorStatus, source) {
+export function computeProvenanceDirty(eventObj, validatorStatus, source) {
   const reasons = [];
   if (eventObj.source_dirty === true) reasons.push('source_dirty');
   if (validatorStatus !== 'PASS') reasons.push(`manifest_validator_status=${validatorStatus}`);

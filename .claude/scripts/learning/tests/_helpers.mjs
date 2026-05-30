@@ -8,6 +8,9 @@ import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
+import { parseCanonical, emitCanonical, makeStringNode } from '../canonical_json.mjs';
+import { computeIdentityKey, computeContentHash } from '../import_facts.mjs';
+
 export const HERE = dirname(fileURLToPath(import.meta.url));
 export const FIXTURES = join(HERE, 'fixtures');
 export const IMPORTER = join(HERE, '..', 'import_facts.mjs');
@@ -59,3 +62,35 @@ export function countLines(path) {
 }
 
 export function identityHex(identityKey) { return identityKey.split('sha256:')[1]; }
+
+// --- sidecar mutation helpers (build reject/conflict fixtures from the golden) ---
+
+export function goldenAst() { return parseCanonical(loadGolden().sidecar_text); }
+export function strNode(v) { return makeStringNode(v); }
+export function numNode(raw) { return { t: 'num', raw: String(raw) }; }
+export function boolNode(b) { return { t: 'bool', raw: b ? 'true' : 'false' }; }
+
+/** Return a NEW object AST with a top-level field's value node replaced. */
+export function withField(ast, key, valueNode) {
+  return { t: 'obj', entries: ast.entries.map((e) => (e.keyStr === key ? { ...e, value: valueNode } : e)) };
+}
+
+/** Return a NEW object AST with a top-level field removed (e.g. to break schema). */
+export function withoutField(ast, key) {
+  return { t: 'obj', entries: ast.entries.filter((e) => e.keyStr !== key) };
+}
+
+/**
+ * Recompute event_identity_key and/or event_content_hash so the event is
+ * internally consistent (mirrors emit_fact: identity assigned first, then content
+ * computed over the dict that already contains identity).
+ */
+export function reseal(ast, { identity = false, content = false } = {}) {
+  let out = ast;
+  if (identity) out = withField(out, 'event_identity_key', strNode(computeIdentityKey(out)));
+  if (content) out = withField(out, 'event_content_hash', strNode(computeContentHash(out)));
+  return out;
+}
+
+export function emit(ast) { return emitCanonical(ast); }
+
