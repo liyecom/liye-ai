@@ -1,0 +1,69 @@
+# Phase 1d Heartbeat v2 Runner Tests
+#
+# Dedicated test gate for the liye_os heartbeat v2 control-plane state manager (Phase 1d):
+#   .claude/scripts/learning/heartbeat_runner.mjs                       — File A, v2 rewrite
+#   tests/test_heartbeat_v2_runner.mjs                                  — node:test suite
+#   _meta/contracts/learning/heartbeat_state_v2.bootstrap.json          — committed template
+#   _meta/contracts/learning/heartbeat_state_v2.schema.yaml             — input contract (frozen 0b)
+#   _meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml  — output contract (NEW 1d)
+#   _meta/contracts/scripts/validate-contracts.mjs                      — contracts-gate negative test target
+#
+# Why a dedicated workflow (A7, learning from the Phase 1b/1c CI-wiring split):
+# this suite uses the Node built-in runner (node:test). The new file is prefix-named
+# (tests/test_heartbeat_v2_runner.mjs, no `.test.` infix), so the root `npm test`
+# (vitest) does NOT collect it — vitest's default include only matches `.test.`/`.spec.`
+# files. Without this workflow nothing in CI runs it, so the 9-phase derivation /
+# invalid-combo / Pilot-1 ceiling / runtime-owned / bootstrap / transition-log logic
+# could silently drift. The tests are CI-wired in the IMPLEMENTATION PR (no follow-up).
+#
+# Scope (Phase 1b CI scope tightening, retained): node-only, self-contained. The suite
+# has ZERO cross-repo dependency — every scenario runs against a synthetic state root
+# in a tmp dir. This workflow intentionally does NOT check out amazon-growth-engine and
+# introduces no cross-repo / network dependency.
+#
+# Reference: liye_os .planning/phase-1d/SPEC.md (blob a5349b52) §3 DoD #16 + §4 + §7 C5.
+
+name: Phase 1d Heartbeat v2 Runner Tests
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
+      - 'tests/test_heartbeat_v2_runner.mjs'
+      - '_meta/contracts/learning/heartbeat_state_v2.bootstrap.json'
+      - '_meta/contracts/learning/heartbeat_state_v2.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-heartbeat-runner-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
+      - 'tests/test_heartbeat_v2_runner.mjs'
+      - '_meta/contracts/learning/heartbeat_state_v2.bootstrap.json'
+      - '_meta/contracts/learning/heartbeat_state_v2.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-heartbeat-runner-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (heartbeat_v2_runner)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml for heartbeat_runner.mjs)
+        run: npm ci
+
+      - name: Run heartbeat v2 runner node:test
+        run: node --test tests/test_heartbeat_v2_runner.mjs
