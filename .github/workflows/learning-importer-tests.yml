@@ -1,0 +1,70 @@
+# Phase 1b Importer Tests
+#
+# Dedicated test gate for the liye_os fact importer (Phase 1b):
+#   .claude/scripts/learning/import_facts.mjs   — fact importer (dual-hash decision tree)
+#   .claude/scripts/learning/canonical_json.mjs — token-preserving JSON canonicalizer
+#   .claude/scripts/learning/tests/*.test.mjs   — 55 node:test (incl. golden.test.mjs)
+#
+# Why a dedicated workflow: these suites use the Node built-in runner (node:test),
+# which the root `npm test` (vitest) deliberately EXCLUDES — vitest.config.ts
+# excludes `.claude/scripts/learning/tests/**`. Without this workflow nothing in
+# CI runs them, so canonical_json / import_facts / fixture drift could silently
+# break the cross-language byte-equality contract.
+#
+# Scope decision (Phase 1b CI-wiring): this workflow runs ONLY the self-contained
+# Node test surface. golden.test.mjs already asserts the cross-language
+# byte-equality contract — it recomputes identity/content/record hashes with
+# import_facts.mjs and compares BYTE-for-byte against the committed
+# golden_sidecar.json (REAL emit_fact ground truth) — with zero AGE dependency.
+#
+# DEFERRED (FU-2, separate AGE-side PR): golden_harness.py --check re-runs the
+# LIVE AGE emit_fact to detect committed-fixture drift, so it must import AGE
+# (cross-repo). Detecting emit_fact drift belongs to AGE's own CI. This liye_os
+# workflow intentionally does NOT check out amazon-growth-engine and does NOT run
+# golden_harness.py --check (no cross-repo / network dependency).
+#
+# Reference: liye_os .planning/phase-1b/SPEC.md (blob 4a606e18) §3 DoD;
+#            Phase 1b IMPL closure d5a90ed.
+
+name: Phase 1b Importer Tests
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/import_facts.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - '.claude/scripts/learning/tests/**'
+      - '_meta/contracts/learning/fact_run_outcome_event_v1.schema.yaml'
+      - '_meta/contracts/learning/fact_run_outcome_record_v1.schema.yaml'
+      - '.github/workflows/learning-importer-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/scripts/learning/import_facts.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - '.claude/scripts/learning/tests/**'
+      - '_meta/contracts/learning/fact_run_outcome_event_v1.schema.yaml'
+      - '_meta/contracts/learning/fact_run_outcome_record_v1.schema.yaml'
+      - '.github/workflows/learning-importer-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (importer)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml for import_facts.mjs)
+        run: npm ci
+
+      - name: Run importer node:test (55 tests, incl. golden.test.mjs byte-equality)
+        run: node --test .claude/scripts/learning/tests/*.test.mjs
