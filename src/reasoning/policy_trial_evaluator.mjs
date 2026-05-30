@@ -284,20 +284,30 @@ function writeExclusive(filePath, data) {
   return true;
 }
 
-/** Serialize the evidence-ledger side-car (hand-built, mirrors 1b conflict_meta style; all values ASCII-safe). */
+/**
+ * Serialize the evidence-ledger side-car (hand-built, mirrors 1b conflict_meta style).
+ * String scalars sourced from event / policy inputs are emitted via JSON.stringify,
+ * which produces a valid YAML 1.2 double-quoted scalar (YAML and JSON share the
+ * same escaping for ", \, control chars, and U+2028/U+2029). A hostile or corrupt
+ * trace_id / policy_id / validator-status string therefore cannot break the YAML
+ * or inject keys -- the importer is the trust boundary, but the evaluator must not
+ * assume its inputs are YAML-safe. bound_via and provenance_dirty are controlled
+ * module values (enum constant / boolean).
+ */
 function ledgerToYaml(ledger) {
-  const reasons = ledger.provenance_reasons.map((r) => `"${r}"`).join(', ');
+  const q = (v) => JSON.stringify(String(v));
+  const reasons = ledger.provenance_reasons.map((r) => q(r)).join(', ');
   return [
-    `trial_id: "${ledger.trial_id}"`,
-    `policy_id: "${ledger.policy_id}"`,
-    `canonical_record_hash: "${ledger.canonical_record_hash}"`,
-    `source_event_identity_key: "${ledger.source_event_identity_key}"`,
-    `trace_id: "${ledger.trace_id}"`,
+    `trial_id: ${q(ledger.trial_id)}`,
+    `policy_id: ${q(ledger.policy_id)}`,
+    `canonical_record_hash: ${q(ledger.canonical_record_hash)}`,
+    `source_event_identity_key: ${q(ledger.source_event_identity_key)}`,
+    `trace_id: ${q(ledger.trace_id)}`,
     `bound_via: ${ledger.bound_via}`,
     `provenance_dirty: ${ledger.provenance_dirty ? 'true' : 'false'}`,
     `provenance_reasons: [${reasons}]`,
-    `conflict_dir: "${ledger.conflict_dir}"`,
-    `evaluated_at: "${ledger.evaluated_at}"`,
+    `conflict_dir: ${q(ledger.conflict_dir)}`,
+    `evaluated_at: ${q(ledger.evaluated_at)}`,
     '',
   ].join('\n');
 }

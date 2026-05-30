@@ -19,6 +19,7 @@ import {
 import { join, dirname } from 'path';
 import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
+import { parse as parseYaml } from 'yaml';
 
 import {
   evaluatePolicyTrials, PolicyTrialEvaluator,
@@ -472,6 +473,30 @@ test('one conflict bound to two policies fans out to two distinct trials', () =>
 // --------------------------------------------------------------------------- //
 // Module zero-reference assertion (SPEC A5 guard)
 // --------------------------------------------------------------------------- //
+
+test('evidence-ledger is injection-safe: hostile trace_id/policy_id round-trip as valid YAML', () => {
+  const root = mkRoot();
+  try {
+    // hostile values that would break a hand-built YAML if unescaped
+    const evilTrace = 'run-x"\n  injected_key: pwned\nbad: :';
+    const evilPolicy = 'P_INJECT"\n  also: bad';
+    writePolicy(root, 'candidate', evilPolicy, [evilTrace]);
+    writeConflict(root, 'amazon-growth-engine', 'idevil',
+      mkEvent({ trace_id: evilTrace }), mkRecord({ trace_id: evilTrace }));
+
+    const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
+    assert.equal(report.trials_new, 1);
+
+    const trialId = report.per_trial[0].trial_id;
+    const ledgerText = readFileSync(join(evidenceDir(root), `${trialId}.yaml`), 'utf-8');
+    const parsed = parseYaml(ledgerText); // throws if the YAML is broken
+    assert.equal(parsed.trace_id, evilTrace, 'trace_id round-trips exactly');
+    assert.equal(parsed.policy_id, evilPolicy, 'policy_id round-trips exactly');
+    assert.equal('injected_key' in parsed, false, 'no key injected via trace_id');
+    assert.equal('also' in parsed, false, 'no key injected via policy_id');
+    assert.equal(parsed.bound_via, 'conflict_trace_evidence');
+  } finally { cleanup(root); }
+});
 
 test('evaluator module has ZERO reference to the 7 deferred reason codes + the all-clear code', () => {
   const src = readFileSync(EVALUATOR_SRC, 'utf-8');
