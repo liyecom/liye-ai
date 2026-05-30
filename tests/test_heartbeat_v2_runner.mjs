@@ -439,13 +439,43 @@ test('three-layer path isolation: all runtime files land under <rootDir>/state/r
   rmSync(root, { recursive: true, force: true });
 });
 
-test('window anchor: monotonic for the current phase; null for a non-current phase', () => {
+test('window anchor: monotonic + no drift across reruns; null for a non-current phase', () => {
   const root = freshRoot();
-  runHeartbeat({ rootDir: root, templatePath: writeTemplate(root), bootstrapConfirm: true });
+  const tmpl = writeTemplate(root);
+  runHeartbeat({ rootDir: root, templatePath: tmpl, bootstrapConfirm: true });
   const a1 = getPhaseWindowAge(paths(root).transitions, 'evaluating_metrics_only');
-  const a2 = getPhaseWindowAge(paths(root).transitions); // current = tail
-  assert.ok(a1 !== null && a1 >= 0 && a2 !== null && a2 >= 0);
+  const anchor1 = lastTransition(root).transition_at;
+  assert.ok(a1 !== null && a1 >= 0);
+  assert.equal(getPhaseWindowAge(paths(root).transitions), a1, 'tail phase == current phase window');
   assert.equal(getPhaseWindowAge(paths(root).transitions, 'promoting'), null, 'a phase with no entry returns null');
+  // Re-run with no flag change: the anchor must NOT move (no drift), no new transition appended.
+  const r2 = runHeartbeat({ rootDir: root, templatePath: tmpl, bootstrapConfirm: true });
+  assert.equal(r2.transition_appended, false);
+  assert.equal(transitionCount(root), 1, 'no anchor drift: window not re-appended on a no-op rerun');
+  assert.equal(lastTransition(root).transition_at, anchor1, 'anchor timestamp stable across reruns');
+  const a2 = getPhaseWindowAge(paths(root).transitions, 'evaluating_metrics_only');
+  assert.ok(a2 >= a1, 'window age is monotonic non-decreasing');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('HeartbeatRunReport shape (§1.1) is complete and well-typed', () => {
+  const root = freshRoot();
+  const r = runHeartbeat({ rootDir: root, templatePath: writeTemplate(root), bootstrapConfirm: true });
+  assert.deepEqual(Object.keys(r).sort(), [
+    'current_phase', 'current_phase_derived_at', 'evaluator_invocation_mode_advisory',
+    'fail_closed', 'flags', 'last_run_at', 'mode', 'phase_window_age_seconds', 'transition_appended',
+  ].sort(), 'report carries exactly the 9 §1.1 keys');
+  assert.equal(r.mode, 'persist');
+  assert.equal(typeof r.phase_window_age_seconds, 'number');
+  assert.match(r.current_phase_derived_at, /^\d{4}-\d{2}-\d{2}T.*Z$/, 'derived_at is an ISO instant');
+  assert.match(r.last_run_at, /^\d{4}-\d{2}-\d{2}T.*Z$/, 'last_run_at is an ISO instant');
+  assert.equal(r.evaluator_invocation_mode_advisory, 'dry_run');
+  assert.equal(typeof r.transition_appended, 'boolean');
+  assert.equal(r.fail_closed.kind, null);
+  assert.deepEqual(Object.keys(r.flags).sort(), [
+    'candidate_write_enabled', 'candidate_write_target_status', 'enabled', 'evaluator_enabled',
+    'production_write_enabled', 'promotion_enabled', 'trial_write_enabled',
+  ].sort(), 'flags carries exactly the 7 control flags');
   rmSync(root, { recursive: true, force: true });
 });
 
