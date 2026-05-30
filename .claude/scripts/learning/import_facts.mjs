@@ -27,7 +27,7 @@
 
 import {
   readFileSync, readdirSync, existsSync, statSync, realpathSync,
-  mkdirSync, openSync, writeSync, closeSync, appendFileSync,
+  lstatSync, readlinkSync, mkdirSync, openSync, writeSync, closeSync, appendFileSync,
 } from 'fs';
 import { join, dirname, basename, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
@@ -157,22 +157,38 @@ function firstError(validate) {
 // Path defense (SPEC §1.6)
 // --------------------------------------------------------------------------- //
 
-/** realpath of the deepest existing ancestor + the non-existent remainder. */
-function realpathOfExisting(absPath) {
-  let p = absPath;
-  const suffix = [];
-  for (;;) {
-    try {
-      const real = realpathSync(p);
-      return suffix.length ? join(real, ...suffix.slice().reverse()) : real;
-    } catch (err) {
-      if (err.code !== 'ENOENT') throw err;
-      const parent = dirname(p);
-      if (parent === p) return absPath;
-      suffix.push(basename(p));
-      p = parent;
+/**
+ * os.path.realpath-equivalent resolver: resolves '.'/'..' and follows symlinks by
+ * their link TEXT even when the target is DANGLING (missing), and tolerates
+ * non-existent components lexically. This mirrors emit_fact.py's os.path.realpath
+ * so the importer (the trust boundary) is never weaker than the emitter it
+ * backstops. (Node's realpathSync throws ENOENT on a broken symlink, hiding where
+ * it points — a naive walk-up would treat a dangling-outside symlink as a safe
+ * missing leaf and let it escape; see SPEC §1.6 "无 symlink 逃逸".)
+ */
+function resolveSymlinksAllowingMissing(absPath) {
+  const resolved = [];
+  let queue = absPath.startsWith(sep) ? absPath.slice(1).split(sep) : absPath.split(sep);
+  let iterations = 0;
+  while (queue.length) {
+    if (++iterations > 8192) break; // symlink-cycle guard
+    const name = queue.shift();
+    if (name === '' || name === '.') continue;
+    if (name === '..') { resolved.pop(); continue; }
+    const probePath = sep + [...resolved, name].join(sep);
+    let st;
+    try { st = lstatSync(probePath); }
+    catch (err) { if (err.code === 'ENOENT') { resolved.push(name); continue; } throw err; }
+    if (st.isSymbolicLink()) {
+      let target;
+      try { target = readlinkSync(probePath); } catch { resolved.push(name); continue; }
+      if (target.startsWith(sep)) { resolved.length = 0; queue = target.slice(1).split(sep).concat(queue); }
+      else { queue = target.split(sep).concat(queue); } // relative to the symlink's parent
+    } else {
+      resolved.push(name);
     }
   }
+  return sep + resolved.join(sep);
 }
 
 /**
@@ -186,7 +202,7 @@ function checkPathField(value, engineRepoReal) {
   }
   if (engineRepoReal) {
     const abs = resolve(engineRepoReal, value);
-    const real = realpathOfExisting(abs);
+    const real = resolveSymlinksAllowingMissing(abs);
     if (real !== engineRepoReal && !real.startsWith(engineRepoReal + sep)) {
       return `resolves outside engine repo (symlink escape)`;
     }
@@ -600,6 +616,7 @@ Options:
   --mode <dry_run|live>  Default dry_run (Phase 1b locks dry-run-first; 0 disk writes)
   --records-out <path> Default state/memory/facts/fact_run_outcome_records.jsonl
   --engine-repo <dir>  Local AGE repo root (validator + realpath); default sibling clone
+  --registry-path <p>  learning_sources.yaml override (test / alt-config); default canonical registry
   --json               Print the RunReport as JSON on stdout
   --help               Show this help and exit 0
 
@@ -610,7 +627,7 @@ Exit codes:
 `;
 
 function parseArgs(argv) {
-  const opts = { source: null, since: null, mode: 'dry_run', recordsOut: null, engineRepo: null, json: false, help: false };
+  const opts = { source: null, since: null, mode: 'dry_run', recordsOut: null, engineRepo: null, registryPath: null, json: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') opts.help = true;
@@ -620,6 +637,7 @@ function parseArgs(argv) {
     else if (a === '--mode') opts.mode = argv[++i];
     else if (a === '--records-out') opts.recordsOut = argv[++i];
     else if (a === '--engine-repo') opts.engineRepo = argv[++i];
+    else if (a === '--registry-path') opts.registryPath = argv[++i];
     else { process.stderr.write(`unknown argument: ${a}\n`); }
   }
   return opts;
