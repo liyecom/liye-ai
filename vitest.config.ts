@@ -7,6 +7,10 @@ export default defineConfig({
       'websites/**',
       'node_modules/**',
       'tests/runtime/memory-gateway.test.mjs',
+      // Phase 1b GHL importer tests use the Node built-in runner (node:test),
+      // not vitest. vitest would collect them and fail with "No test suite found".
+      // Run them with: node --test .claude/scripts/learning/tests/*.test.mjs
+      '.claude/scripts/learning/tests/**',
     ],
   },
 });

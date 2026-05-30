@@ -81,8 +81,10 @@ DIVERGENCE_DOMAIN = [
     ("float_neg0", -0.0),
     ("bigint_lossless", 99999999999999999999),
     ("int_1", 1),
-    ("u2028_raw", "a" + chr(0x2028) + "b"),
-    ("u2029_raw", "a" + chr(0x2029) + "b"),
+    # NOTE: U+2028/U+2029 are deliberately NOT committed as raw bytes here — the
+    # repo's no-bidi security gate (Trojan-Source defense) forbids them in tracked
+    # files. Both Python and Node emit them RAW (they AGREE — not a divergence), and
+    # that round-trip is covered by a RUNTIME-CONSTRUCTED case in canonical_json.test.mjs.
     ("control_escaped", "a" + chr(0x01) + "b"),
     ("tab", "a\tb"),
     ("newline", "a\nb"),

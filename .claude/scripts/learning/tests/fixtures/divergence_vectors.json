@@ -26,14 +26,6 @@
       "python": "1"
     },
     {
-      "label": "u2028_raw",
-      "python": "\"a b\""
-    },
-    {
-      "label": "u2029_raw",
-      "python": "\"a b\""
-    },
-    {
       "label": "control_escaped",
       "python": "\"a\\u0001b\""
     },
@@ -70,5 +62,5 @@
       "python": "null"
     }
   ],
-  "composite_python": "{\"backslash\":\"a\\\\b\",\"bigint_lossless\":99999999999999999999,\"bool_false\":false,\"bool_true\":true,\"control_escaped\":\"a\\u0001b\",\"float_1_0\":1.0,\"float_1e-7\":1e-07,\"float_1e16\":1e+16,\"float_neg0\":-0.0,\"int_1\":1,\"newline\":\"a\\nb\",\"null\":null,\"quote\":\"a\\\"b\",\"tab\":\"a\\tb\",\"u2028_raw\":\"a b\",\"u2029_raw\":\"a b\",\"unicode_raw_utf8\":\"café-é\"}"
+  "composite_python": "{\"backslash\":\"a\\\\b\",\"bigint_lossless\":99999999999999999999,\"bool_false\":false,\"bool_true\":true,\"control_escaped\":\"a\\u0001b\",\"float_1_0\":1.0,\"float_1e-7\":1e-07,\"float_1e16\":1e+16,\"float_neg0\":-0.0,\"int_1\":1,\"newline\":\"a\\nb\",\"null\":null,\"quote\":\"a\\\"b\",\"tab\":\"a\\tb\",\"unicode_raw_utf8\":\"café-é\"}"
 }
