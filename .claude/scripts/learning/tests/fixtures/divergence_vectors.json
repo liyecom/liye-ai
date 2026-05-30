@@ -1,0 +1,66 @@
+{
+  "description": "Ground-truth Python json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False) outputs for the SPEC §1.7.X divergence domain. Node canonical_json.emitCanonical(parseCanonical(python)) MUST byte-equal the 'python' field. Regenerate via golden_harness.py --divergence.",
+  "vectors": [
+    {
+      "label": "float_1_0",
+      "python": "1.0"
+    },
+    {
+      "label": "float_1e16",
+      "python": "1e+16"
+    },
+    {
+      "label": "float_1e-7",
+      "python": "1e-07"
+    },
+    {
+      "label": "float_neg0",
+      "python": "-0.0"
+    },
+    {
+      "label": "bigint_lossless",
+      "python": "99999999999999999999"
+    },
+    {
+      "label": "int_1",
+      "python": "1"
+    },
+    {
+      "label": "control_escaped",
+      "python": "\"a\\u0001b\""
+    },
+    {
+      "label": "tab",
+      "python": "\"a\\tb\""
+    },
+    {
+      "label": "newline",
+      "python": "\"a\\nb\""
+    },
+    {
+      "label": "quote",
+      "python": "\"a\\\"b\""
+    },
+    {
+      "label": "backslash",
+      "python": "\"a\\\\b\""
+    },
+    {
+      "label": "unicode_raw_utf8",
+      "python": "\"café-é\""
+    },
+    {
+      "label": "bool_true",
+      "python": "true"
+    },
+    {
+      "label": "bool_false",
+      "python": "false"
+    },
+    {
+      "label": "null",
+      "python": "null"
+    }
+  ],
+  "composite_python": "{\"backslash\":\"a\\\\b\",\"bigint_lossless\":99999999999999999999,\"bool_false\":false,\"bool_true\":true,\"control_escaped\":\"a\\u0001b\",\"float_1_0\":1.0,\"float_1e-7\":1e-07,\"float_1e16\":1e+16,\"float_neg0\":-0.0,\"int_1\":1,\"newline\":\"a\\nb\",\"null\":null,\"quote\":\"a\\\"b\",\"tab\":\"a\\tb\",\"unicode_raw_utf8\":\"café-é\"}"
+}
