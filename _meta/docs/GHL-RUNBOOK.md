@@ -1,19 +1,16 @@
 # GHL Runbook (Governed Heuristic Learning) — Operator Manual
 
-> **Status: Phase 0e Skeleton** — Sections present; content gated.
-> Substantive operational procedures land per phase: Phase 1a–1e gated on Sprint 9 readout.
-> Until then, this file documents the **structure** plus the **already-landed contracts** so operators have a map.
+> **Status: v1.0 GA** — Phase 1 字母链 (1a–1e) all landed (2026-05-31); operational procedures live.
+> Phase 2+ (promotion / candidate write / execute_limited) remain gated downstream.
+> This file is the operator manual: mental model + reproducible commands + the landed contracts.
 
 **SSOT**: `_meta/docs/GHL-RUNBOOK.md`
-**Phase**: 0e (Checkpoint B1) per ADR §0e
+**Phase**: 1e (Phase 1 字母链收官) per `.planning/phase-1e/SPEC.md`
 **Normative**: ADR-Governed-Heuristic-Learning.md (accepted 2026-05-19, commit 67e6fea)
 
-**Out-of-scope for this skeleton** (filled in later phases):
-- 0c.3 AGE manifest v2 migration — gated on Sprint 9 readout
-- 0c.4 `validate_manifest_reality.py` — gated on Sprint 9 readout
-- 1a `emit_fact.py` runbook — gated on Sprint 9 readout (D-14)
-- 1b–1e crystallizer / evaluator / heartbeat v2 procedures — gated on Sprint 9 readout
-- Phase 2 + 3 + 4 (promotion / candidate write / execute_limited) — gated downstream
+**Out-of-scope for v1.0** (gated downstream):
+- Phase 2 (evaluating_metrics_only → trialing flip / 30-day D-11 gate / candidate write) — gated on Phase 1 exit-criteria review
+- Phase 3 + 4 (promotion / execute_limited / loamwise SkillReviewQueue coordination) — gated downstream
 
 ---
 
@@ -54,12 +51,18 @@ GHL does **not** rebuild a new learning platform.
 - `.planning/baseline/GHL-v4.1-errata.md` (N-2)
 - `.planning/baseline/GHL-v4.1-errata-v2.md` (N-3)
 
+**Smoke — verify the contract surface routes correctly** (confirms the mental model above is wired):
+```bash
+node _meta/contracts/scripts/validate-contracts.mjs --self-test
+# Expected: Pass: 7, Fail: 0  +  "Self-test passed."
+```
+
 ---
 
 ## 2. Daily Operations
 
 **Heartbeat runner** (per N-1 §7.3):
-- State file: `state/runtime/proactive/heartbeat_learning_state.json`
+- State file: `state/runtime/learning/heartbeat_learning_state.json` (v2 SSOT; the legacy `state/runtime/proactive/` v1 file is dormant since 2026-02-14 and MUST NOT be read)
 - Schema: `_meta/contracts/learning/heartbeat_state_v2.schema.yaml` (v2, 16 required fields, 9-phase enum)
 - Per Hard Gate 7: first start MUST be `dry_run` (trial_write_enabled=false)
 - 9 phases: paused / paused_no_active_source / ingesting_only / evaluating_metrics_only / trialing / candidate_writing_sandbox / candidate_writing / promoting / executing_limited
@@ -74,7 +77,7 @@ GHL does **not** rebuild a new learning platform.
 **Daily health check command (Phase 0 baseline):**
 ```bash
 node _meta/contracts/scripts/validate-contracts.mjs
-# Expected: exit 0, 17 pass / 0 warn / 0 err
+# Expected: exit 0, 19 pass / 0 warn / 0 err
 ```
 
 **Self-test of dual-routing logic:**
@@ -87,6 +90,29 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 - runner invocation command + schedule
 - log inspection (date-sharded UTC paths per EV2-I-01)
 - phase-transition guard checks
+
+### 2.1 Daily Metrics Roll-Up (Phase 1e)
+
+`metrics_daily_producer.mjs` is a standalone, manual, **read-only** downstream aggregator.
+It reads the 6 frozen 1b/1c/1d on-disk outputs, buckets by **UTC calendar day**, and appends
+one `metrics_daily_v1` row to `state/runtime/learning/metrics_daily.jsonl` (append-only,
+gitignored at `.gitignore:330`). It does **not** compute the Phase-1 exit gate verdict, the
+7-day PASS streak, or any promotion action — those are Phase 2a.
+
+```bash
+# Produce yesterday's roll-up (default --date = last complete UTC day). Dry-run first:
+node .claude/scripts/learning/metrics_daily_producer.mjs --dry-run --json
+# Expected during the Pilot-1 bind=0 window (AGE enabled:false): exit 0,
+#   "action":"appended", counts all 0, inputs_present all false (graceful-empty).
+```
+
+- Default `--date` = yesterday; the current (un-elapsed) UTC day needs `--allow-incomplete`.
+- Idempotent: a same-input rerun is `skipped_same_hash`; a changed input fail-closes
+  `kind=divergence` unless `--regenerate` (append-only, latest-wins per date).
+- `metric_record_hash` is a pure function of the 6 on-disk inputs (snapshot/wall-clock
+  excluded), so re-running a closed day never spuriously diverges.
+- Drop `--dry-run` to persist. Fail-closed kinds (exit 2):
+  `incomplete_day → input_unreadable → divergence → output_schema`.
 
 ---
 
@@ -116,6 +142,15 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 - `validate_manifest_reality.py` invocation
 - Fact ingest troubleshooting flowchart
 - `fact_conflicts/` inspection procedure
+
+**Inspect fact-ingest aggregation (reproducible committed fixture; no live state touched):**
+```bash
+node .claude/scripts/learning/metrics_daily_producer.mjs \
+  --fixtures tests/fixtures/metrics_daily --date 2026-01-01 --dry-run --json
+# Expected: exit 0, "action":"appended", counts.fact_records_total=2
+#   fact_conflicts_total=1 fact_rejects_total=2. Records bucket on emitted_at;
+#   conflicts/rejects bucket on detected_at (import wall-clock, per-import-day).
+```
 
 ---
 
@@ -157,6 +192,20 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 - D-11 metrics dashboard: operator_agreement_rate ≥ 0.7 (soft) + critical_false_negative_count = 0 (hard)
 - D-12 negative evidence gate workflow
 
+**Inspect policy-trial + D-11 observability** (via the producer — the evaluator has no fixture
+seam; persist the fixture day into a scratch root, then read the row atoms):
+```bash
+ROOT=$(mktemp -d) && cp -R tests/fixtures/metrics_daily/. "$ROOT/"
+node .claude/scripts/learning/metrics_daily_producer.mjs --fixtures "$ROOT" --date 2026-01-01 >/dev/null
+python3 -c "import json; r=json.loads(open('$ROOT/state/runtime/learning/metrics_daily.jsonl').read().strip()); print('d11:', r['d11_kpis']); print('verdicts:', r['policy_trials_breakdown']['by_system_verdict'])"
+rm -rf "$ROOT"
+# Expected: d11 agreement_agree_count=1 agreement_eligible_count=2
+#   operator_agreement_rate_today=0.5 critical_false_negative_count_today=1;
+#   verdicts {PASS:0,FAIL:1,DOWNGRADED:0,NEEDS_HUMAN:1}.
+# The 30-day rolling D-11 gate (rate>=0.7 soft / critical_false_negative=0 hard) is
+# computed downstream in Phase 2a from these per-day atoms, NOT by the producer.
+```
+
 ---
 
 ## 5. Policy Promotion / Demotion
@@ -183,6 +232,15 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 - Step-by-step demotion procedure (candidate → disabled / quarantine)
 - Reading `policy_lifecycle_events.jsonl` for transaction history
 - Manual transaction approval gates
+
+**Observability-only metrics rehearsal** (NOT a promotion/demotion action):
+```bash
+node .claude/scripts/learning/metrics_daily_producer.mjs --dry-run --json
+# Expected: exit 0, a rehearsed daily roll-up report (write_mode "rehearse", 0 disk writes).
+# WARNING: promotion/demotion remains GATED until Phase 2c. This command is
+# observability-only — it shows the metrics that WOULD feed a future promotion review;
+# it performs NO promotion, demotion, candidate, or production write (Hard Gate 8).
+```
 
 ---
 
@@ -216,6 +274,13 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 - Forensic procedure: replay events from `policy_lifecycle_events.jsonl`
 - Coordination with loamwise SkillReviewQueue (Phase 3)
 
+**Static contract reference** (incident/quarantine triage; no runtime state, no side effects):
+```bash
+head -40 _meta/contracts/learning/metrics_daily_v1.schema.yaml
+# Expected: the sealed metrics_daily_v1 contract header + envelope field definitions.
+# observability-only — reading a schema has no side effects.
+```
+
 ---
 
 ## 7. Reference — Files, Commands, Schemas
@@ -233,6 +298,8 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 | Operator feedback v1 | `_meta/contracts/learning/operator_feedback_v1.schema.yaml` |
 | Policy lifecycle event v1 | `_meta/contracts/learning/policy_lifecycle_event_v1.schema.yaml` |
 | Heartbeat state v2 | `_meta/contracts/learning/heartbeat_state_v2.schema.yaml` |
+| Heartbeat phase-transition v1 | `_meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml` |
+| Metrics daily roll-up v1 | `_meta/contracts/learning/metrics_daily_v1.schema.yaml` |
 | Confidence formulas | `_meta/contracts/learning/confidence_formulas.yaml` |
 | Engine manifest v1 | `_meta/contracts/engine/engine_manifest.schema.yaml` |
 | Engine manifest v2 | `_meta/contracts/engine/engine_manifest.schema.v2.yaml` |
@@ -254,10 +321,14 @@ node _meta/contracts/scripts/validate-contracts.mjs --self-test
 ### Runtime paths
 | Purpose | Path |
 |---|---|
-| Heartbeat state (runtime) | `state/runtime/proactive/heartbeat_learning_state.json` |
+| Heartbeat state (runtime) | `state/runtime/learning/heartbeat_learning_state.json` |
+| Phase-transition log | `state/runtime/learning/heartbeat_phase_transitions.jsonl` |
 | Policy trials log | `state/runtime/learning/policy_trials.jsonl` |
 | Lifecycle events log | `state/runtime/learning/policy_lifecycle_events.jsonl` |
 | Fact conflicts | `state/runtime/learning/fact_conflicts/<source>/<event_identity_key>/` |
+| Fact rejects | `state/runtime/learning/fact_rejects/<source_segment>/<raw_sha256>/` |
+| Daily metrics roll-up | `state/runtime/learning/metrics_daily.jsonl` |
+| Metrics late-arrivals | `state/runtime/learning/metrics_daily_late_arrivals.jsonl` |
 | Policy storage (5 dirs) | `state/memory/learned/policies/{sandbox,candidate,production,disabled,quarantine}/` |
 | Fact records (v4.1 canonical) | `state/memory/facts/fact_run_outcome_records.jsonl` |
 | Fact records (legacy v0.1) | `state/memory/facts/fact_run_outcomes.jsonl` (frozen on Phase 1b) |

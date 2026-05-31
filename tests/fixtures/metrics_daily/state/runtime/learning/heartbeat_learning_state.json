@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "enabled": true,
+  "evaluator_enabled": true,
+  "trial_write_enabled": false,
+  "candidate_write_enabled": false,
+  "candidate_write_target_status": "sandbox",
+  "promotion_enabled": false,
+  "production_write_enabled": false,
+  "source_allowlist": ["amazon-growth-engine"],
+  "max_trials_per_day": 50,
+  "kill_switch_required": true,
+  "cooldown_minutes": 30,
+  "_runtime_owned_fields": ["current_phase", "current_phase_derived_at", "last_run_at"],
+  "current_phase": "evaluating_metrics_only",
+  "current_phase_derived_at": "2026-01-01T08:00:00+00:00",
+  "last_run_at": "2026-01-01T08:00:00+00:00"
+}

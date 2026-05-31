@@ -1,0 +1,70 @@
+# Phase 1e metrics_daily Producer Tests
+#
+# Dedicated test gate for the liye_os daily metrics roll-up producer (Phase 1e):
+#   .claude/scripts/learning/metrics_daily_producer.mjs       — File A, NEW producer
+#   tests/test_metrics_daily_producer.mjs                     — node:test suite
+#   tests/fixtures/metrics_daily/                             — committed synthetic root
+#   _meta/contracts/learning/metrics_daily_v1.schema.yaml     — output contract (NEW 1e)
+#   _meta/contracts/scripts/validate-contracts.mjs            — contracts-gate negative test target
+#
+# Why a dedicated workflow (A7, learning from the 1b/1c/1d CI-wiring split):
+# this suite uses the Node built-in runner (node:test). The new file is prefix-named
+# (tests/test_metrics_daily_producer.mjs, no `.test.` infix), so the root `npm test`
+# (vitest) does NOT collect it — vitest's include only matches the explicit list +
+# `.test.`/`.spec.` files. Without this workflow nothing in CI runs it, so the UTC
+# bucketing / 4-kind fail-closed / hash-stability / D-11 atom logic could silently
+# drift. The tests are CI-wired in the IMPLEMENTATION PR (no follow-up).
+#
+# Scope (1b/1c/1d CI scope tightening, retained): node-only, self-contained. Every
+# scenario runs against a synthetic state root in a tmp dir OR the committed fixture
+# tree. This workflow intentionally does NOT check out amazon-growth-engine and
+# introduces no cross-repo / network dependency.
+#
+# Reference: liye_os .planning/phase-1e/SPEC.md (blob 843f0750) §3 DoD #16 + §4 + §7 C4.
+
+name: Phase 1e metrics_daily Producer Tests
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/metrics_daily_producer.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
+      - 'tests/test_metrics_daily_producer.mjs'
+      - 'tests/fixtures/metrics_daily/**'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-metrics-daily-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/scripts/learning/metrics_daily_producer.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
+      - 'tests/test_metrics_daily_producer.mjs'
+      - 'tests/fixtures/metrics_daily/**'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-metrics-daily-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (metrics_daily_producer)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml for metrics_daily_producer.mjs)
+        run: npm ci
+
+      - name: Run metrics_daily producer node:test
+        run: node --test tests/test_metrics_daily_producer.mjs

@@ -1,0 +1,2 @@
+{"transition_at":"2025-12-31T23:00:00+00:00","from":null,"to":"ingesting_only","reason":"bootstrap","actor":"runtime"}
+{"transition_at":"2026-01-01T08:00:00+00:00","from":"ingesting_only","to":"evaluating_metrics_only","reason":"operator","actor":"operator"}

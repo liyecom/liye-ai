@@ -1,0 +1,5 @@
+reason: "SCHEMA_INVALID"
+detected_at: "2026-01-01T09:45:00+00:00"
+raw_sidecar_sha256: "sha256:f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6"
+recomputed_vs_declared:
+  schema_error: "<root> must have required property 'source_system'"

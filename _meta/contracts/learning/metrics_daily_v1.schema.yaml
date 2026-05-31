@@ -1,0 +1,573 @@
+# Metrics Daily Roll-Up Contract v1.0.0
+# SSOT: _meta/contracts/learning/metrics_daily_v1.schema.yaml
+#
+# Schema validating one line of the daily metrics roll-up
+#   state/runtime/learning/metrics_daily.jsonl  (append-only, gitignored)
+#
+# Phase 1e sub-deliverable (NEW). The downstream observability aggregator
+# (.claude/scripts/learning/metrics_daily_producer.mjs) reads 6 frozen on-disk
+# 1b/1c/1d outputs, buckets by UTC calendar day, and appends one well-formed row
+# per UTC day. This contract field-pins KPI#8 ("metrics_daily.jsonl 可追踪") so the
+# Phase-1 exit criteria become machine-traceable; the gate verdict itself is the
+# Phase 2a entry check (NOT this producer).
+#
+# Producer-side enforcement: metrics_daily.jsonl is .gitignored (no versioned diff
+# surface), so the contracts gate only proves THIS schema is well-formed. Row-level
+# conformance is enforced by the producer at write time via ajv fail-closed
+# (kind=output_schema), mirroring heartbeat_runner.mjs.
+#
+# metric_record_hash = hashCanonical over a PURE function of (date_utc + window + the
+# 6 on-disk inputs' deterministically-derived aggregate content): counts +
+# fact_records_breakdown + fact_rejects_breakdown + policy_trials_breakdown +
+# d11_kpis + phase_1_exit_signals + provenance.input_sources. It EXCLUDES every
+# snapshot / wall-clock / invocation-context field (generated_at_utc,
+# generator_version, write_mode, root_mode, complete_day, current_phase,
+# phase_window_age_seconds, heartbeat_snapshot, provenance.producer_invocation,
+# late_arrivals_ref) so re-running a closed day never spuriously diverges as the
+# control-plane snapshot advances (SPEC §1.5 / red-team H1).
+#
+# Phase: 1e per .planning/phase-1e/SPEC.md v1.0 (blob 843f0750) §1.4 / §0 OUTPUT contract.
+# Normative: SPEC §1.4 (field set) + N-1 §3 row 1e (KPI#8) + F1 (schema-first MUST).
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/metrics_daily.v1"
+title: "Metrics Daily Roll-Up Schema v1"
+description: "One append-only daily observability roll-up row aggregating 6 frozen 1b/1c/1d on-disk outputs by UTC calendar day."
+version: "1.0.0"
+type: object
+
+required:
+  # === envelope ===
+  - schema_version
+  - generator_version
+  - date_utc
+  - generated_at_utc
+  - window
+  - write_mode
+  - root_mode
+  - complete_day
+  - metric_record_hash
+  - current_phase
+  - phase_window_age_seconds
+  # === aggregate blocks ===
+  - counts
+  - fact_records_breakdown
+  - fact_rejects_breakdown
+  - policy_trials_breakdown
+  - d11_kpis
+  - phase_1_exit_signals
+  - heartbeat_snapshot
+  - provenance
+  - late_arrivals_ref
+
+properties:
+  # ----------------------------------------------------------------------- #
+  # Envelope
+  # ----------------------------------------------------------------------- #
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+  generator_version:
+    type: string
+    pattern: "^metrics_daily_producer@\\d+\\.\\d+\\.\\d+$"
+    description: "SSOT version token (hash-OUT). Mirrors importer_version convention."
+
+  date_utc:
+    type: string
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    description: "Target UTC calendar day (the aggregation bucket)."
+
+  generated_at_utc:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset. Wall-clock when this row was produced (hash-OUT)."
+
+  window:
+    type: object
+    required:
+      - start_utc
+      - end_utc
+    properties:
+      start_utc:
+        type: string
+        format: date-time
+      end_utc:
+        type: string
+        format: date-time
+    additionalProperties: false
+    description: "[start_utc, end_utc) = the UTC calendar-day window for date_utc."
+
+  write_mode:
+    type: string
+    enum:
+      - persist
+      - rehearse
+    description: "persist = wrote to disk; rehearse = --dry-run (hash-OUT)."
+
+  root_mode:
+    type: string
+    enum:
+      - default_root
+      - fixtures_root
+    description: "default_root = real PROJECT_ROOT; fixtures_root = --fixtures DIR seam (hash-OUT)."
+
+  complete_day:
+    type: boolean
+    description: "false iff date_utc is the current (un-elapsed) UTC day produced under --allow-incomplete (hash-OUT)."
+
+  metric_record_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "hashCanonical over the pure (date_utc + 6-input) aggregate body. See header."
+
+  current_phase:
+    type: ["string", "null"]
+    enum:
+      - null
+      - paused
+      - paused_no_active_source
+      - ingesting_only
+      - evaluating_metrics_only
+      - trialing
+      - candidate_writing_sandbox
+      - candidate_writing
+      - promoting
+      - executing_limited
+    description: "Live heartbeat current_phase snapshot, or null (absent / pre-v2 live state). Annotation only; hash-OUT."
+
+  phase_window_age_seconds:
+    type: ["integer", "null"]
+    minimum: 0
+    description: "From getPhaseWindowAge (1d export). null when transitions log absent/empty. Wall-clock-derived; hash-OUT."
+
+  # ----------------------------------------------------------------------- #
+  # counts (totals; each breakdown sub-map sums to its total)
+  # ----------------------------------------------------------------------- #
+  counts:
+    type: object
+    required:
+      - fact_records_total
+      - fact_conflicts_total
+      - fact_rejects_total
+      - policy_trials_total
+      - transitions_total
+    properties:
+      fact_records_total: { type: integer, minimum: 0 }
+      fact_conflicts_total: { type: integer, minimum: 0 }
+      fact_rejects_total: { type: integer, minimum: 0 }
+      policy_trials_total: { type: integer, minimum: 0 }
+      transitions_total: { type: integer, minimum: 0 }
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # fact_records_breakdown (1b records bucketed by emitted_at UTC date)
+  # ----------------------------------------------------------------------- #
+  fact_records_breakdown:
+    type: object
+    required:
+      - by_source_system
+      - by_manifest_validator_status
+      - by_redaction_status
+      - source_dirty
+      - provenance_dirty
+      - schema_version_drift_count
+    properties:
+      by_source_system:
+        type: object
+        required:
+          - "amazon-growth-engine"
+          - chaming
+          - loamwise
+        properties:
+          "amazon-growth-engine": { type: integer, minimum: 0 }
+          chaming: { type: integer, minimum: 0 }
+          loamwise: { type: integer, minimum: 0 }
+        additionalProperties: false
+      by_manifest_validator_status:
+        type: object
+        required:
+          - PASS
+          - WARN
+          - FAIL
+        properties:
+          PASS: { type: integer, minimum: 0 }
+          WARN: { type: integer, minimum: 0 }
+          FAIL: { type: integer, minimum: 0 }
+        additionalProperties: false
+      by_redaction_status:
+        type: object
+        required:
+          - redacted
+          - no_sensitive_fields_detected
+          - unknown
+        properties:
+          redacted: { type: integer, minimum: 0 }
+          no_sensitive_fields_detected: { type: integer, minimum: 0 }
+          unknown: { type: integer, minimum: 0 }
+        additionalProperties: false
+      source_dirty:
+        type: object
+        required:
+          - true_count
+          - false_count
+        properties:
+          true_count: { type: integer, minimum: 0 }
+          false_count: { type: integer, minimum: 0 }
+        additionalProperties: false
+      provenance_dirty:
+        type: object
+        required:
+          - true_count
+          - false_count
+        properties:
+          true_count: { type: integer, minimum: 0 }
+          false_count: { type: integer, minimum: 0 }
+        additionalProperties: false
+        description: "provenance_dirty ⊇ source_dirty (counted independently from record.provenance.provenance_dirty)."
+      schema_version_drift_count:
+        type: integer
+        minimum: 0
+        description: "Records whose schema_version != '1.0.0' (drift canary)."
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # fact_rejects_breakdown (1b rejects bucketed by detected_at UTC date)
+  # ----------------------------------------------------------------------- #
+  fact_rejects_breakdown:
+    type: object
+    required:
+      - by_reason
+    properties:
+      by_reason:
+        type: object
+        required:
+          - SCHEMA_INVALID
+          - NUMERIC_NOT_STRING
+          - PATH_UNSAFE
+          - FILENAME_MISMATCH
+          - IDENTITY_MISMATCH
+          - CONTENT_MISMATCH
+          - SIDECAR_LOG_MISMATCH
+        properties:
+          SCHEMA_INVALID: { type: integer, minimum: 0 }
+          NUMERIC_NOT_STRING: { type: integer, minimum: 0 }
+          PATH_UNSAFE: { type: integer, minimum: 0 }
+          FILENAME_MISMATCH: { type: integer, minimum: 0 }
+          IDENTITY_MISMATCH: { type: integer, minimum: 0 }
+          CONTENT_MISMATCH: { type: integer, minimum: 0 }
+          SIDECAR_LOG_MISMATCH: { type: integer, minimum: 0 }
+        additionalProperties: false
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # policy_trials_breakdown (1c trials bucketed by evaluated_at UTC date)
+  # ----------------------------------------------------------------------- #
+  policy_trials_breakdown:
+    type: object
+    required:
+      - by_system_verdict
+      - by_evidence_origin
+      - system_reason_codes
+      - with_operator_feedback_count
+      - schema_version_drift_count
+    properties:
+      by_system_verdict:
+        type: object
+        required:
+          - PASS
+          - FAIL
+          - DOWNGRADED
+          - NEEDS_HUMAN
+        properties:
+          PASS: { type: integer, minimum: 0 }
+          FAIL: { type: integer, minimum: 0 }
+          DOWNGRADED: { type: integer, minimum: 0 }
+          NEEDS_HUMAN: { type: integer, minimum: 0 }
+        additionalProperties: false
+      by_evidence_origin:
+        type: object
+        required:
+          - production_observed
+          - historical_replay
+          - golden_regression
+          - synthetic
+        properties:
+          production_observed: { type: integer, minimum: 0 }
+          historical_replay: { type: integer, minimum: 0 }
+          golden_regression: { type: integer, minimum: 0 }
+          synthetic: { type: integer, minimum: 0 }
+        additionalProperties: false
+      system_reason_codes:
+        type: object
+        description: "Occurrence-count over the 11-value system_verdict_reason_codes vocabulary (array-valued ⇒ occurrence-count, NOT record-count). Independent namespace from operator_reason_codes."
+        required:
+          - duplicate_conflict
+          - golden_pack_stale
+          - data_safety_unknown
+          - regression_failure_severe
+          - confidence_below_threshold
+          - evidence_origin_insufficient
+          - manifest_validator_failed
+          - source_dirty
+          - sample_size_insufficient
+          - boundary_confidence_value
+          - acceptable
+        properties:
+          duplicate_conflict: { type: integer, minimum: 0 }
+          golden_pack_stale: { type: integer, minimum: 0 }
+          data_safety_unknown: { type: integer, minimum: 0 }
+          regression_failure_severe: { type: integer, minimum: 0 }
+          confidence_below_threshold: { type: integer, minimum: 0 }
+          evidence_origin_insufficient: { type: integer, minimum: 0 }
+          manifest_validator_failed: { type: integer, minimum: 0 }
+          source_dirty: { type: integer, minimum: 0 }
+          sample_size_insufficient: { type: integer, minimum: 0 }
+          boundary_confidence_value: { type: integer, minimum: 0 }
+          acceptable: { type: integer, minimum: 0 }
+        additionalProperties: false
+      with_operator_feedback_count:
+        type: integer
+        minimum: 0
+        description: "Day-N trials carrying ON-TIME operator_feedback (reviewed_at UTC-date == date_utc). Late feedback → late_arrivals ledger, NOT here (keeps hash stable)."
+      schema_version_drift_count:
+        type: integer
+        minimum: 0
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # d11_kpis (D-11 per-day atoms; 30-day rolling gate is Phase 2a downstream)
+  # ----------------------------------------------------------------------- #
+  d11_kpis:
+    type: object
+    description: "Per-day raw atoms (numerator + denominator), Simpson-safe. operator_*-derived from ON-TIME feedback only."
+    required:
+      - agreement_agree_count
+      - agreement_eligible_count
+      - operator_agreement_rate_today
+      - critical_false_negative_count_today
+      - operator_reason_codes
+      - kpi_unavailable_reasons
+    properties:
+      agreement_agree_count:
+        type: integer
+        minimum: 0
+        description: "count(operator_feedback.verdict == AGREE_WITH_SYSTEM) over on-time feedback."
+      agreement_eligible_count:
+        type: integer
+        minimum: 0
+        description: "count(verdict in {AGREE_WITH_SYSTEM, DISAGREE_WITH_SYSTEM}); excludes NEEDS_MORE_EVIDENCE."
+      operator_agreement_rate_today:
+        type: ["number", "null"]
+        minimum: 0
+        maximum: 1
+        description: "agree/eligible; null when eligible == 0 (see kpi_unavailable_reasons). Convenience only; gate uses raw atoms."
+      critical_false_negative_count_today:
+        type: integer
+        minimum: 0
+        description: "count(verdict == DISAGREE_WITH_SYSTEM AND reason_codes ∩ {unsafe_reuse, regression_failed, business_context_changed} != empty)."
+      operator_reason_codes:
+        type: object
+        description: "Occurrence-count over the 5-value operator reason vocabulary. Independent namespace from system_reason_codes (both contain 'acceptable')."
+        required:
+          - unsafe_reuse
+          - weak_evidence
+          - business_context_changed
+          - regression_failed
+          - acceptable
+        properties:
+          unsafe_reuse: { type: integer, minimum: 0 }
+          weak_evidence: { type: integer, minimum: 0 }
+          business_context_changed: { type: integer, minimum: 0 }
+          regression_failed: { type: integer, minimum: 0 }
+          acceptable: { type: integer, minimum: 0 }
+        additionalProperties: false
+      kpi_unavailable_reasons:
+        type: array
+        items:
+          type: string
+          enum:
+            - no_trials
+            - no_operator_feedback
+            - denominator_zero_all_needs_more_evidence
+        description: "Why operator_agreement_rate_today is null (empty when rate is a number)."
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # phase_1_exit_signals (per-day atom only; gate verdict + streak = Phase 2a)
+  # ----------------------------------------------------------------------- #
+  phase_1_exit_signals:
+    type: object
+    description: "Per-day observable atoms for Phase-1 exit criteria. NO c3 self-report (N1); NO 7-day streak / gate verdict (N2 = 2a entry)."
+    required:
+      - c1_manifest_validator
+      - c2_duplicate_conflict_count
+      - c2_dedupe_hit_rate
+      - c4_path_unsafe_reject_count
+    properties:
+      c1_manifest_validator:
+        type: object
+        required:
+          - per_source
+        properties:
+          per_source:
+            type: object
+            description: "Strict PASS-only: c1 satisfied for a source iff fail==0 AND warn==0 AND pass>=1 (WARN is NOT a pass)."
+            required:
+              - "amazon-growth-engine"
+              - chaming
+              - loamwise
+            properties:
+              "amazon-growth-engine":
+                type: object
+                required: [pass, warn, fail]
+                properties:
+                  pass: { type: integer, minimum: 0 }
+                  warn: { type: integer, minimum: 0 }
+                  fail: { type: integer, minimum: 0 }
+                additionalProperties: false
+              chaming:
+                type: object
+                required: [pass, warn, fail]
+                properties:
+                  pass: { type: integer, minimum: 0 }
+                  warn: { type: integer, minimum: 0 }
+                  fail: { type: integer, minimum: 0 }
+                additionalProperties: false
+              loamwise:
+                type: object
+                required: [pass, warn, fail]
+                properties:
+                  pass: { type: integer, minimum: 0 }
+                  warn: { type: integer, minimum: 0 }
+                  fail: { type: integer, minimum: 0 }
+                additionalProperties: false
+            additionalProperties: false
+        additionalProperties: false
+      c2_duplicate_conflict_count:
+        type: integer
+        minimum: 0
+        description: "Day-N DUPLICATE_CONFLICT entries (fact_conflicts/, by detected_at). Target 0."
+      c2_dedupe_hit_rate:
+        type: string
+        const: "unobservable_from_disk"
+        description: "dedupe silent-skip numerator is in-memory only (import_facts.mjs:457), 0 on disk. True hit-rate needs future 1b instrumentation; 1e does not own criterion-2 wording (gate = 2a)."
+      c4_path_unsafe_reject_count:
+        type: integer
+        minimum: 0
+        description: "Day-N rejects with reason==PATH_UNSAFE (live import only; dry_run does not persist rejects)."
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # heartbeat_snapshot (1d live state annotation; whole block hash-OUT)
+  # ----------------------------------------------------------------------- #
+  heartbeat_snapshot:
+    type: ["object", "null"]
+    description: "Snapshot of state/runtime/learning/heartbeat_learning_state.json (learning/, NOT proactive/ decoy). null when absent or pre-v2 (no current_phase). Whole block hash-OUT."
+    required:
+      - current_phase
+      - flags
+      - max_trials_per_day
+      - kill_switch_required
+      - last_run_at
+      - state_version
+      - source_allowlist_count
+    properties:
+      current_phase:
+        type: ["string", "null"]
+        enum:
+          - null
+          - paused
+          - paused_no_active_source
+          - ingesting_only
+          - evaluating_metrics_only
+          - trialing
+          - candidate_writing_sandbox
+          - candidate_writing
+          - promoting
+          - executing_limited
+      flags:
+        type: object
+        required:
+          - enabled
+          - evaluator_enabled
+          - trial_write_enabled
+          - candidate_write_enabled
+          - candidate_write_target_status
+          - promotion_enabled
+          - production_write_enabled
+        properties:
+          enabled: { type: boolean }
+          evaluator_enabled: { type: boolean }
+          trial_write_enabled: { type: boolean }
+          candidate_write_enabled: { type: boolean }
+          candidate_write_target_status: { type: string, enum: [sandbox, candidate] }
+          promotion_enabled: { type: boolean }
+          production_write_enabled: { type: boolean }
+        additionalProperties: false
+        description: "production_write_enabled MUST be false during Pilot 1 (Hard Gate 8 evidence)."
+      max_trials_per_day: { type: integer, minimum: 0 }
+      kill_switch_required: { type: boolean }
+      last_run_at:
+        type: ["string", "null"]
+        format: date-time
+        description: "Staleness signal: whether the heartbeat runner actually ran recently."
+      state_version: { type: integer }
+      source_allowlist_count: { type: integer, minimum: 0 }
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # provenance (metrics-specific; no content-hash; observability artifact)
+  # ----------------------------------------------------------------------- #
+  provenance:
+    type: object
+    required:
+      - input_sources
+      - producer_invocation
+      - aggregation_window
+    properties:
+      input_sources:
+        type: array
+        description: "The 5 bucketed data sources (records/conflicts/rejects/trials/transitions), sorted by path for replay-diff stability. live_state is annotation-only (heartbeat_snapshot), excluded here to keep the hash body input-pure."
+        items:
+          type: object
+          required:
+            - path
+            - records_consumed
+          properties:
+            path: { type: string }
+            records_consumed: { type: integer, minimum: 0 }
+          additionalProperties: false
+      producer_invocation:
+        type: object
+        required:
+          - write_mode
+          - root_mode
+        properties:
+          write_mode: { type: string, enum: [persist, rehearse] }
+          root_mode: { type: string, enum: [default_root, fixtures_root] }
+        additionalProperties: false
+        description: "Invocation context (hash-OUT). Version token lives in envelope.generator_version (SSOT)."
+      aggregation_window:
+        type: string
+        description: "= date_utc."
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # late_arrivals_ref (N4 evidence-ledger side-car pointer)
+  # ----------------------------------------------------------------------- #
+  late_arrivals_ref:
+    type: object
+    required:
+      - ledger_path
+      - appended_this_run
+    properties:
+      ledger_path:
+        type: string
+        description: "state/runtime/learning/metrics_daily_late_arrivals.jsonl"
+      appended_this_run:
+        type: integer
+        minimum: 0
+    additionalProperties: false
+
+additionalProperties: false
