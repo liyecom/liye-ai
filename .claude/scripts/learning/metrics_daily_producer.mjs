@@ -190,6 +190,17 @@ function bump(hist, key) {
   hist[key] += 1;
 }
 
+/**
+ * Coerce a reason-code field to an array. null/undefined -> []; a non-array
+ * (corrupt shape, schema-invalid upstream) -> input_unreadable fail-closed (exit 2),
+ * consistent with bump()'s out-of-enum handling (NOT an exit-1 UNEXPECTED throw).
+ */
+function asCodeArray(v) {
+  if (v === null || v === undefined) return [];
+  if (Array.isArray(v)) return v;
+  throw new InputUnreadableError(`reason_codes must be an array, got ${typeof v}`);
+}
+
 function sumHist(hist) { return Object.values(hist).reduce((a, b) => a + b, 0); }
 
 function assertSum(hist, total, label) {
@@ -340,7 +351,7 @@ export function aggregateDay(dateUtc, inputs) {
   for (const t of dayTrials) {
     bump(by_system_verdict, t.system_verdict);
     bump(by_evidence_origin, t.evidence_origin);
-    for (const code of (t.system_verdict_reason_codes || [])) bump(system_reason_codes, code);
+    for (const code of asCodeArray(t.system_verdict_reason_codes)) bump(system_reason_codes, code);
     if (t.schema_version !== '1.0.0') trialDrift += 1;
 
     const fb = t.operator_feedback;
@@ -352,10 +363,10 @@ export function aggregateDay(dateUtc, inputs) {
         if (fb.verdict === OPERATOR_VERDICT_AGREE) { agree += 1; eligible += 1; }
         else if (fb.verdict === OPERATOR_VERDICT_DISAGREE) {
           eligible += 1;
-          if ((fb.reason_codes || []).some((c) => CRITICAL_OPERATOR_CODES.includes(c))) criticalFalseNegative += 1;
+          if (asCodeArray(fb.reason_codes).some((c) => CRITICAL_OPERATOR_CODES.includes(c))) criticalFalseNegative += 1;
         }
         // NEEDS_MORE_EVIDENCE -> neither numerator nor denominator.
-        for (const code of (fb.reason_codes || [])) bump(operator_reason_codes, code);
+        for (const code of asCodeArray(fb.reason_codes)) bump(operator_reason_codes, code);
       } else {
         // LATE arrival -> evidence-ledger side-car, NOT the day-N atom (N4).
         lateArrivalsCandidates.push({

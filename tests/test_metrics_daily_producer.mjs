@@ -398,6 +398,67 @@ test('output_schema: a row that violates the registered schema -> kind=output_sc
   }
 });
 
+test('four-kind precedence: incomplete_day pre-empts input_unreadable (current day + corrupt input)', () => {
+  const root = freshRoot();
+  writeLines(recordsPath(root), [fullRecord({ emitted_at: '2026-01-15T10:00:00' })]); // missing tz -> would be input_unreadable
+  const r = produceMetricsDaily({ dateUtc: '2026-01-15', rootDir: root, now: new Date('2026-01-15T12:00:00Z') });
+  assert.equal(r.fail_closed.kind, 'incomplete_day', 'pre-flight incomplete_day short-circuits before any I/O');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('input_unreadable: a corrupt conflict_meta.yaml -> kind=input_unreadable (scanMetaDirs symmetry)', () => {
+  const root = freshRoot();
+  const d = join(learnDir(root), 'fact_conflicts/amazon-growth-engine/aa');
+  mkdirSync(d, { recursive: true });
+  writeFileSync(join(d, 'conflict_meta.yaml'), 'detected_at: "unterminated\n  - ][');
+  const r = produceMetricsDaily({ dateUtc: '2026-01-01', rootDir: root });
+  assert.equal(r.fail_closed.kind, 'input_unreadable');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('input_unreadable: a non-array reason_codes (corrupt shape) -> kind=input_unreadable (not exit-1 throw)', () => {
+  const root = freshRoot();
+  writeLines(trialsPath(root), [
+    policyTrial({ trial_id: 'bad-shape', operator_feedback: { reviewer_id_hash: `sha256:${'cc'.repeat(32)}`, verdict: 'DISAGREE_WITH_SYSTEM', reason_codes: 'unsafe_reuse', reviewed_at: '2026-01-01T13:00:00+00:00' } }),
+  ]);
+  const r = produceMetricsDaily({ dateUtc: '2026-01-01', rootDir: root });
+  assert.equal(r.fail_closed.kind, 'input_unreadable', 'non-array reason_codes fail-closes, not an exit-1 UNEXPECTED throw');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('output_schema breadth: schema const + additionalProperties reject bad rows (ajv unit)', () => {
+  const v = new Ajv({ strict: false, allErrors: true, validateFormats: false })
+    .compile(parseYaml(readFileSync(METRICS_SCHEMA, 'utf-8')));
+  const root = freshRoot();
+  produceMetricsDaily({ dateUtc: '2026-01-01', rootDir: root });
+  const [row] = readRows(root);
+  assert.equal(v(row), true, 'baseline producer row is valid');
+  assert.equal(v({ ...row, schema_version: '9.9.9' }), false, 'schema_version != const "1.0.0" rejected');
+  assert.equal(v({ ...row, __extra__: 1 }), false, 'additionalProperties:false rejects an extra top-level key');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('late-arrival on a hash-stable rerun: skipped_same_hash but the ledger still captures it', () => {
+  const root = freshRoot();
+  writeLines(trialsPath(root), [
+    policyTrial({ trial_id: 'ot-1', operator_feedback: { reviewer_id_hash: `sha256:${'a1'.repeat(32)}`, verdict: 'AGREE_WITH_SYSTEM', reason_codes: ['acceptable'], reviewed_at: '2026-01-01T13:00:00+00:00' } }),
+    policyTrial({ trial_id: 'lt-2' }),
+  ]);
+  const r1 = produceMetricsDaily({ dateUtc: '2026-01-01', rootDir: root });
+  assert.equal(r1.action, 'appended');
+  assert.equal(r1.late_arrivals_appended, 0);
+  // lt-2 gains OFF-DAY feedback: a late arrival that does NOT perturb the day-1 on-time atom.
+  writeLines(trialsPath(root), [
+    policyTrial({ trial_id: 'ot-1', operator_feedback: { reviewer_id_hash: `sha256:${'a1'.repeat(32)}`, verdict: 'AGREE_WITH_SYSTEM', reason_codes: ['acceptable'], reviewed_at: '2026-01-01T13:00:00+00:00' } }),
+    policyTrial({ trial_id: 'lt-2', operator_feedback: { reviewer_id_hash: `sha256:${'b2'.repeat(32)}`, verdict: 'AGREE_WITH_SYSTEM', reason_codes: ['acceptable'], reviewed_at: '2026-01-05T09:00:00+00:00' } }),
+  ]);
+  const r2 = produceMetricsDaily({ dateUtc: '2026-01-01', rootDir: root });
+  assert.equal(r2.action, 'skipped_same_hash', 'day-1 on-time atom unchanged -> hash stable');
+  assert.equal(r2.late_arrivals_appended, 1, 'late ledger captures the off-day feedback even on a skipped row');
+  assert.equal(readFileSync(latePath(root), 'utf-8').trim().split('\n').length, 1);
+  rmSync(root, { recursive: true, force: true });
+});
+
 // --------------------------------------------------------------------------- //
 // D-11 atoms + reason namespaces + manifest strict PASS-only
 // --------------------------------------------------------------------------- //
