@@ -524,6 +524,8 @@ function validateContractSchemas() {
     join(CONTRACTS_DIR, 'learning', 'heartbeat_state_v2.schema.yaml'),
     // GHL Phase 1d heartbeat phase-transition log entry contract (NEW)
     join(CONTRACTS_DIR, 'learning', 'heartbeat_phase_transition_v1.schema.yaml'),
+    // GHL Phase 1e metrics_daily roll-up contract (NEW)
+    join(CONTRACTS_DIR, 'learning', 'metrics_daily_v1.schema.yaml'),
     // GHL Phase 0b engine manifest v2
     join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'),
     // Note: confidence_formulas.yaml is a formula INSTANCE (not a JSON Schema) — validated by validateFormulaInstances()
