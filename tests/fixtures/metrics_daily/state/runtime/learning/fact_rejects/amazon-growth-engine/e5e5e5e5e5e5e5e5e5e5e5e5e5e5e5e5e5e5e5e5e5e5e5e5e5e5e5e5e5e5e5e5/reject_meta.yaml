@@ -1,0 +1,6 @@
+reason: "PATH_UNSAFE"
+detected_at: "2026-01-01T09:30:00+00:00"
+raw_sidecar_sha256: "sha256:e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5"
+recomputed_vs_declared:
+  field: "raw_payload_ref"
+  detail: "resolves outside engine repo (symlink escape)"
