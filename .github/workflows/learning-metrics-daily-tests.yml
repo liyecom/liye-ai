@@ -28,6 +28,8 @@ on:
   pull_request:
     paths:
       - '.claude/scripts/learning/metrics_daily_producer.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
       - 'tests/test_metrics_daily_producer.mjs'
       - 'tests/fixtures/metrics_daily/**'
       - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
@@ -37,6 +39,8 @@ on:
     branches: [main]
     paths:
       - '.claude/scripts/learning/metrics_daily_producer.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
       - 'tests/test_metrics_daily_producer.mjs'
       - 'tests/fixtures/metrics_daily/**'
       - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'

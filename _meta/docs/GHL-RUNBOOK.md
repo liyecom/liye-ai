@@ -5,15 +5,12 @@
 > This file is the operator manual: mental model + reproducible commands + the landed contracts.
 
 **SSOT**: `_meta/docs/GHL-RUNBOOK.md`
-**Phase**: 0e (Checkpoint B1) per ADR §0e
+**Phase**: 1e (Phase 1 字母链收官) per `.planning/phase-1e/SPEC.md`
 **Normative**: ADR-Governed-Heuristic-Learning.md (accepted 2026-05-19, commit 67e6fea)
 
-**Out-of-scope for this skeleton** (filled in later phases):
-- 0c.3 AGE manifest v2 migration — gated on Sprint 9 readout
-- 0c.4 `validate_manifest_reality.py` — gated on Sprint 9 readout
-- 1a `emit_fact.py` runbook — gated on Sprint 9 readout (D-14)
-- 1b–1e crystallizer / evaluator / heartbeat v2 procedures — gated on Sprint 9 readout
-- Phase 2 + 3 + 4 (promotion / candidate write / execute_limited) — gated downstream
+**Out-of-scope for v1.0** (gated downstream):
+- Phase 2 (evaluating_metrics_only → trialing flip / 30-day D-11 gate / candidate write) — gated on Phase 1 exit-criteria review
+- Phase 3 + 4 (promotion / execute_limited / loamwise SkillReviewQueue coordination) — gated downstream
 
 ---
 
