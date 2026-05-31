@@ -1,0 +1,91 @@
+# Heartbeat Phase-Transition Log Entry Contract v1.0.0
+# SSOT: _meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml
+#
+# Schema validating one line of the heartbeat phase-transition log
+#   state/runtime/learning/heartbeat_phase_transitions.jsonl  (append-only, gitignored)
+#
+# Phase 1d sub-deliverable (NEW). The transition log is the single, non-brittle
+# anchor for the metrics-only window age (getPhaseWindowAge); the 2a flip
+# predicate consumes the same machine-readable contract.
+#
+# Each entry records a SUCCESSFUL current_phase change (the heartbeat runner appends
+# one only when the derived current_phase actually differs from the prior phase).
+# A fail-closed run (schema-invalid / invalid-combo / Pilot-1 ceiling) is NOT a
+# transition and MUST NOT be logged here.
+#
+# reason enum is EXACTLY 4 values:
+#   bootstrap          first boot (from=null)
+#   operator           operator changed feature flags -> new derived phase
+#   operator_rollback  graceful capability reduction (trial_write true->false); 2a-only, inert in 1d
+#   kill_switch        emergency disable (enabled=false -> paused)
+# `invalid_combo` is deliberately NOT a reason: it is a fail-closed outcome, never a transition.
+#
+# Phase: 1d per .planning/phase-1d/SPEC.md v1.0 (blob a5349b52) §1.8 / §0 OUTPUT contract.
+# Normative: SPEC §1.8 (transition log + window anchor) + N3 (reason enum).
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/heartbeat_phase_transition.v1"
+title: "Heartbeat Phase-Transition Log Entry v1"
+description: "One append-only entry recording a heartbeat current_phase change. Anchors the phase-window age."
+version: "1.0.0"
+type: object
+
+required:
+  - transition_at
+  - from
+  - to
+  - reason
+  - actor
+
+properties:
+  transition_at:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset. Time the phase change was recorded."
+
+  from:
+    type: ["string", "null"]
+    enum:
+      - null
+      - paused
+      - paused_no_active_source
+      - ingesting_only
+      - evaluating_metrics_only
+      - trialing
+      - candidate_writing_sandbox
+      - candidate_writing
+      - promoting
+      - executing_limited
+    description: "Prior current_phase, or null on bootstrap (no prior phase). Same 9-phase enum as heartbeat_state_v2.current_phase."
+
+  to:
+    type: string
+    enum:
+      - paused
+      - paused_no_active_source
+      - ingesting_only
+      - evaluating_metrics_only
+      - trialing
+      - candidate_writing_sandbox
+      - candidate_writing
+      - promoting
+      - executing_limited
+    description: "New current_phase. Same 9-phase enum as heartbeat_state_v2.current_phase."
+
+  reason:
+    type: string
+    enum:
+      - bootstrap
+      - operator
+      - operator_rollback
+      - kill_switch
+    description: "Why the transition happened. Exactly 4 values; invalid_combo is a fail-closed outcome, never a transition."
+
+  actor:
+    type: string
+    enum:
+      - runtime
+      - operator
+    description: "Who drove the change. runtime = self-bootstrap; operator = operator edited the live state and re-ran."
+
+additionalProperties: false

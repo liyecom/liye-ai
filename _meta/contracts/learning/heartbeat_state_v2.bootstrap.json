@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "evaluator_enabled": true,
+  "trial_write_enabled": false,
+  "candidate_write_enabled": false,
+  "candidate_write_target_status": "sandbox",
+  "promotion_enabled": false,
+  "production_write_enabled": false,
+  "source_allowlist": ["amazon-growth-engine"],
+  "max_trials_per_day": 50,
+  "kill_switch_required": true,
+  "cooldown_minutes": 30
+}
