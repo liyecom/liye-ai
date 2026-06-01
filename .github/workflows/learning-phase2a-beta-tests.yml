@@ -1,0 +1,80 @@
+# Phase 2a-β Trialing-后果面 Tests
+#
+# Dedicated test gate for the liye_os Phase 2a-β trialing-consequences surface:
+#   src/reasoning/policy_trial_evaluator.mjs                  — F3 trial_history + F2 confidence (carve-out)
+#   .claude/scripts/learning/operator_feedback_ingest.mjs     — F-flow operator feedback ingestion (NEW)
+#   .claude/scripts/learning/trial_observation_predicate.mjs  — F-predicate 2a→2b gate-check (NEW)
+#   tests/test_phase2a_beta.mjs                               — node:test §4 matrix suite
+#
+# Why a dedicated workflow (mirroring the 1c/1d/1e/2a-α CI-wiring split): this suite uses the
+# Node built-in runner (node:test) and is prefix-named (tests/test_phase2a_beta.mjs, no `.test.`
+# infix), so the root vitest run does NOT collect it. Without this workflow nothing in CI runs the
+# trialing-consequence logic (trial_history write-back / confidence / feedback ingestion idempotency
+# / 2a→2b predicate three-state / R-β7 fence) and it could silently drift.
+#
+# The evaluator (carve-out) ALSO independently path-triggers its own existing suites in the same PR
+# (1c policy-trial-evaluator, 2a-α flip-readiness), whose authorized-test updates keep them green.
+#
+# Scope: node-only, self-contained. Every scenario runs against a synthetic root in a tmp dir;
+# ZERO cross-repo / network dependency.
+#
+# Reference: liye_os .planning/phase-2a-beta/SPEC.md v1.0 (blob d1b11bae) §3 DoD + §4 + §7.
+
+name: Phase 2a-β Trialing-Consequences Tests
+
+on:
+  pull_request:
+    paths:
+      - 'src/reasoning/policy_trial_evaluator.mjs'
+      - '.claude/scripts/learning/operator_feedback_ingest.mjs'
+      - '.claude/scripts/learning/trial_observation_predicate.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - 'tests/test_phase2a_beta.mjs'
+      - '_meta/contracts/learning/policy_trial_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/learned_policy_ghl_v1.schema.yaml'
+      - '_meta/contracts/learning/confidence_formulas.yaml'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '.github/workflows/learning-phase2a-beta-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/reasoning/policy_trial_evaluator.mjs'
+      - '.claude/scripts/learning/operator_feedback_ingest.mjs'
+      - '.claude/scripts/learning/trial_observation_predicate.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - 'tests/test_phase2a_beta.mjs'
+      - '_meta/contracts/learning/policy_trial_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/learned_policy_ghl_v1.schema.yaml'
+      - '_meta/contracts/learning/confidence_formulas.yaml'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '.github/workflows/learning-phase2a-beta-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (phase2a_beta)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml)
+        run: npm ci
+
+      - name: Run Phase 2a-β node:test
+        run: node --test tests/test_phase2a_beta.mjs
+
+      - name: Operator-feedback ingestion --help smoke
+        run: node .claude/scripts/learning/operator_feedback_ingest.mjs --help
+
+      - name: Transition predicate --help smoke
+        run: node .claude/scripts/learning/trial_observation_predicate.mjs --help
