@@ -107,6 +107,20 @@ function writeRecords(root, recordObjs) {
   writeFileSync(p, recordObjs.map((r) => JSON.stringify(r)).join('\n') + '\n');
 }
 
+// Seed a synthetic operator-flipped trialing heartbeat live state so the Phase 2a-α
+// `--mode live` authorization二次门 (policy_trial_evaluator.mjs §2a.3) passes. 3-key
+// partial is sufficient for the gate (version=2 ∧ current_phase=trialing ∧
+// trial_write_enabled=true; SPEC §0.1-2(c) / red-team L4-8). dry_run tests do NOT call
+// this (dry_run never authorizes). The dedicated negative cases (absent / unparseable /
+// wrong version / wrong phase / trial_write=false) live in tests/test_phase2a_alpha.mjs.
+function seedTrialingState(root) {
+  const dir = join(root, 'state/runtime/learning');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'heartbeat_learning_state.json'), JSON.stringify({
+    version: 2, current_phase: 'trialing', trial_write_enabled: true,
+  }, null, 2));
+}
+
 function trialsOutPath(root) {
   return join(root, 'state/runtime/learning/policy_trials.jsonl');
 }
@@ -210,6 +224,7 @@ test('情形2 e2e (live): bound conflict -> NEEDS_HUMAN trial + evidence-ledger 
     const original = mkRecord({ trace_id: traceId, provenance: { manifest_validator_status: 'WARN', provenance_dirty: true } });
     writeConflict(root, 'amazon-growth-engine', 'idhex01', incoming, original);
 
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.conflicts_scanned, 1);
     assert.equal(report.bound, 1);
@@ -256,6 +271,7 @@ test('idempotency: second live run skips (trials.jsonl line count unchanged)', (
     writeConflict(root, 'amazon-growth-engine', 'idhex01',
       mkEvent({ trace_id: traceId }), mkRecord({ trace_id: traceId }));
 
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c)); r2 reuses the seeded state
     const r1 = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(r1.trials_new, 1);
     const after1 = readFileSync(trialsOutPath(root), 'utf-8').trim().split('\n').length;
@@ -330,6 +346,7 @@ test('evidence_origin flows into trial + distribution (golden_regression via reg
     writeConflict(root, 'amazon-growth-engine', 'idhexreg',
       mkEvent({ trace_id: traceId, artifact_type: 'regression_replay_result' }),
       mkRecord({ trace_id: traceId }));
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.per_trial[0].evidence_origin, 'golden_regression');
     assert.equal(report.metrics.evidence_origin_distribution.golden_regression, 1);
@@ -346,6 +363,7 @@ test('binding fail-closed: trace mismatch -> unbound, 0 trial', () => {
     writePolicy(root, 'candidate', 'POLICY_DUP', ['run-20260530-MATCHME']);
     writeConflict(root, 'amazon-growth-engine', 'idhex01',
       mkEvent({ trace_id: 'run-20260530-NOMATCH' }), mkRecord({ trace_id: 'run-20260530-NOMATCH' }));
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.conflicts_scanned, 1);
     assert.equal(report.bound, 0);
@@ -362,6 +380,7 @@ test('binding fail-closed: trace mismatch -> unbound, 0 trial', () => {
 test('empty input: no conflicts/records -> all-zero report, no writes', () => {
   const root = mkRoot();
   try {
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.conflicts_scanned, 0);
     assert.equal(report.records_scanned, 0);
@@ -381,6 +400,7 @@ test('fail-closed: malformed incoming.json -> fail_closed, no trial', () => {
   try {
     writePolicy(root, 'candidate', 'POLICY_DUP', ['run-20260530-aaaa1111']);
     writeRawConflictIncoming(root, 'amazon-growth-engine', 'idbad', '{ not valid json ');
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.fail_closed, 1);
     assert.equal(report.trials_new, 0);
@@ -402,6 +422,7 @@ test('artifact-deref: policy_suggestions_json record binds via deref but fires 0
     writeRecords(root, [
       mkRecord({ artifact_type: 'policy_suggestions_json', raw_payload_ref: 'out/suggestion.json' }),
     ]);
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live', engineRepo });
     assert.equal(report.records_scanned, 1);
     assert.equal(report.bound, 1);
@@ -422,6 +443,7 @@ test('artifact-deref symlink-escape defense: ref resolving outside engine repo -
     writeRecords(root, [
       mkRecord({ artifact_type: 'policy_suggestions_json', raw_payload_ref: 'link.json' }),
     ]);
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live', engineRepo });
     assert.equal(report.bound, 0, 'symlink escaping the repo must not bind');
     assert.equal(report.unbound, 1);
@@ -435,6 +457,7 @@ test('artifact-deref path defense: ".." in raw_payload_ref -> unbound', () => {
     writeRecords(root, [
       mkRecord({ artifact_type: 'policy_suggestions_json', raw_payload_ref: '../escape.json' }),
     ]);
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live', engineRepo });
     assert.equal(report.bound, 0);
     assert.equal(report.unbound, 1);
@@ -462,6 +485,7 @@ test('one conflict bound to two policies fans out to two distinct trials', () =>
     writePolicy(root, 'production', 'POLICY_B', [traceId]);
     writeConflict(root, 'amazon-growth-engine', 'idmulti',
       mkEvent({ trace_id: traceId }), mkRecord({ trace_id: traceId }));
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.bound, 1); // one conflict bound
     assert.equal(report.trials_new, 2); // two policies -> two trials
@@ -484,6 +508,7 @@ test('evidence-ledger is injection-safe: hostile trace_id/policy_id round-trip a
     writeConflict(root, 'amazon-growth-engine', 'idevil',
       mkEvent({ trace_id: evilTrace }), mkRecord({ trace_id: evilTrace }));
 
+    seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.trials_new, 1);
 
