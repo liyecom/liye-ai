@@ -343,15 +343,21 @@ function buildCursorSidecar() {
 }
 
 /**
- * Classify the transition reason + actor (SPEC §1.8). 1d-reachable: bootstrap (first
- * boot), kill_switch (enabled=false -> paused; combo#6 forces all flags zeroed),
- * operator (any other operator-driven phase change). operator_rollback (graceful
- * trial_write true->false) is 2a-only and unreachable in 1d (the ceiling locks
- * trial_write false, so a trial_write=true prior state never persists).
+ * Classify the transition reason + actor (SPEC §1.8 / 2a §0.1-9). Reachable: bootstrap
+ * (first boot), kill_switch (enabled=false -> paused; combo#6 forces all flags zeroed),
+ * operator_rollback (graceful trialing -> evaluating_metrics_only, trial_write true->false),
+ * operator (any other operator-driven phase change). operator_rollback becomes reachable
+ * in Phase 2a-α after the trial_write ceiling relax (a trial_write=true trialing state can
+ * now persist, so an operator can step it back down); it is the safety-symmetric inverse of
+ * the false->true flip. The flip direction (evaluating_metrics_only -> trialing) does NOT
+ * match this predicate and falls through to the generic `operator` reason.
  */
-function classifyReason(firstBoot, flags) {
+function classifyReason(firstBoot, flags, prevPhase, newPhase) {
   if (firstBoot) return { reason: 'bootstrap', actor: 'runtime' };
   if (flags.enabled === false) return { reason: 'kill_switch', actor: 'operator' };
+  if (prevPhase === 'trialing' && newPhase === 'evaluating_metrics_only') {
+    return { reason: 'operator_rollback', actor: 'operator' };
+  }
   return { reason: 'operator', actor: 'operator' };
 }
 
@@ -473,7 +479,7 @@ export function runHeartbeat(options = {}) {
     //    duplicate entry, which is strictly preferable to a missing transition.
     const phaseChanged = prevPhase !== phase;
     if (phaseChanged && !dryRun) {
-      const { reason, actor } = classifyReason(firstBoot, flags);
+      const { reason, actor } = classifyReason(firstBoot, flags, prevPhase, phase);
       const entry = { transition_at: iso, from: prevPhase, to: phase, reason, actor };
       const appended = appendTransition(transitionsPath, entry);
       if (!appended.ok) { report.fail_closed = { kind: 'schema', detail: `transition entry invalid: ${appended.error}` }; return report; }
