@@ -128,6 +128,12 @@ function seedEvalLiveState(root, obj) {
     typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
 }
 
+/** Seed the live state from a committed golden fixture (keeps the fixtures load-bearing
+ *  so the CI `tests/fixtures/phase2a_alpha/**` path-trigger is non-vacuous). */
+function seedEvalLiveStateFromFixture(root, name) {
+  seedEvalLiveState(root, readFileSync(join(FIXTURES, name), 'utf-8'));
+}
+
 // 1c conflict + policy writers (minimal; bound conflict drives the only live trial path).
 function writePolicy(root, status, policyId, traceIds) {
   const dir = join(root, 'state/memory/learned/policies', status);
@@ -449,7 +455,8 @@ for (const c of DENY_CASES) {
 test('二次门 放行: operator-flipped trialing live state -> live write succeeds', () => {
   const root = mkRoot();
   try {
-    seedEvalLiveState(root, { version: 2, current_phase: 'trialing', trial_write_enabled: true });
+    seedEvalLiveStateFromFixture(root, 'live_state_trialing.json'); // committed golden trialing state
+    assert.equal(existsSync(join(root, 'state/runtime/learning/heartbeat_learning_state.json')), true);
     const traceId = 'run-20260530-aaaa1111';
     writePolicy(root, 'candidate', 'POLICY_DUP', [traceId]);
     writeConflict(root, 'amazon-growth-engine', 'idhex01', mkEvent({ trace_id: traceId }), null);
@@ -482,7 +489,7 @@ test('ship≠activation (a): merged but no live state at all -> 0 trial write', 
 test('ship≠activation (b): bootstrapped evaluating_metrics_only (trial_write=false) -> 0 trial write', () => {
   const root = mkRoot();
   try {
-    seedEvalLiveState(root, { version: 2, current_phase: 'evaluating_metrics_only', trial_write_enabled: false });
+    seedEvalLiveStateFromFixture(root, 'live_state_evaluating.json'); // committed golden idle state
     const traceId = 'run-20260530-aaaa1111';
     writePolicy(root, 'candidate', 'POLICY_DUP', [traceId]);
     writeConflict(root, 'amazon-growth-engine', 'idhex01', mkEvent({ trace_id: traceId }), null);
