@@ -11,8 +11,9 @@
  *   - Reads the committed bootstrap template + the gitignored live state.
  *   - Derives current_phase from the 7 feature flags (full 9-phase decision table).
  *   - Fails closed on the 6 schema invalid-combinations AND a runner-side Pilot-1
- *     ceiling (1d locks the 4 escalation flags false; production_write is Pilot-1-wide
- *     locked per Hard Gate 8). Never auto-corrects, never writes a half-baked state.
+ *     ceiling (Phase 2a-α relaxes trial_write_enabled; candidate_write/promotion stay
+ *     locked and production_write is Pilot-1-wide locked per Hard Gate 8). Never
+ *     auto-corrects, never writes a half-baked state.
  *   - Validates the assembled live state against the frozen v2 schema (ajv).
  *   - Holds the first-boot evaluating_metrics_only posture (trial_write_enabled=false,
  *     Hard Gate 7) behind an explicit bootstrap-confirm env-gate.
@@ -84,11 +85,12 @@ const REPORT_FLAG_KEYS = [
   'candidate_write_target_status', 'promotion_enabled', 'production_write_enabled',
 ];
 
-// Pilot-1 / 1d escalation ceiling (runner-side, additive to the 6 schema combos;
-// the schema PERMITS trial_write_enabled=true since that is the 2a flip). 1d locks
-// all four false; production_write_enabled is the Pilot-1-wide lock (Hard Gate 8).
+// Pilot-1 escalation ceiling (runner-side, additive to the 6 schema combos; the schema
+// PERMITS trial_write_enabled=true since that is the 2a flip). Phase 2a-α relaxes
+// trial_write_enabled (phase-versioned departure); candidate_write/promotion stay locked
+// until 2c/Phase-4 and production_write_enabled is the Pilot-1-wide lock (Hard Gate 8).
 const ESCALATION_FLAGS = [
-  'trial_write_enabled', 'candidate_write_enabled', 'promotion_enabled', 'production_write_enabled',
+  'candidate_write_enabled', 'promotion_enabled', 'production_write_enabled',
 ];
 
 const EXIT = { SUCCESS: 0, FAIL_CLOSED: 2, UNEXPECTED: 1 };
@@ -193,9 +195,9 @@ function invalid(combo, offending, detail) {
 }
 
 /**
- * Pilot-1 / 1d ceiling (SPEC §1.5 Layer-B). Additive to the schema combos. Any of the
- * four escalation flags true -> fail closed. 2a relaxes trial_write_enabled (phase-
- * versioned); production_write_enabled stays Pilot-1-wide locked (Hard Gate 8).
+ * Pilot-1 ceiling (SPEC §1.5 Layer-B). Additive to the schema combos. Any of the three
+ * remaining escalation flags true -> fail closed. Phase 2a-α relaxes trial_write_enabled
+ * (phase-versioned); production_write_enabled stays Pilot-1-wide locked (Hard Gate 8).
  */
 export function checkCeiling(f) {
   const offending = ESCALATION_FLAGS.filter((k) => f[k] === true);
@@ -203,7 +205,7 @@ export function checkCeiling(f) {
     return {
       hit: true,
       offending,
-      detail: `Pilot-1 ceiling: ${offending.join(', ')} must be false in Phase 1d (production_write_enabled is Pilot-1-wide locked per Hard Gate 8)`,
+      detail: `Pilot-1 ceiling: ${offending.join(', ')} must be false (Phase 2a-α relaxes trial_write_enabled; candidate_write/promotion stay locked, production_write_enabled is Pilot-1-wide locked per Hard Gate 8)`,
     };
   }
   return { hit: false };

@@ -215,8 +215,10 @@ test('invalid-combo via EXISTING operator-written live state is also labelled in
 // Pilot-1 ceiling (DoD #7) — schema PERMITS escalation flags; the runner blocks them
 // --------------------------------------------------------------------------- //
 
+// Phase 2a-α ceiling relax (F-1dtest): trial_write_enabled is NO LONGER ceiling-blocked
+// (its own positive trialing-derivation case is the RUNNER-enforced test below). The
+// three remaining escalation flags stay ceiling-locked.
 const CEILING_CASES = [
-  { name: 'trial_write', overrides: { trial_write_enabled: true, evaluator_enabled: true } },
   { name: 'candidate_write', overrides: { candidate_write_enabled: true, trial_write_enabled: true, evaluator_enabled: true } },
   { name: 'promotion', overrides: { promotion_enabled: true, candidate_write_enabled: true, trial_write_enabled: true, evaluator_enabled: true, candidate_write_target_status: 'candidate' } },
   { name: 'production_write', overrides: { production_write_enabled: true, promotion_enabled: true, candidate_write_enabled: true, trial_write_enabled: true, evaluator_enabled: true, candidate_write_target_status: 'candidate' } },
@@ -239,13 +241,14 @@ test('production_write_enabled=true is ALWAYS ceiling-blocked (Hard Gate 8 Pilot
   assert.ok(r.offending.includes('production_write_enabled'));
 });
 
-test('ceiling is RUNNER-enforced: a trial_write=true state is schema-VALID but the runner still blocks it', () => {
+test('Phase 2a-α ceiling relax: a trial_write=true state derives trialing (no longer ceiling-blocked)', () => {
   const root = freshRoot();
   const escalated = makeState({ trial_write_enabled: true, current_phase: 'trialing' });
   assert.equal(validateHeartbeatState(escalated), true, 'frozen v2 schema PERMITS trial_write_enabled=true');
   seedLiveState(root, escalated);
   const r = runHeartbeat({ rootDir: root, bootstrapConfirm: true });
-  assert.equal(r.fail_closed.kind, 'ceiling', 'runner ceiling blocks what the schema permits');
+  assert.equal(r.fail_closed.kind, null, 'Phase 2a-α: trial_write_enabled no longer ceiling-blocked');
+  assert.equal(r.current_phase, 'trialing', 'trial_write=true ∧ evaluator=true ∧ candidate=false derives trialing');
   rmSync(root, { recursive: true, force: true });
 });
 
