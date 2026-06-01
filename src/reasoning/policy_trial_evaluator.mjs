@@ -17,11 +17,15 @@
  *     - state/runtime/learning/policy_trials.jsonl                 (policy_trial_v1, sealed schema)
  *     - state/runtime/learning/policy_trials_evidence/<trial_id>.yaml  (evidence-ledger side-car, A3)
  *
- * POSTURE (SPEC §1.8 / §2):
- *   dry-run-first (default; 0 disk writes), manual CLI only, NO scheduler.
- *   observability-only (Hard Gate 8): no production_write, no AGE / loamwise /
- *   heartbeat / schema mutation, no learned_policy write-back (trial_history
- *   deferred to 1d/2a). Expected `bound=0` at 1c runtime is BY-DESIGN (SPEC §1.3 F5).
+ * POSTURE (SPEC §1.8 / §2 / 2a-α §2a.3):
+ *   dry_run is the default (0 disk writes), manual CLI only, NO scheduler. `--mode live`
+ *   is gated by an up-front heartbeat authorization check: it writes a trial only when the
+ *   live heartbeat state is operator-flipped to current_phase==trialing AND
+ *   trial_write_enabled==true (Phase 2a-α); otherwise it fails closed
+ *   (not_authorized_for_live, 0 writes, exit 2). observability-only (Hard Gate 8): no
+ *   production / candidate / promotion write, no AGE / loamwise / heartbeat / schema
+ *   mutation, no learned_policy write-back (trial_history deferred to β). Expected
+ *   `bound=0` at 1c runtime is BY-DESIGN (SPEC §1.3 F5).
  *
  * REUSE (SPEC: do not self-implement canonicalization):
  *   canonical_record_hash is recomputed via canonical_json.mjs `hashCanonical`.
@@ -65,6 +69,13 @@ const DEFAULT_CONFLICTS = 'state/runtime/learning/fact_conflicts';
 const DEFAULT_POLICIES = 'state/memory/learned/policies';
 const DEFAULT_TRIALS_OUT = 'state/runtime/learning/policy_trials.jsonl';
 const EVIDENCE_LEDGER_DIR = 'state/runtime/learning/policy_trials_evidence';
+
+// Heartbeat live-state path for the Phase 2a-α `--mode live` authorization gate (§2a.3).
+// The literal is copied (NOT imported from the 1d File-A runner) to avoid creating a
+// 1c->1d module coupling that would expand the blast radius (SPEC red-team L2-1). The
+// learning/ tree is the CODE-SSOT; the schema header's proactive/ path is a v1-dormant
+// decoy and is NEVER read here (red-team L1-3).
+const LIVE_STATE_REL = 'state/runtime/learning/heartbeat_learning_state.json';
 
 // learned_policy lifecycle dirs (binding scan target). Both legacy + GHL schema
 // instances live here and both carry evidence[].trace_id (SPEC §0 N0).
@@ -546,6 +557,51 @@ function absUnder(rootDir, p) {
 }
 
 /**
+ * Phase 2a-α `--mode live` authorization二次门 (SPEC §2a.3 / §0.1-6, ship≠activation §0.1-8).
+ * In live mode the evaluator writes only when the heartbeat live state has been
+ * operator-flipped into a strict trialing posture. Four fail-closed conditions, all ->
+ * not_authorized_for_live (0 trial written):
+ *   1. live state file absent (merge-but-not-yet-activated; the default idle posture);
+ *   2. shape error: unparseable JSON (try/catch-wrapped so a parse throw maps to
+ *      not_authorized / exit 2, NOT a propagated exit 1, red-team L5-1), version !== 2
+ *      (STRICT integer; "2"/missing/other denies, no type coercion, red-team L3-5), or
+ *      missing current_phase;
+ *   3. trial_write_enabled !== true;
+ *   4. current_phase !== 'trialing' (defense-in-depth vs an operator-hand-written state
+ *      where trial_write=true but candidate_write=true would derive candidate_writing,
+ *      not trialing -- conditions 3/4 are non-redundant, red-team L3-4).
+ * Read-only: this never spawns or imports the heartbeat runner; it only reads the JSON.
+ */
+function authorizeLiveWrite(rootDir) {
+  const liveStatePath = join(rootDir, LIVE_STATE_REL);
+  if (!existsSync(liveStatePath)) {
+    return { authorized: false, detail: `heartbeat live state absent (${LIVE_STATE_REL}); run bootstrap + operator flip per RUNBOOK §2.2` };
+  }
+  let state;
+  try {
+    state = JSON.parse(readFileSync(liveStatePath, 'utf-8'));
+  } catch (err) {
+    return { authorized: false, detail: `heartbeat live state unparseable: ${err.message}` };
+  }
+  if (!state || typeof state !== 'object' || Array.isArray(state)) {
+    return { authorized: false, detail: 'heartbeat live state is not a JSON object' };
+  }
+  if (state.version !== 2) {
+    return { authorized: false, detail: `heartbeat live state version !== 2 (got ${JSON.stringify(state.version)})` };
+  }
+  if (typeof state.current_phase !== 'string') {
+    return { authorized: false, detail: 'heartbeat live state missing current_phase' };
+  }
+  if (state.trial_write_enabled !== true) {
+    return { authorized: false, detail: `trial_write_enabled !== true (got ${JSON.stringify(state.trial_write_enabled)})` };
+  }
+  if (state.current_phase !== 'trialing') {
+    return { authorized: false, detail: `current_phase !== 'trialing' (got ${JSON.stringify(state.current_phase)})` };
+  }
+  return { authorized: true, detail: null };
+}
+
+/**
  * Evaluate policy trials from 1b importer output. In dry_run (default) NOTHING is
  * written to disk (binding + verdict + build + validate + would-write only).
  *
@@ -600,12 +656,28 @@ export function evaluatePolicyTrials(options = {}) {
     },
     per_trial: [],
     per_fail_closed: [],
+    live_authorized: true,
     trials_out: trialsOutAbs,
     evidence_ledger_dir: join(rootDir, EVIDENCE_LEDGER_DIR),
     window_start: windowStart,
     window_end: null,
   };
   ctx.report = report;
+
+  // 0) Up-front live authorization二次门 (SPEC §2a.3, ship≠activation): in live mode,
+  //    require an operator-flipped trialing heartbeat posture BEFORE processing or
+  //    writing any trial. Fail-closed (0 trial) otherwise. dry_run does not authorize
+  //    (it writes nothing; 1c behavior preserved).
+  if (mode === 'live') {
+    const auth = authorizeLiveWrite(rootDir);
+    if (!auth.authorized) {
+      report.live_authorized = false;
+      report.fail_closed += 1;
+      report.per_fail_closed.push({ reason: 'not_authorized_for_live', detail: auth.detail });
+      report.window_end = nowIso();
+      return report; // exit 2 via main() (report.fail_closed > 0); 0 trial written
+    }
+  }
 
   // 1) Conflicts = the only trial production source (情形2).
   for (const conflictInfo of listConflictDirs(conflictsAbs)) {
@@ -639,7 +711,9 @@ Options:
   --policies <dir>      learned policies dir (default state/memory/learned/policies)
   --trials-out <path>   policy_trials.jsonl out (default state/runtime/learning/policy_trials.jsonl)
   --since <ISO8601>     Convenience filter (non-correctness)
-  --mode <dry_run|live> Default dry_run (Phase 1c locks dry-run-first; 0 disk writes)
+  --mode <dry_run|live> Default dry_run (0 disk writes). live writes only when the heartbeat
+                        live state is operator-flipped to trialing (Phase 2a-α二次门; else
+                        fail-closed not_authorized_for_live, exit 2)
   --engine-repo <dir>   Local AGE repo root (artifact-deref realpath); default sibling clone
   --json                Print the EvalReport as JSON on stdout
   --help                Show this help and exit 0

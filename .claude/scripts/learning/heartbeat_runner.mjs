@@ -11,8 +11,9 @@
  *   - Reads the committed bootstrap template + the gitignored live state.
  *   - Derives current_phase from the 7 feature flags (full 9-phase decision table).
  *   - Fails closed on the 6 schema invalid-combinations AND a runner-side Pilot-1
- *     ceiling (1d locks the 4 escalation flags false; production_write is Pilot-1-wide
- *     locked per Hard Gate 8). Never auto-corrects, never writes a half-baked state.
+ *     ceiling (Phase 2a-α relaxes trial_write_enabled; candidate_write/promotion stay
+ *     locked and production_write is Pilot-1-wide locked per Hard Gate 8). Never
+ *     auto-corrects, never writes a half-baked state.
  *   - Validates the assembled live state against the frozen v2 schema (ajv).
  *   - Holds the first-boot evaluating_metrics_only posture (trial_write_enabled=false,
  *     Hard Gate 7) behind an explicit bootstrap-confirm env-gate.
@@ -84,11 +85,12 @@ const REPORT_FLAG_KEYS = [
   'candidate_write_target_status', 'promotion_enabled', 'production_write_enabled',
 ];
 
-// Pilot-1 / 1d escalation ceiling (runner-side, additive to the 6 schema combos;
-// the schema PERMITS trial_write_enabled=true since that is the 2a flip). 1d locks
-// all four false; production_write_enabled is the Pilot-1-wide lock (Hard Gate 8).
+// Pilot-1 escalation ceiling (runner-side, additive to the 6 schema combos; the schema
+// PERMITS trial_write_enabled=true since that is the 2a flip). Phase 2a-α relaxes
+// trial_write_enabled (phase-versioned departure); candidate_write/promotion stay locked
+// until 2c/Phase-4 and production_write_enabled is the Pilot-1-wide lock (Hard Gate 8).
 const ESCALATION_FLAGS = [
-  'trial_write_enabled', 'candidate_write_enabled', 'promotion_enabled', 'production_write_enabled',
+  'candidate_write_enabled', 'promotion_enabled', 'production_write_enabled',
 ];
 
 const EXIT = { SUCCESS: 0, FAIL_CLOSED: 2, UNEXPECTED: 1 };
@@ -193,9 +195,9 @@ function invalid(combo, offending, detail) {
 }
 
 /**
- * Pilot-1 / 1d ceiling (SPEC §1.5 Layer-B). Additive to the schema combos. Any of the
- * four escalation flags true -> fail closed. 2a relaxes trial_write_enabled (phase-
- * versioned); production_write_enabled stays Pilot-1-wide locked (Hard Gate 8).
+ * Pilot-1 ceiling (SPEC §1.5 Layer-B). Additive to the schema combos. Any of the three
+ * remaining escalation flags true -> fail closed. Phase 2a-α relaxes trial_write_enabled
+ * (phase-versioned); production_write_enabled stays Pilot-1-wide locked (Hard Gate 8).
  */
 export function checkCeiling(f) {
   const offending = ESCALATION_FLAGS.filter((k) => f[k] === true);
@@ -203,7 +205,7 @@ export function checkCeiling(f) {
     return {
       hit: true,
       offending,
-      detail: `Pilot-1 ceiling: ${offending.join(', ')} must be false in Phase 1d (production_write_enabled is Pilot-1-wide locked per Hard Gate 8)`,
+      detail: `Pilot-1 ceiling: ${offending.join(', ')} must be false (Phase 2a-α relaxes trial_write_enabled; candidate_write/promotion stay locked, production_write_enabled is Pilot-1-wide locked per Hard Gate 8)`,
     };
   }
   return { hit: false };
@@ -341,15 +343,21 @@ function buildCursorSidecar() {
 }
 
 /**
- * Classify the transition reason + actor (SPEC §1.8). 1d-reachable: bootstrap (first
- * boot), kill_switch (enabled=false -> paused; combo#6 forces all flags zeroed),
- * operator (any other operator-driven phase change). operator_rollback (graceful
- * trial_write true->false) is 2a-only and unreachable in 1d (the ceiling locks
- * trial_write false, so a trial_write=true prior state never persists).
+ * Classify the transition reason + actor (SPEC §1.8 / 2a §0.1-9). Reachable: bootstrap
+ * (first boot), kill_switch (enabled=false -> paused; combo#6 forces all flags zeroed),
+ * operator_rollback (graceful trialing -> evaluating_metrics_only, trial_write true->false),
+ * operator (any other operator-driven phase change). operator_rollback becomes reachable
+ * in Phase 2a-α after the trial_write ceiling relax (a trial_write=true trialing state can
+ * now persist, so an operator can step it back down); it is the safety-symmetric inverse of
+ * the false->true flip. The flip direction (evaluating_metrics_only -> trialing) does NOT
+ * match this predicate and falls through to the generic `operator` reason.
  */
-function classifyReason(firstBoot, flags) {
+function classifyReason(firstBoot, flags, prevPhase, newPhase) {
   if (firstBoot) return { reason: 'bootstrap', actor: 'runtime' };
   if (flags.enabled === false) return { reason: 'kill_switch', actor: 'operator' };
+  if (prevPhase === 'trialing' && newPhase === 'evaluating_metrics_only') {
+    return { reason: 'operator_rollback', actor: 'operator' };
+  }
   return { reason: 'operator', actor: 'operator' };
 }
 
@@ -471,7 +479,7 @@ export function runHeartbeat(options = {}) {
     //    duplicate entry, which is strictly preferable to a missing transition.
     const phaseChanged = prevPhase !== phase;
     if (phaseChanged && !dryRun) {
-      const { reason, actor } = classifyReason(firstBoot, flags);
+      const { reason, actor } = classifyReason(firstBoot, flags, prevPhase, phase);
       const entry = { transition_at: iso, from: prevPhase, to: phase, reason, actor };
       const appended = appendTransition(transitionsPath, entry);
       if (!appended.ok) { report.fail_closed = { kind: 'schema', detail: `transition entry invalid: ${appended.error}` }; return report; }
