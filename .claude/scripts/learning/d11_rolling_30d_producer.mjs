@@ -97,6 +97,11 @@ const LOCK_REL = 'state/runtime/learning/d11_rolling_30d.lock';
 // Operator vocabularies, aligned to the frozen operator_feedback_v1 schema tokens.
 const OPERATOR_VERDICT_AGREE = 'AGREE_WITH_SYSTEM';
 const OPERATOR_VERDICT_DISAGREE = 'DISAGREE_WITH_SYSTEM';
+const OPERATOR_VERDICT_NEEDS_MORE = 'NEEDS_MORE_EVIDENCE';
+// The 3 canonical operator verdicts (operator_feedback_v1 enum). An in-window feedback whose
+// verdict is none of these is CORRUPT input — fail-closed input_unreadable, symmetric with the
+// out-of-enum reason-code guard (tallyCode), so an unknown verdict can never be silently dropped.
+const KNOWN_VERDICTS = new Set([OPERATOR_VERDICT_AGREE, OPERATOR_VERDICT_DISAGREE, OPERATOR_VERDICT_NEEDS_MORE]);
 // NEEDS_MORE_EVIDENCE -> neither numerator nor denominator.
 const OPERATOR_REASON_CODES = ['unsafe_reuse', 'weak_evidence', 'business_context_changed', 'regression_failed', 'acceptable'];
 // D-11 critical false-negative codes (operator vocabulary), per operator_feedback_v1 + D-12.
@@ -296,6 +301,9 @@ export function aggregateWindow(windowEndUtc, inputs) {
       const fbDate = utcDateOf(fb.reviewed_at);
       // Numerator/denominator axis (reviewed_at) — on-time + late counted once, uniformly.
       if (inWindow(fbDate, startUtc, endUtc)) {
+        if (!KNOWN_VERDICTS.has(fb.verdict)) {
+          throw new InputUnreadableError(`operator verdict out of enum: ${JSON.stringify(fb.verdict)}`);
+        }
         feedbackInWindow += 1;
         consumedTrialIds.add(t.trial_id);
         if (fb.verdict === OPERATOR_VERDICT_AGREE) { agree += 1; eligible += 1; }
@@ -481,12 +489,29 @@ export function produceD11Rolling(options = {}) {
   report.window_complete = completeWindow;
 
   // KIND 1: incomplete_window (pre-flight, no I/O). window_end must be a complete UTC day.
-  if (!completeWindow && !allowIncomplete) {
-    report.fail_closed = {
-      kind: 'incomplete_window',
-      detail: `window_end_utc=${windowEndUtc} is the current/future UTC day; pass --allow-incomplete to produce it`,
-    };
-    return report;
+  // A persisted row feeds the Phase-4 HARD GATE, where critical_false_negative_count_30d == 0 is
+  // the PASS value, and the only freshness rule is window_end_utc == (current UTC day − 1). If an
+  // incomplete (current-day) window_end were PERSISTED as a fully-available row, the next UTC day
+  // would make that stale partial-day row satisfy freshness and read its partial critical-0 as a
+  // hard-gate PASS — the exact 'stale-but-complete 产物旧 0 被误当现态通过' failure the freshness
+  // contract was written to prevent (SPEC §1 Fγ / §0.1-3 / R-γ5; red-team GAMMA-L5-01). So an
+  // incomplete window_end may only be REHEARSED (--dry-run), NEVER persisted: every persisted row
+  // is complete-window-ended by construction, making the freshness rule sufficient.
+  if (!completeWindow) {
+    if (!allowIncomplete) {
+      report.fail_closed = {
+        kind: 'incomplete_window',
+        detail: `window_end_utc=${windowEndUtc} is the current/future UTC day; pass --allow-incomplete --dry-run to rehearse it (it can never be persisted)`,
+      };
+      return report;
+    }
+    if (!dryRun) {
+      report.fail_closed = {
+        kind: 'incomplete_window',
+        detail: `window_end_utc=${windowEndUtc} is incomplete; an incomplete window may only be rehearsed (--dry-run), never persisted (it feeds a hard gate)`,
+      };
+      return report;
+    }
   }
 
   const rollingOutAbs = join(rootDir, ROLLING_OUT_REL);
@@ -577,8 +602,10 @@ Options:
   --date <YYYY-MM-DD>  window_end_utc (right boundary). Default: yesterday (last complete UTC day).
                        The span is ALWAYS 30 days (window_start = window_end - 29); there is NO
                        arbitrary --window (R-γ4). --date only moves the right boundary.
-  --allow-incomplete   Allow a window_end that is the current (un-elapsed) UTC day (else
-                       fail-closed incomplete_window).
+  --allow-incomplete   REHEARSE a window_end that is the current (un-elapsed) UTC day. Requires
+                       --dry-run: an incomplete window_end can NEVER be persisted (it feeds a hard
+                       gate; a partial-day critical-0 must not later be read as a passing value).
+                       Without it, an incomplete window_end is fail-closed incomplete_window.
   --regenerate         Override the divergence guard: append a new row when the recomputed
                        hash differs from the existing same-window row (latest-wins).
   --dry-run            WRITE axis: rehearse (aggregate + validate + report), persist nothing.

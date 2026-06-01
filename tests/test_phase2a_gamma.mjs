@@ -282,14 +282,66 @@ test('window boundary: feedback on window_start counts (30-in); the day before w
   } finally { cleanup(root); }
 });
 
-test('UTC-day complete: window_end == current UTC day -> incomplete_window fail-closed (unless --allow-incomplete)', () => {
+test('UTC-day complete: window_end == current UTC day -> incomplete_window fail-closed; --allow-incomplete --dry-run rehearses', () => {
   const root = mkRoot();
   try {
     seedMetricsDays(root, fullWindowDays('2026-06-01'));
-    const r = run(root, { dateUtc: '2026-06-01' }); // today per NOW
+    const r = run(root, { dateUtc: '2026-06-01' }); // today per NOW, no flags
     assert.equal(r.fail_closed.kind, 'incomplete_window');
-    const r2 = run(root, { dateUtc: '2026-06-01', allowIncomplete: true, dryRun: true });
+    const r2 = run(root, { dateUtc: '2026-06-01', allowIncomplete: true, dryRun: true }); // rehearse only
     assert.equal(r2.fail_closed.kind, null);
+  } finally { cleanup(root); }
+});
+
+test('red-team GAMMA-L5-01: --allow-incomplete WITHOUT --dry-run (persist) is fail-closed; nothing persisted', () => {
+  const root = mkRoot();
+  try {
+    // A real, available-looking partial-day window: a critical DISAGREE reviewed today.
+    seedMetricsDays(root, fullWindowDays('2026-06-01'));
+    seedTrials(root, [
+      mkTrial('partial', { evaluated_at: '2026-06-01T06:00:00Z', fb: { verdict: 'DISAGREE_WITH_SYSTEM', reason_codes: ['unsafe_reuse'], reviewed_at: '2026-06-01T08:00:00Z' } }),
+    ]);
+    // PERSIST attempt on the incomplete current day -> must fail-closed (would otherwise write a
+    // partial critical-0/value that Phase-4 freshness accepts as PASS the next day).
+    const r = run(root, { dateUtc: '2026-06-01', allowIncomplete: true }); // dryRun defaults false
+    assert.equal(r.fail_closed.kind, 'incomplete_window');
+    assert.equal(readRows(root).length, 0); // nothing written
+    assert.equal(existsSync(join(root, 'state/runtime/learning/d11_rolling_30d.jsonl')), false);
+    // every PERSISTED row is therefore complete-window-ended by construction (default path).
+  } finally { cleanup(root); }
+});
+
+test('input_unreadable: an in-window operator_feedback with an out-of-enum verdict fails-closed', () => {
+  const root = mkRoot();
+  try {
+    seedMetricsDays(root, fullWindowDays());
+    seedTrials(root, [
+      mkTrial('weird', { fb: { verdict: 'MAYBE_AGREE', reason_codes: ['acceptable'], reviewed_at: reviewedAt('2026-05-10') } }),
+    ]);
+    const r = run(root, { dateUtc: WIN_END, dryRun: true });
+    assert.equal(r.fail_closed.kind, 'input_unreadable');
+    assert.match(r.fail_closed.detail, /verdict out of enum/);
+  } finally { cleanup(root); }
+});
+
+test('KIND 4 output_schema: the producer-side validator (same ajv config) rejects a malformed row', () => {
+  // The reducer validates the assembled row at KIND 4 before write (defense-in-depth). Prove that
+  // guard's validator rejects malformed shapes — e.g. a negative critical count or a missing block.
+  const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });
+  const validate = ajv.compile(parseYaml(readFileSync(SCHEMA, 'utf-8')));
+  const root = mkRoot();
+  try {
+    seedMetricsDays(root, fullWindowDays());
+    seedTrials(root, [mkTrial('a', { fb: { verdict: 'AGREE_WITH_SYSTEM', reason_codes: ['acceptable'], reviewed_at: reviewedAt('2026-05-10') } })]);
+    run(root, { dateUtc: WIN_END });
+    const [good] = readRows(root);
+    assert.ok(validate(good)); // the real row passes
+    const badNeg = JSON.parse(JSON.stringify(good)); badNeg.d11_rolling.critical_false_negative_count_30d = -1;
+    assert.ok(!validate(badNeg), 'negative critical count must be rejected (minimum 0)');
+    const badMissing = JSON.parse(JSON.stringify(good)); delete badMissing.d11_rolling;
+    assert.ok(!validate(badMissing), 'missing d11_rolling block must be rejected (required)');
+    const badWindow = JSON.parse(JSON.stringify(good)); badWindow.window_days = 7;
+    assert.ok(!validate(badWindow), 'window_days != 30 must be rejected (const 30)');
   } finally { cleanup(root); }
 });
 
