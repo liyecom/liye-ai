@@ -1,0 +1,73 @@
+# Phase 2a-γ 30-Day Rolling D-11 Reducer Tests
+#
+# Dedicated test gate for the liye_os Phase 2a-γ Phase-4-prep rolling reducer:
+#   .claude/scripts/learning/d11_rolling_30d_producer.mjs  — Fγ 30-day rolling D-11 reducer (NEW)
+#   _meta/contracts/learning/d11_rolling_30d_v1.schema.yaml — output contract (NEW; feeds Phase-4 gate)
+#   tests/test_phase2a_gamma.mjs                            — node:test §4 matrix suite
+#
+# Why a dedicated workflow (mirroring the 1c/1d/1e/2a-α/β CI-wiring split): this suite uses the
+# Node built-in runner (node:test) and is prefix-named (tests/test_phase2a_gamma.mjs, no `.test.`
+# infix), so the root vitest run does NOT collect it. Without this workflow nothing in CI runs the
+# rolling-reducer logic (REBUILD-ALL-from-trials / Simpson-safe Σ raw atoms / late-arrival rebuild /
+# empty-window fail-safe → null-never-0 / pure-hash same-hash-skip / divergence / R-γ4 fence /
+# gate 19→20 carve-out) and it could silently drift.
+#
+# Scope: node-only, self-contained. Every scenario runs against a synthetic root in a tmp dir;
+# ZERO cross-repo / network dependency. The gate-count check (DoD#10) spawns validate-contracts.
+#
+# Reference: liye_os .planning/phase-2a-gamma/SPEC.md v1.0 (blob eb17d868) §3 DoD + §4 + §7.
+
+name: Phase 2a-γ Rolling D-11 Reducer Tests
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/d11_rolling_30d_producer.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - 'tests/test_phase2a_gamma.mjs'
+      - '_meta/contracts/learning/d11_rolling_30d_v1.schema.yaml'
+      - '_meta/contracts/learning/policy_trial_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-phase2a-gamma-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/scripts/learning/d11_rolling_30d_producer.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - 'tests/test_phase2a_gamma.mjs'
+      - '_meta/contracts/learning/d11_rolling_30d_v1.schema.yaml'
+      - '_meta/contracts/learning/policy_trial_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-phase2a-gamma-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (phase2a_gamma)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml)
+        run: npm ci
+
+      - name: Run Phase 2a-γ node:test
+        run: node --test tests/test_phase2a_gamma.mjs
+
+      - name: Rolling reducer --help smoke
+        run: node .claude/scripts/learning/d11_rolling_30d_producer.mjs --help
+
+      - name: Contracts gate count (19->20 carve-out) must pass
+        run: node _meta/contracts/scripts/validate-contracts.mjs
