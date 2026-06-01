@@ -1,0 +1,83 @@
+# Phase 2a-α Flip-Readiness Tests
+#
+# Dedicated test gate for the liye_os Phase 2a-α dry_run->trialing flip-readiness surface:
+#   .claude/scripts/learning/phase_1_exit_gate_check.mjs   — NEW exit-gate entry checker (2a.1)
+#   .claude/scripts/learning/heartbeat_runner.mjs          — ceiling relax + operator_rollback (2a.2/2a.4)
+#   src/reasoning/policy_trial_evaluator.mjs               — --mode live authorization二次门 (2a.3)
+#   tests/test_phase2a_alpha.mjs                           — node:test §4 matrix suite
+#   tests/fixtures/phase2a_alpha/**                        — committed golden fixtures
+#
+# Why a dedicated workflow (A7, mirroring the 1c/1d/1e CI-wiring split): this suite uses
+# the Node built-in runner (node:test) and is prefix-named (tests/test_phase2a_alpha.mjs,
+# no `.test.` infix), so the root vitest run does NOT collect it. Without this workflow
+# nothing in CI runs the flip-readiness logic (exit-gate three-state / ceiling relax /
+# operator_rollback / live二次门 / ship≠activation) and it could silently drift. The
+# tests are CI-wired in the IMPLEMENTATION PR (no follow-up).
+#
+# The three changed Phase-1 artifacts ALSO independently path-trigger their own existing
+# suites in the same PR (1c policy-trial-evaluator, 1d heartbeat-runner, 1e metrics-daily),
+# whose F-1ctest/F-1dtest carve-out updates keep them green (SPEC DoD#16).
+#
+# Scope: node-only, self-contained. Every scenario runs against a synthetic root in a tmp
+# dir (or a committed fixture); ZERO cross-repo / network dependency, no amazon-growth-engine
+# checkout.
+#
+# Reference: liye_os .planning/phase-2a/SPEC.md v1.0 (blob e74f205f) §3 DoD #16 + §4 + §7 C6.
+
+name: Phase 2a-α Flip-Readiness Tests
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/phase_1_exit_gate_check.mjs'
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - 'src/reasoning/policy_trial_evaluator.mjs'
+      - 'tests/test_phase2a_alpha.mjs'
+      - 'tests/fixtures/phase2a_alpha/**'
+      - '_meta/contracts/learning/policy_trial_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_state_v2.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_state_v2.bootstrap.json'
+      - '.github/workflows/learning-phase2a-alpha-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/scripts/learning/phase_1_exit_gate_check.mjs'
+      - '.claude/scripts/learning/heartbeat_runner.mjs'
+      - '.claude/scripts/learning/canonical_json.mjs'
+      - 'src/reasoning/policy_trial_evaluator.mjs'
+      - 'tests/test_phase2a_alpha.mjs'
+      - 'tests/fixtures/phase2a_alpha/**'
+      - '_meta/contracts/learning/policy_trial_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_state_v2.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_phase_transition_v1.schema.yaml'
+      - '_meta/contracts/learning/heartbeat_state_v2.bootstrap.json'
+      - '.github/workflows/learning-phase2a-alpha-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (phase2a_alpha)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml)
+        run: npm ci
+
+      - name: Run Phase 2a-α node:test
+        run: node --test tests/test_phase2a_alpha.mjs
+
+      - name: Exit-gate checker --help smoke
+        run: node .claude/scripts/learning/phase_1_exit_gate_check.mjs --help
