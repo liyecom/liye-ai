@@ -116,6 +116,81 @@ node .claude/scripts/learning/metrics_daily_producer.mjs --dry-run --json
 
 ---
 
+### 2.2 Phase 2a Activation Playbook (`dry_run → trialing` flip)
+
+> **Phase 2a-α flip-readiness.** Merging the 2a-α code does **NOT** activate trialing
+> (`ship ≠ activation`): after merge the live state still has `trial_write_enabled=false`
+> (or is absent), so `policy_trial_evaluator --mode live` fails closed
+> (`not_authorized_for_live`, exit 2, **0 trial written**). The ceiling relax only *permits*
+> `trial_write=true`; it never *triggers* it. Activation is the **operator-driven** sequence
+> below — never automatic, never performed by the runner or evaluator.
+
+**Earliest activation date** (gate is data-driven; the date below is planning guidance only):
+
+```
+earliest_activation_date = max(2026-06-07, age_0d_flip_date + 7d) + 1d
+  age_0d_flip_date  operator flips learning_sources.yaml AGE enabled:true
+                    (.claude/config/learning_sources.yaml; an independent 0-day task,
+                     OUTSIDE 2a-α code, an external BLOCKING dependency — with no AGE
+                     emit the exit-gate stays INDETERMINATE forever). This is an
+                     operator-supplied planning input, NOT a value any gate reads.
+      → +7d         AGE emits + manifest PASS streak accrues (the streak clock starts
+                    only once AGE actually emits)
+      → +1d         phase_1_exit_gate_check verdict == PASS verification
+```
+
+`2026-06-07` is the floor (assumes AGE emits from today's Day-0; today 2026-05-31 is the
+1e merge Day-0 and `metrics_daily.jsonl` does not yet exist). The **only** machine gate is
+`phase_1_exit_gate_check --json` returning `verdict==PASS`, which intrinsically requires 7
+real AGE-emit days. The operator records `age_0d_flip_date` in the activation PR / log.
+
+**Activation steps** (all commands are dry-run-safe to rehearse; the flip is a manual
+state edit, step 4):
+
+```bash
+# 1) Bootstrap the live state if absent (1d existing mechanism; lands evaluating_metrics_only,
+#    trial_write_enabled=false). Skip if state/runtime/learning/heartbeat_learning_state.json exists.
+LIYE_HEARTBEAT_BOOTSTRAP_CONFIRM=1 node .claude/scripts/learning/heartbeat_runner.mjs
+# Expected: current_phase=evaluating_metrics_only, trial_write_enabled=false.
+
+# 2) Exit-gate check (read-only; default --asof=yesterday, --window=7, --source=amazon-growth-engine).
+node .claude/scripts/learning/phase_1_exit_gate_check.mjs --json
+# Expected PASS (exit 0) only once AGE has 7 consecutive clean manifest-PASS UTC days
+#   (earliest 2026-06-07). BLOCKED (exit 2) = an explicit-failure day, needs a fix first.
+#   INDETERMINATE (exit 2) = data insufficient / AGE not yet emitting — wait, do NOT flip.
+
+# 3) Operator confirm: human review of the verdict evidence + golden replay reproduction +
+#    negative-evidence hit-rate (the three plan-L150 observations). Proceed only if PASS.
+
+# 4) FLIP (the single activation action; operator hand-edits the live state):
+#    edit state/runtime/learning/heartbeat_learning_state.json -> "trial_write_enabled": true
+#    (evaluator_enabled is already true), then re-run the heartbeat to derive trialing:
+node .claude/scripts/learning/heartbeat_runner.mjs
+# Expected: current_phase=trialing, a phase-transition appended with reason=operator.
+
+# 5) Live evaluator (now authorized by the二次门):
+node src/reasoning/policy_trial_evaluator.mjs --mode live
+# Expected: live_authorized passes, writes policy_trials.jsonl (existing :489 path),
+#   verdicts stay NEEDS_HUMAN. Before the flip this exits 2 (not_authorized_for_live, 0 write).
+
+# 6) ROLLBACK (safety-symmetric inverse; operator hand-edits back):
+#    edit heartbeat_learning_state.json -> "trial_write_enabled": false, then re-run:
+node .claude/scripts/learning/heartbeat_runner.mjs
+# Expected: current_phase=evaluating_metrics_only, transition reason=operator_rollback.
+```
+
+7. **Observation window 7–14 days** (plan L150): trial verdict distribution / golden replay
+   reproduction / negative-evidence hit-rate. The `2a → 2b` transition predicate (whether the
+   observation window passed) is **Phase 2a-β** — this playbook only marks "evaluate for 2b
+   after the window elapses".
+
+**Invariants preserved:** zero candidate / promotion / production write (Hard Gate 8);
+verdict stays NEEDS_HUMAN; no scheduler; `production_write_enabled` Pilot-1-wide locked.
+The `learning_sources.yaml` AGE-enable flip and §5 Promotion/Demotion stay independent /
+GATED-until-2c respectively (unchanged here).
+
+---
+
 ## 3. Fact Ingest & Source Hygiene
 
 **Learning Sources Registry**: `.claude/config/learning_sources.yaml`
