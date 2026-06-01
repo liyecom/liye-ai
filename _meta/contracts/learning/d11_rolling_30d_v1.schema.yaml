@@ -1,0 +1,273 @@
+# D-11 30-Day Rolling Reducer Contract v1.0.0
+# SSOT: _meta/contracts/learning/d11_rolling_30d_v1.schema.yaml
+#
+# Schema validating one line of the 30-day rolling D-11 KPI roll-up
+#   state/runtime/learning/d11_rolling_30d.jsonl  (append-only, gitignored)
+#
+# Phase 2a-γ sub-deliverable (NEW; Phase-4 prep). The rolling reducer
+# (.claude/scripts/learning/d11_rolling_30d_producer.mjs) aggregates the per-day
+# D-11 atoms produced in Phase 1e into the two 30-day rolling KPIs the Phase-4
+# entry gate consumes:
+#   - operator_agreement_rate_30d   (#4, ≥0.7 soft)
+#   - critical_false_negative_count_30d  (#5, =0 hard)
+# The reducer does NOT compute the gate verdict / PASS-FAIL / abort logic — that
+# is the Phase-4 entry gate (SPEC §6 / R-γ3). It only emits KPI values + their
+# availability envelope.
+#
+# REBUILD-ALL-FROM-TRIALS (SPEC §1 / §0.1-2 / D-γ6, red-team fold — no double-count):
+# numerator/denominator/critical are rebuilt directly from the sealed
+# policy_trials.jsonl (policy_trial_v1, blob 21f225d6), bucketing each
+# operator_feedback.reviewed_at by UTC date into the 30-day window — on-time AND
+# late feedback are counted once, uniformly (no ⊎, no separate late extraction).
+# metrics_daily.jsonl d11_kpis (metrics_daily_v1, blob 7caccdf7) is NOT a numerator
+# source; metrics_daily rows are read ONLY for window coverage (days_present) — a
+# UTC day "counts" toward the 30-day window iff the 1e producer emitted a row for it
+# (α all-of-window analog). insufficient_window ⟺ days_present < 30.
+#
+# SIMPSON-SAFE (SPEC §0.1-1): operator_agreement_rate_30d = Σ agree / Σ eligible over
+# RAW per-feedback atoms (NOT the average of per-day rates). The raw atoms
+# (agreement_agree_count_30d / agreement_eligible_count_30d) are exposed so the gate
+# operates on raw counts, per metrics_daily_v1 d11_kpis "gate uses raw atoms".
+#
+# FAIL-SAFE TOTALITY (SPEC §0.1-3 / R-γ5 / D-γ3): critical_false_negative_count_30d == 0
+# is the Phase-4 hard-gate PASS value. An empty / insufficient window must therefore
+# NEVER emit 0 — it emits null + a kpi_unavailable_reason. To stop the gate ("uses raw
+# atoms") from reconstructing a passing rate from a partial window, ALL FOUR numeric
+# KPI fields (rate, agree_count, eligible_count, critical_false_negative_count) are
+# null together when unavailable. Availability is total:
+#   kpi_unavailable_reasons NON-EMPTY  ⟺  all four numeric fields == null
+#   kpi_unavailable_reasons EMPTY      ⟺  all four numeric fields are real (count may be a genuine 0 = PASS)
+#
+# rolling_record_hash = hashCanonical over a PURE function of (window_start_utc +
+# window_end_utc + window_days + days_present + d11_rolling + provenance.input_sources).
+# It EXCLUDES every snapshot / wall-clock / invocation-context field
+# (generated_at_utc, generator_version, write_mode, root_mode, window_sufficient) so
+# re-running a closed window never spuriously diverges as the control-plane advances
+# (SPEC §0.1-4 / D-γ5, mirroring metrics_daily_v1 metric_record_hash H1).
+#
+# Producer-side enforcement: d11_rolling_30d.jsonl is .gitignored (no versioned diff
+# surface), so the contracts gate only proves THIS schema is well-formed. Row-level
+# conformance is enforced by the reducer at write time via ajv fail-closed
+# (kind=output_schema), mirroring metrics_daily_producer.mjs / heartbeat_runner.mjs.
+#
+# Phase: 2a-γ per .planning/phase-2a-gamma/SPEC.md v1.0 (blob eb17d868) §1 Fγ / §3 DoD / §5.
+# Normative: SPEC §1 (field set + REBUILD-ALL + window_end freshness) + N-1/N-2/N-3 (read-only inputs).
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/d11_rolling_30d.v1"
+title: "D-11 30-Day Rolling Reducer Schema v1"
+description: "One append-only 30-day rolling D-11 KPI roll-up row rebuilt from the sealed policy_trials ledger, feeding the Phase-4 entry gate."
+version: "1.0.0"
+type: object
+
+required:
+  # === envelope (hash-OUT: snapshot / wall-clock / invocation) ===
+  - schema_version
+  - generator_version
+  - generated_at_utc
+  - write_mode
+  - root_mode
+  - window_sufficient
+  # === pure body (hash-IN) ===
+  - window_start_utc
+  - window_end_utc
+  - window_days
+  - days_present
+  - rolling_record_hash
+  - d11_rolling
+  - provenance
+
+properties:
+  # ----------------------------------------------------------------------- #
+  # Envelope (hash-OUT)
+  # ----------------------------------------------------------------------- #
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+  generator_version:
+    type: string
+    pattern: "^d11_rolling_30d_producer@\\d+\\.\\d+\\.\\d+$"
+    description: "SSOT version token (hash-OUT). Mirrors metrics_daily_producer convention."
+
+  generated_at_utc:
+    type: string
+    format: date-time
+    description: "ISO 8601 with tz offset. Wall-clock when this row was produced (hash-OUT)."
+
+  write_mode:
+    type: string
+    enum: [rehearse, persist]
+    description: "rehearse = --dry-run (persist nothing); persist = normal write (hash-OUT)."
+
+  root_mode:
+    type: string
+    enum: [default_root, fixtures_root]
+    description: "default_root = PROJECT_ROOT; fixtures_root = --fixtures injected root (hash-OUT)."
+
+  window_sufficient:
+    type: boolean
+    description: "days_present == window_days. Convenience flag (hash-OUT; derivable from days_present)."
+
+  # ----------------------------------------------------------------------- #
+  # Window boundaries (hash-IN)
+  # ----------------------------------------------------------------------- #
+  window_start_utc:
+    type: string
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    description: "First UTC calendar day in the 30-day window (= window_end_utc minus window_days-1)."
+
+  window_end_utc:
+    type: string
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    description: |
+      Last (most recent) complete UTC calendar day in the window. Phase-4-facing FRESHNESS
+      contract: the Phase-4 gate MUST verify window_end_utc == (current UTC day − 1) before
+      consuming this row; a staler window_end → Phase-4 treats the row as unavailable, NOT pass
+      (SPEC §1 Fγ). γ only emits the envelope; staleness enforcement is Phase-4 (R-γ3).
+
+  window_days:
+    type: integer
+    const: 30
+    description: "Fixed rolling span. The reducer exposes NO arbitrary --window (R-γ4 / D-γ7)."
+
+  days_present:
+    type: integer
+    minimum: 0
+    maximum: 30
+    description: |
+      Number of distinct UTC days in [window_start_utc, window_end_utc] for which a
+      metrics_daily.jsonl row exists (the 1e producer ran). Window coverage signal
+      (α all-of-window analog). days_present < window_days ⟹ insufficient_window.
+
+  rolling_record_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "hashCanonical over the PURE body (window + days_present + d11_rolling + input_sources). Stable across reruns of a closed window."
+
+  # ----------------------------------------------------------------------- #
+  # d11_rolling (the two Phase-4 KPIs + raw atoms; hash-IN)
+  # ----------------------------------------------------------------------- #
+  d11_rolling:
+    type: object
+    description: |
+      The 30-day rolling D-11 KPIs. ALL FOUR numeric fields are null together when the
+      window is unavailable (kpi_unavailable_reasons non-empty); all four are real when
+      available (empty kpi_unavailable_reasons). A real critical count of 0 is a genuine
+      Phase-4 PASS — distinct from null (unavailable). Simpson-safe (Σ raw atoms, NOT
+      average of per-day rates).
+    required:
+      - operator_agreement_rate_30d
+      - agreement_agree_count_30d
+      - agreement_eligible_count_30d
+      - critical_false_negative_count_30d
+      - operator_reason_codes
+      - kpi_unavailable_reasons
+    properties:
+      operator_agreement_rate_30d:
+        type: ["number", "null"]
+        minimum: 0
+        maximum: 1
+        description: "Σ agree / Σ eligible over raw per-feedback atoms (excl. NEEDS_MORE_EVIDENCE). null ⟺ unavailable."
+      agreement_agree_count_30d:
+        type: ["integer", "null"]
+        minimum: 0
+        description: "Σ count(operator_feedback.verdict == AGREE_WITH_SYSTEM), reviewed_at bucketed into window. null ⟺ unavailable."
+      agreement_eligible_count_30d:
+        type: ["integer", "null"]
+        minimum: 0
+        description: "Σ count(verdict ∈ {AGREE_WITH_SYSTEM, DISAGREE_WITH_SYSTEM}); excludes NEEDS_MORE_EVIDENCE. null ⟺ unavailable."
+      critical_false_negative_count_30d:
+        type: ["integer", "null"]
+        minimum: 0
+        description: |
+          Σ count(verdict == DISAGREE_WITH_SYSTEM AND reason_codes ∩
+          {unsafe_reuse, regression_failed, business_context_changed} != empty), reviewed_at
+          bucketed into window. A real 0 = Phase-4 hard-gate PASS; null = unavailable (NEVER 0
+          on an empty/insufficient window — SPEC §0.1-3 catastrophic-false-negative protection).
+      operator_reason_codes:
+        type: object
+        description: "Occurrence-count over the 5-value operator reason vocabulary across window feedback. Diagnostic only (never a gate input); always real counts."
+        required:
+          - unsafe_reuse
+          - weak_evidence
+          - business_context_changed
+          - regression_failed
+          - acceptable
+        properties:
+          unsafe_reuse: { type: integer, minimum: 0 }
+          weak_evidence: { type: integer, minimum: 0 }
+          business_context_changed: { type: integer, minimum: 0 }
+          regression_failed: { type: integer, minimum: 0 }
+          acceptable: { type: integer, minimum: 0 }
+        additionalProperties: false
+      kpi_unavailable_reasons:
+        type: array
+        items:
+          type: string
+          enum:
+            - insufficient_window
+            - no_trials_in_window
+            - no_operator_feedback_in_window
+            - denominator_zero_all_needs_more_evidence
+        description: |
+          Why the four numeric KPI fields are null (empty ⟺ available). Mutually exclusive
+          window states, in precedence order: insufficient_window (days_present < 30) →
+          no_trials_in_window (sufficient window, 0 trials evaluated in window) →
+          no_operator_feedback_in_window (trials but 0 feedback reviewed in window) →
+          denominator_zero_all_needs_more_evidence (feedback present but Σ eligible == 0).
+    additionalProperties: false
+
+  # ----------------------------------------------------------------------- #
+  # Provenance (hash-IN: input_sources; the producer_invocation block is hash-OUT)
+  # ----------------------------------------------------------------------- #
+  provenance:
+    type: object
+    required:
+      - input_sources
+      - producer_invocation
+      - aggregation_window
+    properties:
+      input_sources:
+        type: array
+        description: "Deterministically-sorted read inputs. policy_trials = rebuild source; metrics_daily = window coverage (days_present)."
+        items:
+          type: object
+          required:
+            - path
+            - role
+            - records_consumed
+          properties:
+            path:
+              type: string
+              description: "Repo-relative path of the read input."
+            role:
+              type: string
+              enum: [rebuild_source, window_coverage]
+              description: "rebuild_source = policy_trials (numerator/denominator); window_coverage = metrics_daily (days_present)."
+            records_consumed:
+              type: integer
+              minimum: 0
+              description: "Count of in-window records consumed from this input."
+          additionalProperties: false
+      producer_invocation:
+        type: object
+        description: "Invocation context (hash-OUT)."
+        required:
+          - write_mode
+          - root_mode
+        properties:
+          write_mode:
+            type: string
+            enum: [rehearse, persist]
+          root_mode:
+            type: string
+            enum: [default_root, fixtures_root]
+        additionalProperties: false
+      aggregation_window:
+        type: string
+        pattern: "^\\d{4}-\\d{2}-\\d{2}\\.\\.\\d{4}-\\d{2}-\\d{2}$"
+        description: "window_start_utc..window_end_utc (human-readable span label)."
+    additionalProperties: false
+
+additionalProperties: false
