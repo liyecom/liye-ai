@@ -24,8 +24,16 @@
  *   trial_write_enabled==true (Phase 2a-α); otherwise it fails closed
  *   (not_authorized_for_live, 0 writes, exit 2). observability-only (Hard Gate 8): no
  *   production / candidate / promotion write, no AGE / loamwise / heartbeat / schema
- *   mutation, no learned_policy write-back (trial_history deferred to β). Expected
- *   `bound=0` at 1c runtime is BY-DESIGN (SPEC §1.3 F5).
+ *   mutation. Expected `bound=0` at 1c runtime is BY-DESIGN (SPEC §1.3 F5).
+ *
+ * PHASE 2a-β (trialing 后果面, SPEC `.planning/phase-2a-beta/SPEC.md` blob d1b11bae):
+ *   After a trial is written (live), F3 appends trial_id to the bound policy's
+ *   learned_policy_ghl_v1.trial_history (back-reference, observability-only — NOT a
+ *   promotion/content/status write) and F2 recomputes confidence via the FROZEN
+ *   ghl_confidence_v1 formula. The in-place YAML write targets ONLY compliant GHL
+ *   sandbox/candidate instances; production/disabled/quarantine + legacy (no confidence_basis)
+ *   are SKIPPED (report-only: production 0-diff + no legacy YAML rewrite). verdict stays
+ *   NEEDS_HUMAN; confidence is an orthogonal readiness dimension, NOT a promotion gate.
  *
  * REUSE (SPEC: do not self-implement canonicalization):
  *   canonical_record_hash is recomputed via canonical_json.mjs `hashCanonical`.
@@ -37,13 +45,13 @@
  */
 
 import {
-  readFileSync, readdirSync, existsSync, realpathSync,
+  readFileSync, readdirSync, existsSync, realpathSync, writeFileSync,
   lstatSync, readlinkSync, mkdirSync, openSync, writeSync, closeSync, appendFileSync,
 } from 'fs';
 import { join, dirname, resolve, sep, relative } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, parseDocument } from 'yaml';
 import Ajv from 'ajv';
 
 import {
@@ -80,6 +88,23 @@ const LIVE_STATE_REL = 'state/runtime/learning/heartbeat_learning_state.json';
 // learned_policy lifecycle dirs (binding scan target). Both legacy + GHL schema
 // instances live here and both carry evidence[].trace_id (SPEC §0 N0).
 const POLICY_STATUS_DIRS = ['sandbox', 'candidate', 'production', 'disabled', 'quarantine'];
+
+// Phase 2a-β F3 trial_history write-back is permitted ONLY to these lifecycle dirs
+// (SPEC §1 F3 production/legacy guard, red-team fold): an in-place YAML mutation of a
+// production/disabled/quarantine instance would break DoD#9 "production dir 内容 0-diff"
+// and, for a legacy instance lacking the GHL-required confidence_basis, fail re-validation.
+// Those instances are SKIPPED (recorded in report.trial_history_skipped, observability-only).
+const TRIAL_HISTORY_WRITABLE_STATUS = ['sandbox', 'candidate'];
+
+// Phase 2a-β F2 confidence: the FROZEN ghl_confidence_v1 formula contract (read-only;
+// confidence_formulas.yaml is NEVER mutated — §2 R-β1, blob 9b8c2044). The evaluator is a
+// faithful interpreter of the contract's inputs/weights/missing_input_policy/boundary policy,
+// so the literal weights are NOT hardcoded here (single SSOT = the contract file).
+const CONFIDENCE_FORMULAS_REL = '_meta/contracts/learning/confidence_formulas.yaml';
+const GHL_POLICY_SCHEMA_REL = '_meta/contracts/learning/learned_policy_ghl_v1.schema.yaml';
+
+// Legacy-alias divergence threshold (confidence_formulas legacy_aliases: WARN > 5%).
+const LEGACY_ALIAS_DIVERGENCE_THRESHOLD = 0.05;
 
 // Stricter-than-emit repo-relative path regex for artifact-deref (mirrors 1b
 // import_facts STRICT_PATH_RE: no leading '/' or '~', no '..' segment).
@@ -502,6 +527,13 @@ function emitPolicyTrial(ctx, p) {
     mkdirSync(ledgerDir, { recursive: true });
     writeExclusive(join(ledgerDir, `${trialId}.yaml`), ledgerToYaml(ledger));
   }
+
+  // Phase 2a-β F2 + F3: trial-consequence application for the bound policy (compute
+  // confidence -> report in both modes; trial_history + confidence write-back only in live,
+  // only to compliant GHL sandbox/candidate). "先 trial 后 history": the trial is already
+  // written above; a history write-back failure does NOT roll back the trial (trial = SSOT,
+  // history = derived index rebuildable from policy_trials.jsonl, SPEC §1 F3 partial-write).
+  applyTrialConsequences(ctx, p.policyId, trialId);
 }
 
 // --------------------------------------------------------------------------- //
@@ -601,6 +633,193 @@ function authorizeLiveWrite(rootDir) {
   return { authorized: true, detail: null };
 }
 
+// --------------------------------------------------------------------------- //
+// Phase 2a-β F2 (confidence) + F3 (trial_history write-back). evaluator carve-out.
+// --------------------------------------------------------------------------- //
+
+/**
+ * policy_id -> { absPath, status } over the lifecycle dirs (SPEC §1 F3/F2 write target).
+ * Distinct from buildPolicyTraceIndex (which maps trace_id -> policy_id and discards the
+ * file location); F3/F2 need the file path + status to write back / guard production.
+ */
+export function buildPolicyFileIndex(policiesDirAbs) {
+  const index = new Map();
+  if (!existsSync(policiesDirAbs)) return index;
+  for (const status of POLICY_STATUS_DIRS) {
+    const statusDir = join(policiesDirAbs, status);
+    if (!existsSync(statusDir)) continue;
+    let names;
+    try { names = readdirSync(statusDir); } catch { continue; }
+    for (const name of names) {
+      if (!name.endsWith('.yaml') && !name.endsWith('.yml')) continue;
+      const absPath = join(statusDir, name);
+      let doc;
+      try { doc = parseYaml(readFileSync(absPath, 'utf-8')); } catch { continue; }
+      if (!doc || typeof doc.policy_id !== 'string') continue;
+      // First-writer-wins on duplicate policy_id; binding already requires uniqueness upstream.
+      if (!index.has(doc.policy_id)) index.set(doc.policy_id, { absPath, status });
+    }
+  }
+  return index;
+}
+
+/** Load the FROZEN ghl_confidence_v1 formula contract (read-only). Returns the formula object. */
+export function loadConfidenceFormula(projectRoot = PROJECT_ROOT) {
+  const doc = parseYaml(readFileSync(join(projectRoot, CONFIDENCE_FORMULAS_REL), 'utf-8'));
+  const formula = doc && doc.formulas && doc.formulas.ghl_confidence_v1;
+  if (!formula || !formula.inputs || !formula.weights) {
+    throw new Error('confidence_formulas.yaml: ghl_confidence_v1 inputs/weights missing');
+  }
+  return formula;
+}
+
+/** Resolve a "$.a.b" JSON-pointer-style path against a plain object. Returns undefined if absent. */
+function resolveDollarPath(doc, path) {
+  if (typeof path !== 'string' || !path.startsWith('$.')) return undefined;
+  let cur = doc;
+  for (const seg of path.slice(2).split('.')) {
+    if (cur === null || typeof cur !== 'object' || !(seg in cur)) return undefined;
+    cur = cur[seg];
+  }
+  return cur;
+}
+
+/**
+ * Compute confidence via the FROZEN ghl_confidence_v1 contract (faithful interpreter; no
+ * hardcoded weights). Honors missing_input_policy: fail_closed and boundary_output_policy.
+ * Returns one of:
+ *   { status: 'ok', value, boundary_review, divergence_warn }
+ *   { status: 'unavailable', reason }   (a required input missing/non-number -> fail_closed)
+ */
+export function computeGhlConfidence(doc, formula) {
+  let sum = 0;
+  for (const [key, path] of Object.entries(formula.inputs)) {
+    const v = resolveDollarPath(doc, path);
+    if (typeof v !== 'number' || Number.isNaN(v)) {
+      return { status: 'unavailable', reason: `missing/non-numeric input ${key} (${path})` };
+    }
+    const w = formula.weights[key];
+    if (typeof w !== 'number') return { status: 'unavailable', reason: `missing weight ${key}` };
+    sum += w * v;
+  }
+  // boundary_output_policy: 0.0 / 1.0 -> requires_review (NOT auto-accept).
+  const boundaryValues = (formula.boundary_output_policy && formula.boundary_output_policy.values) || [];
+  const boundary_review = boundaryValues.some((b) => b === sum);
+  // legacy_alias divergence (>5% over 30d; instantaneous proxy here — history not available).
+  let divergence_warn = false;
+  const aliases = formula.legacy_aliases || {};
+  const canonical = resolveDollarPath(doc, formula.inputs.operator_agreement_rate);
+  for (const aliasPath of Object.values(aliases)) {
+    const legacy = resolveDollarPath(doc, aliasPath);
+    if (typeof canonical === 'number' && typeof legacy === 'number'
+      && Math.abs(canonical - legacy) > LEGACY_ALIAS_DIVERGENCE_THRESHOLD) {
+      divergence_warn = true;
+    }
+  }
+  return { status: 'ok', value: sum, boundary_review, divergence_warn };
+}
+
+/** ajv validator for learned_policy_ghl_v1 (inline schema, no $ref). Matches 1b ajv flags. */
+export function buildGhlPolicyValidator(projectRoot = PROJECT_ROOT) {
+  const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });
+  const schema = parseYaml(readFileSync(join(projectRoot, GHL_POLICY_SCHEMA_REL), 'utf-8'));
+  return ajv.compile(schema);
+}
+
+/**
+ * F2 + F3 consequence application for one bound policy after its trial was emitted
+ * (SPEC §1 F2/F3). Compute confidence (readiness, both modes -> report). Write trial_history
+ * append + recomputed confidence back ONLY in live mode AND only to a compliant GHL instance
+ * in a writable lifecycle dir (sandbox/candidate). production/disabled/quarantine and legacy
+ * (missing confidence_basis) instances are SKIPPED (report-only; production 0-diff + no legacy
+ * YAML rewrite, §1 F3/F2 guards). The in-place write re-validates against learned_policy_ghl_v1
+ * before persisting (fail-closed: never write a half-baked policy doc).
+ */
+function applyTrialConsequences(ctx, policyId, trialId) {
+  const { report } = ctx;
+  const entry = ctx.policyFileIndex.get(policyId);
+  if (!entry) {
+    // Bound via trace index but file vanished mid-run — observability only, not a write target.
+    report.trial_history_skipped.push({ policy_id: policyId, trial_id: trialId, reason: 'policy file not found' });
+    return;
+  }
+  let doc;
+  try { doc = parseYaml(readFileSync(entry.absPath, 'utf-8')); }
+  catch (err) {
+    report.fail_closed += 1;
+    report.per_fail_closed.push({ policy_id: policyId, reason: `policy YAML unreadable: ${err.message}` });
+    return;
+  }
+
+  const isGhl = doc && typeof doc.confidence_basis === 'object' && doc.confidence_basis !== null;
+
+  // F2 — confidence (forward-only; legacy missing confidence_basis -> fail_closed skip).
+  if (!isGhl) {
+    // missing_input_policy: fail_closed (confidence_formulas) -> report confidence_unavailable + non-zero exit.
+    // NOT an in-place legacy YAML rewrite (D-β3 forward-only); backfill is a deferred sidecar option.
+    report.per_confidence.push({ policy_id: policyId, status: 'unavailable', reason: 'legacy: confidence_basis absent' });
+    report.confidence_unavailable += 1;
+    report.fail_closed += 1;
+    report.per_fail_closed.push({ policy_id: policyId, reason: 'confidence_unavailable' });
+    report.trial_history_skipped.push({ policy_id: policyId, trial_id: trialId, reason: 'legacy_missing_confidence_basis' });
+    return;
+  }
+
+  const conf = computeGhlConfidence(doc, ctx.confidenceFormula);
+  report.per_confidence.push({ policy_id: policyId, ...conf });
+  if (conf.status === 'unavailable') {
+    report.confidence_unavailable += 1;
+    report.fail_closed += 1;
+    report.per_fail_closed.push({ policy_id: policyId, reason: `confidence_unavailable: ${conf.reason}` });
+    report.trial_history_skipped.push({ policy_id: policyId, trial_id: trialId, reason: 'confidence_unavailable' });
+    return;
+  }
+  if (conf.boundary_review) report.confidence_boundary_review.push({ policy_id: policyId, confidence: conf.value });
+  if (conf.divergence_warn) report.confidence_divergence_warn.push({ policy_id: policyId });
+
+  // F3 — trial_history write-back guard: only sandbox/candidate; production/disabled/quarantine skip.
+  if (!TRIAL_HISTORY_WRITABLE_STATUS.includes(entry.status)) {
+    report.trial_history_skipped.push({ policy_id: policyId, trial_id: trialId, reason: `status=${entry.status} not writable (production 0-diff)` });
+    return;
+  }
+
+  // dry_run: readiness preview only (0 disk write) — report intent.
+  if (ctx.mode !== 'live') {
+    report.trial_history_pending.push({ policy_id: policyId, trial_id: trialId });
+    return;
+  }
+
+  // live: in-place YAML mutation (preserve formatting/comments via Document API).
+  // idempotency: append trial_id only if not already present.
+  let outerDoc;
+  try { outerDoc = parseDocument(readFileSync(entry.absPath, 'utf-8')); }
+  catch (err) {
+    report.fail_closed += 1;
+    report.per_fail_closed.push({ policy_id: policyId, reason: `policy doc unparseable for write-back: ${err.message}` });
+    return;
+  }
+  const history = Array.isArray(doc.trial_history) ? doc.trial_history : [];
+  const alreadyPresent = history.includes(trialId);
+  const nextHistory = alreadyPresent ? history : [...history, trialId];
+  outerDoc.setIn(['trial_history'], nextHistory);
+  outerDoc.setIn(['confidence'], conf.value);
+
+  // re-validate the would-be-written doc against learned_policy_ghl_v1 BEFORE persisting.
+  const candidateDoc = outerDoc.toJSON();
+  if (!ctx.validateGhlPolicy(candidateDoc)) {
+    report.fail_closed += 1;
+    report.per_fail_closed.push({ policy_id: policyId, reason: `trial_history write-back re-validation failed: ${firstError(ctx.validateGhlPolicy)}` });
+    report.trial_history_skipped.push({ policy_id: policyId, trial_id: trialId, reason: 're-validation_failed' });
+    return; // fail-closed: never persist an invalid policy doc
+  }
+  writeFileSync(entry.absPath, String(outerDoc));
+  if (alreadyPresent) {
+    report.trial_history_idempotent_skip += 1;
+  } else {
+    report.trial_history_written.push({ policy_id: policyId, trial_id: trialId });
+  }
+}
+
 /**
  * Evaluate policy trials from 1b importer output. In dry_run (default) NOTHING is
  * written to disk (binding + verdict + build + validate + would-write only).
@@ -634,6 +853,10 @@ export function evaluatePolicyTrials(options = {}) {
     engineRepoReal: resolveEngineRepo(options.engineRepo, rootDir),
     validateTrial: buildTrialValidator(PROJECT_ROOT),
     policyIndex: buildPolicyTraceIndex(policiesAbs),
+    // Phase 2a-β F2/F3: file-location index + frozen confidence formula + GHL validator.
+    policyFileIndex: buildPolicyFileIndex(policiesAbs),
+    confidenceFormula: loadConfidenceFormula(PROJECT_ROOT),
+    validateGhlPolicy: buildGhlPolicyValidator(PROJECT_ROOT),
     seenTrialIds: buildSeenTrialIds(trialsOutAbs),
     report: null,
   };
@@ -656,6 +879,15 @@ export function evaluatePolicyTrials(options = {}) {
     },
     per_trial: [],
     per_fail_closed: [],
+    // Phase 2a-β F2/F3 observability (back-reference + confidence readiness).
+    trial_history_written: [],      // [{policy_id, trial_id}] persisted in live
+    trial_history_skipped: [],      // [{policy_id, trial_id, reason}] production/legacy/non-writable
+    trial_history_pending: [],      // [{policy_id, trial_id}] dry_run would-write preview
+    trial_history_idempotent_skip: 0,
+    per_confidence: [],             // [{policy_id, status, value?, boundary_review?, divergence_warn?, reason?}]
+    confidence_unavailable: 0,
+    confidence_boundary_review: [], // [{policy_id, confidence}] requires_review sink (machine-checkable)
+    confidence_divergence_warn: [], // [{policy_id}] legacy_alias >5% divergence WARN
     live_authorized: true,
     trials_out: trialsOutAbs,
     evidence_ledger_dir: join(rootDir, EVIDENCE_LEDGER_DIR),

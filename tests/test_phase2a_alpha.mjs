@@ -141,6 +141,32 @@ function writePolicy(root, status, policyId, traceIds) {
   writeFileSync(join(dir, `${policyId}.yaml`),
     JSON.stringify({ policy_id: policyId, evidence: traceIds.map((t) => ({ trace_id: t, summary: 's' })) }, null, 2));
 }
+
+// Phase 2a-β: a schema-VALID learned_policy_ghl_v1 instance (with confidence_basis) so the
+// β F2/F3 trial-consequence pass does not fail-closed on a legacy-missing-confidence_basis
+// policy (DoD#4). Used where a live run must succeed clean (fail_closed==0).
+function writeGhlPolicy(root, status, policyId, traceIds) {
+  const dir = join(root, 'state/memory/learned/policies', status);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, `${policyId}.yaml`), JSON.stringify({
+    schema_version: '1.0.0', policy_id: policyId, domain: 'amazon-advertising',
+    learned_at: '2026-05-30T00:00:00Z',
+    scope: { type: 'tenant', keys: { tenant_id: 'default', marketplace: 'US' } },
+    risk_level: 'low', validation_status: status, confidence: 0.5,
+    confidence_basis: { operator_agreement_rate: 0.8, business_score: 0.6, regression_pass_rate: 0.9 },
+    preconditions: { match_rules: [{ field: 'acos', operator: 'gt', value: 0.3 }] },
+    actions: [{ action_type: 'bid_adjustment', parameters: { delta_pct: -10 }, dry_run_compatible: true }],
+    constraints: { max_bid_change_pct: 20, max_actions_per_day: 5 },
+    rollback_plan: { type: 'manual', steps: ['restore prior bid'] },
+    success_signals: {
+      exec: { count: 10, success_rate: 0.9 },
+      operator: { approval_count: 8, rejection_count: 2, approval_rate: 0.8 },
+      business: { metric_name: 'acos', baseline: 0.3, current: 0.25, improvement_pct: 16.7 },
+    },
+    evaluation_window_days: 14, expiry_at: '2026-12-31T00:00:00Z',
+    evidence: traceIds.map((t) => ({ trace_id: t, summary: 's' })),
+  }, null, 2));
+}
 function writeConflict(root, sys, idHex, incoming, original) {
   const dir = join(root, 'state/runtime/learning/fact_conflicts', sys, idHex);
   mkdirSync(dir, { recursive: true });
@@ -458,7 +484,8 @@ test('二次门 放行: operator-flipped trialing live state -> live write succe
     seedEvalLiveStateFromFixture(root, 'live_state_trialing.json'); // committed golden trialing state
     assert.equal(existsSync(join(root, 'state/runtime/learning/heartbeat_learning_state.json')), true);
     const traceId = 'run-20260530-aaaa1111';
-    writePolicy(root, 'candidate', 'POLICY_DUP', [traceId]);
+    // Phase 2a-β: GHL-compliant bound policy so the F2/F3 consequence pass is clean (DoD#4).
+    writeGhlPolicy(root, 'candidate', 'POLICY_DUP', [traceId]);
     writeConflict(root, 'amazon-growth-engine', 'idhex01', mkEvent({ trace_id: traceId }), null);
 
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });

@@ -107,6 +107,39 @@ function writeRecords(root, recordObjs) {
   writeFileSync(p, recordObjs.map((r) => JSON.stringify(r)).join('\n') + '\n');
 }
 
+// Phase 2a-β: a minimal schema-VALID learned_policy_ghl_v1 instance (with confidence_basis)
+// so F2/F3 trial-consequence application engages (confidence computable + trial_history
+// writable). opts.confidence_basis overrides inputs; opts omits confidence_basis -> legacy.
+function writeGhlPolicy(root, status, policyId, traceIds, opts = {}) {
+  const dir = join(root, 'state/memory/learned/policies', status);
+  mkdirSync(dir, { recursive: true });
+  const doc = {
+    schema_version: '1.0.0', policy_id: policyId, domain: 'amazon-advertising',
+    learned_at: '2026-05-30T00:00:00Z',
+    scope: { type: 'tenant', keys: { tenant_id: 'default', marketplace: 'US' } },
+    risk_level: 'low', validation_status: status === 'sandbox' ? 'sandbox' : status,
+    confidence: opts.confidence ?? 0.5,
+    preconditions: { match_rules: [{ field: 'acos', operator: 'gt', value: 0.3 }] },
+    actions: [{ action_type: 'bid_adjustment', parameters: { delta_pct: -10 }, dry_run_compatible: true }],
+    constraints: { max_bid_change_pct: 20, max_actions_per_day: 5 },
+    rollback_plan: { type: 'manual', steps: ['restore prior bid'] },
+    success_signals: {
+      exec: { count: 10, success_rate: opts.exec_success_rate ?? 0.9 },
+      operator: { approval_count: 8, rejection_count: 2, approval_rate: opts.approval_rate ?? 0.8 },
+      business: { metric_name: 'acos', baseline: 0.3, current: 0.25, improvement_pct: 16.7 },
+    },
+    evaluation_window_days: 14, expiry_at: '2026-12-31T00:00:00Z',
+    evidence: traceIds.map((t) => ({ trace_id: t, summary: 's' })),
+  };
+  if (opts.legacy !== true) {
+    doc.confidence_basis = opts.confidence_basis || {
+      operator_agreement_rate: 0.8, business_score: 0.6, regression_pass_rate: 0.9,
+    };
+  }
+  writeFileSync(join(dir, `${policyId}.yaml`), JSON.stringify(doc, null, 2));
+  return join(dir, `${policyId}.yaml`);
+}
+
 // Seed a synthetic operator-flipped trialing heartbeat live state so the Phase 2a-α
 // `--mode live` authorization二次门 (policy_trial_evaluator.mjs §2a.3) passes. 3-key
 // partial is sufficient for the gate (version=2 ∧ current_phase=trialing ∧
@@ -219,7 +252,10 @@ test('情形2 e2e (live): bound conflict -> NEEDS_HUMAN trial + evidence-ledger 
   const root = mkRoot();
   try {
     const traceId = 'run-20260530-aaaa1111';
-    writePolicy(root, 'candidate', 'POLICY_DUP', [traceId]);
+    // Phase 2a-β: bound policy is a compliant GHL candidate (confidence_basis present) so the
+    // F2/F3 trial-consequence pass does not fail-closed on a legacy-missing-confidence_basis
+    // policy (DoD#4). Trial + ledger assertions below are unchanged (verdict stays NEEDS_HUMAN).
+    writeGhlPolicy(root, 'candidate', 'POLICY_DUP', [traceId]);
     const incoming = mkEvent({ trace_id: traceId, source_dirty: true });
     const original = mkRecord({ trace_id: traceId, provenance: { manifest_validator_status: 'WARN', provenance_dirty: true } });
     writeConflict(root, 'amazon-growth-engine', 'idhex01', incoming, original);
@@ -481,16 +517,25 @@ test('one conflict bound to two policies fans out to two distinct trials', () =>
   const root = mkRoot();
   try {
     const traceId = 'run-20260530-dddd4444';
-    writePolicy(root, 'candidate', 'POLICY_A', [traceId]);
-    writePolicy(root, 'production', 'POLICY_B', [traceId]);
+    // Phase 2a-β: both GHL-compliant. POLICY_A (candidate) -> trial_history written;
+    // POLICY_B (production) -> confidence computed but trial_history write SKIPPED
+    // (production 0-diff guard, DoD#9). Neither fail-closes.
+    const prodPath = writeGhlPolicy(root, 'production', 'POLICY_B', [traceId]);
+    const prodBefore = readFileSync(prodPath, 'utf-8');
+    writeGhlPolicy(root, 'candidate', 'POLICY_A', [traceId]);
     writeConflict(root, 'amazon-growth-engine', 'idmulti',
       mkEvent({ trace_id: traceId }), mkRecord({ trace_id: traceId }));
     seedTrialingState(root); // Phase 2a-α live二次门 (§0.1-2(c))
     const report = evaluatePolicyTrials({ rootDir: root, mode: 'live' });
     assert.equal(report.bound, 1); // one conflict bound
     assert.equal(report.trials_new, 2); // two policies -> two trials
+    assert.equal(report.fail_closed, 0); // both GHL-compliant -> no confidence fail-closed
     const ids = new Set(report.per_trial.map((t) => t.trial_id));
     assert.equal(ids.size, 2);
+    // production policy file byte-identical (trial_history write skipped, DoD#9)
+    assert.equal(readFileSync(prodPath, 'utf-8'), prodBefore);
+    assert.ok(report.trial_history_skipped.some((s) => s.policy_id === 'POLICY_B'));
+    assert.ok(report.trial_history_written.some((w) => w.policy_id === 'POLICY_A'));
   } finally { cleanup(root); }
 });
 
