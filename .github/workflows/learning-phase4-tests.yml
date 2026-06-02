@@ -1,0 +1,70 @@
+# Phase-4 execute_limited Entry Gate Tests
+#
+# Dedicated test gate for the liye_os Phase-4 entry gate (read-only 11-prereq aggregation):
+#   .claude/scripts/learning/phase4_entry_gate_check.mjs       — F1 entry gate-check (NEW)
+#   _meta/contracts/learning/phase4_prereq_attestation_v1.schema.yaml — F2 attestation envelope (NEW)
+#   tests/test_phase4.mjs                                      — node:test §7 matrix suite
+#
+# Why a dedicated workflow (mirroring the 1c/1d/1e/2a-α/β/γ CI-wiring split): this suite uses the
+# Node built-in runner (node:test) and is prefix-named (tests/test_phase4.mjs, no `.test.` infix),
+# so the root vitest run does NOT collect it. Without this workflow nothing in CI exercises the
+# gate logic (γ-row UNTRUSTED re-validation FS-01 / bidirectional freshness / soft-override binding
+# / fail-safe #5 / four-state aggregation / fence / gate 20→21 carve-out / frozen sha-pin).
+#
+# Scope: node-only, self-contained. Every scenario runs against synthetic fixtures in a tmp dir;
+# ZERO cross-repo / network dependency. The gate-count check (DoD#10) spawns validate-contracts.
+#
+# Reference: liye_os .planning/phase-4/SPEC.md v1.0 (blob a3ea7a8) §5 DoD + §7.
+
+name: Phase-4 Entry Gate Tests
+
+on:
+  pull_request:
+    paths:
+      - '.claude/scripts/learning/phase4_entry_gate_check.mjs'
+      - 'tests/test_phase4.mjs'
+      - '_meta/contracts/learning/phase4_prereq_attestation_v1.schema.yaml'
+      - '_meta/contracts/learning/d11_rolling_30d_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-phase4-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude/scripts/learning/phase4_entry_gate_check.mjs'
+      - 'tests/test_phase4.mjs'
+      - '_meta/contracts/learning/phase4_prereq_attestation_v1.schema.yaml'
+      - '_meta/contracts/learning/d11_rolling_30d_v1.schema.yaml'
+      - '_meta/contracts/learning/operator_feedback_v1.schema.yaml'
+      - '_meta/contracts/learning/metrics_daily_v1.schema.yaml'
+      - '_meta/contracts/scripts/validate-contracts.mjs'
+      - '.github/workflows/learning-phase4-tests.yml'
+
+jobs:
+  node-tests:
+    name: node:test (phase4)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (ajv + yaml)
+        run: npm ci
+
+      - name: Run Phase-4 node:test
+        run: node --test tests/test_phase4.mjs
+
+      - name: Entry gate --help smoke
+        run: node .claude/scripts/learning/phase4_entry_gate_check.mjs --help
+
+      - name: Contracts gate count (20->21 carve-out) must pass
+        run: node _meta/contracts/scripts/validate-contracts.mjs

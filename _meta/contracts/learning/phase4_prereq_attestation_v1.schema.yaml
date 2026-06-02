@@ -1,0 +1,238 @@
+# Phase-4 Prereq Attestation Envelope Contract v1.0.0
+# SSOT: _meta/contracts/learning/phase4_prereq_attestation_v1.schema.yaml
+#
+# Schema validating one operator-backed attestation consumed (READ-ONLY) by the
+# Phase-4 execute_limited entry gate (.claude/scripts/learning/phase4_entry_gate_check.mjs)
+# to satisfy the 4 plan §6 prerequisites that require a human governance judgment
+# rather than a pure machine computation:
+#   - #6  kill_switch 演练通过                         -> attestation_type=prereq_attestation, prereq_id=kill_switch_drill
+#   - #9  ≥1 negative-learning case production-validated -> prereq_id=negative_learning_production_validated
+#   - #11 Pilot-1 non-goal 复审决议                      -> prereq_id=pilot1_nongoal_review
+#   - #4  operator_agreement_rate soft-门 override       -> attestation_type=soft_override, prereq_id=soft_agreement_override
+#
+# Phase-4 SPEC v1.0 (blob a3ea7a8) §1 F2 / §0.1-4/5 / D-P4-1/D-P4-2. The writer of
+# these instances is the operator tool / ops side (∉ the gate, R-P4-3): the gate ONLY
+# reads + validates them across five dimensions (presence / freshness / schema / signature
+# / binding). The gate never produces or mutates an attestation.
+#
+# DISCRIMINATED (single schema -> single validate-contracts count increment, D-P4-6):
+# attestation_type partitions the two families; prereq_id pins the specific prereq and
+# (via allOf/if-then) its required evidence fields. attestation_type <-> prereq_id
+# consistency is enforced so a soft_override can never masquerade as a prereq_attestation.
+#
+# ⚠ reviewer_id_hash INTEGRITY LIMIT (SPEC §1 F2 / red-team SO-3, HIGH, disclosed v1
+# residual risk): reviewer_id_hash reuses the operator_feedback_v1 (blob 4d917aef) shape
+# (^sha256:[0-9a-f]{64}$) but is a SHAPE-VALIDATED identity string, NOT a cryptographic
+# signature — it does not prevent forgery or repudiation (anyone holding any sha256 string
+# can impersonate). v1 accepts this residual risk at parity with the existing GHL
+# operator_feedback surface; compensating controls = append-only evidence-ledger + the
+# gate's binding cross-check (soft_override cited value/window == the gate's freshly-read γ
+# row). True detached/GPG signatures = future tightening; signature_block (optional) is the
+# reserved extension point. The gate's `signature` dimension = shape conformance only and
+# claims NO forgery resistance.
+#
+# soft_override is a GOVERNED attestation, NOT a blank check (SPEC §0.1-4): it MUST cite the
+# measured rate (cited_measured_value) AND the specific γ window right edge it overrides
+# (cited_window_end_utc). The gate cross-checks both against the value/window it itself reads
+# this run; a mismatch (or a null cited value) invalidates the override -> #4 BLOCKED. The
+# override only ever lifts the soft #4 prereq; it NEVER touches any HARD prereq, γ-freshness,
+# or the #5 fail-safe (R-P4-4/R-P4-5).
+#
+# Normative: Phase-4 SPEC §1 F2 (field set + per-prereq required) + §0.1-4 (override binding)
+# + D-P4-1/D-P4-2. Producer-side conformance is irrelevant here (the contracts gate only
+# proves THIS schema is well-formed); instance-level conformance is enforced by the gate at
+# read time via ajv fail-closed, mirroring the metrics_daily / d11_rolling read paradigm.
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/learning/phase4_prereq_attestation.v1"
+title: "Phase-4 Prereq Attestation Envelope Schema v1"
+description: "One operator-backed attestation (prereq_attestation | soft_override) read by the Phase-4 entry gate to satisfy a human-judgment prerequisite."
+version: "1.0.0"
+type: object
+
+required:
+  - schema_version
+  - attestation_type
+  - prereq_id
+  - attested_at
+  - reviewer_id_hash
+  - statement
+  - evidence_refs
+
+properties:
+  # ----------------------------------------------------------------------- #
+  # Common envelope (every attestation)
+  # ----------------------------------------------------------------------- #
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+  attestation_type:
+    type: string
+    enum:
+      - prereq_attestation
+      - soft_override
+    description: "Family discriminator. prereq_attestation = #6/#9/#11; soft_override = #4 soft-门 override."
+
+  prereq_id:
+    type: string
+    enum:
+      - kill_switch_drill
+      - negative_learning_production_validated
+      - pilot1_nongoal_review
+      - soft_agreement_override
+    description: "The exact prereq this attestation backs. Constrained against attestation_type via allOf."
+
+  attested_at:
+    type: string
+    format: date-time
+    description: |
+      ISO 8601 with tz offset. When the operator made this attestation. The gate enforces a
+      per-prereq max-age (freshness) against --asof to defeat replay/stale-reuse (red-team SO-4):
+      v1 max-age = kill_switch_drill ≤30d, pilot1_nongoal_review ≤90d,
+      negative_learning_production_validated ≤90d, soft_agreement_override ≤ the --asof UTC day.
+
+  reviewer_id_hash:
+    type: string
+    pattern: "^sha256:[0-9a-f]{64}$"
+    description: "sha256 of reviewer identity (operator_feedback_v1 paradigm). NO PII. SHAPE-validated only — NOT a cryptographic signature (see header SO-3 disclosure)."
+
+  statement:
+    type: string
+    minLength: 1
+    maxLength: 2000
+    description: "Human-readable assertion being attested. NO PII."
+
+  evidence_refs:
+    type: array
+    items:
+      type: string
+      minLength: 1
+    description: "Repo-relative pointers / ledger ids substantiating the attestation. Per-prereq typed refs below carry the hard evidence."
+
+  # ----------------------------------------------------------------------- #
+  # Per-prereq typed evidence (declared optional here; REQUIRED per prereq_id via allOf)
+  # ----------------------------------------------------------------------- #
+  # #6 kill_switch_drill
+  drill_record_ref:
+    type: string
+    minLength: 1
+    description: "Path/id of the kill-switch drill record artifact."
+  drill_outcome:
+    type: string
+    enum:
+      - passed
+    description: "Drill must be a pass to satisfy #6 (only 'passed' is accepted)."
+
+  # #9 negative_learning_production_validated
+  evidence_ledger_ref:
+    type: string
+    minLength: 1
+    description: "Ledger id of the negative-learning case validated in production_observed evidence."
+  production_observed_ref:
+    type: string
+    minLength: 1
+    description: "Pointer to the production_observed evidence record for the validated case."
+
+  # #11 pilot1_nongoal_review
+  review_resolution_ref:
+    type: string
+    minLength: 1
+    description: "Path/id of the Pilot-1 non-goal review resolution artifact."
+  review_date:
+    type: string
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    description: "UTC calendar date the Pilot-1 non-goal review was resolved."
+
+  # #4 soft_agreement_override
+  target_prereq:
+    type: string
+    const: operator_agreement_rate_30d
+    description: "The soft prereq this override targets (only #4's KPI is override-able)."
+  override_reason:
+    type: string
+    enum:
+      - startup_low_volume
+      - transient_measurement_dip
+      - known_benign_disagreement_pattern
+    description: "Explicit reason vocabulary (red-team SO-2: closed enum defeats blank-check overrides)."
+  cited_measured_value:
+    type: number
+    minimum: 0
+    maximum: 1
+    description: "The actually-measured operator_agreement_rate_30d the operator is overriding. The gate cross-checks this == the γ row it reads (binding)."
+  cited_window_end_utc:
+    type: string
+    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    description: "The specific γ window right edge being overridden. The gate cross-checks this == the fresh window_end_utc it reads (binding, red-team SO-5)."
+
+  # ----------------------------------------------------------------------- #
+  # Optional future-tightening extension point (red-team SO-3)
+  # ----------------------------------------------------------------------- #
+  signature_block:
+    type: object
+    description: "Reserved for a future cryptographic (detached / GPG) signature. Not validated for forgery resistance in v1."
+    additionalProperties: true
+
+additionalProperties: false
+
+# --------------------------------------------------------------------------- #
+# allOf: attestation_type <-> prereq_id consistency + per-prereq required fields
+# (house style mirrors heartbeat_state_v2: if {properties const, required:[k]} then {required}).
+# --------------------------------------------------------------------------- #
+allOf:
+  # 1. soft_override <=> prereq_id == soft_agreement_override
+  - if:
+      properties:
+        attestation_type: { const: soft_override }
+      required: [attestation_type]
+    then:
+      properties:
+        prereq_id: { const: soft_agreement_override }
+      required: [prereq_id]
+
+  # 2. prereq_attestation => prereq_id ∈ {kill_switch_drill, negative_learning_production_validated, pilot1_nongoal_review}
+  - if:
+      properties:
+        attestation_type: { const: prereq_attestation }
+      required: [attestation_type]
+    then:
+      properties:
+        prereq_id:
+          enum:
+            - kill_switch_drill
+            - negative_learning_production_validated
+            - pilot1_nongoal_review
+      required: [prereq_id]
+
+  # 3. kill_switch_drill required evidence
+  - if:
+      properties:
+        prereq_id: { const: kill_switch_drill }
+      required: [prereq_id]
+    then:
+      required: [drill_record_ref, drill_outcome]
+
+  # 4. negative_learning_production_validated required evidence
+  - if:
+      properties:
+        prereq_id: { const: negative_learning_production_validated }
+      required: [prereq_id]
+    then:
+      required: [evidence_ledger_ref, production_observed_ref]
+
+  # 5. pilot1_nongoal_review required evidence
+  - if:
+      properties:
+        prereq_id: { const: pilot1_nongoal_review }
+      required: [prereq_id]
+    then:
+      required: [review_resolution_ref, review_date]
+
+  # 6. soft_agreement_override required evidence (cited value + window = binding inputs)
+  - if:
+      properties:
+        prereq_id: { const: soft_agreement_override }
+      required: [prereq_id]
+    then:
+      required: [target_prereq, override_reason, cited_measured_value, cited_window_end_utc]
