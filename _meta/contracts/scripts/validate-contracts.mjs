@@ -528,6 +528,8 @@ function validateContractSchemas() {
     join(CONTRACTS_DIR, 'learning', 'metrics_daily_v1.schema.yaml'),
     // GHL Phase 2a-γ 30-day rolling D-11 reducer contract (NEW; feeds Phase-4 entry gate)
     join(CONTRACTS_DIR, 'learning', 'd11_rolling_30d_v1.schema.yaml'),
+    // GHL Phase-4 prereq attestation envelope contract (NEW; operator-backed #4/#6/#9/#11 read by the entry gate)
+    join(CONTRACTS_DIR, 'learning', 'phase4_prereq_attestation_v1.schema.yaml'),
     // GHL Phase 0b engine manifest v2
     join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'),
     // Note: confidence_formulas.yaml is a formula INSTANCE (not a JSON Schema) — validated by validateFormulaInstances()
