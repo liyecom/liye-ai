@@ -307,6 +307,12 @@ export function evaluateGammaAvailability(rollingRead, asof, validateRolling) {
  */
 export function findValidAttestation(attestRead, prereqId, asof, validateAttest) {
   if (attestRead.io_error) return { found: false, valid: false, reason: 'attestation_source_unreadable' };
+  // Red-team fold (P4-CRIT-01/MED-01): the attestations ledger is a governed HARD input feeding an
+  // irreversible-unlock decision. Any malformed line = data-integrity corruption of that source; we
+  // fail-closed (mirroring the §0.1-9 metrics io_error pattern + the FS-01 untrusted-boundary
+  // principle) rather than silently dropping the bad line and trusting the residue. A healthy ledger
+  // has malformed==0, so this never affects a real, intact source.
+  if (attestRead.malformed > 0) return { found: false, valid: false, reason: 'attestation_source_corrupted' };
   const candidates = attestRead.lines.filter(
     (e) => e && typeof e === 'object' && e.prereq_id === prereqId,
   );

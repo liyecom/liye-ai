@@ -316,6 +316,50 @@ test('attestation schema-invalid (missing drill_record_ref) -> invalid', () => {
   assert.equal(res.reason, 'attestation_schema_invalid');
 });
 
+// Red-team fold (P4-CRIT-01 / P4-GAP-01): attestation source corruption / IO error fail-closed,
+// exercised END-TO-END through checkPhase4EntryGate (not just findValidAttestation in isolation).
+test('attestation source corrupted (malformed line) -> attestation prereqs BLOCKED end-to-end', () => {
+  const asof = '2026-09-01';
+  // hand-write the attestations file: 1 valid kill_switch line + 1 malformed line.
+  const dir = mkdtempSync(join(tmpdir(), 'p4gate-corrupt-'));
+  const ap = join(dir, 'attest.jsonl');
+  writeFileSync(ap, `${JSON.stringify(attestation('kill_switch_drill', asof))}\n{ this is : not json\n`);
+  writeFileSync(join(dir, 'metrics.jsonl'), cleanWindow(asof).map((o) => JSON.stringify(o)).join('\n') + '\n');
+  writeFileSync(join(dir, 'rolling.jsonl'), `${JSON.stringify(gammaRow(asof))}\n`);
+  writeFileSync(join(dir, 'runbook.md'), RUNBOOK_WITH_ABORT);
+  writeFileSync(join(dir, 'adr.md'), ADR_ACCEPTED);
+  const r = checkPhase4EntryGate({
+    asof, metrics: join(dir, 'metrics.jsonl'), rolling: join(dir, 'rolling.jsonl'), attestations: ap,
+    runbook: join(dir, 'runbook.md'), adr: join(dir, 'adr.md'), rollingSchema: ROLLING_SCHEMA, attestSchema: ATTEST_SCHEMA,
+  });
+  assert.equal(r.malformed.attestations, 1);
+  // even the otherwise-valid kill_switch line is rejected: corrupted source = fail-closed.
+  assert.equal(r.prereqs['6'].state, 'BLOCKED');
+  assert.equal(r.prereqs['6'].reason, 'attestation_source_corrupted');
+  assert.equal(r.verdict, 'BLOCKED');
+});
+
+test('attestation source unreadable (IO error) -> attestation prereqs BLOCKED end-to-end', () => {
+  const asof = '2026-09-01';
+  const dir = mkdtempSync(join(tmpdir(), 'p4gate-ioerr-'));
+  const attDir = join(dir, 'attest_is_a_dir'); mkdirSync(attDir); // readFileSync on a dir throws EISDIR
+  writeFileSync(join(dir, 'metrics.jsonl'), cleanWindow(asof).map((o) => JSON.stringify(o)).join('\n') + '\n');
+  writeFileSync(join(dir, 'rolling.jsonl'), `${JSON.stringify(gammaRow(asof))}\n`);
+  writeFileSync(join(dir, 'runbook.md'), RUNBOOK_WITH_ABORT);
+  writeFileSync(join(dir, 'adr.md'), ADR_ACCEPTED);
+  const r = checkPhase4EntryGate({
+    asof, metrics: join(dir, 'metrics.jsonl'), rolling: join(dir, 'rolling.jsonl'), attestations: attDir,
+    runbook: join(dir, 'runbook.md'), adr: join(dir, 'adr.md'), rollingSchema: ROLLING_SCHEMA, attestSchema: ATTEST_SCHEMA,
+  });
+  assert.equal(r.prereqs['6'].state, 'BLOCKED');
+  assert.equal(r.prereqs['6'].reason, 'attestation_source_unreadable');
+  // asof (2026-09-01) >= floor (2026-08-26) so #11's floor IS reached -> it consults the attestation
+  // source, which is unreadable -> BLOCKED (IO error fails closed even past the date floor).
+  assert.equal(r.prereqs['11'].state, 'BLOCKED');
+  assert.equal(r.prereqs['11'].reason, 'attestation_source_unreadable');
+  assert.equal(r.verdict, 'BLOCKED');
+});
+
 test('attestation reviewer_id_hash malformed -> schema invalid', () => {
   const asof = '2026-09-01';
   const bad = attestation('kill_switch_drill', asof, { extra: { reviewer_id_hash: 'nothash' } });
