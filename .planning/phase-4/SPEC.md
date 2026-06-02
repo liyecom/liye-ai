@@ -24,7 +24,7 @@
 | N-5 | heartbeat File-A `.claude/scripts/learning/heartbeat_runner.mjs` | `54944884` | **#1 数据源**：manifest-validator 连续-PASS streak（heartbeat_state_v2）；门**只读 streak** |
 | N-6 | 1e producer `.claude/scripts/learning/metrics_daily_producer.mjs` | `5057fc5a` | **#2/#8 数据源**：`metrics_daily.jsonl` 连续性 + dedupe/conflict 计数；**0 触本体** |
 | N-7 | File-B `scripts/heartbeat_runner.mjs` | `e63cf86c` | 永 frozen，0 触 |
-| N-8 | GHL ADR `_meta/adr/ADR-Governed-Heuristic-Learning.md` | — | **#10 数据源**：`Status: Accepted` / `Accepted-Date: 2026-05-19` + commit-anchor 教条（→ §0.2 #11 锚）|
+| N-8 | GHL ADR `_meta/adr/ADR-Governed-Heuristic-Learning.md` | — | **#10 数据源**：`Status: Accepted` / `Accepted-Date: 2026-05-19`。**ADR commit-anchor (L33) 只管文档落地/provenance，不作为 #11 时钟依据**（#11 锚见 §0.2 SA-1）|
 
 **核验结果**：main HEAD == `052d749` ✓；7 sealed blob（N-1..N-7）两源 0-diff ✓；validate-contracts 现 **20** pass（含 γ `d11_rolling_30d_v1` L530）✓。
 
@@ -64,7 +64,7 @@
 >
 > **保守值 dominance（强化理据，红队 PLAN-LUODI-AMBIGUITY）**：候选锚有四（authored 05-09→08-07 算术 / ADR-stated 08-09 / plan-history 05-10→08-08 / merge 05-28→08-26）。**08-26 = 四者最大**，故采纳它对「落盘语义」之争 **robust**——无论哪个语义胜出，08-26 都 ≥ 其 floor，永不过早解锁。这把日期歧义从「必须先解决才能定门」降级为「不影响门安全性的上游 reconcile」。
 >
-> **ADR amendment TODO（operator governance action，per ADR L27「Any ADR clause conflicting with the latest normative input is amended on the ADR side」）**：ADR L86 应 amend 以 reconcile——(i) re-anchor 到 v4.1-final 落盘 PR #138 `437e3e1` @ 2026-05-28（即 ≥ 2026-08-26），**或** (ii) 保 authored-date 语义则修「≥ 2026-08-09」为算术正确的「≥ 2026-08-07」。**此 amendment 是独立 sealed-ADR 编辑（operator 拍板），不静默塞进本 doc-only SPEC PR**；本 SPEC 仅披露冲突 + 采纳更保守 floor。门逻辑（floor = anchor + 90d，可改 anchor 不改骨架）对三种取值均成立。
+> **ADR errata TODO（operator 已定 — 独立小 PR，不塞本 #162）**：ADR L86 走 errata 仅作事实/澄清——(1) 修 `2026-05-09 + 90d` 算术 slip：`≥ 2026-08-09` 澄清为 `≥ 2026-08-07`（除非明采 inclusive/其他口径）；(2) 澄清 commit-anchor (L33) 只管文档落地/provenance，不管 Pilot-1 90d clock。**不把 ADR 强改成 05-28 anchor**——Phase-4 的 2026-08-26 是 SPEC 侧额外保守 operator floor，独立于 ADR 锚。门逻辑（floor = anchor + 90d，可改 anchor 不改骨架）对各取值均成立。
 >
 > **SA-2（#11 floor 是必要条件，非门本身，D-P4-1/D-P4-7）**：#11 = 「日期门 + operator 背书」。门只算 `elapsed ≥ 90d from 2026-05-28` 作**必要 floor**；**真满足靠 operator 的 Pilot-1 non-goal 复审决议 attestation**（§5）。floor 未到 **或** attestation 缺/无效 → #11 非 PASS。
 
@@ -193,7 +193,7 @@ BLOCKED / INDETERMINATE → 不解锁（exit 2，fail-closed）
 | **D-P4-4** #5 fail-safe 消费（最关键）| **kpi_unavailable/`null`/stale 一律当 NOT-PASS（BLOCKED）；绝不把缺数据读成「0=已过」** | γ totality（schema L32-39）；catastrophic-false-negative 跨边界落点；§7 红队反例必 BLOCK |
 | **D-P4-5** 门形态 | **on-demand gate-check（对齐 α `--asof`），非 producer 静态 envelope** | Phase-4 启动是离散 operator 决策点，按需算最贴合（起草包推荐）|
 | **D-P4-6** gate 数影响 | **新 attestation schema → 确定性 20→21；披露式 carve-out + 三源实测** | γ 教训直接继承（§0.1-5 实读 validate-contracts L513-532）|
-| **D-P4-7** 日期锚（operator 拍板）| **#11 anchor = v4.1-final 落盘 = PR #138 merge `437e3e1` @ 2026-05-28；earliest floor = 2026-08-26；写成显式 SA + floor 仅必要条件** | operator 2026-06-02；ADR commit-anchor 教条；不可逆守恒偏晚锚（SA-1/SA-2）|
+| **D-P4-7** 日期锚（operator 拍板）| **#11 anchor = v4.1-final 落盘 = PR #138 merge `437e3e1` @ 2026-05-28；earliest floor = 2026-08-26；写成显式 SA + floor 仅必要条件** | operator 2026-06-02 拍板更严 operator floor；不可逆守恒偏晚锚 + dominance（08-26 ≥ 全 4 候选 floor）（SA-1/SA-2）|
 
 ---
 
@@ -267,6 +267,6 @@ BLOCKED / INDETERMINATE → 不解锁（exit 2，fail-closed）
 
 **11 REFUTED = proof-of-coverage**（默认-refute 全 ground-truthed）：GATE-COUNT-ACCURATE（20→21 实测准）· FLOOR-NOT-MET-MAPPING-OK（floor 未到→INDETERMINATE 正确）· P4-C7（05-28+90d=08-26 算术正确）· P4-C4/C6（INDETERMINATE 优先级 / #1 ramp 映射，已 internally consistent）· SO-6/P4-C8（schema 注册不校验 instance = 设计如此，与 γ 同范式）· PLAN-LUODI-AMBIGUITY（第四候选 05-10，但被 08-26 dominance 吸收）· FS-05/SO-2 等（已另行最小 fold 或属 IMPL 细节）。
 
-> **⚠ 留给 operator 的 1 个 governance 决策（merge 时定）**：SA-1 的 ADR L86 amendment 是**独立 sealed-ADR 编辑**（撤回 commit-anchor 误引 + reconcile 05-09/05-28 锚），**未塞进本 doc-only SPEC PR**。本 SPEC 已披露冲突 + 采纳更保守 floor（门安全不依赖该 amendment——dominance 保证）；amendment 走/不走、何时走 = operator 拍板。
+> **⚠ Governance 决策（operator 已定，2026-06-02）**：ADR 走**独立 errata 小 PR**（不塞本 #162），范围仅限事实与澄清：(1) 修 `2026-05-09 + 90d` 算术 slip——`2026-08-09` 澄清为 `2026-08-07`（除非明确采 inclusive/其他口径）；(2) 澄清 commit-anchor (L33) 只管文档落地/provenance，不管 Pilot-1 90d clock。**Phase-4 继续采用 2026-08-26 作更严 operator floor（额外保守门槛，不需把 ADR 强改成 05-28 anchor）**。注：SPEC v0 误把 commit-anchor 当时钟依据是**起草错误（SPEC 侧，已在 SA-1「更正一」撤回）**，非 ADR 错误——errata 不含「撤回 ADR 误引」。门安全不依赖该 errata（dominance 保证）。
 
 **无 blocker**。5-lens 红队 fold 完成 → v1.0 → doc-only PR（**不自 merge**）。
