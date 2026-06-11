@@ -57,7 +57,7 @@ liye_os 内现存**三层**学习-治理 lifecycle 实现 + **三处** kill_swit
 同名概念**三权威**——三套 ENV/state/消费链全异，集群间 grep 互引=空（zero-cross-ref 不变量仍成立，但是 **3 路分区非 2 路**）。
 
 ### 并存的实证状态（2026-06-10/06-11 复核）
-1. **零交叉引用**：三层之间 + kill_switch 双实现之间无 import 交叉（v0 四模块只 import fs/path/url/yaml + 彼此；GHL 全链不引用 v0/v0.1；`cost_meter.mjs:16` 仅概念性提及 kill_switch，无 import）。
+1. **零交叉引用**：三层之间 + kill_switch 三实现之间无 import 交叉（v0 四模块只 import fs/path/url/yaml + 彼此；GHL 全链不引用 v0/v0.1；`cost_meter.mjs:16` 仅概念性提及 kill_switch，无 import）。
 2. **v0 非孤儿但近休眠**：唯一**生产 import** 消费者 = write_executor preflight（N-5）；另有 CI smoke 直接执行 tier_manager（`execution-tiers-gate.yml:150`，`|| true` 非阻断）+ `execution_tiers.yaml:95/102` 的 `tier_manager_approval` token（config 语义耦合，D-A2 后成死配置）+ S-1 测试。模块本体 2026-02-19 后零提交。
 3. **v0.1 实验栈休眠**：无生产消费者；crystallizer_v0 的 confidence 数学与 SSOT 分叉且互不知晓。
 4. **行为规范相左**：v0/v0.1 的晋升/降级靠**破坏性文件移动**（无 lifecycle 事件落盘，违背 append-only 审计底色）；confidence 数学双源分叉（crystallizer_v0 的 0.2/0.3/0.5 vs GHL SSOT 的 0.2/0.3/0.4/0.1）。
@@ -109,7 +109,7 @@ Layer 0（liye_os 内部）；不触 loamwise / domain engines / 产品线。eng
 | 阶段 | 内容 | 落点 |
 |------|------|------|
 | R-1 | 本 ADR 评审 → 红队 → 24h draft cooling → operator Accept → 24h post-Accept cooling（cooling 模型见下方注） | `.planning/agentic-evolution/EVO-B-adr008-ceremony/SPEC.md` |
-| R-2 | superseded 标记（tier_manager/drift_monitor/promotion_v0/crystallizer_v0）+ kill_switch 双实现语义重分类 + 测试 legacy 标记 + hardhook CI-wire + token 处置（D-A1/A2/A3/A5/A6） | EVO-C（单 PR，surgical） |
+| R-2 | superseded 标记（tier_manager/drift_monitor/promotion_v0/crystallizer_v0）+ kill_switch 三实现语义重分类 + 测试 legacy 标记 + hardhook CI-wire + token 处置（D-A1/A2/A3/A5/A6） | EVO-C（单 PR，surgical） |
 | R-3a | GHL backlog **条目落档**（自动降级/漂移冻结/sandbox→candidate 概念 → 2b/2c 候选，附 v0/v0.1 file:line + 缺陷清单） | **EVO-C D-6（单 EVO-C PR 内）**（D-06 更正：原写 D-4 实为 hardhook CI-wire；GHL backlog 落档在 D-6） |
 | R-3b | backlog 条目的**消费/重生** | GHL 2b/2c 各自 ceremony |
 

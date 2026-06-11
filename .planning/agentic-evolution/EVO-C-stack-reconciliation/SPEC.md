@@ -20,7 +20,7 @@
 - D-4: **hardhook CI-wire**（D-A6）：`test_execution_gate_hardhook.mjs` 当前 manual-only，它保护 write_executor→execution_gate 边（Hard Gate 1 所依赖）——本 PR 将其接入 CI（comment/test-marking scope 兼容 Hard Gate 4）。
 - D-5: `tier_manager_approval` token 处置（D-A3）：`execution_tiers.yaml:95/:102`（均在 `transitions[].requires` 下，2026-06-11 grep 实测仅此两处——**非 :88**）的死配置 token（删/标记）。⚠ **不得**以「改动须过 `validate-execution-tiers.mjs`」作处置门——该 validator 的 `validate()` 仅跑 7 项检查（version/required-tiers/tier-fields/execute-limited-safety/no-write/default-tier/kill-switch），**零解析 `config.transitions`/`requires`**，token 在/删/半删它都恒 PASS，是 no-op 门。处置须附**真实断言**（ceremony 择一）：(Option 1，轻) 本 SPEC DoD 加 grep/golden——删=`grep -c tier_manager_approval .claude/config/execution_tiers.yaml == 0`；标记=每处带 `DEAD-CONFIG` 标注注释，实证零半死残留；(Option 2，重) 扩 `validate-execution-tiers.mjs` 新增 walk `transitions[].requires`，对不在 live-token allowlist 的孤儿 token fail-closed。
 - D-6: GHL backlog **条目落档**（R-3a，单 PR 内）：自动降级 + 漂移冻结 + sandbox→candidate 概念 → 2b/2c 候选条目，附 v0/v0.1 file:line 指针 + 已知缺陷清单（drift_monitor 降级方向硬编码 ACOS-shaped :168-170；**run_id 含 policy_id 子串松匹配** `f.run_id?.includes(policyId)` :127-128 + 同模式 tier_manager.mjs:139）。
-- D-7: write_executor → execution_gate 链路字节级回归证据 + proactive kill_switch 消费者行为不变（Hard Gate 1）。
+- D-7: write_executor → execution_gate 链路字节级回归证据 + **三处 kill_switch 消费者行为不变**（含 `src/runtime/execution/kill_switch.mjs` 活 write_gate→real_executor→feishu 路径，**最高风险**，DEP-02）（Hard Gate 1）。
 
 ## Hard Gates（继承 ADR-008）
 
@@ -41,4 +41,4 @@
 - [ ] **S-1（ADR Supporting Reference：`test_week3_tier_drift_kill.mjs` + `test_execution_gate_hardhook.mjs`）两测试套件绿**（行为守恒）；hardhook 已 CI-wire（D-4）
 - [ ] `tier_manager_approval` token 处置经**真实断言**实证（grep/golden 证零半死残留，或扩 validator walk `transitions[].requires`）——**不**以 inert `validate-execution-tiers.mjs`（不解析 transitions）充数（D-5）
 - [ ] D-6 backlog 条目可被 GHL 2b/2c SPEC ceremony 直接引用（含 file:line + 缺陷清单）
-- [ ] 全量测试绿 + GHL frozen 0-diff 清单 + write_executor/proactive-kill_switch 行为字节级回归（Hard Gate 1）
+- [ ] 全量测试绿 + GHL frozen 0-diff 清单 + write_executor/**三处 kill_switch** 行为字节级回归（含 runtime/execution 活写路径，Hard Gate 1）
