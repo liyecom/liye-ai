@@ -8,7 +8,7 @@
 
 ## Goal
 
-把 `_meta/adr/ADR-Learning-Stack-Generations.md`（Proposed，2026-06-10 已落盘；注：文件已从数字前缀 `ADR-008-*` 重命名以过 BGHS CI gate，D-05）推过 house ADR lifecycle，**采 ADR-GHL 双 cooling 模型**（house 先例 ADR-GHL L328-333）：评审 → 红队 fold → **24h draft cooling（pre-Accept 反思窗）** → operator Accept 签字（Accepted-Date 落盘）→ **24h post-Accept cooling（撤回窗，期内 EVO-C 不得动工）** → EVO-C 解锁以 Accepted-Date+24h 计。两窗语义不同（前者可改、后者可撤），均显式保留。
+把 `_meta/adr/ADR-Learning-Stack-Generations.md`（Proposed，2026-06-10 已落盘；注：文件已从数字前缀 `ADR-008-*` 重命名以过 BGHS CI gate，D-05）推过 house ADR lifecycle，**采 ADR-GHL 双 cooling 节律的改编版**（house 先例 ADR-GHL L328-333，**两窗均 pre-Accept**；本 ADR 移第二窗至 post-Accept 作撤回窗）：评审 → 红队 fold → **24h draft cooling（pre-Accept 反思窗）** → operator Accept 签字（Accepted-Date 落盘）→ **24h post-Accept cooling（撤回窗，期内 EVO-C 不得动工）** → EVO-C 解锁以 Accepted-Date+24h 计。两窗语义不同（前者可改、后者可撤），均显式保留。
 
 ## 这是决策 phase，不是实现 phase
 

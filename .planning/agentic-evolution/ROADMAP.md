@@ -9,7 +9,7 @@
 
 ## 核心论点（一句话）
 
-交叉分析裁定：21 patterns 中治理核心已 PRESENT 且实现地道（确定性、fail-closed、零 LLM 治理路径——正确取舍）；**真正的高杠杆不是引入新模式，而是把"已建好未通电"的安全脚手架接上电，并清偿多代学习栈并存的架构债**（红队复核：实为**三层 lifecycle**——v0 week3 / v0.1 week6 实验栈 / v1 GHL sealed——+ kill_switch 双实现，详见 ADR）。
+交叉分析裁定：21 patterns 中治理核心已 PRESENT 且实现地道（确定性、fail-closed、零 LLM 治理路径——正确取舍）；**真正的高杠杆不是引入新模式，而是把"已建好未通电"的安全脚手架接上电，并清偿多代学习栈并存的架构债**（红队复核：实为**三层 lifecycle**——v0 week3 / v0.1 week6 实验栈 / v1 GHL sealed——+ kill_switch 三实现，详见 ADR）。
 
 ## Phase 总表
 
@@ -66,5 +66,5 @@
   - **F2**（EVO-D，HIGH）：replay gate trigger 扩至 `action_planner.py` 真实 seam（:160 调用，非 operator :141 注释）+ 加 integration golden；纯 decide-only 是 false safety（action_planner 未冻结）。
   - **F3**（EVO-A，MED）：D-4 cost-meter 须确定性 CI 模式——抽样 gitignored `data/facts/*.jsonl`（.gitignore:337），缺席→warn-pass、本地→18 error，门禁不得依赖 runtime state 存否。
   - **F4**（EVO-C，PARTIAL）：D-5 token 处置门硬化——`validate-execution-tiers.mjs` **不解析 transitions.requires**（no-op 门），改 grep/golden 实证。⚠ **证伪 operator 一处锚点**：token 在 `:95/:102` 非 :88（SPEC 原锚正确保留）；同款假缓解亦在 ADR L123，已一并修。
-  - **F5**（ADR↔EVO-C，MED）：R-3a 落点 D-4→D-6（D-4 是 hardhook CI-wire）；kill_switch 计数措辞对齐 D-2 3 文件。
+  - **F5**（ADR↔EVO-C，MED）：R-3a 落点 D-4→D-6（D-4 是 hardhook CI-wire）；kill_switch 计数措辞对齐 D-2（**EVO-B DEP-02 后升 4 文件**：execution_gate + 3 处 kill_switch）。
   - **操作员建议序**：ADR 进 EVO-B ceremony 但 **fold F5 后方可 Accept**；EVO-A/EVO-D 并行备 v1.0（**未解锁 IMPL**）；EVO-C 续阻塞于 EVO-B Accept + 24h cooling，且 F4 写入 v1.0。

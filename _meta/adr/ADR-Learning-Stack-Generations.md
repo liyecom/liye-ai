@@ -10,9 +10,9 @@ is_bghs_doctrine: no
 
 > 文件名采非数字前缀（`ADR-Learning-Stack-Generations.md`）以进入 CI-wired BGHS frontmatter gate 的有效扫描域；"008" 仅为 track 内顺序记号，留在标题。
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-06-10
-**Accepted-Date**: （待 operator 裁决）
+**Accepted-Date**: 2026-06-12
 **Decision Makers**: LiYe
 **SSOT**: 本文件（裁决后）；上游 lifecycle SSOT = `_meta/adr/ADR-Governed-Heuristic-Learning.md`
 **References**:
@@ -70,7 +70,7 @@ GHL Phase-4 entry gate 已 ship（idle），production-unlock 决策窗临近。
 
 > **一句话**：enforcement 原语留任，learning lifecycle 让位；GHL（v1 sealed）成为 policy lifecycle 唯一权威，v0 + v0.1 的 lifecycle/confidence 模块显式标记 superseded。
 
-- **D-A1（enforcement 原语留任）**：`execution_gate.mjs` + `kill_switch.mjs`（两实现）是**活的 enforcement 原语**（非 learning lifecycle），保留现状——write_executor 生产依赖（N-5）+ proactive 消费者（execute_limited_gate/generate_pr_evidence）零触碰。物理搬迁显式 deferred。本 ADR 只做**语义重分类**：在 `src/governance/learning/kill_switch.mjs`、`.claude/scripts/proactive/kill_switch.mjs` **及** `src/runtime/execution/kill_switch.mjs` 三处文件头标明「enforcement primitive, not learning lifecycle」（第三套 DEP-02 ceremony 补入；它经 write_gate→real_executor→feishu 活生产链，属活的紧急停机 enforcement 原语，行为零触碰）。
+- **D-A1（enforcement 原语留任）**：`execution_gate.mjs` + **三处 kill_switch 实现**（governance/learning + proactive + runtime/execution）是**活的 enforcement 原语**（非 learning lifecycle），保留现状——write_executor 生产依赖（N-5）+ proactive 消费者（execute_limited_gate/generate_pr_evidence）零触碰。物理搬迁显式 deferred。本 ADR 只做**语义重分类**：在 `src/governance/learning/kill_switch.mjs`、`.claude/scripts/proactive/kill_switch.mjs` **及** `src/runtime/execution/kill_switch.mjs` 三处文件头标明「enforcement primitive, not learning lifecycle」（第三套 DEP-02 ceremony 补入；它经 write_gate→real_executor→feishu 活生产链，属活的紧急停机 enforcement 原语，行为零触碰）。
 - **D-A2（lifecycle 模块 superseded）**：`tier_manager.mjs` + `drift_monitor.mjs`（v0）+ `promotion_v0.mjs`（v0.1）标记 **Status: superseded-by-GHL**，不再作为任何 policy promotion/demotion 权威。未完成的概念价值（自动降级、漂移冻结、sandbox→candidate 晋升）转登 GHL backlog（2b/2c 候选）按 GHL 规范重生。
 - **D-A3（依赖边处置）**：execution_gate → drift_monitor 的 `isDriftBlocked` 依赖**保留**（drift_monitor 降格为只读库；只读路径仅当 `policyId` 非空且 `actionType=WRITE_LIMITED` 触发，execution_gate.mjs:266；其降级主动路径随 D-A2 冻结）。`execution_tiers.yaml:95/102` 的 `tier_manager_approval` token 处置（删/标记死配置）入 EVO-C scope。
 - **D-A4（lifecycle writer 落点）**：`policy_lifecycle_event_v1` 首个 producer **不** retrofit 进 v0/v0.1 栈（不给 superseded 代码镀金），随 GHL 首个真实 promotion 实现（2b/2c）落地。破坏性移动债随 D-A2 冻结自然退役。**审计连续性澄清（EVO-B AC-01，红队证伪"审计空窗"忧虑）**：superseded 路径即便 live 执行，其状态变更仍各落 legacy append-only 轨迹（`fact_tier_decisions.jsonl` / `fact_drift_events.jsonl` / `promotion_log.jsonl`）；D-A4 拒绝的是把 sealed `policy_lifecycle_event_v1` producer 镀金进退役码——是 **schema 碎片化，非审计黑洞**，绝不容忍无记录的状态变更。
@@ -117,10 +117,10 @@ Layer 0（liye_os 内部）；不触 loamwise / domain engines / 产品线。eng
 > **Accept≠merge（EVO-B B-01/B-04）**：Accept 时 PR #165 仍 open，post-Accept cooling 期保持 open、EVO-C 不动工，cooling 过后才 merge → 故 post-squash merge SHA 在 Accept 时尚不存在，须 merge 后回填（见 frontmatter Commit anchor，frontmatter 不预编 SHA）。
 
 ## Required Corrections Before Accept
-- [ ] D-03/D-04/D-05/D-06 + EVO-B ceremony（D-07）的更正已 fold 进正文（本版已 fold）
-- [ ] `node .claude/scripts/validate_adr_bghs.mjs` 通过（D-05）
-- [ ] EVO-C D-1 标记清单含 4 文件（tier_manager/drift_monitor/promotion_v0/crystallizer_v0）+ EVO-C D-2 enforcement 重分类清单含 **4 文件**（execution_gate + **3 处 kill_switch**：governance/learning + proactive + runtime/execution，DEP-02 补入）
-- [ ] **Accept 时三锚点同步落盘**（B-02）：frontmatter `Status: Accepted` + frontmatter `Accepted-Date: YYYY-MM-DD` + 文末 ADR Lifecycle `Accepted`/`Status`（validator 仅覆盖 frontmatter Accepted-Date，文末块在扫描域外 → 须人工核三处一致，对齐 ADR-GHL L11/L13/L340-341）
+- [x] D-03/D-04/D-05/D-06 + EVO-B ceremony（D-07）的更正已 fold 进正文（本版已 fold）
+- [x] `node .claude/scripts/validate_adr_bghs.mjs` 通过（D-05）
+- [x] EVO-C D-1 标记清单含 4 文件（tier_manager/drift_monitor/promotion_v0/crystallizer_v0）+ EVO-C D-2 enforcement 重分类清单含 **4 文件**（execution_gate + **3 处 kill_switch**：governance/learning + proactive + runtime/execution，DEP-02 补入）
+- [x] **Accept 时三锚点同步落盘**（B-02，2026-06-12 Accept 已执行）：frontmatter `Status: Accepted` + frontmatter `Accepted-Date: 2026-06-12` + 文末 ADR Lifecycle `Accepted: 2026-06-12`/`Status: Accepted`（三处实测一致；validator 仅覆盖 frontmatter Accepted-Date，文末块在扫描域外 → 已人工核三处一致，对齐 ADR-GHL L11/L13/L340-341）
 
 ## Risk Register
 | 风险 | 等级 | 缓解 |
@@ -142,9 +142,9 @@ Layer 0（liye_os 内部）；不触 loamwise / domain engines / 产品线。eng
 - 不做物理目录搬迁（显式 deferred）。
 
 ## Adoption Checkpoints
-- [ ] 红队评审（EVO-B ceremony 已跑 **4 lens**：依赖完整性 / 审计连续性 / GHL 边界 / ADR-mechanics；18 findings 全机制验证，fold/驳回 见 Decision Log D-07 + EVO-B `CEREMONY-RECORD.md`；operator 判定 ceremony 通过后勾选）
-- [ ] `validate_adr_bghs.mjs` 通过
-- [ ] Operator Accept + 双 cooling
+- [x] 红队评审（EVO-B ceremony 已跑 **4 lens**：依赖完整性 / 审计连续性 / GHL 边界 / ADR-mechanics；18 findings 全机制验证，fold/驳回 见 Decision Log D-07 + EVO-B `CEREMONY-RECORD.md`；**operator 2026-06-12 判定 ceremony 实质通过**）
+- [x] `validate_adr_bghs.mjs` 通过
+- [ ] Operator Accept + 双 cooling（Accept ✓ **2026-06-12** + draft cooling ✓；**post-Accept cooling 起算中** = Accept commit 实际时间 +24h，最早 2026-06-13 同北京时间后才考虑 merge #165 + 回填 anchor）
 - [ ] EVO-C PR merged（R-2 + R-3a 全项落地，Hard Gates 1-4 实证）
 - [ ] R-3b 移交 GHL 2b/2c ceremony
 
@@ -160,5 +160,5 @@ Layer 0（liye_os 内部）；不触 loamwise / domain engines / 产品线。eng
 ---
 ## ADR Lifecycle
 **Authored**: 2026-06-10
-**Accepted**: —
-**Status**: Proposed
+**Accepted**: 2026-06-12
+**Status**: Accepted
