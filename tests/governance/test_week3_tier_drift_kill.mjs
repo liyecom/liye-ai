@@ -178,6 +178,7 @@ async function test_kill_switch_blocks_write() {
 }
 
 // ============================================================================
+// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] tier_manager promotion path
 // Test 4: tier_manager 决策 deterministic
 // ============================================================================
 async function test_tier_manager_deterministic() {
@@ -216,6 +217,7 @@ async function test_tier_manager_deterministic() {
 }
 
 // ============================================================================
+// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] tier_manager promotion path
 // Test 5: sandbox->candidate 满足门槛 -> promotion
 // ============================================================================
 async function test_promotion_when_criteria_met() {
@@ -247,6 +249,7 @@ async function test_promotion_when_criteria_met() {
 }
 
 // ============================================================================
+// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] tier_manager promotion path
 // Test 6: 不满足门槛 -> 不晋升且写 reason
 // ============================================================================
 async function test_no_promotion_with_reason() {
@@ -274,6 +277,7 @@ async function test_no_promotion_with_reason() {
 }
 
 // ============================================================================
+// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] drift_monitor active demotion path
 // Test 7: drift_monitor 连续失败 -> drift_triggered
 // ============================================================================
 async function test_drift_trigger_on_failures() {
@@ -303,6 +307,7 @@ async function test_drift_trigger_on_failures() {
 }
 
 // ============================================================================
+// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] drift_monitor active demotion path
 // Test 8: 单次波动不触发 drift（避免误杀）
 // ============================================================================
 async function test_no_false_positive_drift() {
