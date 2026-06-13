@@ -14,7 +14,7 @@
 
 ## Deliverables（草案）
 
-- D-1: **4 个 lifecycle 文件**头 superseded 标记（三行注释：Status: superseded-by-GHL / 权威源指针 ADR-Learning-Stack-Generations + ADR-GHL / 禁止新代码引用）——`src/governance/learning/tier_manager.mjs` + `src/governance/learning/drift_monitor.mjs`（v0）+ `.claude/scripts/learning/promotion_v0.mjs` + `.claude/scripts/learning/policy_crystallizer_v0.mjs`（v0.1 实验栈，crystallizer 含 0.2/0.3/0.5 confidence 公式真身 :78，D-A5）。
+- D-1: **6 个文件**头 superseded 标记（三行注释：Status: superseded-by-GHL / 权威源指针 ADR-Learning-Stack-Generations + ADR-GHL / 禁止新代码引用）——`src/governance/learning/tier_manager.mjs` + `src/governance/learning/drift_monitor.mjs`（v0）+ **整个休眠 v0.1 learning pipeline 4 件**：`.claude/scripts/learning/policy_crystallizer_v0.mjs`（含 0.2/0.3/0.5 confidence 公式真身 :78，D-A5）+ `.claude/scripts/learning/promotion_v0.mjs` + `.claude/scripts/learning/pattern_detector_v0.mjs` + `.claude/scripts/learning/learning_pipeline_v0_runner.mjs`（runner = execSync 编排器 `main()` CLI 零外部消费者，detector 仅 runner 消费；**ADR D-08 reverse-dep 重扫扩入**——避免只标 2 件留"runner 仍可执行"假 Interface）。
 - D-2: **3 处 kill_switch + execution_gate（4 文件）** 文件头语义重分类注释（enforcement primitive, not learning lifecycle）——`src/governance/learning/execution_gate.mjs` + `src/governance/learning/kill_switch.mjs`（ENV `LIYE_KILL_SWITCH`）+ `.claude/scripts/proactive/kill_switch.mjs`（ENV `EXECUTE_LIMITED_ENABLED`，与 governance 共享 state file，消费者 execute_limited_gate/generate_pr_evidence）+ `src/runtime/execution/kill_switch.mjs`（ENV `KILL_SWITCH`，经 write_gate→real_executor→feishu 活生产链，PR #90，**EVO-B DEP-02 补入**）（D-A1）。
 - D-3: `test_week3_tier_drift_kill.mjs` tier/drift 用例 legacy 标记（粒度**于本 SPEC ceremony 裁决**：整套 vs 按用例，即 ADR OQ-1 defer 至此的待裁项）。
 - D-4: **hardhook CI-wire**（D-A6）：`test_execution_gate_hardhook.mjs` 当前 manual-only，它保护 write_executor→execution_gate 边（Hard Gate 1 所依赖）——本 PR 将其接入 CI（comment/test-marking scope 兼容 Hard Gate 4）。
@@ -32,12 +32,12 @@
 ## Entry criteria
 
 1. ADR-008 Status == Accepted 且 cooling 已过（出示 Accepted-Date + now 差值）。
-2. 入场 reverse-dep 重扫（EVO-B 红队 lens 1 的复跑）——若发现新消费者，先回 ADR-008 Decision Log 增补再动工。
+2. 入场 reverse-dep 重扫（EVO-B 红队 lens 1 的复跑）——若发现新消费者，先回 ADR-008 Decision Log 增补再动工。**✅ 已执行（ADR D-08，2026-06-13 HEAD `0a4f7e7`，直接扫 + 5-模态对抗 Workflow `wf_24862c1f`）：8 标的 ZERO 新外部消费者 / GHL 边界 clean / runner+detector 机制级休眠。** 真发现 = v0.1 actionable superseded 清单漏数（2→4）→ 已 fold（`pattern_detector_v0` + `learning_pipeline_v0_runner` 扩入 D-A2 + 本 D-1 清单 4→6）。**criterion 2 SATISFIED**——入场无遗留隐藏消费者待处置。3 个 non-module-edge 旁注留 D-2 知会（`heartbeat_runner.mjs:33`+`s15_production_canary.mjs:57` 内联读 `LIYE_KILL_SWITCH` ENV 非 import；`reasoning-assets-gate.yml:62` = 跑 baseline `test_kill_switch.mjs` 第 2 个 CI surface）。
 3. **EVO-B ceremony defer-ins**（见 `../EVO-B-adr008-ceremony/CEREMONY-RECORD.md`）须并入本 PR：(a) **DEP-03** — reverse-dep 重扫将 `_meta/contracts/learning/policy_lifecycle_event_v1.schema.yaml:70`「e.g. system:tier_manager」prose 标注为**已知非消费者**（schema description 内的命名示例，非 load-bearing，删 tier_manager 不影响校验，防后续误判）；(b) **AC-04** — `docs/runbooks/week3-tier-drift-kill.md:49/70` 的非 `--dry-run` live 命令纳入 runbook 弃用/加 superseded 警示（comment-only 标记不能 disable 手动 paste 触发的工件移动）；(c) **AC-01 子缺陷** — `promotion_v0.mjs` 的 logPromotion 与 movePolicy 非 co-located + error-swallowing try/catch（best-effort logging gap），cleanup 时一并记。
 
 ## DoD 草案
 
-- [ ] D-1 4 文件 superseded 标记 + D-2 **4 文件**重分类注释落地，diff 仅注释行（diff 实证）
+- [ ] D-1 **6 文件** superseded 标记（含 v0.1 栈全 4 件 promotion_v0/crystallizer_v0/pattern_detector_v0/learning_pipeline_v0_runner，D-08 扩入）+ D-2 **4 文件**重分类注释落地，diff 仅注释行（diff 实证）
 - [ ] **S-1（ADR Supporting Reference：`test_week3_tier_drift_kill.mjs` + `test_execution_gate_hardhook.mjs`）两测试套件绿**（行为守恒）；hardhook 已 CI-wire（D-4）
 - [ ] `tier_manager_approval` token 处置经**真实断言**实证（grep/golden 证零半死残留，或扩 validator walk `transitions[].requires`）——**不**以 inert `validate-execution-tiers.mjs`（不解析 transitions）充数（D-5）
 - [ ] D-6 backlog 条目可被 GHL 2b/2c SPEC ceremony 直接引用（含 file:line + 缺陷清单）
