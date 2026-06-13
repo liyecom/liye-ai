@@ -66,7 +66,7 @@ liye_os 内现存**三层**学习-治理 lifecycle 实现 + **三处** kill_swit
 ### 为什么现在裁决
 GHL Phase-4 entry gate 已 ship（idle），production-unlock 决策窗临近。在 Hard Gate 8 解锁评估前，「policy lifecycle 唯一权威是谁」必须无歧义。多套同名安全子系统无标记并存，是 Phase-4 → exec SPEC 链路上的认知债。
 
-## Decision（Proposed：Option A——分拆-取代）
+## Decision（Option A——分拆-取代）
 
 > **一句话**：enforcement 原语留任，learning lifecycle 让位；GHL（v1 sealed）成为 policy lifecycle 唯一权威，v0 + v0.1 的 lifecycle/confidence 模块显式标记 superseded。
 
