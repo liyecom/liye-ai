@@ -25,7 +25,7 @@ is_bghs_doctrine: no
 **Supporting References**:
 - S-1: `tests/governance/test_week3_tier_drift_kill.mjs`（**CI-wired** via `.github/workflows/execution-tiers-gate.yml:95`）+ `tests/governance/test_execution_gate_hardhook.mjs`（**manual-only**，无 workflow/package.json 引用）—— v0 栈的 2 个测试套件
 - S-2: 2026-06-02 Agentic Design Patterns × liye 代码库交叉分析（24-agent workflow，session-local id `wf_92441d58`，**无落盘 transcript**；承重事实以 2026-06-10/06-11 主线程逐项落盘实测为准，非以该 workflow 自证）
-**Commit anchor**: 概念锚定 = PR `liyecom/liye-ai#165` 的 post-squash merge commit 成为 durable anchor（对齐 ADR-GHL 教条「the post-squash merge commit becomes the durable anchor; no pre-squash SHA is normative」）。**Accept≠merge（EVO-B B-01/B-04）**：Accept 时 anchor=pending（#165 仍 open，frontmatter **不预编 SHA**），post-squash merge SHA 待 merge 后回填（merge 即生效；如需显式 SHA 值则以 tiny docs follow-up commit 回填）。
+**Commit anchor**: 概念锚定 = PR `liyecom/liye-ai#165` 的 post-squash merge commit 成为 durable anchor（对齐 ADR-GHL 教条「the post-squash merge commit becomes the durable anchor; no pre-squash SHA is normative」）。**Accept≠merge（EVO-B B-01/B-04）**：Accept 时 anchor=pending（#165 当时仍 open，frontmatter **不预编 SHA**）；#165 已于 2026-06-13T08:53:17Z（16:53:17 CST）由 `liyecom` squash-merge，post-squash merge SHA 回填 = **`e3b692b`**（full `e3b692b1ec389c9752b4598176a3681ca8e15ae3`）= 本 ADR 的 durable commit anchor（concept-anchor 于 merge 即生效，本行为显式 SHA 回填收尾，docs-only follow-up）。
 
 ---
 
