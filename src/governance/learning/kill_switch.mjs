@@ -3,6 +3,9 @@
  * Kill Switch Governance Module v1.0.0
  * SSOT: src/governance/learning/kill_switch.mjs
  *
+ * RECLASSIFIED: enforcement primitive, not learning lifecycle (ADR-Learning-Stack-Generations §D-A1)
+ *   紧急写路径中断原语 (ENV LIYE_KILL_SWITCH > state file > default)；非 learning lifecycle，保留现状，行为零触碰。
+ *
  * 与 execution_tiers 协同，实现紧急阻断和审计。
  *
  * 优先级链路：

@@ -3,6 +3,10 @@
  * Execution Gate v1.0.0
  * SSOT: src/governance/learning/execution_gate.mjs
  *
+ * RECLASSIFIED: enforcement primitive, not learning lifecycle (ADR-Learning-Stack-Generations §D-A1)
+ *   本模块是活的 enforcement 原语 (write_executor/index.mjs:23 生产依赖的 preflight 授权)，非 policy learning lifecycle；
+ *   随 §D-A2 取代保留现状，行为零触碰 (Hard Gate 1 字节级回归)。
+ *
  * 执行管道的 preflight 检查入口：
  * - 解析 execution_tiers.yaml
  * - 检查 kill_switch
