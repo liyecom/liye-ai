@@ -92,14 +92,14 @@ transitions:
     to: recommend
     trigger: promotion
     requires:
-      - tier_manager_approval
+      # tier_manager_approval 删除：随 ADR-Learning-Stack-Generations §D-A2 取代为 orphan token（EVO-C D-5/§D-09）
       - criteria_met
 
   - from: recommend
     to: execute_limited
     trigger: promotion
     requires:
-      - tier_manager_approval
+      # tier_manager_approval 删除：随 ADR-Learning-Stack-Generations §D-A2 取代为 orphan token（EVO-C D-5/§D-09）
       - criteria_met
       - operator_explicit_approval
 

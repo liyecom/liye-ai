@@ -62,6 +62,20 @@ const DEFAULT_ACTION_WHITELIST = [
   'WRITE_LIMITED'
 ];
 
+// 状态转移 token 白名单（EVO-C D-5 / ADR-Learning-Stack-Generations §D-09）
+// 来源 = transitions[].requires 真枚举的 live tokens（7 个）。
+// tier_manager_approval 随 §D-A2 取代为 orphan，已从 execution_tiers.yaml 删除；
+// 任何不在本白名单的 orphan token fail-closed（errorCount++ → exit 1），防止 superseded 模块死配置静默残留。
+const LIVE_TRANSITION_TOKENS = [
+  'criteria_met',
+  'operator_explicit_approval',
+  'drift_detected',
+  'operator_request',
+  'consecutive_failures',
+  'kill_switch_active',
+  'drift_critical'
+];
+
 /**
  * 加载配置文件
  */
@@ -296,6 +310,50 @@ function validateKillSwitchIntegration(config) {
 }
 
 /**
+ * 校验 transitions[].requires 的 token（EVO-C D-5 / ADR-Learning-Stack-Generations §D-09）
+ * walk 每个 requires entry，对不在 LIVE_TRANSITION_TOKENS 的 orphan token fail-closed
+ * （errorCount++ → exit 1）。防止 superseded 模块（如 tier_manager）的死配置 token 静默残留。
+ */
+function validateTransitionTokens(config) {
+  if (!config.transitions) {
+    logWarning('transitions', 'Missing transitions section');
+    return;
+  }
+
+  if (!Array.isArray(config.transitions)) {
+    logError('transitions', `Must be array, got ${typeof config.transitions}`);
+    return;
+  }
+
+  let orphanFound = false;
+  for (let i = 0; i < config.transitions.length; i++) {
+    const requires = config.transitions[i]?.requires;
+    if (requires === undefined) continue;
+
+    if (!Array.isArray(requires)) {
+      logError(`transitions[${i}].requires`, `Must be array, got ${typeof requires}`);
+      orphanFound = true;
+      continue;
+    }
+
+    for (const token of requires) {
+      if (!LIVE_TRANSITION_TOKENS.includes(token)) {
+        logError(
+          `transitions[${i}].requires`,
+          `Orphan token "${token}" not in live-token allowlist {${LIVE_TRANSITION_TOKENS.join(', ')}}. ` +
+          `Superseded-module config tokens must be removed (ADR-Learning-Stack-Generations §D-A2/§D-09).`
+        );
+        orphanFound = true;
+      }
+    }
+  }
+
+  if (!orphanFound) {
+    logPass('transitions[].requires (all tokens in live-token allowlist)');
+  }
+}
+
+/**
  * 主校验流程
  */
 function validate() {
@@ -345,6 +403,10 @@ function validate() {
   // 6. kill_switch_integration
   console.log('\n--- Kill Switch Integration Check ---');
   validateKillSwitchIntegration(config);
+
+  // 7. transitions token 白名单（EVO-C D-5 / §D-09：orphan token fail-closed）
+  console.log('\n--- Transition Tokens Check ---');
+  validateTransitionTokens(config);
 
   // 汇总
   console.log('\n═══════════════════════════════════════════════════════════');
