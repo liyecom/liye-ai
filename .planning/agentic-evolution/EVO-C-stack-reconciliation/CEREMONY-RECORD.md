@@ -69,7 +69,7 @@
 | L4-02 | HIGH | AC-01 结构性 gap 源码确认：movePolicy（renameSync :114）在 checkPromotions :250 commit，logPromotion（appendFileSync :101）在 main :291 后置且 try/catch 吞错（:290-294）→ move 可成而无 ledger row | FOLD | refuted=false | **FOLD_INTO_SPEC**（DoD：**annotate-only**；禁 re-order/去 swallow——皆 behavior change 且 D-A4 禁镀金 superseded code；真修延 GHL 2b/2c） |
 | L4-03 | MED | OQ-3：supersede 不得静默孤儿化 append-only ledger，但该 ledger gitignored（.gitignore:330）未跟踪→无 committed replay 历史可孤儿化 → leave-in-place-annotated | FOLD | refuted=false | **FOLD_INTO_SPEC**（与 LD-05 合并） |
 | L4-04 | MED | seed→v1.0 必须保全 D-1..D-7 + 4 Hard Gate，只 ADD 不 silently drop | NOTE | refuted=false | **NOTE_ONLY**（v1.0 已逐项保全，见下） |
-| L4-05 | LOW | 3 DEFER fold 全 comment/doc 级，零 sealed schema/frozen artifact 改写（schema:70 是 description 块内 prose 非 :66 pattern；本 ceremony **未**应用，sealed sha256 仍 `aaf635a1…`） | NOTE | refuted=false | **NOTE_ONLY** |
+| L4-05 | LOW | 3 DEFER fold 全 comment/doc 级。schema:70 是 description 块内 prose 非 :66 pattern；本 ceremony **未**应用该 annotation（DEP-03 延 IMPL）。⚠ **operator 复核更正**：IMPL 应用 DEP-03 时改 description prose = **validation-neutral**（`pattern`/`required`/`enum` 不变 + gate count 维持 21），但**文件 hash 必变，不声称 sealed hash 不变**；红队原报「sealed sha256 仍 `aaf635a1…`」= 幻觉锚（main `7b3a7f7` 实测 schema blob = `2d4f50f9…`，无 `aaf635a1`） | NOTE | refuted=false（修正措辞） | **NOTE_ONLY** |
 | L4-06 | LOW | CEREMONY-RECORD.md 须新文件、镜像 EVO-B 格式、置于 EVO-C 目录、不覆盖 EVO-B record | NOTE | refuted=false | **NOTE_ONLY**（本文件即是） |
 
 ### Lens 5 — reverse-dep freshness（criterion-2 复confirm @ 7b3a7f7）
@@ -139,7 +139,7 @@
 
 | DEFER | 来源 | v1.0 fold |
 |-------|------|-----------|
-| DEP-03 schema:70 prose 标 known non-consumer | EVO-B | DoD 项；annotate description-块 prose（非 :66 pattern），validation-neutral，sealed sha256 不变 |
+| DEP-03 schema:70 prose 标 known non-consumer | EVO-B | DoD 项；annotate description-块 prose（非 :66 pattern）；**validation-neutral**（`pattern`/`required`/`enum` 不变 + gate count 维持 21），但文件 hash 会变，**不声称 sealed hash 不变** |
 | AC-04 runbook live 命令弃用警示 | EVO-B | DoD 项 + concrete banner（critic 补，见 SPEC D-1/DoD） |
 | AC-01 promotion_v0 best-effort logging cleanup | EVO-B | DoD 项；**annotate-only**（禁 re-order / 去 swallow——behavior change + D-A4 禁镀金；真修延 GHL 2b/2c） |
 
