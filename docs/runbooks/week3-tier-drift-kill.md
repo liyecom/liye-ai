@@ -40,12 +40,16 @@ node _meta/contracts/scripts/validate-execution-tiers.mjs
 - 检查晋升条件（min_runs, success_rate 等）
 - 物理移动文件：sandbox → candidate → production
 
+> ⚠️ SUPERSEDED (ADR-Learning-Stack-Generations §D-A2/§D-A6): tier_manager 不再是 policy promotion 权威。
+> 下方 live 命令执行**破坏性** artifact 移动且**无** `policy_lifecycle_event` 审计。生产环境**禁运**；
+> GHL（ADR-GHL 2b/2c）是唯一 policy-lifecycle 权威。dry-run 仅供历史诊断。
+
 **运行**:
 ```bash
 # Dry-run（仅评估，不执行）
 node src/governance/learning/tier_manager.mjs --dry-run
 
-# 实际执行
+# ⚠ SUPERSEDED — 破坏性且无 lifecycle 审计；生产禁运（§D-A2/§D-A6）
 node src/governance/learning/tier_manager.mjs
 ```
 
@@ -61,12 +65,16 @@ node src/governance/learning/tier_manager.mjs
 - 检测性能退化（默认阈值：20%）
 - 自动降级：production → candidate, candidate → quarantine
 
+> ⚠️ SUPERSEDED (ADR-Learning-Stack-Generations §D-A2/§D-A6): drift_monitor 的主动降级路径不再是 policy demotion 权威。
+> 下方 live 命令执行**破坏性** artifact 移动且**无** `policy_lifecycle_event` 审计。生产环境**禁运**；
+> GHL（ADR-GHL 2b/2c）是唯一 policy-lifecycle 权威。（只读 `isDriftBlocked()` enforcement 读不受影响，§D-A3。）
+
 **运行**:
 ```bash
 # Dry-run
 node src/governance/learning/drift_monitor.mjs --dry-run
 
-# 实际执行
+# ⚠ SUPERSEDED — 破坏性且无 lifecycle 审计；生产禁运（§D-A2/§D-A6）
 node src/governance/learning/drift_monitor.mjs
 ```
 
