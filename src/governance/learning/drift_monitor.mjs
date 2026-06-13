@@ -3,6 +3,13 @@
  * Drift Monitor v1.0.0
  * SSOT: src/governance/learning/drift_monitor.mjs
  *
+ * ⚠ STATUS: superseded-by-GHL (ADR-Learning-Stack-Generations §D-A2) — SURFACE-SCOPED (v0 "week 3" 栈)
+ *   限定于本模块的【主动降级/quarantine 路径】(writeFileSync :233 / unlinkSync :236 状态变更 + CLI main = RETIRED)：
+ *   不再是 policy demotion/lifecycle 权威；禁止新代码作 demotion/lifecycle 权威调用该面。GHL v1 sealed 栈是唯一权威。
+ *   EXCEPTION: isDriftBlocked() (:421, 只读 existsSync/readFileSync) 是 D-A3 preserved read-only enforcement
+ *   library，被 STAYING enforcement primitive execution_gate.mjs:23/:267 消费 (policyId 非空 ∧ actionType=WRITE_LIMITED)；
+ *   既存边 grandfathered，"no-NEW-references" 不溯及该 live enforcement 读。
+ *
  * 监控 production/candidate policies 的 primary_metric 走势
  * 触发 drift → 自动降级/冻结 execute_limited
  *
@@ -418,6 +425,7 @@ export async function evaluateDrift(options = {}) {
 /**
  * 导出：检查特定 policy 是否被 drift 阻断
  */
+// ENFORCEMENT-READ (D-A3): consumed by execution_gate preflight; behavior frozen, byte-level regression under Hard Gate 1
 export function isDriftBlocked(policyId) {
   // 检查 policy 是否在 quarantine
   const quarantinePath = join(POLICIES_DIR, 'quarantine', `${policyId}.yaml`);

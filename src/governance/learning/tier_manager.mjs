@@ -3,6 +3,10 @@
  * Tier Manager v1.0.0
  * SSOT: src/governance/learning/tier_manager.mjs
  *
+ * ⚠ STATUS: superseded-by-GHL (ADR-Learning-Stack-Generations §D-A2) — v0 "week 3" 栈
+ * 权威源: GHL v1 sealed 栈 = policy promotion/demotion 唯一权威 (ADR-Governed-Heuristic-Learning.md; append-only JSONL lifecycle 链)
+ * 禁止任何新代码 import/invoke 本模块作 policy promotion/demotion 权威
+ *
  * 管理 policies 生命周期：observe → recommend → execute_limited
  * 决策必须 deterministic（同输入同输出，可 replay）
  *

@@ -3,6 +3,10 @@
  * Pattern Detector v0.1 (Week 6 Learning Pipeline)
  * SSOT: .claude/scripts/learning/pattern_detector_v0.mjs
  *
+ * ⚠ STATUS: superseded-by-GHL (ADR-Learning-Stack-Generations §D-A2 / D-08) — v0.1 experimental stack RETIRED
+ * 本模块是 v0.1 pipeline 的内部实现件 (仅 learning_pipeline_v0_runner 经 execSync 消费, 零外部 import)
+ * policy lifecycle 唯一权威 = GHL v1 sealed 栈; 禁止新代码 import/invoke 本模块作 lifecycle 权威
+ *
  * Control Plane component: detects recurring success patterns from execution traces.
  * Uses three-signal validation: exec + operator + business.
  *
