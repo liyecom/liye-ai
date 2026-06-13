@@ -3,6 +3,10 @@
  * Kill Switch v1.0.0
  * SSOT: .claude/scripts/proactive/kill_switch.mjs
  *
+ * RECLASSIFIED: enforcement primitive, not learning lifecycle (ADR-Learning-Stack-Generations §D-A1)
+ *   execute_limited 全局熄火原语 (ENV EXECUTE_LIMITED_ENABLED > state file > default)；生产消费者 = execute_limited_gate / generate_pr_evidence；
+ *   非 learning lifecycle，保留现状，行为零触碰。
+ *
  * Week 5 全局熄火开关：
  * - 单一配置立刻全局生效（<1 分钟）
  * - 两种方式：ENV 变量 或 配置文件
