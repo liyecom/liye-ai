@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 /**
  * Proactive Kill Switch Tests (EXECUTE_LIMITED_ENABLED)
- * SSOT: tests/governance/test_proactive_kill_switch.mjs
+ * SSOT: tests/governance/test_proactive_kill_switch_gate.mjs
+ *
+ * ⚠ 文件名以 `_gate.mjs` 结尾（非 `_kill_switch.mjs`）= 刻意：被测模块 direct-run guard
+ *   `.claude/scripts/proactive/kill_switch.mjs:221` 用 `process.argv[1]?.endsWith('kill_switch.mjs')`；
+ *   若测试名也以 `kill_switch.mjs` 结尾，`node <test>` 会令 import 时触发被测模块 `main()` CLI 副作用
+ *   （污染 Hard Gate 1 证据）。改名规避，生产模块字节零改（EVO-C D-10 code-review fold）。
  *
  * EVO-C D-7 (ADR-Learning-Stack-Generations §D-A6 / Hard Gate 1): behavior-freeze evidence for the
  * proactive kill_switch enforcement primitive (`.claude/scripts/proactive/kill_switch.mjs`).
@@ -14,7 +19,7 @@
  *   4. config-file 语义（无 ENV）—— config.enabled===true → { enabled:true, source:'config_file' }
  *   5. consumer binding —— execute_limited_gate.mjs 消费 isExecuteLimitedEnabled()
  *
- * 运行：node tests/governance/test_proactive_kill_switch.mjs
+ * 运行：node tests/governance/test_proactive_kill_switch_gate.mjs
  *
  * Hermetic：备份并还原 EXECUTE_LIMITED_ENABLED ENV + tracked config 文件
  *   state/runtime/proactive/kill_switch.json（deliberately tracked，非 gitignored），测试结束后字节级恢复原状

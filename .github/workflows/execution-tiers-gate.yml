@@ -7,7 +7,7 @@
 #   1. 跑 validate-execution-tiers.mjs（EVO-C D-5：含 validateTransitionTokens orphan-token fail-closed）
 #   2. 跑 test_week3_tier_drift_kill.mjs
 #   3. 跑 test_execution_gate_hardhook.mjs（EVO-C D-4，BLOCKING，原 manual-only）
-#   4. 跑 test_proactive_kill_switch.mjs（EVO-C D-7，BLOCKING）
+#   4. 跑 test_proactive_kill_switch_gate.mjs（EVO-C D-7，BLOCKING；_gate 后缀避被测模块 direct-run guard 碰撞，D-10）
 # 失败：阻断合并（fail-closed）
 
 name: Execution Tiers Gate
@@ -111,7 +111,7 @@ jobs:
           # (EXECUTE_LIMITED_ENABLED) behavior freeze — default-disabled + ENV-precedence-over-config.
           # BLOCKING — no `|| true`.
           echo "Running proactive kill_switch test (blocking)..."
-          node tests/governance/test_proactive_kill_switch.mjs
+          node tests/governance/test_proactive_kill_switch_gate.mjs
 
       - name: Verify Test Coverage
         run: |
