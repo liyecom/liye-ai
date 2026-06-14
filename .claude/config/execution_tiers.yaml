@@ -92,14 +92,16 @@ transitions:
     to: recommend
     trigger: promotion
     requires:
-      # tier_manager_approval 删除：随 ADR-Learning-Stack-Generations §D-A2 取代为 orphan token（EVO-C D-5/§D-09）
+      # (orphan approval token removed per ADR-Learning-Stack-Generations §D-A2 / EVO-C D-5/§D-09;
+      #  validateTransitionTokens 强制 7-token live allowlist——已删项见 ADR Decision Log，不在此 config 复现)
       - criteria_met
 
   - from: recommend
     to: execute_limited
     trigger: promotion
     requires:
-      # tier_manager_approval 删除：随 ADR-Learning-Stack-Generations §D-A2 取代为 orphan token（EVO-C D-5/§D-09）
+      # (orphan approval token removed per ADR-Learning-Stack-Generations §D-A2 / EVO-C D-5/§D-09;
+      #  validateTransitionTokens 强制 7-token live allowlist——已删项见 ADR Decision Log，不在此 config 复现)
       - criteria_met
       - operator_explicit_approval
 
