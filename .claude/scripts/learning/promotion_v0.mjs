@@ -3,6 +3,15 @@
  * Promotion v0.1 (Week 6 Learning Pipeline)
  * SSOT: .claude/scripts/learning/promotion_v0.mjs
  *
+ * ⚠ STATUS: superseded-by-GHL (ADR-Learning-Stack-Generations §D-A2) — v0.1 experimental stack RETIRED
+ * policy lifecycle (sandbox→candidate) 唯一权威 = GHL v1 sealed 栈 (append-only JSONL 链); 禁止新代码 import/invoke 本模块作 promotion 权威
+ *   OQ-3: legacy best-effort trail state/runtime/learning/promotion_log.jsonl (gitignored 未跟踪) 留在原处作历史证据，
+ *     未迁移 per D-A4; live policy-lifecycle SoT = GHL append-only JSONL 链。
+ *   AC-01 (best-effort logging gap, annotate-only): logPromotion (def :102 / appendFileSync :110) 与
+ *     movePolicy (def :116 / renameSync :123) 非 co-located —— move (call :259) 先于后置且 try/catch 吞错的
+ *     logPromotion (call :300, catch :301-303) → move 已 commit 而 audit append 可被吞 (best-effort logging gap)。
+ *     仅注释记录此 gap; 禁 re-order / 禁去 swallow (皆 behavior change + D-A4 禁镀金 superseded code); 真修延 GHL 2b/2c。
+ *
  * Control Plane component: manages policy lifecycle transitions.
  * Week 6 only supports: sandbox → candidate
  *

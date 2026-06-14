@@ -3,6 +3,11 @@
  * Learning Pipeline v0.1 Runner
  * SSOT: .claude/scripts/learning/learning_pipeline_v0_runner.mjs
  *
+ * ⚠ STATUS: superseded-by-GHL (ADR-Learning-Stack-Generations §D-A2 / D-08) — v0.1 experimental stack RETIRED
+ * 本 runner 经 execSync 串接退役的 pattern_detector_v0 → policy_crystallizer_v0 → promotion_v0。
+ * 其 exported Interface runLearningPipeline() (:74，非仅 CLI main) 属退役面：禁止任何新代码 import 或 invoke
+ * runLearningPipeline；它不得当作 live learning Interface。policy lifecycle 唯一权威 = GHL v1 sealed 栈。
+ *
  * 顺序执行学习流水线：pattern_detector → policy_crystallizer → promotion
  *
  * 用法:
@@ -65,6 +70,7 @@ function countPolicies(dir) {
   return readdirSync(dir).filter(f => f.endsWith('.yaml')).length;
 }
 
+// SUPERSEDED-INTERFACE (D-A2 / D-08): retired v0.1 stack orchestrator; no NEW code may import/invoke this export
 export function runLearningPipeline(options = {}) {
   const { windowStart, windowEnd, dryRun = false } = options;
 

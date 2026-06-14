@@ -3,6 +3,12 @@
 //
 // When KILL_SWITCH=true, all dangerous operations are blocked immediately.
 // No grace period, no retry - immediate halt.
+//
+// RECLASSIFIED: enforcement primitive, not learning lifecycle (ADR-Learning-Stack-Generations §D-A1)
+//   checkKillSwitch 仅经 write_gate.mjs:384 checkWriteGateP6C 调用 = P6C supervised-write gate path
+//   (当前 test-exercised via test_write_gate_p6c.mjs, CI-wired reasoning-assets-gate.yml)，NOT default feishu path
+//   (真实 feishu 链 feishu_actions.mjs:39 → real_executor.mjs:166 用 plain checkWriteGate，不调本模块)。
+//   ENV-driven 纯函数 (KILL_SWITCH=true)；reclassify-only header 不碰任何执行分支 (EB-02)。
 
 /**
  * Actions blocked when kill switch is active.

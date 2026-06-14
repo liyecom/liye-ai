@@ -4,8 +4,10 @@
 # Week 3 Governance: Tier / Drift / Kill Switch
 # 触发条件：PR 改动涉及 execution_tiers.yaml 或 governance/learning/**
 # 动作：
-#   1. 跑 validate-execution-tiers.mjs
+#   1. 跑 validate-execution-tiers.mjs（EVO-C D-5：含 validateTransitionTokens orphan-token fail-closed）
 #   2. 跑 test_week3_tier_drift_kill.mjs
+#   3. 跑 test_execution_gate_hardhook.mjs（EVO-C D-4，BLOCKING，原 manual-only）
+#   4. 跑 test_proactive_kill_switch_gate.mjs（EVO-C D-7，BLOCKING；_gate 后缀避被测模块 direct-run guard 碰撞，D-10）
 # 失败：阻断合并（fail-closed）
 
 name: Execution Tiers Gate
@@ -15,6 +17,7 @@ on:
     paths:
       - '.claude/config/execution_tiers.yaml'
       - 'src/governance/learning/**'
+      - '.claude/scripts/proactive/kill_switch.mjs'
       - '_meta/contracts/scripts/validate-execution-tiers.mjs'
       - 'tests/governance/**'
   push:
@@ -23,6 +26,7 @@ on:
     paths:
       - '.claude/config/execution_tiers.yaml'
       - 'src/governance/learning/**'
+      - '.claude/scripts/proactive/kill_switch.mjs'
       - '_meta/contracts/scripts/validate-execution-tiers.mjs'
       - 'tests/governance/**'
 
@@ -93,6 +97,21 @@ jobs:
         run: |
           echo "Running Week 3 governance tests..."
           node tests/governance/test_week3_tier_drift_kill.mjs
+
+      - name: Run Execution Gate Hardhook Test (BLOCKING)
+        run: |
+          # EVO-C D-4 (ADR-Learning-Stack-Generations §D-A6): protects write_executor→execution_gate edge
+          # (Hard Gate 1). BLOCKING — no `|| true`; a red test fails the job (was manual-only before EVO-C).
+          echo "Running execution_gate hardhook test (blocking)..."
+          node tests/governance/test_execution_gate_hardhook.mjs
+
+      - name: Run Proactive Kill Switch Test (BLOCKING)
+        run: |
+          # EVO-C D-7 (ADR-Learning-Stack-Generations §D-A6 / Hard Gate 1): proactive kill_switch
+          # (EXECUTE_LIMITED_ENABLED) behavior freeze — default-disabled + ENV-precedence-over-config.
+          # BLOCKING — no `|| true`.
+          echo "Running proactive kill_switch test (blocking)..."
+          node tests/governance/test_proactive_kill_switch_gate.mjs
 
       - name: Verify Test Coverage
         run: |

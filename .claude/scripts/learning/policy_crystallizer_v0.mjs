@@ -3,6 +3,10 @@
  * Policy Crystallizer v0.1 (Week 6 Learning Pipeline)
  * SSOT: .claude/scripts/learning/policy_crystallizer_v0.mjs
  *
+ * ⚠ STATUS: superseded-by-GHL (ADR-Learning-Stack-Generations §D-A2/§D-A5) — v0.1 experimental stack RETIRED
+ * confidence 数学唯一 SSOT = _meta/contracts/learning/confidence_formulas.yaml (GHL 4 权重)
+ * 本模块的 0.2/0.3/0.5 公式 (:82) 已 superseded；禁止任何新代码引用本模块作 confidence/policy 权威
+ *
  * Control Plane component: crystallizes detected patterns into learned policies.
  * Writes policies to state/memory/learned/policies/sandbox/ directory.
  *

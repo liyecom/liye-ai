@@ -67,7 +67,9 @@ properties:
     description: |
       Actor prefix (strict):
         human:sha256:<64-hex> — operator decision (reviewer_id_hash, same hashing as operator_feedback_v1.reviewer_id_hash)
-        system:<subsystem>    — automated lifecycle; subsystem matches [a-z0-9_.-]+ (e.g. system:tier_manager)
+        system:<subsystem>    — automated lifecycle; subsystem matches [a-z0-9_.-]+ (e.g. system:tier_manager —
+          illustrative pattern example ONLY; tier_manager is superseded per ADR-Learning-Stack-Generations §D-A2
+          and is NOT a producer of this schema; see ADR N-4 zero-producer)
       Empty actor or arbitrary strings rejected.
 
   occurred_at:
