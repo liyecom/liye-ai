@@ -3,7 +3,7 @@
 # Dedicated test gate for the liye_os fact importer (Phase 1b):
 #   .claude/scripts/learning/import_facts.mjs   — fact importer (dual-hash decision tree)
 #   .claude/scripts/learning/canonical_json.mjs — token-preserving JSON canonicalizer
-#   .claude/scripts/learning/tests/*.test.mjs   — 55 node:test (incl. golden.test.mjs)
+#   .claude/scripts/learning/tests/*.test.mjs   — 58 node:test (incl. golden.test.mjs + write_outcome)
 #
 # Why a dedicated workflow: these suites use the Node built-in runner (node:test),
 # which the root `npm test` (vitest) deliberately EXCLUDES — vitest.config.ts
@@ -66,5 +66,5 @@ jobs:
       - name: Install dependencies (ajv + yaml for import_facts.mjs)
         run: npm ci
 
-      - name: Run importer node:test (55 tests, incl. golden.test.mjs byte-equality)
+      - name: Run importer node:test (58 tests, incl. golden.test.mjs byte-equality)
         run: node --test .claude/scripts/learning/tests/*.test.mjs

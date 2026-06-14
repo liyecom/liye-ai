@@ -99,9 +99,15 @@ properties:
       - policy_suggestions_json
       - step_evaluation_instance
       - regression_replay_result
+      - write_outcome
     description: |
-      Engine artifact category. Restricted to AGE evaluation/inference/replay artifacts.
+      Engine artifact category. Covers AGE evaluation / inference / replay artifacts AND
+      execution/write outcomes. write_outcome = a write/execution receipt mapped into a fact
+      (e.g. an APPLIED CAMPAIGN_BUDGET_UPDATE). The concrete action kind lives in
+      raw_payload_summary.action_kind — NOT a per-kind artifact_type value: artifact_type is one of the
+      8 locked event_identity_key inputs, so minting per-kind values would fork identity space.
       Governance decisions (PROMOTED / DEMOTED / lifecycle / trust_matrix) use governance_event_v1 (per N-2 B-04).
+      Taxonomy doctrine + rationale: _meta/adr/ADR-Learning-Fact-Artifact-Type-Taxonomy.md
 
   artifact_path:
     type: string
