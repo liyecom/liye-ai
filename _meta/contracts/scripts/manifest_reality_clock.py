@@ -102,7 +102,7 @@ def run_once(engine_repo: Path, manifest_path: Path) -> dict:
         "timestamp_utc": now.isoformat(),
         "utc_date": now.strftime("%Y-%m-%d"),
         "engine_repo_path": str(engine_repo),
-        "engine_repo_canonical": "github.com/loudmirror/amazon-growth-engine",
+        "engine_repo_canonical_owner": "loudmirror",  # owner org only (leak-guard: no owner/repo URL form)
         "manifest_path": str(manifest_path),
         "manifest_raw_sha256": manifest_raw_sha256,
         "manifest_hash_prefixed": manifest_hash_prefixed,

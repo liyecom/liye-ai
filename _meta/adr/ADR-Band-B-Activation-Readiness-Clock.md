@@ -1,9 +1,19 @@
+---
+artifact_scope: ghl-band-b
+artifact_name: Band-B-Activation-Readiness-Clock
+artifact_role: contract
+target_layer: cross
+is_bghs_doctrine: no
+---
+
 # ADR — GHL Band B Activation Readiness Clock
 
-- **Status**: Accepted (operator rulings 2026-06-22) — except §5 S9 replacement, which is **Proposed, pending operator approval**
-- **Date**: 2026-06-22
-- **Scope**: Start the manifest-reality 30-day clock that paces the AGE `engine_manifest.yaml` gate `emit_fact_enabled`, WITHOUT any production action. This ADR authorizes **no** manifest flip, gate open, Ads write, `learning_sources.enabled` flip, or `expected_manifest_hash` arming.
-- **Related**: `ADR-Governed-Heuristic-Learning.md` (D-14, Sprint 9 readout gate), `.claude/config/learning_sources.yaml`, AGE `engine_manifest.yaml` gate `emit_fact_enabled`.
+**Status**: Accepted
+**Date**: 2026-06-22
+**Accepted-Date**: 2026-06-22
+**Note**: §5 (S9 replacement readout) is a PROPOSAL pending operator approval; all other sections are Accepted per operator rulings 2026-06-22.
+**Scope**: Start the manifest-reality 30-day clock that paces the AGE `engine_manifest.yaml` gate `emit_fact_enabled`, WITHOUT any production action. This ADR authorizes **no** manifest flip, gate open, Ads write, `learning_sources.enabled` flip, or `expected_manifest_hash` arming.
+**Related**: `ADR-Governed-Heuristic-Learning.md` (D-14, Sprint 9 readout gate), `.claude/config/learning_sources.yaml`, AGE `engine_manifest.yaml` gate `emit_fact_enabled`.
 
 ## Context
 
@@ -20,9 +30,9 @@ This ADR starts the 30-day clock (the long pole) and records the operator ruling
 
 ## Decisions
 
-### 1. Canonical engine repo = `loudmirror/amazon-growth-engine`
-- Evidence: AGE `origin = git@github.com:loudmirror/amazon-growth-engine`; `gh api repos/liyecom/amazon-growth-engine` → **HTTP 404** (absent/inaccessible).
-- `liyecom/...` is NOT the Band B canonical. `learning_sources.yaml engine_repo` is updated `liyecom → loudmirror` in the same PR.
+### 1. Canonical engine repo owner = `loudmirror`
+- Evidence: the AGE `origin` remote points at the `loudmirror` org; the `liyecom` org's copy of the engine repo returns **HTTP 404** (absent/inaccessible).
+- `liyecom` is NOT the Band B canonical owner. `learning_sources.yaml engine_repo` is updated `liyecom → loudmirror` in the same PR. (The full URL lives only in `.claude/config/`, which is outside the public-doc leak-guard scope.)
 
 ### 2. `learning_sources` repo-pointer mismatch — impact assessment
 - `engine_repo` is **identity-only**. It is **not a fetch target**:
