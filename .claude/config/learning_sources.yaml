@@ -39,8 +39,11 @@ sources:
       - main
 
     # Expected engine manifest hash (per N-2 I-01).
-    # Populated post-AGE manifest v2 migration (Phase 0c.3, time-locked to Sprint 9 readout).
-    # null = unverified; validate_manifest_reality.py must set to actual hash before enabling.
+    # expected_manifest_hash is consumed by the importer (import_facts.mjs:249),
+    # NOT by validate_manifest_reality.py. Populated post-flip at B8 against the
+    # ACTIVATED manifest's raw bytes (flip changes the bytes, so arming pre-flip
+    # would pin the wrong object). null = every imported fact provenance_dirty by
+    # design (Phase-1b invariant). Do NOT arm before B8.
     expected_manifest_hash: null
 
     # Fact emission paths (per EV2-I-01 date-sharded UTC + event sidecar).

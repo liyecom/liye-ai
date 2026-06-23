@@ -64,12 +64,31 @@ Save as `~/Library/LaunchAgents/com.liye.manifest-reality-clock.plist`, then
     <key>Minute</key><integer>5</integer>
   </dict>
   <key>StandardOutPath</key>
-  <string>/Users/liye/github/liye_os/_meta/contracts/ledger/manifest_reality_clock.stdout.log</string>
+  <string>/Users/liye/Library/Logs/liye/manifest_reality_clock.stdout.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/liye/github/liye_os/_meta/contracts/ledger/manifest_reality_clock.stderr.log</string>
+  <string>/Users/liye/Library/Logs/liye/manifest_reality_clock.stderr.log</string>
 </dict>
 </plist>
 ```
 
+> Runner logs go to `~/Library/Logs/liye/` (NOT the repo ledger dir) so launchd
+> stdout/stderr never pollute the versioned `_meta/contracts/ledger/` tree.
+> **Before `launchctl load`, create the log dir:** `mkdir -p ~/Library/Logs/liye`.
+>
 > The launchd agent is **not installed by this PR**. Installing it (`launchctl
-> load`) is a separate operator action per the Band B authorization boundary.
+> load` + the `mkdir`) is a separate operator action per the Band B authorization
+> boundary.
+
+## Ledger schema versions
+
+- **schema-v1** — day-0 entry only (`utc_date 2026-06-22`): manifest reality +
+  validator R1–R6 + exit_code, no inline git-state evidence. Day-0's zero-touch
+  was instead proven **externally** (closing-proof: DB byte-size invariant,
+  out/facts=0, manifest blob unchanged).
+- **schema-v2** — day-1 (`2026-06-23`) onward: adds `ledger_schema_version`,
+  `engine_repo_commit`/`engine_repo_tracked_dirty`/`engine_repo_untracked_count`,
+  `manifest_tracked_dirty`, `validator_repo_tracked_dirty`/`validator_repo_untracked_count`.
+  These are **evidence-only** — `clock_eligible_day` remains a pure function of
+  `validator overall==PASS AND exit_code==0`. A dirty repo never fails the clock;
+  it is recorded so an auditor can see the manifest itself was untouched
+  (`manifest_tracked_dirty=false`) even when the repo carries unrelated changes.

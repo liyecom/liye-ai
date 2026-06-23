@@ -45,7 +45,7 @@ This ADR starts the 30-day clock (the long pole) and records the operator ruling
 - The manifest hash口径 is `sha256:` + sha256(manifest **raw bytes**) (`emit_fact.py:382`) — NOT the git blob SHA.
 - The flip (status→active, gate→open) **changes the manifest bytes**, so the activated manifest's hash ≠ the current pre-flip value `sha256:b25557edf6abd1df1fcef60c2869e0c90b7d81708bd3dcac827add650c688b2d`. **Arming the hash now would pin the wrong (pre-flip) object** and guarantee a mismatch on every real fact.
 - Ruling: arm `expected_manifest_hash` only at **B8, post-flip**, to the activated manifest's bytes. The 30-day clock records validator R1–R6 PASS and involves **no hash**, so the clock cannot "pin the wrong object."
-- Note: the inline comment in `learning_sources.yaml` (≈ lines 37–38) saying "validate_manifest_reality.py must set to actual hash" is inaccurate (the importer consumes it, not the validator); left unedited this PR to keep scope to `engine_repo` — flagged here for a later cleanup.
+- Note: the inline comment in `learning_sources.yaml` previously said "validate_manifest_reality.py must set to actual hash" — inaccurate (the importer consumes it, not the validator). **Corrected in this PR (review fold 2026-06-23)** to "consumed by the importer; populated post-flip at B8"; the value stays `null` (NOT armed).
 
 ### 4. 30-day clock starts BEFORE the manifest flip
 - `validate_manifest_reality.py` against the current placeholder manifest returns `overall: PASS` (R1–R6, exit 0). The clock is therefore startable today, with no flip.
@@ -53,6 +53,12 @@ This ADR starts the 30-day clock (the long pole) and records the operator ruling
 - Continuity rule for gate-open: **30 consecutive UTC-day PASS**; any gap or any FAIL resets the count (fail-closed). Failures are appended, never silently overwritten.
 - Day-0 entry: `2026-06-22`, `overall=PASS`, `clock_eligible_day=true`, `exit_code=0`, all R1–R6 PASS.
 - **Earliest gate-open ≈ 2026-06-22 + 30d = 2026-07-22**, AND §5 resolved, AND downstream Phase-4 freshness floors. Every day the clock is paused pushes activation out one day.
+
+#### 4a. Ledger schema versions + day-0 acceptance (review fold, 2026-06-23)
+- **schema-v1** = the day-0 entry (`2026-06-22`) only: manifest reality + validator R1–R6 + exit_code, with NO inline git-state evidence fields. **Not fabricated retroactively** — it is left exactly as written.
+- **schema-v2** = day-1 (`2026-06-23`) onward: adds `ledger_schema_version`, `engine_repo_commit` / `engine_repo_tracked_dirty` / `engine_repo_untracked_count`, `manifest_tracked_dirty`, and `validator_repo_tracked_dirty` / `validator_repo_untracked_count`. These are **evidence-only** — `clock_eligible_day` stays a pure function of `validator overall==PASS AND exit_code==0`; a dirty repo NEVER fails the clock. The load-bearing field is `manifest_tracked_dirty` (was the manifest *itself* touched), which is independent of unrelated repo-level dirt.
+- **Ruling (explicit, per reviewer's two options): day-0 ACCEPTED with external no-touch proof; day-1 onward is schema-v2.** Day-0's zero-touch was proven externally at the time (closing-proof: AGE DuckDB byte-size invariant `2873110528`, `out/facts`=0, manifest blob `bba56c9` unchanged), which is exactly the evidence schema-v2 now records inline. The 30-day window therefore counts `2026-06-22 … 2026-07-21` (30 consecutive UTC-day PASS), earliest gate-open `2026-07-22`.
+- **Operator override available**: if you prefer strict self-contained ledger provenance (every clock day carrying its own inline git-state evidence), declare **formal strict clock starts 2026-06-23**; this discards day-0 from the count and pushes earliest gate-open to `2026-07-23` (cost: 1 day). Default above stands unless you choose strict.
 
 ### 5. Sprint 9 readout pointer is dead → replacement readout PROPOSED (pending operator approval)
 - The memory-cited pointer `cb4d4b0` does **not resolve** (`git cat-file -t cb4d4b0 → NOT FOUND`).

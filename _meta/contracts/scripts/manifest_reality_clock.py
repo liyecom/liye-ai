@@ -36,6 +36,12 @@ VALIDATOR = REPO_ROOT / "_meta/contracts/scripts/validate_manifest_reality.py"
 DEFAULT_LEDGER = REPO_ROOT / "_meta/contracts/ledger/manifest_reality_amazon-growth-engine.jsonl"
 LEARNING_SOURCES = REPO_ROOT / ".claude/config/learning_sources.yaml"
 
+# Ledger schema version. v1 = day-0 (2026-06-22), pre-git-evidence. v2 adds
+# engine/validator repo commit + tracked-dirty + untracked-count + manifest
+# tracked-dirty as EVIDENCE fields. These NEVER gate the clock: clock_eligible_day
+# stays a pure function of (validator overall==PASS AND exit_code==0).
+LEDGER_SCHEMA_VERSION = 2
+
 # Band B canonical engine repo (operator ruling 2026-06-22). Local checkout used
 # for read-only R1/R2 path resolution; the remote URL is identity-only.
 DEFAULT_ENGINE_REPO = Path("/Users/liye/github/amazon-growth-engine")
@@ -50,6 +56,51 @@ def _git_head(repo: Path) -> str:
         ).stdout.strip() or "unknown"
     except Exception:
         return "unknown"
+
+
+def _git_status(repo: Path) -> dict:
+    """Repo-level git evidence: HEAD commit, tracked-dirty flag, untracked count.
+
+    tracked_dirty = any staged/unstaged change to a tracked file (porcelain line
+    not starting with '??'). untracked_count = number of '??' lines. None on error
+    (e.g. not a git repo) — recorded honestly, never silently coerced.
+    """
+    commit = _git_head(repo)
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo), "status", "--porcelain"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if proc.returncode != 0:
+            return {"commit": commit, "tracked_dirty": None, "untracked_count": None}
+        lines = [ln for ln in proc.stdout.splitlines() if ln.strip()]
+        untracked = [ln for ln in lines if ln.startswith("??")]
+        tracked = [ln for ln in lines if not ln.startswith("??")]
+        return {
+            "commit": commit,
+            "tracked_dirty": len(tracked) > 0,
+            "untracked_count": len(untracked),
+        }
+    except Exception:
+        return {"commit": commit, "tracked_dirty": None, "untracked_count": None}
+
+
+def _git_path_dirty(repo: Path, path: Path) -> object:
+    """Whether a single tracked file has uncommitted changes (manifest reality).
+
+    Scoped to the manifest only — this is the field that matters for 'was the
+    manifest itself touched', independent of unrelated repo-level dirt. None on error.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo), "status", "--porcelain", "--", str(path.resolve())],
+            capture_output=True, text=True, timeout=15,
+        )
+        if proc.returncode != 0:
+            return None
+        return bool([ln for ln in proc.stdout.splitlines() if ln.strip()])
+    except Exception:
+        return None
 
 
 def _expected_manifest_hash() -> object:
@@ -97,21 +148,34 @@ def run_once(engine_repo: Path, manifest_path: Path) -> dict:
     # is null OR mismatched. Recorded for honesty; NOT a clock gate.
     provenance_dirty = (expected is None) or (manifest_hash_prefixed != expected)
 
+    # Git-state evidence (schema-v2). Snapshot BEFORE any ledger append. All of
+    # these are evidence-only — none feeds clock_eligible_day.
+    engine_status = _git_status(engine_repo)
+    validator_status = _git_status(REPO_ROOT)
+    manifest_tracked_dirty = _git_path_dirty(engine_repo, manifest_path)
+
     now = datetime.now(timezone.utc)
     return {
+        "ledger_schema_version": LEDGER_SCHEMA_VERSION,
         "timestamp_utc": now.isoformat(),
         "utc_date": now.strftime("%Y-%m-%d"),
         "engine_repo_path": str(engine_repo),
         "engine_repo_canonical_owner": "loudmirror",  # owner org only (leak-guard: no owner/repo URL form)
+        "engine_repo_commit": engine_status["commit"],
+        "engine_repo_tracked_dirty": engine_status["tracked_dirty"],      # repo-level; may be true for UNRELATED files
+        "engine_repo_untracked_count": engine_status["untracked_count"],
         "manifest_path": str(manifest_path),
         "manifest_raw_sha256": manifest_raw_sha256,
         "manifest_hash_prefixed": manifest_hash_prefixed,
-        "validator_repo_commit": _git_head(REPO_ROOT),
+        "manifest_tracked_dirty": manifest_tracked_dirty,  # the load-bearing one: was the MANIFEST itself touched
+        "validator_repo_commit": validator_status["commit"],
+        "validator_repo_tracked_dirty": validator_status["tracked_dirty"],
+        "validator_repo_untracked_count": validator_status["untracked_count"],
         "validator_path": str(VALIDATOR.relative_to(REPO_ROOT)),
         "exit_code": exit_code,
         "overall": overall,
         "checks": checks,                      # R1..R6 -> PASS/FAIL
-        "clock_eligible_day": overall == "PASS" and exit_code == 0,
+        "clock_eligible_day": overall == "PASS" and exit_code == 0,   # PURE f(validator PASS, exit 0) — dirty fields excluded
         "expected_manifest_hash": expected,    # null pre-flip by design (deferred to B8)
         "provenance_dirty": provenance_dirty,  # true while expected hash null (importer-side)
         "runner_error": runner_error,
