@@ -27,15 +27,23 @@ sources:
   amazon-growth-engine:
     source_id: amazon-growth-engine
     domain: amazon-advertising
-    engine_repo: https://github.com/liyecom/amazon-growth-engine
+    # Canonical engine repo (operator ruling 2026-06-22, ADR-Band-B-Activation-Readiness-Clock).
+    # liyecom/... returned HTTP 404 (absent); loudmirror/... is the active Band B repo.
+    # Identity-only field: NOT a fetch target (validate_manifest_reality.py uses --engine-repo
+    # local path; import_facts.mjs references it only in a docstring). Changing it does NOT
+    # flip enabled and does NOT arm expected_manifest_hash.
+    engine_repo: https://github.com/loudmirror/amazon-growth-engine
 
     # Branch allowlist (per N-2 I-01). Source dirty if actual emit comes from branch not in this list.
     allowed_branches:
       - main
 
     # Expected engine manifest hash (per N-2 I-01).
-    # Populated post-AGE manifest v2 migration (Phase 0c.3, time-locked to Sprint 9 readout).
-    # null = unverified; validate_manifest_reality.py must set to actual hash before enabling.
+    # expected_manifest_hash is consumed by the importer (import_facts.mjs:249),
+    # NOT by validate_manifest_reality.py. Populated post-flip at B8 against the
+    # ACTIVATED manifest's raw bytes (flip changes the bytes, so arming pre-flip
+    # would pin the wrong object). null = every imported fact provenance_dirty by
+    # design (Phase-1b invariant). Do NOT arm before B8.
     expected_manifest_hash: null
 
     # Fact emission paths (per EV2-I-01 date-sharded UTC + event sidecar).
