@@ -11,7 +11,7 @@ is_bghs_doctrine: no
 **Status**: Accepted
 **Date**: 2026-06-22
 **Accepted-Date**: 2026-06-22
-**Note**: §5 (S9 replacement readout) is a PROPOSAL pending operator approval; all other sections are Accepted per operator rulings 2026-06-22.
+**Note**: §5 (S9 replacement readout) was **APPROVED by the operator on 2026-06-23** with narrow semantics (see §5/§6); all other sections Accepted per operator rulings 2026-06-22. Executor=launchd installed 2026-06-23 (§6).
 **Scope**: Start the manifest-reality 30-day clock that paces the AGE `engine_manifest.yaml` gate `emit_fact_enabled`, WITHOUT any production action. This ADR authorizes **no** manifest flip, gate open, Ads write, `learning_sources.enabled` flip, or `expected_manifest_hash` arming.
 **Related**: `ADR-Governed-Heuristic-Learning.md` (D-14, Sprint 9 readout gate), `.claude/config/learning_sources.yaml`, AGE `engine_manifest.yaml` gate `emit_fact_enabled`.
 
@@ -60,15 +60,16 @@ This ADR starts the 30-day clock (the long pole) and records the operator ruling
 - **Ruling (explicit, per reviewer's two options): day-0 ACCEPTED with external no-touch proof; day-1 onward is schema-v2.** Day-0's zero-touch was proven externally at the time (closing-proof: AGE DuckDB byte-size invariant `2873110528`, `out/facts`=0, manifest blob `bba56c9` unchanged), which is exactly the evidence schema-v2 now records inline. The 30-day window therefore counts `2026-06-22 … 2026-07-21` (30 consecutive UTC-day PASS), earliest gate-open `2026-07-22`.
 - **Operator override available**: if you prefer strict self-contained ledger provenance (every clock day carrying its own inline git-state evidence), declare **formal strict clock starts 2026-06-23**; this discards day-0 from the count and pushes earliest gate-open to `2026-07-23` (cost: 1 day). Default above stands unless you choose strict.
 
-### 5. Sprint 9 readout pointer is dead → replacement readout PROPOSED (pending operator approval)
+### 5. Sprint 9 readout pointer is dead → replacement readout APPROVED 2026-06-23 (narrow semantics)
 - The memory-cited pointer `cb4d4b0` does **not resolve** (`git cat-file -t cb4d4b0 → NOT FOUND`).
 - Evidence recovery: liye_os + loamwise contain only the **Sprint 7** readout (`1833315`, `5ea80ab`); no signed **Sprint 9** readout artifact exists. `ADR-Governed-Heuristic-Learning.md` and `.planning/baseline/GHL-v4.1-readiness-report.md` reference "Sprint 9 readout (≥ 2026-05-13Z)" only as a **future gate**.
 - Reality: the work the readout was meant to gate (Phase 1a–1e, 2a, Phase-4) was all **built and merged** (git-verifiable). The gate's purpose was effectively met; the discrete sign-off document was never produced.
-- **Ruling: do NOT declare S9 satisfied via the dead pointer.** Instead, the `S9_REPLACEMENT_READOUT` below is offered as a **proposal**; whether it satisfies the gate's "Sprint 9 readout 后续审批" clause is the operator's decision.
+- **Ruling (original): do NOT declare S9 satisfied via the dead pointer.** Instead the `S9_REPLACEMENT_READOUT` below was offered as a **proposal** for the operator to decide.
+- **Operator decision 2026-06-23: APPROVED.** The replacement readout satisfies the gate's "Sprint 9 readout 后续审批" clause, **with narrow semantics ONLY**: approval does **NOT** authorize manifest flip, gate open, Ads live write, or `learning_sources.enabled` flip. Those remain separate, individually-authorized B-steps. The S9 clause is now SATISFIED; the gate still stays closed pending the 30-day clock (§4) and the future explicit flip authorization.
 
-## S9_REPLACEMENT_READOUT (Proposal — pending operator approval)
+## S9_REPLACEMENT_READOUT (APPROVED by operator 2026-06-23 — narrow semantics)
 
-A current, operator-signable readiness readout to substitute for the never-produced Sprint 9 readout, built from verifiable present-day evidence:
+A current, operator-signable readiness readout substituting for the never-produced Sprint 9 readout, built from verifiable present-day evidence. **Approved 2026-06-23**:
 
 | Readiness dimension | Evidence (verifiable) | State |
 |---|---|---|
@@ -79,12 +80,22 @@ A current, operator-signable readiness readout to substitute for the never-produ
 | Idempotency (content-identity) | dead hand-rolled hash retired (#500); Door2 uses emit_fact SSOT (#458) | ✅ |
 | Production write surface | manifest gate closed, `write_capability: none`, out/facts=0, DB byte-invariant held | ✅ zero |
 
-**Proposed sign-off semantics**: approving this readout satisfies ONLY the "Sprint 9 readout 后续审批" clause of the gate's `evidence_required_for_open`. It does NOT by itself open the gate — the 30-day PASS clock (§4) must also complete, and the flip remains a separate B-step requiring explicit operator authorization.
+**Sign-off semantics (as approved)**: this approval satisfies ONLY the "Sprint 9 readout 后续审批" clause of the gate's `evidence_required_for_open`. It does NOT by itself open the gate — the 30-day PASS clock (§4) must also complete, and the flip remains a separate B-step requiring explicit operator authorization.
 
-**Operator action required**: approve / reject / amend this replacement readout. Until approved, the S9 clause remains UNSATISFIED and the gate stays closed regardless of clock progress.
+**Operator decision**: **APPROVED 2026-06-23** (narrow semantics, per above). The S9 clause is SATISFIED; remaining gate-open conditions are the 30-day clock (§4) and a future explicit flip authorization.
+
+## 6. Executor = launchd, installed 2026-06-23
+
+- **Executor ruling: launchd** (operator decision 2026-06-23), per the runner docs' recommended default.
+- Installed: `~/Library/LaunchAgents/com.liye.manifest-reality-clock.plist` (label `com.liye.manifest-reality-clock`), daily 09:05 local (CST), runs the runner with `--append`. Logs to `~/Library/Logs/liye/` (outside the repo ledger tree). One hardening over the bare README template: an `EnvironmentVariables.PATH` including `/opt/homebrew/bin` so the runner's schema-v2 git-evidence fields resolve under launchd's minimal default PATH (clock eligibility is unaffected — the validator runs via absolute `sys.executable`).
+- Verified at install: `plutil -lint` OK; `launchctl bootstrap` rc=0; `launchctl list` shows the agent loaded; a `--dry-run` smoke exited 0 (PASS, schema-v2) and **did not append**.
+- **Duplicate-day safety**: the runner has no duplicate-day guard, and 2026-06-23 already had a day-1 entry. Install was at 21:2x CST (after 09:05), so launchd's **first real `--append` fires 2026-06-24 09:05 CST → utc_date 2026-06-24 = day-2**; no same-UTC-day duplicate. Install day used `--dry-run` only.
+- **Day-0 / day-1 schema** (restated, per §4a): day-0 `2026-06-22` is schema-v1 and is **accepted** via external no-touch proof; day-1 `2026-06-23` onward is schema-v2 (git-state evidence fields, evidence-only). Formal window `2026-06-22 … 2026-07-21`, earliest gate-open `2026-07-22`.
+- Uninstall (operator action only): `launchctl bootout gui/<uid>/com.liye.manifest-reality-clock` then remove the plist.
 
 ## Consequences
 
-- The 30-day clock is running (day-0 landed). Activation is paced by `max(clock+30d, Phase-4 floors)` AND S9 approval AND a future explicit flip authorization.
-- No production surface changed: manifest closed, `enabled: false`, `expected_manifest_hash: null`, zero Ads/DB/out-facts writes.
-- Next operator decisions: (a) approve/reject the S9 replacement readout; (b) choose the clock executor (manual / launchd — see runner docs); (c) at clock completion + S9 approval, authorize the B4/B6/B8 flip sequence separately.
+- The 30-day clock is running and **self-feeds via launchd** (day-0 + day-1 landed). Activation is paced by `max(clock+30d, Phase-4 floors)` AND the (now-satisfied) S9 clause AND a future explicit flip authorization.
+- No production surface changed: manifest closed, `enabled: false`, `expected_manifest_hash: null`, zero Ads/DB/out-facts writes. This amendment is **docs-only** and changes none of those.
+- Resolved operator decisions (2026-06-23): (a) S9 replacement readout **APPROVED** (narrow semantics); (b) clock executor = **launchd, installed**; (c) day-0 schema-v1 **accepted**.
+- Remaining (each separately authorized): complete the 30-day PASS clock (earliest `2026-07-22`), then the B3→B8 sequence (candidate approval → manifest flip → dry-run rehearsal → first live APPLIED CBU write → Door2 fact verify → liye ingestion flip + `expected_manifest_hash` arming).
