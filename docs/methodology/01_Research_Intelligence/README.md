@@ -14,6 +14,7 @@ Skills in this domain enable agents to:
 
 | Skill | Description | Status |
 |-------|-------------|--------|
+| [`github-scout`](./github-scout/) | Read-only, license-gated GitHub prior-art recon (advisory; Hands tool at `tools/github-scout/`) | Active (Phase 0) |
 | `web-research` | Systematic web search and information extraction | Planned |
 | `academic-search` | Academic database queries (PubMed, Scholar, etc.) | Planned |
 | `source-verification` | Credibility assessment and fact-checking | Planned |

@@ -1,0 +1,10 @@
+# github-scout local artifacts — generated, NOT source (plan correction #4).
+# The repo-root /traces and data/traces rules do NOT cover this subtree, so it is
+# ignored here explicitly. scout.py creates traces/ at runtime.
+#
+#   traces/  = advisory run outputs (gitignored; never auto-tracked)
+#   drafts/  = Phase-1 reference drafts (gitignored; manual promote via `git add -f`)
+traces/
+drafts/
+__pycache__/
+*.pyc
