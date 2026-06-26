@@ -1,0 +1,60 @@
+# Component Declaration — github-scout (Hands tool)
+# Schema: ADR-Architecture-Doctrine-BGHS-Separation.md §2 (Component Declaration).
+# NOTE: this is the FIRST tool-level Component Declaration in the portfolio
+# (notion-sync etc. predate the BGHS doctrine and carry none). Established here
+# per the ADR §2 form; not copied from an existing tool precedent.
+artifact_scope: component
+component_name: github-scout
+layer: 0                      # liye_os Layer-0 reusable infra tooling
+
+# BGHS: this tool interacts with an external API and the local filesystem.
+# Its METHODOLOGY (Brain) lives in L1 docs/methodology/...; the tool only executes.
+primary_concern: Hands
+secondary_concern: Session   # emits advisory traces (session-adjacent run records)
+
+model_contingent_items:
+  - "query derivation from an idea sentence (lexical heuristic; tuned over time)"
+  - "relevance scoring signals (lexical/metadata only)"
+  - "default recommendation copy / wording"
+
+model_independent_invariants:
+  - "I1 zero external mutating side-effect: no fork/clone/vendor/PR/network write; only local gitignored traces"
+  - "I2 read-only by construction: default sends no Authorization header; a token is attached only if asserted via X-OAuth-Scopes; Phase 0 requires a NO-SCOPE token (any classic scope incl. read:org => fail-closed); no live write probe"
+  - "I3 sequential inspect: authoritative license fetched FIRST, README/tree only if the tier ceiling permits"
+  - "license tier -> inspect ceiling -> allowed recommendation is sourced from the L1 license_policy.yaml SSOT at runtime; never hardcoded in scout.py"
+  - "unresolved/unrecognized/fetch-failed license => unknown tier => metadata only => skip (fail-closed)"
+
+# Session-adjacent output (advisory traces), not an authoritative session event stream.
+session_source_of_truth: null
+session_adjacent_output: "tools/github-scout/traces/*.json (gitignored, advisory)"
+
+# Doctrine single-URI pointer (retained per ADR-Credential-Mediation; NOT overridden).
+credential_path: cred://liye-os/github-scout-readonly
+
+# P1-f multi-binding form. Phase 0 runs UNAUTHENTICATED by default; this binding is
+# the OPTIONAL read-only token that, when supplied, raises the rate limit. scout.py
+# never reads the value into code/logs beyond a passive X-OAuth-Scopes assertion.
+credential_bindings:
+  - reference: cred://liye-os/github-scout-readonly
+    purpose: "read-only discovery of public GitHub repos, metadata, and license (rate-limit headroom only)"
+    broker_required: false        # Phase 0: env var; full EnvCredentialBroker wiring deferred
+    optional: true                # absent => unauthenticated public read (60/hr) with a loud notice
+    env_var_phase0: GITHUB_SCOUT_READONLY_TOKEN
+    required_scope: "fine-grained 'Public repositories (read-only)' OR classic token with NO scopes"
+    scope_assertion_caveat: "X-OAuth-Scopes only reflects CLASSIC scopes; a fine-grained token's permissions are not exposed via this header, so a fine-grained binding relies on the operator provisioning it read-only"
+
+wake_resume_entrypoint: null
+
+explicit_non_goals:
+  - "does not fork, clone, vendor, or open PRs"
+  - "does not write the Codebase Registry or any production contract/schema"
+  - "is not a runtime dependency; candidates it surfaces are never auto-imported"
+  - "does not conclude semantic behavior-fit automatically (routes to needs-human-review)"
+  - "does not scan transitive/dependency licenses (Phase 1)"
+  - "does not rank by stars alone"
+
+future_split_direction: >
+  If a runtime/Agent ever needs to dispatch scouting programmatically, promote the
+  dispatch surface to an L2 Executable Skill under src/skill/ (the methodology stays
+  in L1). Wire credential_bindings through a real EnvCredentialBroker instance, and
+  add the ghbudget bucketed-budget + transitive license scan, in Phase 1.

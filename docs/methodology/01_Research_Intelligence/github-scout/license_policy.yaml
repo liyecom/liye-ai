@@ -1,0 +1,104 @@
+# license_policy.yaml — github-scout machine-readable SSOT
+# ===========================================================================
+# AUTHORITY (SKILL_CONSTITUTION §3 / plan H-2):
+#   This file is the SINGLE machine-readable source of truth for the mapping
+#       license tier -> inspect ceiling -> allowed recommendations.
+#   tools/github-scout/scout.py MUST load this at runtime and MUST NOT hardcode
+#   tier membership, ceilings, or allowed recommendations. skill_definition.md
+#   is prose ABOUT this file. The authorizing ADR pins this mapping as a
+#   model_independent_invariant.
+#
+# FAIL-CLOSED CONTRACT:
+#   Any SPDX id not listed under a tier below resolves to tier `unknown`.
+#   A missing LICENSE file (HTTP 404) resolves to `unknown` with confidence
+#   `no_license`; any OTHER license-fetch failure (5xx / timeout / NOASSERTION /
+#   "other") resolves to `unknown` with confidence `fetch_failed`. (scout.py keeps
+#   the two confidences distinct so trace stats are not polluted; both gate identically.)
+#   `unknown` permits metadata only and the single recommendation `skip`.
+# ===========================================================================
+policy_version: "1.0.0"
+
+# Inspect ceilings: name -> ordered list of permitted fetch stages.
+# scout.py's sequential state machine never fetches a stage absent from the
+# resolved tier's ceiling (plan H-3). `metadata` is always free (it comes from
+# the single search call); `license` is the authoritative gate fetch.
+inspect_ceilings:
+  metadata_only:                  [metadata]
+  metadata_license:               [metadata, license]
+  metadata_license_readme_tree:   [metadata, license, readme, tree]
+
+# The 4-leaf recommendation taxonomy (plan §4). No fork / vendor-as-kit leaf
+# (Fork 纪律): vendor candidacy survives only as a needs-human-review sub_reason.
+recommendation_leaves:
+  - reference-only
+  - reimplement
+  - needs-human-review
+  - skip
+
+# Sub-reason enum carried by a needs-human-review recommendation (plan §4).
+needs_human_review_sub_reasons:
+  - vendor-as-kit-candidate
+  - behavior-fit-unclear
+  - license-isolation
+  - transitive-unscanned
+
+# Tier table. SPDX ids are compared lowercased. Membership here is exhaustive
+# only for the common cases; ANYTHING unlisted is fail-closed to `unknown`.
+tiers:
+  permissive:
+    spdx: [mit, mit-0, bsd-2-clause, bsd-3-clause, bsd-3-clause-clear, isc, 0bsd,
+           cc0-1.0, unlicense, zlib, bsl-1.0, ncsa, postgresql, python-2.0, wtfpl]
+    inspect_ceiling: metadata_license_readme_tree
+    allowed_recommendations: [reference-only, reimplement, needs-human-review]
+    default_recommendation: needs-human-review
+    default_sub_reason: behavior-fit-unclear
+    obligations: []
+    notes: "Permissive: attribution-only. scout still defaults to human review
+            because semantic behavior-fit is not machine-decidable here."
+
+  permissive_with_obligations:
+    spdx: [apache-2.0, ecl-2.0]
+    inspect_ceiling: metadata_license_readme_tree
+    allowed_recommendations: [reference-only, reimplement, needs-human-review]
+    default_recommendation: needs-human-review
+    default_sub_reason: behavior-fit-unclear
+    obligations: [preserve-notice, patent-grant-and-termination]
+    notes: "Apache-2.0 family: preserve NOTICE; carries an explicit patent grant
+            with a termination clause. Flag obligations before any reuse."
+
+  weak_copyleft:
+    spdx: [mpl-2.0, lgpl-2.1, lgpl-2.1-only, lgpl-2.1-or-later, lgpl-3.0,
+           lgpl-3.0-only, lgpl-3.0-or-later, epl-1.0, epl-2.0, cddl-1.0,
+           ms-pl, eupl-1.1, eupl-1.2, osl-3.0]
+    inspect_ceiling: metadata_license_readme_tree
+    allowed_recommendations: [reimplement, needs-human-review, skip]
+    default_recommendation: needs-human-review
+    default_sub_reason: license-isolation
+    obligations: [file-or-link-level-isolation-required]
+    notes: "Weak copyleft: reuse demands verified file/link isolation in our
+            stack. No vendor-as-dependency without isolation review."
+
+  strong_copyleft:
+    spdx: [gpl-2.0, gpl-2.0-only, gpl-2.0-or-later, gpl-3.0, gpl-3.0-only,
+           gpl-3.0-or-later, agpl-3.0, agpl-3.0-only, agpl-3.0-or-later,
+           sspl-1.0, osl-3.0-or-later]
+    inspect_ceiling: metadata_license
+    allowed_recommendations: [skip, reimplement]
+    default_recommendation: skip
+    default_sub_reason: null
+    obligations: [copyleft-veto, clean-room-reimplement-from-public-docs-only]
+    notes: "Strong copyleft: veto on vendor/fork-as-dependency. The only non-skip
+            path is a clean-room reimplement from PUBLIC docs (never the source),
+            which requires a human decision + harvest-ADR. Source is NOT fetched
+            beyond metadata + LICENSE."
+
+  unknown:
+    spdx: []   # the fail-closed bucket; license fetch_failed also lands here
+    inspect_ceiling: metadata_only
+    allowed_recommendations: [skip]
+    default_recommendation: skip
+    default_sub_reason: null
+    obligations: [fail-closed]
+    notes: "No license file / unrecognized SPDX / NOASSERTION / fetch_failed =>
+            metadata only, idea-only. Never inspect source under an unresolved
+            license."

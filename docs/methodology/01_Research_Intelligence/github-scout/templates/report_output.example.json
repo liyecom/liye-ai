@@ -1,0 +1,91 @@
+{
+  "_comment": "Illustrative github-scout report (Phase 0). Real output is produced by tools/github-scout/scout.py and written to its gitignored traces/. Two candidates below show both gate branches: a permissive license (README/tree fetched -> needs-human-review) and an unresolved license (metadata only -> skip).",
+  "schema": "github-scout/report",
+  "phase": 0,
+  "generated_at_utc": "2026-06-26T14:02:33Z",
+  "recall_notice": "ADVISORY ONLY — heuristic prior-art recon, NOT a decision. Per SYSTEMS.md Fork 纪律: any reuse outcome enters the harvest-ADR / Reference Declaration ceremony; a 'reference-only' result = a read-only reference satellite, never a runtime dependency. RED/unknown licenses are fail-closed. Transitive licenses and supply-chain trust are NOT scanned here (Phase 1).",
+  "hard_non_goals": [
+    "no-fork", "no-clone", "no-vendor", "no-PR", "no-network-write",
+    "no-Codebase-Registry-write", "no-production-contract", "not-a-runtime-dependency",
+    "stars-are-not-sole-ranking", "no-automatic-behavior-fit-conclusion"
+  ],
+  "auth_mode": "unauthenticated",
+  "token_scopes": [],
+  "policy_version": "1.0.0",
+  "idea": "amazon advertising bid automation",
+  "derived_query": "amazon advertising bid",
+  "notices": [],
+  "candidate_count": 2,
+  "candidates": [
+    {
+      "metadata": {
+        "repo": "example-org/permissive-repo",
+        "stars": 20,
+        "pushed_at": "2026-06-08",
+        "description": "an MIT-licensed example whose license PERMITS README + tree inspection",
+        "url": "https://github.com/example-org/permissive-repo"
+      },
+      "license": {
+        "spdx": "mit",
+        "tier": "permissive",
+        "confidence": "ok",
+        "inspect_ceiling": "metadata_license_readme_tree"
+      },
+      "inspected": {
+        "readme_excerpt": "# Example README (first ~240 chars, whitespace-collapsed) ...",
+        "tree_shape": ["LICENSE", "README.md", "src", "requirements.txt"],
+        "stages_permitted": ["metadata", "license", "readme", "tree"]
+      },
+      "relevance": {
+        "matched_terms": ["amazon", "advertising", "bid"],
+        "signal": "name_or_topic",
+        "low_confidence": false
+      },
+      "recommendation": "needs-human-review",
+      "sub_reason": "behavior-fit-unclear",
+      "allowed_recommendations": ["reference-only", "reimplement", "needs-human-review"],
+      "caveats": ["transitive-unscanned"],
+      "obligations": [],
+      "policy_note": "Permissive: attribution-only. scout still defaults to human review because semantic behavior-fit is not machine-decidable here.",
+      "low_confidence": false
+    },
+    {
+      "metadata": {
+        "repo": "example-org/no-license-repo",
+        "stars": 1,
+        "pushed_at": "2026-02-06",
+        "description": "no LICENSE file -> tier=unknown -> source is NOT inspected (fail-closed)",
+        "url": "https://github.com/example-org/no-license-repo"
+      },
+      "license": {
+        "spdx": null,
+        "tier": "unknown",
+        "confidence": "no_license",
+        "inspect_ceiling": "metadata_only"
+      },
+      "inspected": {
+        "readme_excerpt": null,
+        "tree_shape": null,
+        "stages_permitted": ["metadata"]
+      },
+      "relevance": {
+        "matched_terms": ["amazon", "advertising", "bid"],
+        "signal": "name_or_topic",
+        "low_confidence": false
+      },
+      "recommendation": "skip",
+      "sub_reason": null,
+      "allowed_recommendations": ["skip"],
+      "caveats": ["transitive-unscanned"],
+      "obligations": ["fail-closed"],
+      "policy_note": "No license file / unrecognized SPDX / NOASSERTION / fetch_failed => metadata only, idea-only. Never inspect source under an unresolved license.",
+      "low_confidence": false
+    }
+  ],
+  "network_call_summary": {
+    "search": 1,
+    "license": 2,
+    "readme": 1,
+    "tree": 1
+  }
+}
