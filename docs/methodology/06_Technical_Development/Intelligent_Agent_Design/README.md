@@ -10,7 +10,7 @@
 
 ## 🔗 全局技能引用
 
-本技能由通过 Skill Forge 安装的强大 **CrewAI Skill** 提供支持。
+本技能由全局 **CrewAI Skill** 提供支持（独立存在于 `~/.claude/skills/crewai/`，仍正常运行；其最初安装工具 Skill Forge 已于 2026-06-27 退役，不影响本技能）。
 
 - **全局位置**: `~/.claude/skills/crewai/`
 - **定义文件**: `~/.claude/skills/crewai/SKILL.md`
@@ -40,7 +40,7 @@
 mkdir my-amazon-crew && cd my-amazon-crew
 
 # 2. 从模板初始化 (以亚马逊运营为例)
-# (假设模板已就位，或从 github/skill-forge 复制)
+# (假设模板已就位；Skill Forge 已退役，模板请从 CrewAI 技能或归档参考获取)
 
 # 3. 创建并激活 Python 3.13 环境
 python3.13 -m venv venv
