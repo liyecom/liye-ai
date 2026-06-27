@@ -6,6 +6,8 @@
 
 > v0/v0.1 学习栈随 ADR §D-A2 标记 superseded。其**未完成的概念价值**转登此 backlog，由 GHL（v1 sealed 栈）按 append-only + sealed-schema + 确定性门禁规范**重生**（非 retrofit 进退役码，§D-A4）。
 
+> ⚠️ **EVO-D / ADR §D-11 后指针校准**：`src/governance/learning/drift_monitor.mjs` 已**物理退役**（isDriftBlocked 读面迁 `drift_enforcement.mjs`）。下列对 **`drift_monitor.mjs:line`** 的设计教训指针（C-1 :226-229 / C-2 :421 / 缺陷1 :174-177 / 缺陷2 :135）pin 到 git **`4179ef1`**（退役前最后 commit，该文件在此 commit 仍完整且为后续历史祖先）；各 grep token（如 `这里假设更高的值是更差的` / `f.run_id?.includes(policyId)`）跨历史稳定，是首选锚。**`tier_manager.mjs` 未退役**，其指针（缺陷2 :143）仍 live。
+
 ---
 
 ## 概念候选（自动降级 / 漂移冻结 / sandbox→candidate 晋升）

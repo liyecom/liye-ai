@@ -24,7 +24,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parse as parseYaml } from 'yaml';
 import { resolveKillSwitch, recordKillSwitchResolvedFact, recordKillSwitchAppliedFact } from './kill_switch.mjs';
-import { isDriftBlocked } from './drift_monitor.mjs';
+import { isDriftBlocked } from './drift_enforcement.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..', '..');

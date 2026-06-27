@@ -3,15 +3,16 @@
  * Week 3 Governance Tests: Tier Manager / Drift Monitor / Kill Switch
  * SSOT: tests/governance/test_week3_tier_drift_kill.mjs
  *
- * 覆盖 8 类测试：
+ * 覆盖 6 类测试：
  * 1) execution_tiers.yaml 缺字段 -> validator fail-closed
  * 2) execute_limited.require_approval != true -> validator fail-closed
  * 3) kill_switch 开启 -> WRITE_LIMITED 100% deny
  * 4) tier_manager 决策 deterministic（相同 fixtures 输入输出一致）
  * 5) sandbox->candidate 满足门槛 -> promotion facts
  * 6) 不满足门槛 -> 不晋升且写 reason
- * 7) drift_monitor 连续失败 -> drift_triggered -> 阻断 execute_limited
- * 8) 单次波动不触发 drift（避免误杀）
+ *
+ * （原 drift_monitor 用例 7/8 随 EVO-D/ADR §D-11 退役 drift_monitor.mjs 删除；
+ *   isDriftBlocked 读面覆盖迁 tests/governance/test_drift_enforcement.mjs。）
  *
  * 运行：node tests/governance/test_week3_tier_drift_kill.mjs
  */
@@ -277,68 +278,6 @@ async function test_no_promotion_with_reason() {
 }
 
 // ============================================================================
-// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] drift_monitor active demotion path
-// Test 7: drift_monitor 连续失败 -> drift_triggered
-// ============================================================================
-async function test_drift_trigger_on_failures() {
-  const testName = 'Drift triggers on consecutive failures';
-
-  try {
-    const result = execSync(
-      `node ${join(PROJECT_ROOT, 'src/governance/learning/drift_monitor.mjs')} --dry-run`,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
-    );
-
-    // 检查 drift monitor 正确评估
-    if (result.includes('Evaluating:') ||
-        result.includes('Stable') ||
-        result.includes('DRIFT TRIGGERED')) {
-      pass(testName + ' (drift evaluation logic works)');
-    } else {
-      pass(testName + ' (drift monitor executed)');
-    }
-  } catch (e) {
-    if (e.status === 0) {
-      pass(testName);
-    } else {
-      fail(testName, `Exit code: ${e.status}`);
-    }
-  }
-}
-
-// ============================================================================
-// [LEGACY — superseded lifecycle authority per ADR D-A6/D-A2] drift_monitor active demotion path
-// Test 8: 单次波动不触发 drift（避免误杀）
-// ============================================================================
-async function test_no_false_positive_drift() {
-  const testName = 'Single failure does not trigger drift (no false positive)';
-
-  // 当前 policies 没有连续失败，应该全部 stable
-  try {
-    const result = execSync(
-      `node ${join(PROJECT_ROOT, 'src/governance/learning/drift_monitor.mjs')} --dry-run`,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
-    );
-
-    // 检查没有误报
-    if (result.includes('Drifted: 0') || result.includes('Stable:')) {
-      pass(testName);
-    } else if (!result.includes('DRIFT TRIGGERED')) {
-      pass(testName + ' (no false positives)');
-    } else {
-      // 可能有真实的 drift，这不是误报
-      pass(testName + ' (drift monitor correctly evaluates)');
-    }
-  } catch (e) {
-    if (e.status === 0) {
-      pass(testName);
-    } else {
-      fail(testName, `Unexpected error: ${e.message}`);
-    }
-  }
-}
-
-// ============================================================================
 // 额外测试: execution_gate 集成
 // ============================================================================
 async function test_execution_gate_integration() {
@@ -406,11 +345,7 @@ async function runAllTests() {
   await test_promotion_when_criteria_met();
   await test_no_promotion_with_reason();
 
-  section('4. Drift Monitor Tests');
-  await test_drift_trigger_on_failures();
-  await test_no_false_positive_drift();
-
-  section('5. Execution Gate Integration Tests');
+  section('4. Execution Gate Integration Tests');
   await test_execution_gate_integration();
   await test_execution_gate_denies_write_in_observe();
 

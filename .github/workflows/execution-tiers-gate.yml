@@ -105,6 +105,14 @@ jobs:
           echo "Running execution_gate hardhook test (blocking)..."
           node tests/governance/test_execution_gate_hardhook.mjs
 
+      - name: Run Drift Enforcement Test (BLOCKING)
+        run: |
+          # EVO-D (ADR-Learning-Stack-Generations §D-11 / Hard Gate 1): isDriftBlocked() three-branch
+          # + path-identity regression after byte-level split drift_monitor.mjs → drift_enforcement.mjs.
+          # BLOCKING — no `|| true`.
+          echo "Running drift_enforcement test (blocking)..."
+          node tests/governance/test_drift_enforcement.mjs
+
       - name: Run Proactive Kill Switch Test (BLOCKING)
         run: |
           # EVO-C D-7 (ADR-Learning-Stack-Generations §D-A6 / Hard Gate 1): proactive kill_switch
@@ -115,7 +123,7 @@ jobs:
 
       - name: Verify Test Coverage
         run: |
-          # 确保所有 8 类测试都在
+          # 确保所有 6 类测试都在（drift/false_positive 用例随 EVO-D/ADR §D-11 退役，覆盖迁 test_drift_enforcement.mjs）
           expected_tests=(
             "missing_fields"
             "require_approval"
@@ -123,8 +131,6 @@ jobs:
             "deterministic"
             "promotion"
             "no_promotion"
-            "drift"
-            "false_positive"
           )
 
           for test in "${expected_tests[@]}"; do
@@ -168,10 +174,9 @@ jobs:
           echo "Testing tier_manager.mjs dry-run..."
           node src/governance/learning/tier_manager.mjs --dry-run || true
 
-      - name: Drift Monitor Dry Run
-        run: |
-          echo "Testing drift_monitor.mjs dry-run..."
-          node src/governance/learning/drift_monitor.mjs --dry-run || true
+      # Drift Monitor Dry Run step removed: drift_monitor.mjs physically retired (EVO-D / ADR §D-11).
+      # isDriftBlocked() read-face split to drift_enforcement.mjs (pure lib, no CLI); exercised via
+      # the execution_gate hardhook (BLOCKING) + test_drift_enforcement.mjs.
 
       - name: Kill Switch Status
         run: |
