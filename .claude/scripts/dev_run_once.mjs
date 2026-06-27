@@ -2,6 +2,13 @@
 /**
  * Governance Kernel v1 - Development Verification Script
  *
+ * STATUS: dev-only manual debug tool (KEEP — not dead code; do not auto-remove).
+ *   Automated regression IS superseded by CI (validate_governance_schemas.mjs +
+ *   run_golden_all.mjs). This script is retained solely for its interactive
+ *   --tamper walkthrough (corrupt events.ndjson → replay detects → print diff),
+ *   which neither CI script reproduces. Reviewed 2026-06-27 (codebase-hygiene
+ *   cut-2 adversarial verify): operator-confirmed keep.
+ *
  * Runs a complete governance cycle with a test input:
  * 1. Creates trace
  * 2. Runs gate → enforce → verdict
