@@ -1,0 +1,44 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "_meta/contracts/scripts/**/*.{js,mjs,cjs}",
+    ".claude/scripts/**/*.{js,mjs,cjs}",
+    "i18n/scripts/**/*.{js,mjs,cjs}",
+    "scripts/**/*.{js,mjs,cjs}",
+    "examples/**/*.{js,mjs,cjs,ts}",
+    "tests/**/*.{js,mjs,cjs,ts}",
+    "tools/**/*.{js,mjs,cjs,ts}",
+    "src/mcp/server.mjs",
+    "src/gateway/openclaw/server.ts",
+    "src/audit/replay/replay.ts",
+    "src/reasoning/demo/run_demo.mjs",
+    "src/governance/learning/drift_monitor.mjs",
+    "src/governance/learning/execution_gate.mjs",
+    "src/governance/learning/kill_switch.mjs",
+    "src/governance/learning/tier_manager.mjs"
+  ],
+  "project": [
+    "src/**/*.{js,mjs,cjs,ts}",
+    ".claude/scripts/**/*.{js,mjs,cjs}",
+    "_meta/contracts/scripts/**/*.{js,mjs,cjs}",
+    "tools/**/*.{js,mjs,cjs,ts}",
+    "i18n/scripts/**/*.{js,mjs,cjs}",
+    "scripts/**/*.{js,mjs,cjs}",
+    "examples/**/*.{js,mjs,cjs,ts}",
+    "tests/**/*.{js,mjs,cjs,ts}"
+  ],
+  "ignore": [
+    "dist/**",
+    "Artifacts_Vault/**",
+    "replays/**",
+    "golden/**",
+    "evidence/**",
+    "data/**",
+    "state/**",
+    "**/*.d.ts"
+  ],
+  "ignoreDependencies": [],
+  "ignoreBinaries": [
+    "tsx"
+  ]
+}
