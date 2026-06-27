@@ -43,7 +43,7 @@ LiYe OS is a personal AI operating system that orchestrates multi-agent workflow
 - Depends on: Nothing (self-contained)
 - Used by: Domain layer loads skills and passes to Runtime via ExecutionContext
 - Key file: `src/skill/types.ts` - Skill interface (id, name, version, input/output schema, execute, validate)
-- Atomic skills: `src/skill/atomic/` - competitor_analysis, content_optimization, csv_summarizer, keyword_research, market_research, pdf_processor, xlsx_processor
+- Atomic skills: `src/skill/atomic/` - competitor_analysis, content_optimization, keyword_research, market_research
 
 **Runtime Layer (HOW):**
 - Purpose: Execute tasks through orchestrator, scheduler, executor, and policy engine
