@@ -207,6 +207,59 @@ class MCPToolWrapper:
         return "\n".join(lines)
 
 
+def build_args_schema(input_schema: Optional[Dict[str, Any]], schema_name: str) -> Any:
+    """
+    Build a dynamic Pydantic args_schema model from an MCP tool's JSON input_schema.
+
+    Returns a pydantic BaseModel subclass, or None when the schema has no
+    properties / yields no fields. Shared by create_crewai_tool and
+    create_governed_crewai_tool to avoid field-mapping drift (cut ④ §7 helper merge,
+    DRY, behavior-preserving). Pydantic is imported lazily so importing this module
+    stays dependency-light (caller's CrewAI/pydantic import guard runs first).
+
+    JSON-schema -> Python type mapping, required-vs-optional handling, and the
+    Field(default=..., description=...) construction are byte-for-byte the logic
+    formerly inlined in both call sites.
+    """
+    if not (input_schema and input_schema.get('properties')):
+        return None
+
+    from typing import Optional as _Optional
+    from pydantic import Field, create_model
+
+    fields: Dict[str, Any] = {}
+    properties = input_schema.get('properties', {})
+    required = input_schema.get('required', [])
+
+    type_mapping = {
+        'string': str,
+        'integer': int,
+        'number': float,
+        'boolean': bool,
+        'array': list,
+        'object': dict,
+    }
+
+    for prop_name, prop_def in properties.items():
+        prop_type = prop_def.get('type', 'string')
+        prop_desc = prop_def.get('description', '')
+        prop_default = prop_def.get('default')
+        python_type = type_mapping.get(prop_type, str)
+
+        if prop_name in required:
+            if prop_default is not None:
+                fields[prop_name] = (python_type, Field(default=prop_default, description=prop_desc))
+            else:
+                fields[prop_name] = (python_type, Field(..., description=prop_desc))
+        else:
+            fields[prop_name] = (_Optional[python_type], Field(default=prop_default, description=prop_desc))
+
+    if not fields:
+        return None
+
+    return create_model(schema_name, **fields)
+
+
 def create_crewai_tool(wrapper: MCPToolWrapper) -> Any:
     """
     Create a CrewAI BaseTool from an MCPToolWrapper.
@@ -224,44 +277,11 @@ def create_crewai_tool(wrapper: MCPToolWrapper) -> Any:
     # Capture wrapper in closure to avoid serialization issues
     captured_wrapper = wrapper
 
-    # Create args_schema from MCP tool's input_schema
-    args_schema_class: Optional[Type[BaseModel]] = None
-    input_schema = wrapper._tool.input_schema
-    if input_schema and input_schema.get('properties'):
-        # Build Pydantic model fields from JSON schema
-        fields = {}
-        properties = input_schema.get('properties', {})
-        required = input_schema.get('required', [])
-
-        for prop_name, prop_def in properties.items():
-            prop_type = prop_def.get('type', 'string')
-            prop_desc = prop_def.get('description', '')
-            prop_default = prop_def.get('default')
-
-            # Map JSON schema types to Python types
-            type_mapping = {
-                'string': str,
-                'integer': int,
-                'number': float,
-                'boolean': bool,
-                'array': list,
-                'object': dict,
-            }
-            python_type = type_mapping.get(prop_type, str)
-
-            # Required fields vs optional fields
-            if prop_name in required:
-                if prop_default is not None:
-                    fields[prop_name] = (python_type, Field(default=prop_default, description=prop_desc))
-                else:
-                    fields[prop_name] = (python_type, Field(..., description=prop_desc))
-            else:
-                fields[prop_name] = (Optional[python_type], Field(default=prop_default, description=prop_desc))
-
-        if fields:
-            # Create dynamic Pydantic model for args_schema
-            schema_name = f"{wrapper.name.replace('-', '_').replace('.', '_')}Schema"
-            args_schema_class = create_model(schema_name, **fields)
+    # Create args_schema from MCP tool's input_schema (shared builder — cut ④ §7 DRY)
+    args_schema_class: Optional[Type[BaseModel]] = build_args_schema(
+        wrapper._tool.input_schema,
+        f"{wrapper.name.replace('-', '_').replace('.', '_')}Schema",
+    )
 
     # Create a dynamic tool class
     # Pass name and description through __init__ instead of class attributes
