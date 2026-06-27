@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "liye-os/source-intake-request@1",
+  "title": "source-intake request (the human-written intake ticket)",
+  "description": "S0 entry ticket. A human writes this from a github-scout report. `source` MIRRORS scout's emitted values verbatim; `human_decision.chosen_leaf` is the human's pick from scout's allowed menu (decoupled from scout emit). NOTE: rule N11 (chosen_leaf must be a member of source.scout_allowed_recommendations) is a cross-field constraint not expressible in pure JSON Schema and is enforced by source_intake.validate_request().",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "source", "human_decision", "requested_product", "scenarios", "human_attestations"],
+  "properties": {
+    "schema": {"const": "liye-os/source-intake-request@1"},
+    "created_at_utc": {"type": "string", "format": "date-time"},
+    "requested_by": {"type": "string", "description": "human-operator | agent-id"},
+    "intent": {"type": "string", "description": "free-text need/idea (WHY)"},
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"},
+      "description": ">=1; skill-draft requires >=3 real scenarios (see allOf)"
+    },
+    "source": {
+      "type": "object",
+      "description": "scout's ACTUAL emitted values, mirrored verbatim — no human choice mixed in",
+      "additionalProperties": false,
+      "required": ["candidate_repo", "candidate_url", "scout_allowed_recommendations"],
+      "properties": {
+        "from_scout_report": {"type": "string", "description": "path or sha256 of the scout report that surfaced this candidate"},
+        "candidate_repo": {"type": "string", "pattern": "^[^/]+/[^/]+$", "description": "owner/name == scout candidates[].metadata.repo"},
+        "candidate_url": {"type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+/?$", "description": "== scout metadata.url; only https github accepted (N5 enforced in tool)"},
+        "scout_recommendation": {"enum": ["reference-only", "reimplement", "needs-human-review", "skip"], "description": "scout's emitted default leaf (recommend().recommendation; typically needs-human-review or skip)"},
+        "scout_allowed_recommendations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["reference-only", "reimplement", "needs-human-review", "skip"]},
+          "description": "scout's emitted allowed_recommendations[] menu, mirrored verbatim"
+        },
+        "scout_license_tier_advisory": {
+          "enum": ["permissive", "permissive_with_obligations", "weak_copyleft", "strong_copyleft", "unknown"],
+          "description": "the tier scout saw (advisory only; S2 re-verifies on the pinned commit)"
+        }
+      }
+    },
+    "human_decision": {
+      "type": "object",
+      "description": "the human's pick from scout's allowed menu — DECOUPLED from scout emit",
+      "additionalProperties": false,
+      "required": ["chosen_leaf"],
+      "properties": {
+        "chosen_leaf": {"enum": ["reference-only", "reimplement", "needs-human-review", "skip"]},
+        "rationale": {"type": "string", "description": "why the human chose this (semantic behavior-fit judgement)"}
+      }
+    },
+    "requested_product": {"enum": ["reference-pack", "skill-draft", "mcp-draft"]},
+    "human_attestations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_fit_reviewed"],
+      "properties": {
+        "semantic_fit_reviewed": {"type": "boolean", "description": "human gate #2: human asserts behavior-fit"},
+        "harvest_adr_ref": {"type": ["string", "null"], "description": "required when a reimplement/vendor ceremony is triggered (skill-draft)"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "N6 — skill-draft requires reimplement leaf + >=3 scenarios + a harvest_adr_ref",
+      "if": {"properties": {"requested_product": {"const": "skill-draft"}}, "required": ["requested_product"]},
+      "then": {
+        "properties": {
+          "human_decision": {"properties": {"chosen_leaf": {"const": "reimplement"}}},
+          "scenarios": {"minItems": 3},
+          "human_attestations": {"required": ["harvest_adr_ref"], "properties": {"harvest_adr_ref": {"type": "string", "minLength": 1}}}
+        }
+      }
+    }
+  ]
+}

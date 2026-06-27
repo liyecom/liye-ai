@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "liye-os/source-manifest@1",
+  "title": "source-intake manifest (the tool-produced pin + audit record)",
+  "description": "Produced by S1..S5. This is the ONLY in-repo artifact of an intake (the small manifest; third-party source is never vendored). license.verified_against_commit MUST equal upstream.pinned_commit (HG3). The machine never writes trust_audit.verdict='pass' — only a human does at S6.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "upstream", "license", "gate_decision", "product"],
+  "properties": {
+    "schema": {"const": "liye-os/source-manifest@1"},
+    "generated_at_utc": {"type": "string"},
+    "request_ref": {"type": "string", "description": "sha256 of the canonicalized source_intake_request.json"},
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "url", "pinned_commit"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "url": {"type": "string"},
+        "pinned_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$", "description": "resolved at S1 (scout emits no commit_sha)"},
+        "pinned_ref_kind": {"type": "string"},
+        "default_branch": {"type": "string"},
+        "resolved_at_utc": {"type": "string"}
+      }
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "confidence", "verified_against_commit"],
+      "properties": {
+        "spdx": {"type": ["string", "null"]},
+        "tier": {"enum": ["permissive", "permissive_with_obligations", "weak_copyleft", "strong_copyleft", "unknown"]},
+        "confidence": {"enum": ["ok", "no_license", "fetch_failed"]},
+        "verified_against_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$", "description": "HG3: MUST == upstream.pinned_commit (TOCTOU correction #1)"},
+        "scout_tier_advisory": {"type": ["string", "null"]},
+        "toctou_divergence": {"type": "boolean", "description": "true when pinned-commit tier != scout advisory; pinned is authoritative"},
+        "obligations": {"type": "array", "items": {"type": "string"}},
+        "policy_version": {"type": ["string", "null"]}
+      }
+    },
+    "gate_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["license_gate", "acquisition_allowed"],
+      "properties": {
+        "license_gate": {"enum": ["proceed-acquire", "reimplement-only-public-docs", "skip"]},
+        "acquisition_allowed": {"type": "boolean"},
+        "rationale": {"type": "string"}
+      }
+    },
+    "acquisition": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {"type": ["string", "null"], "description": "github-pinned-tarball, or null when skipped"},
+        "skipped_reason": {"type": "string"},
+        "url": {"type": "string"},
+        "tarball_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "staged_path": {"type": "string", "description": "repo-EXTERNAL quarantine path (N9/HG4)"},
+        "representation": {"enum": ["raw", "repomix-compressed"]}
+      }
+    },
+    "trust_audit": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {"enum": ["pass", "flagged", "blocked"], "description": "machine emits only flagged/blocked; a human upgrades flagged->pass at S6"},
+        "checks": {"type": "array", "items": {"type": "string"}},
+        "findings": {"type": "array", "items": {"type": "object"}},
+        "machine_can_pass": {"type": "boolean", "const": false},
+        "notes": {"type": "string"}
+      }
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "packaging", "staged_only"],
+      "properties": {
+        "class": {"enum": ["reference-pack", "skill-draft", "mcp-draft"]},
+        "packaging": {"enum": ["liye-sfc-class", "official-class"]},
+        "staged_only": {"const": true, "description": "correction #2 / HG6: never auto-active-install"},
+        "provenance_block": {"type": "string", "const": "metadata.sfc"}
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+# Component Declaration — source-intake (Hands tool)
+# Schema: ADR-Architecture-Doctrine-BGHS-Separation.md §2 (Component Declaration).
+# Mirrors tools/github-scout/declaration.yaml (the portfolio's first tool-level
+# Component Declaration). source-intake is the GOVERNED downstream consumer of the
+# github-scout discovery probe; it re-homes skill-forge's retired URL-ingest capability
+# under three orthogonal gates. See .planning/source-intake/SPEC.md.
+artifact_scope: component
+component_name: source-intake
+layer: 0                       # liye_os Layer-0 reusable infra tooling
+
+# BGHS: interacts with an external API (GitHub) + the local filesystem (repo-EXTERNAL
+# staging). Its METHODOLOGY (license tiers) lives in the L1 github-scout SSOT; this tool
+# only executes the pin/license/acquire/represent/stage rail and never originates policy.
+primary_concern: Hands
+secondary_concern: Session     # emits an advisory source_manifest.json (run record)
+
+model_contingent_items:
+  - "product-class wording (reference-pack vs skill-draft recommendation copy)"
+  - "representation compression choice (raw vs repomix-compressed)"
+  - "sandbox-audit marker list tuning (injection / secret heuristics)"
+
+model_independent_invariants:
+  - "I1 no auto-crossing: never auto-initiate intake from a scout report; products land only in repo-EXTERNAL staging; repo gets a small manifest (+ a human-promoted reference-pack); third-party source is NEVER vendored into liye_os"
+  - "I2 read-only acquisition: NO-SCOPE/read-only token only; an ambient gh token carrying ANY classic scope => fail-closed; acquisition is HTTPS pinned tarball only (no git protocol / credential helper / submodule / LFS)"
+  - "I3 pin-first-then-verify (TOCTOU): S1 pins the commit, S2 re-verifies license ON that pinned commit; a strong_copyleft / unknown tier fetches NO source"
+  - "I4 license-tier != trust-tier: acquired content is sandbox-audited regardless of how permissive the license is (lethal trifecta / OWASP LLM01); the machine never grants a 'pass' verdict"
+  - "I5 two-class packaging: official-class lives repo-external (quick_validate only, provenance under metadata.sfc); liye-sfc-class carries the 8 top-level SFC keys; sfc_ci_gate.mjs is unchanged (0-diff)"
+
+# Session-adjacent output (advisory manifest/traces), not an authoritative event stream.
+session_source_of_truth: null
+session_adjacent_output: "tools/source-intake/traces/*.json (gitignored, advisory)"
+
+# Doctrine single-URI pointer (retained per ADR-Credential-Mediation).
+credential_path: cred://liye-os/source-intake-readonly
+
+credential_bindings:
+  - reference: cred://liye-os/source-intake-readonly
+    purpose: "read-only resolution of public GitHub repo metadata, license-at-commit, and pinned tarball download (rate-limit headroom only)"
+    broker_required: false        # MVP: env var; full EnvCredentialBroker wiring deferred
+    optional: true                # absent => unauthenticated public read with a loud notice
+    env_var_mvp: SOURCE_INTAKE_READONLY_TOKEN
+    required_scope: "fine-grained 'Public repositories (read-only)' OR classic token with NO scopes"
+    scope_assertion_caveat: "X-OAuth-Scopes only reflects CLASSIC scopes; a fine-grained token's permissions are not exposed via this header, so a fine-grained binding relies on the operator provisioning it read-only"
+
+wake_resume_entrypoint: null
+
+explicit_non_goals:
+  - "is not a 'one-click' pipeline: no unattended scout->fetch->build exists"
+  - "does not fork, clone-as-dependency, vendor, or open PRs against upstream"
+  - "does not fetch strong_copyleft source (only a public-docs reimplement path)"
+  - "does not modify github-scout (scout.py / declaration.yaml / license_policy.yaml) or sfc_ci_gate.mjs"
+  - "does not auto-active-install and does not auto-promote (the S6 ceremony is human-only)"
+  - "does not scan transitive/dependency licenses (inherits the scout Phase-1 gap)"
+  - "is not a runtime dependency"
+
+future_split_direction: >
+  If a runtime/Agent ever needs to dispatch intake programmatically, promote the dispatch
+  surface to an L2 Executable Skill under src/skill/ (the methodology stays in L1), wire
+  credential_bindings through a real EnvCredentialBroker, and add the transitive license
+  scan (aligning with github-scout Phase 1). PR4 wires mcp-draft to the existing
+  Skills/00_Core_Utilities/development-tools/mcp-builder (delegated, not rebuilt here).
