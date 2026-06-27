@@ -12,19 +12,9 @@ import type {
   AgentCapabilityCandidate,
 } from '../../control/types';
 import { PlanTask, ResolvedTask } from './types';
+import { jaccardSimilarity } from '../../control/similarity';
 
 const MAX_ALTERNATIVES = 3;
-
-/**
- * Compute Jaccard similarity between two tag sets
- */
-function jaccard(a: string[], b: string[]): number {
-  const setA = new Set(a);
-  const setB = new Set(b);
-  const intersection = [...setA].filter(x => setB.has(x));
-  const union = new Set([...setA, ...setB]);
-  return union.size === 0 ? 0 : intersection.length / union.size;
-}
 
 export class CapabilityRouter {
   private registry: ICapabilityRegistry;
@@ -112,10 +102,10 @@ export class CapabilityRouter {
    */
   private score3Factor(task: PlanTask, candidate: AgentCapabilityCandidate): number {
     // Factor 1: Tag overlap (Jaccard similarity)
-    const tagOverlap = jaccard(task.capability.tags, candidate.source_contract.tags);
+    const tagOverlap = jaccardSimilarity(task.capability.tags, candidate.source_contract.tags);
 
     // Factor 2: Trust score (overall, for ranking)
-    const trustScore = candidate.trust.overall_score;
+    const overallTrustScore = candidate.trust.overall_score;
 
     // Factor 3: Domain affinity
     let domainAffinity = 0.3; // default: no domain specified
@@ -125,7 +115,7 @@ export class CapabilityRouter {
         : 0.5;  // cross-domain
     }
 
-    return tagOverlap * 0.5 + trustScore * 0.3 + domainAffinity * 0.2;
+    return tagOverlap * 0.5 + overallTrustScore * 0.3 + domainAffinity * 0.2;
   }
 
   /**
