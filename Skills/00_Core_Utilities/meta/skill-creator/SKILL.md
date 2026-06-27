@@ -169,7 +169,6 @@ Claude: [使用 skill-creator 技能对照最佳实践进行评审]
 ### 相关资源
 - 技能规范: `/docs/architecture/SKILL_SPEC.md`
 - 技能模板: `/_meta/skill_template/`
-- Skill Forge 工具: `.claude/skills/skill-forge/`
 
 ### 三层架构位置
 - **物理层 (本文件)**: Skills/00_Core_Utilities/meta/skill-creator/

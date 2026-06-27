@@ -17,7 +17,7 @@
 |----------|----------|----------|
 | **BMad Method** | 理念借鉴 | ✅ 原创 YAML 规范 |
 | **CrewAI** | pip 依赖 + 原创抽象层 | ✅ TypeScript Runtime + Python 执行 |
-| **Skill Forge** | Claude Code 工具 + 原创实现 | ✅ TypeScript Skill 层 |
+| **Skill Forge** | ⚠️ 已退役 2026-06-27 → 改用官方 skill-creator | 原创 TypeScript Skill 层不受影响 |
 
 ### 1.2 关键原则
 
@@ -163,6 +163,11 @@ async function executeCrewAI(config: CrewConfig): Promise<CrewResult> {
 
 ## 4. Skill Forge 融合详情
 
+> ⚠️ **已退役（2026-06-27）**：第三方 Skill Forge 已退役，技能创建改用官方 skill-creator（`/create-skill`）。
+> 本机 clone 已归档于 repo 外，provenance 见 `_meta/skill-factory/retired-skills/skill-forge.yaml`。
+> 其"从 URL ingest 源"的独门能力将由独立受治理工具 `tools/source-intake/` 重新实现（见 source-intake SPEC，规划中）。
+> 本节保留作历史架构记录；下文 `/skill-forge ...` 命令均已失效。
+
 ### 4.1 实现方式
 
 - **不包含** Skill Forge 源代码
@@ -187,13 +192,8 @@ LiYe OS 内部
         └── index.ts                  # 技能加载器
 
 外部资源（Home 目录）
-├── ~/.claude/skills/skill-forge/     # ⭐ Claude Code 技能
-│   ├── SKILL.md                      # 技能定义
-│   ├── references/                   # 参考文档
-│   │   ├── path-management.md
-│   │   ├── source-detection.md
-│   │   └── workflow-guide.md
-│   └── scripts/                      # 可执行脚本
+├── [已退役] skill-forge              # ⚠️ 2026-06-27 退役，clone 已归档于 repo 外
+│                                     #   provenance: _meta/skill-factory/retired-skills/skill-forge.yaml
 │
 └── ~/.claude/plugins/marketplaces/anthropic-agent-skills/
     └── skills/                       # Anthropic 官方技能库
@@ -206,17 +206,15 @@ LiYe OS 内部
 
 ### 4.3 调用方式
 
-#### 方式 1：Claude Code 技能（创建新技能）
+#### 方式 1：官方 skill-creator（创建新技能）
 
 ```bash
-# 从 GitHub 仓库创建技能
-/skill-forge 从 https://github.com/some/repo 创建技能
+# 技能创建改用官方 skill-creator（liye-os:skill-creator）
+/create-skill
 
-# 从在线文档创建技能
-/skill-forge 从 https://docs.example.com 创建技能
-
-# 从本地目录创建技能
-/skill-forge 从 ~/my-project 创建技能
+# 注：原 /skill-forge "从 URL 创建技能" 命令已随 Skill Forge 退役失效。
+#     "从 GitHub/文档 URL ingest 源材料" 的能力将由受治理工具 tools/source-intake/ 重新提供
+#     （见 source-intake SPEC，规划中）。
 ```
 
 #### 方式 2：使用 LiYe OS Skill 层
@@ -253,8 +251,8 @@ const result = await skill.execute({ query: 'amazon keywords' });
 │
 ├── .claude/
 │   ├── skills/
-│   │   ├── crewai/                   # CrewAI 指导技能
-│   │   └── skill-forge/              # Skill Forge 技能
+│   │   └── crewai/                   # CrewAI 指导技能
+│   │                                 # (skill-forge 已于 2026-06-27 退役并删除)
 │   │
 │   └── plugins/marketplaces/
 │       └── anthropic-agent-skills/   # Anthropic 官方技能
@@ -273,7 +271,7 @@ const result = await skill.execute({ query: 'amazon keywords' });
 | **学习 CrewAI 概念** | Claude Code | `/crewai 解释 Agent 的配置` |
 | **设计 Agent 架构** | Claude Code | `/crewai 设计一个 [领域] 团队` |
 | **生成 YAML 配置** | Claude Code | `/crewai 生成 agents.yaml` |
-| **创建新技能** | Claude Code | `/skill-forge 从 [源] 创建技能` |
+| **创建新技能** | 官方 skill-creator | `/create-skill`（Skill Forge 已退役） |
 | **使用原子技能** | TypeScript | `import { loader } from './src/skill/loader'` |
 | **系统级集成** | Runtime 层 | `src/runtime/executor/agent.ts` |
 

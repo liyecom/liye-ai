@@ -1,0 +1,36 @@
+# Retired external skill — provenance record (do NOT vendor the third-party source into this repo).
+# This file is the only in-repo artifact of skill-forge after retirement; the source clone is
+# archived on the local machine OUTSIDE the repo (see archive.path below).
+schema: "liye-os/retired-external-skill@1"
+
+id: "skill-forge"
+status: "retired"
+retired_at: "2026-06-27"
+retire_reason: >
+  Replaced by the official skill-creator. skill-forge's only distinctive capability
+  (ingest a GitHub repo / docs site / llms.txt URL into skill materials) will be
+  re-implemented as a governed first-party tool tools/source-intake/ (see source-intake SPEC).
+  See ADR/decision trail in the retirement review.
+
+replaced_by:
+  - "official skill-creator (alias /create-skill -> liye-os:skill-creator)"
+  - "tools/source-intake/ (planned — re-homes the URL-ingest capability under governance)"
+
+upstream:
+  url: "https://github.com/WilliamSaysX/skill-forge"
+  commit: "43a27b2c6b36e4e1c4207f1ae7edfcbfa8de4f40"
+  describe: "v1.0.0-13-g43a27b2"
+
+# Local, repo-EXTERNAL archive (full clone incl. .git, kept as reference implementation only).
+archive:
+  path: "~/skill-archives/skill-forge-43a27b2-20260627.tar.gz"
+  sha256: "15ccd66f1631c5d6aa6294b3636feedca2c3269820f6dfa636bdcfafbf76731a"
+  contains_git: true
+  note: "Reference implementation only — never a runtime dependency, never re-vendored into liye_os."
+
+# What it was pinned as before retirement (from the now-removed lock entries).
+prior_pin:
+  external_skills_lock_json: "_meta/skill-factory/external-skills.lock.json (item removed; total_locked 2 -> 1)"
+  external_skills_lock_yaml: "_meta/skill-factory/EXTERNAL_SKILLS_LOCK.yaml (entry removed; external_skills now [])"
+  prior_skill_md_sha256: "de0f124a76a0a994f10c26edaf60693006b1abf1494e4a223231886bf0fc0d39"
+  last_audit: "2026-01-16"
