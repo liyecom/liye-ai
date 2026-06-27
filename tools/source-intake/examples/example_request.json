@@ -1,0 +1,24 @@
+{
+  "schema": "liye-os/source-intake-request@1",
+  "created_at_utc": "2026-06-27T12:00:00Z",
+  "requested_by": "human-operator",
+  "intent": "Example only — a reference-pack intake of a permissive prior-art repo surfaced by github-scout.",
+  "scenarios": ["the one real scenario this prior art would inform"],
+  "source": {
+    "from_scout_report": "tools/github-scout/traces/<run>.json or its sha256",
+    "candidate_repo": "owner/name",
+    "candidate_url": "https://github.com/owner/name",
+    "scout_recommendation": "needs-human-review",
+    "scout_allowed_recommendations": ["reference-only", "reimplement", "needs-human-review"],
+    "scout_license_tier_advisory": "permissive"
+  },
+  "human_decision": {
+    "chosen_leaf": "reference-only",
+    "rationale": "Example: human asserts this is read-only prior art, not a reimplement target."
+  },
+  "requested_product": "reference-pack",
+  "human_attestations": {
+    "semantic_fit_reviewed": true,
+    "harvest_adr_ref": null
+  }
+}

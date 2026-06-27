@@ -1,0 +1,10 @@
+# source-intake local artifacts — generated, NOT source.
+#   traces/   = advisory manifest run outputs (gitignored; promote via `git add -f`)
+#   staging/  = repo-local convenience staging (the DEFAULT staging root is repo-EXTERNAL,
+#               ~/.liye-os/source-intake-staging; this dir only exists if an operator
+#               points --staging-root here, which the N9/HG4 guard then REJECTS at runtime)
+traces/
+staging/
+quarantine/
+__pycache__/
+*.pyc
