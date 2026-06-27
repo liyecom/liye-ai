@@ -44,6 +44,20 @@
 | `src/mission/ingest.js` | 中–high | 完整但零可达;它的 `liye mission ingest` CLI **根本不存在**(`cli/` 目录缺失) | 1 commit, 2026-01-02 |
 | `.claude/scripts/dev_run_once.mjs` | 中 · **deprecate** | 治理内核手跑验证 demo;已被 CI 的 `run_golden_all.mjs`+`validate_governance_schemas.mjs` 取代;加一次没再动 | 1 commit, 2026-01-24 |
 
+### ⚠ cut-2 对抗复核更正(2026-06-27)
+
+> 本 §2 的 5 个候选经一轮**对抗式删除复核**(5-agent red-team,每个 agent 被要求**尽力反驳"可安全删除"**)后,**只有 1 个是真·可删的孤立死文件**,其余 4 个各自查出了成立的"别删"理由——再次印证 §8「无四证不删 + 弱连接优先于静态信号」:连本报告已经谨慎的 §2 清单,也需逐个对抗复核才能动。手跑/调试入口风险尤其只有读源码才能看见。
+
+| 文件 | 复核裁决 | 去向 |
+|---|---|---|
+| `src/audit/index/append.ts` | **DELETE_WITH_NOTE**(手跑风险 none) | ✅ **cut-2 已删**。纯库、四证全死、无 CLI 面。注:其头部引用的契约 `docs/contracts/EVIDENCE_PACKAGE_V1.md` 本身不存在于 repo;活的 sibling `replay.ts` + `evidence/` 未动 |
+| `_meta/contracts/scripts/validate-cost-meter.mjs` | **NEEDS_HUMAN** → 操作者裁:**保留** | 休眠 guardrail。EVO-A A2/D-2/D-4 计划把它**接进 CI 激活**(非退役),2 份 runbook 当它手跑命令,其校验对象 `cost_meter` 子系统是活的。报告原称"A2 已接线"经实测**不成立**(EVO-A=seed/IMPL 未解锁)。已加 `STATUS: dormant guardrail` 头防下轮误报 |
+| `.claude/scripts/dev_run_once.mjs` | **NEEDS_HUMAN** → 操作者裁:**保留** | dev-only 手动调试工具。`--tamper`(篡改 events.ndjson→replay 抓出→打 diff)是替代 CI 脚本**不覆盖**的唯一交互式内核篡改检测走查,今天仍可直跑。已加 `STATUS: dev-only` 头防下轮误报 |
+| `src/mission/ingest.js` | **DEFER_TO_GOVERNANCE** | 非孤儿:是 mission `new→run→ingest` 生命周期第三阶段,"不可达"与 sibling `new.js`/`run.js` 同因(`cli/` dispatcher 未建)。归 EVO-E broker 层 activate-or-retire **开放决策**整组处置 |
+| `.claude/scripts/proactive/scheduler.mjs` | **DEFER_TO_GOVERNANCE** | §3a proactive 休眠组的触发入口;纯代码边耦合为零但裸跑会 mutate git-tracked 的 `state.json`。随 §3a 整组治理决策处置 |
+
+**修正后 §2 真·可删 = 1 个(`append.ts`,cut-2 已删)。** 余 4:2 个保留(已加 STATUS 头固化保留理由)、2 个归治理组(§3a / EVO-E,对齐"治理退役绝不当孤立死文件单删")。
+
 ---
 
 ## 3. 候选休眠/被取代子系统(最大的一坨"乱",**整组治理决策**)
@@ -124,13 +138,13 @@
 **KEEP(11)——knip 误报,实为按符号接线的活代码,勿动:**
 `src/brokers/interface.js`、`src/context/eventlog.js`、`src/domain/medical-research/skills/atomic/pubmed_search.ts`、`learning/learned_policy_loader.mjs`、`information-radar` 的 6 个(daily/weekly-digest、prompts、gemini、zhipu、wecom-app、signal-store)。
 
-**DEPRECATE / 候选删(高证据,人确认后):** `proactive/scheduler.mjs`、`src/audit/index/append.ts`、`validate-cost-meter.mjs`(repo 自证)、`dev_run_once.mjs`、`src/mission/ingest.js`。
+**cut-2 后分组(以 §2 cut-2 更正为准,此行已替换旧"DEPRECATE/候选删"口径):** `src/audit/index/append.ts` **已删**(cut-2,唯一真·孤立死文件);`validate-cost-meter.mjs`、`dev_run_once.mjs` **保留并加 STATUS 头**(休眠 guardrail / dev-only 手动调试,**非弃案**);`src/mission/ingest.js` 归 **EVO-E broker 层治理**(activate-or-retire 开放决策);`proactive/scheduler.mjs` 归 **§3a proactive 组治理**。⚠ 后两者绝不当孤立死文件单删。
 
 **MERGE(低紧迫·抽 helper,非老vs新):** 抽共享 `jaccard()`(`control/registry.ts` ↔ `runtime/orchestrator/router.ts`);抽 pydantic field-builder(`crewai_adapter.py` ↔ `governed_tool_provider.py`);合并 `policy_trial_evaluator.mjs` 内 `buildPolicyTraceIndex`/`buildPolicyFileIndex`。brokers 4 adapter 的 boilerplate 是有意 Strategy 模式,低优先。
 
 **RETIRE(治理决策,⚠ 非一刀):** §3a proactive+v0 管线(整组升级 vs 退役);§3b **拆分** —— drift_monitor = `partial-retire`(保留 `isDriftBlocked` 活面 + 字节级回归)、tier_manager = `clean-retire` 候选。
 
-**FINISH-OR-DELETE(表面工程):** §4 的 csv/pdf/xlsx_processor、systematic_review。
+**FINISH-OR-DELETE(表面工程):** §4 的 csv/pdf/xlsx_processor、systematic_review —— **cut-1 已删**(PR #176;impl 弃案,capability 保留;config 里的 skill-id 意图声明保留)。
 
 ---
 
@@ -140,7 +154,7 @@
 ---
 
 ## 9. 给第 3 步 B 的输入(不在本报告执行)
-1. liye_os 的"乱"= 2 个休眠子系统 + 4 个表面 skill + ~5 个孤立死文件,**不是系统性混乱**。`src/` 干净。
+1. liye_os 的"乱"= 2 个休眠子系统 + 4 个表面 skill(**cut-1 已删**)+ 孤立死文件**仅 1 个真·可删**(`append.ts`,cut-2 已删;§2 原列 5 个经对抗复核改判 2 保留 + 2 归治理组),**不是系统性混乱**。`src/` 干净。
 2. 真正的精简分四条线(**不混成一个大清理 PR**):① 孤立 dead candidates(§2)② finish-or-delete skills(§4)③ v0/GHL 治理性退役(§3,**含 §3b 拆分**,走 ADR)④ 低优先 helper 合并(§7 MERGE)。
 3. **第一刀建议从 §4 起(未完成 skill 脚手架)**:registry 硬编码 4 个 skill、csv/pdf/xlsx/systematic_review 占位未接线,删除面最小、活边最少——**但须你先拍板"这些能力不再做"**。**第一批代码改动不要碰 §3b**(有活边,要先做 enforcement 面分离)。
 4. **knip 已校准(本 PR 已落 `knip.json`)**:175→47(−73%),残留 100% 在 `src/`。下一步值得逐条看 `unused exports/types`(配置后可信度提升),并把 47 残留逐个过 §8 四证再决定。

@@ -3,6 +3,14 @@
  * Cost Meter Validator v1.0.0
  * SSOT: _meta/contracts/scripts/validate-cost-meter.mjs
  *
+ * STATUS: dormant guardrail (KEEP — dead by static reachability only; do not auto-remove).
+ *   Not yet CI-wired: EVO-A A2/D-2/D-4 plans to register cost_meter.schema.yaml into
+ *   validate-contracts schemaFiles[] and wire this into contracts-gate (activation, not
+ *   retirement). It is the operator-run validator for the LIVE cost_meter subsystem,
+ *   demonstrated as a command in docs/ops/cost-meter-runbook.md +
+ *   docs/runbooks/contracts-v1-freeze.md. Reviewed 2026-06-27 (codebase-hygiene cut-2
+ *   adversarial verify): operator-confirmed keep.
+ *
  * Validates cost_meter configuration and events against schema.
  *
  * Usage:
