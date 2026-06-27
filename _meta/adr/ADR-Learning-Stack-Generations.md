@@ -151,7 +151,7 @@ Layer 0（liye_os 内部）；不触 loamwise / domain engines / 产品线。eng
 - [x] `validate_adr_bghs.mjs` 通过
 - [ ] Operator Accept + 双 cooling（Accept ✓ **2026-06-12** + draft cooling ✓；**post-Accept cooling 起算中** = Accept commit 实际时间 +24h，最早 2026-06-13 同北京时间后才考虑 merge #165 + 回填 anchor）
 - [x] EVO-C PR merged（R-2 + R-3a 全项落地，Hard Gates 1-4 实证）— #169 squash `ff271ec`（2026-06-14）
-- [ ] EVO-D PR merged（R-4：drift_monitor 物理拆分，D-11 授权，HG1-4 实证）— *本 PR 合并后由 operator 勾选*
+- [x] EVO-D PR merged（R-4：drift_monitor 物理拆分，D-11 授权，HG1-4 实证）— #179 squash `0f4d1e7`（2026-06-27）
 - [ ] R-3b 移交 GHL 2b/2c ceremony
 
 ## Appendix A: Audit Chain
