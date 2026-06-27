@@ -12,7 +12,6 @@
     "src/gateway/openclaw/server.ts",
     "src/audit/replay/replay.ts",
     "src/reasoning/demo/run_demo.mjs",
-    "src/governance/learning/drift_monitor.mjs",
     "src/governance/learning/execution_gate.mjs",
     "src/governance/learning/kill_switch.mjs",
     "src/governance/learning/tier_manager.mjs"

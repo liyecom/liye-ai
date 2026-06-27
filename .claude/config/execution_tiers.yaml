@@ -9,7 +9,6 @@
 # 与其他治理组件协同：
 # - kill_switch: 最高优先级，开启时所有写入被阻断
 # - cost_meter: 预算超限时可降级通知或全跳过
-# - drift_monitor: 检测性能漂移，自动降级/冻结
 
 version: "1.0.0"
 schema: "https://liye.com/schemas/execution_tiers.v1.yaml"
@@ -74,7 +73,6 @@ tiers:
       mandatory_rollback_plan: true
       dry_run_required_before_write: true
     # execute_limited 不再晋升，这是最高层级
-    # 降级条件在 drift_monitor 中定义
 
 # 动作白名单（用于 validator 校验）
 action_whitelist:
@@ -142,21 +140,9 @@ kill_switch_integration:
       - kill_switch_resolved
       - kill_switch_applied
 
-# 与 drift_monitor 的协同
-drift_monitor_integration:
-  # 连续失败阈值
-  consecutive_failure_threshold: 3
-  # 性能下降阈值（百分比）
-  performance_degradation_pct: 20
-  # 触发后的处理
-  on_drift_triggered:
-    demote_to: recommend
-    block_actions:
-      - WRITE_LIMITED
-    facts_to_record:
-      - drift_evaluated
-      - drift_triggered
-      - policy_demoted
+# drift_monitor_integration 块已删：drift_monitor.mjs 物理退役（EVO-D / ADR §D-11），
+# 其唯一读者随之消失（该块仅被 drift_monitor.loadTiersConfig 消费）；阈值概念转登
+# .planning/agentic-evolution/EVO-C-stack-reconciliation/GHL-BACKLOG.md（C-1/C-2），归 GHL 2c 重生。
 
 # 审计字段要求
 audit_fields:

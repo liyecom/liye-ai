@@ -55,30 +55,24 @@ node src/governance/learning/tier_manager.mjs
 
 **输出 Facts**: `state/memory/facts/fact_tier_decisions.jsonl`
 
-### 3. Drift Monitor
+### 3. Drift Enforcement（drift_monitor 已退役）
 
-**文件**: `src/governance/learning/drift_monitor.mjs`
+**文件**: `src/governance/learning/drift_enforcement.mjs`（只读 enforcement 库，无 CLI）
 
-**功能**:
-- 监控 candidate/production policies 的 business_signal
-- 检测连续失败（默认阈值：3 次）
-- 检测性能退化（默认阈值：20%）
-- 自动降级：production → candidate, candidate → quarantine
+> ⚠️ **RETIRED (EVO-D / ADR-Learning-Stack-Generations §D-11)**：`drift_monitor.mjs` 已**物理退役**。
+> 其唯一 live enforcement 读 `isDriftBlocked()`（§D-A3 保留）已**逐字节抽取**为 `drift_enforcement.mjs`；
+> 主动降级/quarantine 面（§D-A2 superseded）随文件删除退役，概念价值见
+> `.planning/agentic-evolution/EVO-C-stack-reconciliation/GHL-BACKLOG.md`（C-1/C-2），归 GHL 2c 重生。
+>
+> **AC-04（EVO-B DEFER → EVO-D 落地）**：本节原 live 命令 `node .../drift_monitor.mjs [--dry-run]` 已**弃用**——文件不复存在。
 
-> ⚠️ SUPERSEDED (ADR-Learning-Stack-Generations §D-A2/§D-A6): drift_monitor 的主动降级路径不再是 policy demotion 权威。
-> 下方 live 命令执行**破坏性** artifact 移动且**无** `policy_lifecycle_event` 审计。生产环境**禁运**；
-> GHL（ADR-GHL 2b/2c）是唯一 policy-lifecycle 权威。（只读 `isDriftBlocked()` enforcement 读不受影响，§D-A3。）
+**当前 enforcement 形态**：
+- `isDriftBlocked(policyId)` 经 `execution_gate` preflight 触发（仅当 policyId 非空 ∧ actionType=WRITE_LIMITED）。
+- 三分支：`policy_in_quarantine` / `recent_drift_triggered`（<24h）/ `{blocked:false}`。
+- **休眠语义**：每次 WRITE_LIMITED preflight 真被执行（live edge），但写侧已随 §D-A2 退役 → 当前数据下恒 `{blocked:false}`（dormant effect）。非「活跃 24h freeze enforcement」。
+- 无独立 CLI / dry-run 入口；覆盖见 `tests/governance/test_drift_enforcement.mjs`。
 
-**运行**:
-```bash
-# Dry-run
-node src/governance/learning/drift_monitor.mjs --dry-run
-
-# ⚠ SUPERSEDED — 破坏性且无 lifecycle 审计；生产禁运（§D-A2/§D-A6）
-node src/governance/learning/drift_monitor.mjs
-```
-
-**输出 Facts**: `state/memory/facts/fact_drift_events.jsonl`
+**读取 Facts**（若存在）: `state/memory/facts/fact_drift_events.jsonl`（写侧重生归 GHL 2c）
 
 ### 4. Kill Switch
 
@@ -134,7 +128,7 @@ node src/governance/learning/execution_gate.mjs --action WRITE_LIMITED --tier ex
 
 src/governance/learning/
 ├── tier_manager.mjs              # 晋升管理
-├── drift_monitor.mjs             # 漂移检测
+├── drift_enforcement.mjs         # drift freeze 只读 enforcement (isDriftBlocked, §D-A3/D-11)
 ├── kill_switch.mjs               # 紧急阻断
 └── execution_gate.mjs            # Preflight 入口
 
