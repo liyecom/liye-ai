@@ -1,16 +1,20 @@
-# source-intake SPEC v1.1 — 受治理的 URL→产物轨道（github-scout × 官方 skill-creator 接缝）
+# source-intake SPEC v1.2 — 受治理的 URL→产物轨道（github-scout × 官方 skill-creator 接缝）
 
-**Status**: **v1.1 DRAFT**（v1.0 → Codex 复审抓 2 blocker → v1.1 amend；**本 SPEC = PR2，待 operator Accept**；PR3 impl / PR4 integration 只在本 SPEC 合并后启动）
-**Date**: 2026-06-27（v1.0 双评成稿 → v1.1 Codex 复审 amend）
+**Status**: **v1.2**（v1.0 双评 → v1.1 Codex 2 blocker amend → **PR2 #183 MERGED** → **PR3 impl #185 MERGED** `3b5165c` → v1.2 = PR4 未来执行锚纠偏）。MVP（reference-pack + skill-draft）已实现；**PR4 仍 parked**，下一步优先真实 reference-pack pilot。
+**Date**: 2026-06-27（v1.0 双评成稿 → v1.1 Codex 复审 amend → v1.2 PR4 锚纠偏）
 **v1.1 amend（Codex #183 复审 2 blocker，均已落地）**:
 - **B1 quick_validate 事实锚更正**：原写「6 键含 `compatibility` + 明示 nested 注释」错；权威 Codex 系统版 `.codex/skills/.system/skill-creator/scripts/quick_validate.py:40` 实为 **5 键无注释**。承重机制改锚为「键检查只比顶层、不下钻 metadata」（§核验接地 + §4，机制成立不靠注释；披露磁盘 5/6 键版本漂移）。
 - **B2 request schema 解耦 scout-emit vs 人类选择**：原 `scout_recommendation` 误把 reference-only/reimplement 当 scout emit；实为 scout 默认 leaf + `allowed_recommendations[]` 菜单。§2.1 拆为 `source`（原样镜像 scout emit）+ `human_decision.chosen_leaf`（人从菜单亲选），并写清 `requested_product × chosen_leaf` 条件 + 新增 N11（chosen_leaf 须 ∈ scout allowed）。
+**v1.2 amend（PR4 未来执行锚纠偏；范围极窄：仅本 §上游权威 + §核验接地 + Goal rail + D8 + S4 + §2.1 mcp 行 + §5 + PR4 DoD + Anchor；不碰 #185 代码、不碰 `Skills/.../mcp-builder`、不展开第三方 Skills 总清理）**:
+- **错误锚**：v1.1 把 `Skills/00_Core_Utilities/development-tools/mcp-builder/` 当作 mcp-draft 的「既存 delegate」。实测该路径是一份**被 vendor 进 repo 的第三方社区镜像 skill**（`source: awesome-claude-skills` / `github.com/ComposioHQ/awesome-claude-skills`，Apache-2.0，最近改动 2026-01-16，5 个月未更新）；同源的 `Skills/.../meta/skill-creator` 亦然。让「禁 vendor / official-class 落 repo 外」的本轨去 delegate 一个 repo 内 vendored 社区 skill = 自相矛盾的未来地雷。
+- **纠偏（PR4 路线，本 SPEC 仅改锚不启动 PR4）**：**A（新默认）** 取消 mcp-builder 特殊 delegate——mcp-draft 走与 skill-draft **同一条 clean-room/reimplement 轨**（差别只是产物类型 = MCP server 草案）。**B（降级为未来可选）** 仅当存在 **repo 外、来源明确、当前有效、可验证的官方 MCP builder skill/tool** 时，方可作为外部 official-class backend 接入（本机 `~/.codex/skills`、`~/.claude/skills` 现均无 mcp-builder，故不能写成默认）。**C（明确禁止）** 不得 delegate 到 in-repo `Skills/00_Core_Utilities/development-tools/mcp-builder/`。
+- **设计教训**：schema enum 可保留 future value（mcp-draft 仍在 §2.1/§2.2 枚举），但 **runtime 必须对未实现的 value 显式 fail-closed**——已由 #185 的 mcp-draft S0 fail-closed 修复证明（schema 含某值 ≠ runtime 该执行它）。
 **输入基线**: liye_os main HEAD `432c198`（#182 skill-forge retire 已合并）
 **上游权威**:
 - `tools/github-scout/`（scout.py / declaration.yaml / license_policy.yaml SSOT）= 本轨上游探针，**不改一字节**
 - `docs/methodology/01_Research_Intelligence/github-scout/license_policy.yaml`（license tier→ceiling→recommendation 的唯一机读 SSOT，本轨复用、不复制）
-- `Skills/00_Core_Utilities/meta/skill-creator/`（官方 skill-creator = build 后端）+ 官方 `quick_validate.py`（allowed-keys 权威）
-- `Skills/00_Core_Utilities/development-tools/mcp-builder/`（mcp-draft 的既存 delegate，非本轨新建）
+- **权威 skill-creator = repo 外** `~/.codex/skills/.system/skill-creator/`（含 `scripts/quick_validate.py`，allowed-keys 权威，PR2 B1 事实锚即此份）。⚠ in-repo `Skills/00_Core_Utilities/meta/skill-creator/` 是一份 **legacy vendored / 社区镜像副本**（`source: awesome-claude-skills`，Apache-2.0，非权威）——本轨引用「官方 skill-creator 语义」指的是 repo 外这份，不是 in-repo vendored 副本。
+- **无现成 mcp-builder delegate**（v1.2 纠偏）：in-repo `Skills/00_Core_Utilities/development-tools/mcp-builder/` 是 **legacy vendored 社区镜像 skill**（同 awesome-claude-skills，Apache-2.0，5 个月未更新），**禁** 作为本轨 delegate（Option C）；repo 外现无可验证的官方 mcp-builder。PR4 路线见 §v1.2 amend / D8。
 - `_meta/skill-factory/retired-skills/skill-forge.yaml`（被替代的独门能力 provenance）
 - BGHS Component Declaration form（`tools/github-scout/declaration.yaml` 为 portfolio 首个先例）
 
@@ -21,7 +25,7 @@
 - scout `strong_copyleft` ceiling 已是 `metadata_license`（`license_policy.yaml:85`），obligations `[copyleft-veto, clean-room-reimplement-from-public-docs-only]`（:89）→ scout 本就不抓 GPL repo 的 readme/tree；本轨 correction #3 是其**自然延伸**（source-intake 也不得抓 GPL 源码 tarball）。
 - 官方 `quick_validate.py` 顶层 allowed-keys（Codex 实际系统版 `.codex/skills/.system/skill-creator/scripts/quick_validate.py:40`）= `{name, description, license, allowed-tools, metadata}`（**5 键，无 `compatibility`、无「excluding nested keys under metadata」注释**）。⚠ 磁盘存在版本漂移：部分 `.claude` marketplace 副本为 6 键含 `compatibility`——本 SPEC 不依赖具体 allowed-set。**承重机制 = 键检查 `unexpected_keys = set(frontmatter.keys()) - allowed_properties`（`:42`）只枚举顶层键、从不下钻 `metadata`** → `metadata.sfc.*` 嵌套因此天然通过（与是否 5/6 键、是否有注释无关）。
 - `sfc_ci_gate.mjs:4,17` 只扫 **repo 内** SKILL.md、要求 8 顶层键、CI `--mode warn` 永不失败（:68-70）→ 装在 repo 外的 official-class 产物**永不被它扫到**；零改 gate（correction #4）。
-- `Skills/00_Core_Utilities/development-tools/mcp-builder/SKILL.md` 存在 → mcp-draft delegate 现成。
+- ⚠ **v1.2 纠偏**：`Skills/00_Core_Utilities/development-tools/mcp-builder/SKILL.md` 虽存在，但它是 **repo 内 vendored 第三方社区镜像**（`source: awesome-claude-skills`，Apache-2.0，2026-01-16 后未更新），**不是**「现成的官方 delegate」。本机 `~/.codex/skills`、`~/.claude/skills` 均无 mcp-builder。故 mcp-draft **无现成可信 delegate**，PR4 必走 reimplement 轨或先引入 repo 外可验证官方 backend（D8）。
 
 ---
 
@@ -29,7 +33,7 @@
 
 把 skill-forge 退役后**唯一值得保留的独门能力**——「从外部 GitHub repo / 文档 / llms.txt 的 URL ingest 源材料」——重新实现为 liye_os 受治理的 Layer-0 工具 `tools/source-intake/`，把 operator 设想的「从 URL 一键造 skill」落成一条**诚实形态的受控轨道**：
 
-> **github-scout（发现，只读，emit recommendation+allowed 菜单）→ 人选候选 + 从菜单亲选 leaf + 声明意图（语义闸）→ source-intake（pin/license/acquire/represent，机器+沙箱）→ 官方 skill-creator / mcp-builder（build）→ 人审 promote（仪式）。**
+> **github-scout（发现，只读，emit recommendation+allowed 菜单）→ 人选候选 + 从菜单亲选 leaf + 声明意图（语义闸）→ source-intake（pin/license/acquire/represent，机器+沙箱）→ 官方 skill-creator 语义（build；mcp-draft 见 D8，deferred）→ 人审 promote（仪式）。**
 
 **一句话**：保留独门 ingest 能力，但用三道正交闸 + 三类产物把「一键」改写为「人把关、可审计、终点由人拥有」的半自动轨；scout 不被污染，sfc_ci_gate 不被改动，第三方源码永不 vendor 进 repo。
 
@@ -71,7 +75,7 @@
 | D5 | sfc_ci_gate | **零改动**（two-class + metadata.sfc） | `quick_validate.py:40-42`（顶层键检查不下钻 metadata）+ `sfc_ci_gate.mjs:4`（repo-only）实证 |
 | D6 | acquisition | **GitHub pinned tarball 优先于 git clone**；repomix 仅可选压缩 | 避 git protocol 注入/credential helper/submodule/LFS/history |
 | D7 | 旧脚本 | **clean rewrite，不 port**；skill-forge clone 归档 repo 外作参考 | trust-critical 路径全要替换 = 本质重写 |
-| D8 | mcp-draft | **PR4 full-vision，不纳入 MVP**；delegate 既存 mcp-builder | MVP 收敛在 reference-pack + skill-draft |
+| D8 | mcp-draft | **PR4 full-vision，不纳入 MVP**。**A(默认)** 走与 skill-draft 同的 reimplement/skill-creator 轨（产物=MCP server 草案）；**B(未来可选)** 仅当有 repo 外、来源明确、可验证的官方 MCP backend 才接外部 official-class；**C(禁)** 不得 delegate in-repo vendored `Skills/.../mcp-builder` | v1.2 纠偏：旧「delegate 既存 mcp-builder」指向 repo 内 vendored 社区镜像，已撤 |
 
 ---
 
@@ -118,7 +122,7 @@
 据 request 的 `requested_product` 从已获取源材料构建**产物草案**（三产物边界见 §5）:
 - reference-pack：只读蒸馏（摘要 / API 面 / 引用回 pinned_commit），**无可执行第三方代码、无 vendor 源码进 repo**。
 - skill-draft：**仅当** product=skill-draft 且 §5 门槛满足，经**官方 skill-creator 语义**产出 skill **草案**（reimplement 产物，受 reference-pack 启发，**非 vendor 上游码**）。
-- mcp-draft（非 MVP）：API 形态 repo → **delegate 既存 `Skills/00_Core_Utilities/development-tools/mcp-builder`**。
+- mcp-draft（非 MVP，deferred）：API 形态 repo → PR4 路线 = **走 reimplement/skill-creator 轨产出 MCP server 草案（默认 A）**，或先引入 repo 外可验证官方 MCP backend（B）；**禁** delegate in-repo vendored `Skills/.../mcp-builder`（C）。本轨 runtime 对 mcp-draft 在 S0 fail-closed（见 #185）。
 
 ### S5 — STAGE + TRUST_AUDIT（机器+人，人类闸 #3 前置；correction #2 + trust 闸）
 - **correction #2**：official-class 产物落 **staging（repo 外，如 `~/.claude/skills-staging/`）**，**绝不 active install**。
@@ -168,7 +172,7 @@
 **`requested_product` × `human_decision.chosen_leaf` 条件关系（机器校验，PR3 强制）**：
 - `requested_product=skill-draft` **要求** `chosen_leaf == reimplement` **且** `scenarios.length >= 3` **且** `human_attestations.harvest_adr_ref != null`；否则降级/拒（N6）。
 - `requested_product=reference-pack`（默认）**要求** `chosen_leaf ∈ {reference-only, reimplement, needs-human-review}`（蒸馏不依赖最终复用裁决，但 `skip` 不可启动 intake）。
-- `requested_product=mcp-draft`（非 MVP）同 reference-pack 的 leaf 约束 + delegate mcp-builder。
+- `requested_product=mcp-draft`（非 MVP，deferred）：schema 保留为 future enum，但 **PR3 runtime 在 S0 fail-closed**（不执行；见 #185 + 设计教训）。PR4 路线见 D8（默认走 reimplement 轨，禁 in-repo vendored mcp-builder）。
 - `chosen_leaf == skip` → 不应提交 request（人已自判不取）；若提交则 S2 之前即终止。
 - ⚠ `chosen_leaf` 必须**∈ scout 该 candidate 的 `scout_allowed_recommendations`**（人不能选 scout 该 tier 不允许的 leaf，如对 strong_copyleft 选 reference-only）；越界 = 拒。
 
@@ -306,7 +310,7 @@ metadata:
 |------|------|--------|----------|------|
 | **reference-pack**（默认 D1） | 任意 acquisition_allowed candidate | 只读蒸馏：摘要/API 面/引用回 pinned_commit | 无可执行第三方码；不 vendor 源码 | 人 promote→repo（liye-sfc-class）或留 doc |
 | **skill-draft** | 人选 reimplement + ≥3 真实场景（D2） | 经官方 skill-creator 语义产的 **reimplement** skill 草案 | **非** vendor 上游码；非自动安装 | staging（official-class）→人审 active install |
-| **mcp-draft**（非 MVP，PR4） | API 形态 repo | **delegate 既存 mcp-builder** | 本轨不自建 MCP 生成器 | full-vision |
+| **mcp-draft**（非 MVP，PR4，deferred） | API 形态 repo | **默认走 reimplement/skill-creator 轨产 MCP server 草案**（A）；或 repo 外可验证官方 MCP backend（B） | **非** delegate in-repo vendored `Skills/.../mcp-builder`（C 禁）；runtime S0 fail-closed | full-vision |
 
 ---
 
@@ -335,7 +339,7 @@ metadata:
 - [ ] clean rewrite（D7，不 port 旧 skill-forge 脚本）。
 
 **PR4（integration，非 MVP）**:
-- [ ] mcp-draft delegate mcp-builder 接线；full-vision 场景串联。
+- [ ] mcp-draft deferred；PR4 必须**二选一**：(A) 经 source-intake/skill-creator reimplement 轨产 MCP server 草案，**或** (B) 引入一个**单独批准的、repo 外 official-class** MCP backend；**禁** delegate in-repo vendored `Skills/.../mcp-builder`（C）。先解除 runtime 的 S0 fail-closed 才允许执行 mcp-draft。full-vision 场景串联。
 
 ---
 
@@ -345,15 +349,17 @@ metadata:
 - **license≠trust 是硬纪律不是装饰**：N8 专门防「permissive 就放行」的假绿。
 - **本轨不解决 scout 的 transitive license 缺口**（scout `explicit_non_goals`「does not scan transitive/dependency licenses」`declaration.yaml:53`）——pinned commit 的 top-level license 复验之外，依赖树 license 仍是人审范畴，留 future_split。
 - **skill-draft = reimplement，不是 vendor**：哪怕 permissive，本轨默认不把上游源码塞进产物；reference-pack 蒸馏 + reimplement 是默认姿态，守 Fork 纪律。
+- **schema enum 含某 value ≠ runtime 该执行它**（v1.2 设计教训）：未实现/deferred 的产物类型即使保留在 schema 枚举里供 forward-compat，runtime 也**必须显式 fail-closed**，绝不能靠「还没接线」默认拦——否则会像 mcp-draft 那样悄悄打开执行面（#185 实遇并修）。
+- **build backend 必须 repo 外 + 可验证**（v1.2 纠偏）：本轨「禁 vendor / official-class 落 repo 外」的纪律同样约束**自己依赖的 build backend**；不得 delegate 一个 repo 内 vendored 第三方社区镜像（in-repo `Skills/.../mcp-builder` / `meta/skill-creator` 即此类 legacy 物）。权威 skill-creator 在 repo 外 `~/.codex/skills/.system/skill-creator`。
 
 ---
 
 ## Anchor
 
 - 上游 scout：`tools/github-scout/{scout.py,declaration.yaml}` + `docs/methodology/01_Research_Intelligence/github-scout/license_policy.yaml`（SSOT，本轨复用不改）
-- build 后端：`Skills/00_Core_Utilities/meta/skill-creator/` + 官方 `quick_validate.py`（allowed-keys 权威）
-- mcp delegate：`Skills/00_Core_Utilities/development-tools/mcp-builder/SKILL.md`
+- build 后端（权威）：**repo 外** `~/.codex/skills/.system/skill-creator/`（含 `scripts/quick_validate.py`，allowed-keys 权威）。⚠ in-repo `Skills/00_Core_Utilities/meta/skill-creator/` = legacy vendored 社区镜像副本，非权威。
+- mcp delegate：**无现成可信 delegate**（v1.2 纠偏）。in-repo `Skills/00_Core_Utilities/development-tools/mcp-builder/SKILL.md` 是 vendored 社区镜像，**禁用为 delegate**（C）；PR4 见 D8（默认 reimplement 轨 A，或 repo 外可验证官方 backend B）。
 - 被替代能力 provenance：`_meta/skill-factory/retired-skills/skill-forge.yaml`（PR1 #182 `432c198`）
 - 体例范本：`.planning/agentic-evolution/EVO-D-drift-monitor-physical-split/SPEC.md`
 - 记忆锚：memory `project_source_intake_track`
-- **下一步**：operator Accept 本 SPEC（PR2）→ PR3 impl（materialize + N1–N11 测试 + HG1–6）→ PR4 integration（mcp-draft，非 MVP）
+- **进度**：PR2 #183 SPEC MERGED → PR3 impl #185 MERGED（`3b5165c`，40 测 N1–N11 绿 + HG1–6）→ **PR4 parked**（mcp-draft，非 MVP；启动前须按 v1.2 D8 定 backend）。**下一步优先：真实 reference-pack pilot**，不是启动 PR4。
