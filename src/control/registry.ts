@@ -15,6 +15,7 @@ import {
   ICapabilityRegistry,
 } from './types';
 import { scanAgentYAMLs } from './extractor';
+import { jaccardSimilarity } from './similarity';
 
 const DEFAULT_TRUST: TrustProfile = {
   overall_score: 0.5,
@@ -23,17 +24,6 @@ const DEFAULT_TRUST: TrustProfile = {
   total_executions: 0,
   last_updated: new Date().toISOString(),
 };
-
-/**
- * Compute Jaccard similarity between two tag sets
- */
-function jaccardSimilarity(a: string[], b: string[]): number {
-  const setA = new Set(a);
-  const setB = new Set(b);
-  const intersection = [...setA].filter(x => setB.has(x));
-  const union = new Set([...setA, ...setB]);
-  return union.size === 0 ? 0 : intersection.length / union.size;
-}
 
 export class CapabilityRegistry implements ICapabilityRegistry {
   private agents: Map<string, AgentCard> = new Map();

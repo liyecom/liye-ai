@@ -19,7 +19,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .crewai_adapter import MCPToolProvider, MCPToolWrapper, create_crewai_tool, _run_async
+from .crewai_adapter import MCPToolProvider, MCPToolWrapper, create_crewai_tool, _run_async, build_args_schema
 
 logger = logging.getLogger(__name__)
 
@@ -268,36 +268,11 @@ def create_governed_crewai_tool(wrapper: GovernedToolWrapper) -> Any:
 
     captured_wrapper = wrapper
 
-    # Build args_schema from input_schema (same as crewai_adapter)
-    args_schema_class = None
-    input_schema = wrapper._tool.input_schema
-    if input_schema and input_schema.get('properties'):
-        fields = {}
-        properties = input_schema.get('properties', {})
-        required = input_schema.get('required', [])
-
-        type_mapping = {
-            'string': str, 'integer': int, 'number': float,
-            'boolean': bool, 'array': list, 'object': dict,
-        }
-
-        for prop_name, prop_def in properties.items():
-            prop_type = prop_def.get('type', 'string')
-            prop_desc = prop_def.get('description', '')
-            prop_default = prop_def.get('default')
-            python_type = type_mapping.get(prop_type, str)
-
-            if prop_name in required:
-                if prop_default is not None:
-                    fields[prop_name] = (python_type, Field(default=prop_default, description=prop_desc))
-                else:
-                    fields[prop_name] = (python_type, Field(..., description=prop_desc))
-            else:
-                fields[prop_name] = (Optional[python_type], Field(default=prop_default, description=prop_desc))
-
-        if fields:
-            schema_name = f"{wrapper.name.replace('-', '_').replace('.', '_')}GovernedSchema"
-            args_schema_class = create_model(schema_name, **fields)
+    # Build args_schema from input_schema (shared builder — cut ④ §7 DRY; same as crewai_adapter)
+    args_schema_class = build_args_schema(
+        wrapper._tool.input_schema,
+        f"{wrapper.name.replace('-', '_').replace('.', '_')}GovernedSchema",
+    )
 
     tool_name = captured_wrapper.name
     tool_desc = f"[Governed] {captured_wrapper.description}"
