@@ -14,6 +14,7 @@ import io
 import json
 import tarfile
 import unittest
+import urllib.error
 from pathlib import Path
 
 import source_intake
@@ -408,6 +409,49 @@ class N10UnstableTarball(unittest.TestCase):
         tx = FakeTransport(unstable_tarball=True)
         with self.assertRaises(IntakeFatal):
             _intake(tx, make_request())
+
+
+# --------------------------------------------------------------------------- #
+# Transport failures - network/TLS faults must convert to IntakeFatal
+# --------------------------------------------------------------------------- #
+class RaisingTransport:
+    def __init__(self, error):
+        self.error = error
+
+    def get(self, url, headers):
+        raise self.error
+
+
+class RecordingSink:
+    def __init__(self):
+        self.calls = []
+
+    def write(self, path, body):
+        self.calls.append((path, body))
+
+
+class TransportFailClosed(unittest.TestCase):
+    def test_urlerror_transport_failure_fails_closed_without_staging_write(self):
+        sink = RecordingSink()
+        client = GitHubReadOnlyClient(
+            transport=RaisingTransport(urllib.error.URLError("simulated handshake timeout")),
+            token=None,
+        )
+        with self.assertRaises(IntakeFatal):
+            run_intake(make_request(), client, POLICY, staging_root=EXTERNAL_STAGING,
+                       sink=sink, now_utc="2026-06-27T12:00:05Z")
+        self.assertEqual(sink.calls, [])
+
+    def test_timeout_transport_failure_fails_closed_without_staging_write(self):
+        sink = RecordingSink()
+        client = GitHubReadOnlyClient(
+            transport=RaisingTransport(TimeoutError("simulated timeout")),
+            token=None,
+        )
+        with self.assertRaises(IntakeFatal):
+            run_intake(make_request(), client, POLICY, staging_root=EXTERNAL_STAGING,
+                       sink=sink, now_utc="2026-06-27T12:00:05Z")
+        self.assertEqual(sink.calls, [])
 
 
 # --------------------------------------------------------------------------- #

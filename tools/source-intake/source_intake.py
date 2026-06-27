@@ -213,7 +213,15 @@ class GitHubReadOnlyClient:
             headers["X-GitHub-Api-Version"] = "2022-11-28"
         if self.token:                       # I2: header attached only when token present
             headers["Authorization"] = "Bearer " + self.token   # mirrors scout.py read-only auth
-        status, hdrs, body = self.transport.get(full, headers)
+        try:
+            status, hdrs, body = self.transport.get(full, headers)
+        except IntakeFatal:
+            raise
+        except (urllib.error.URLError, OSError) as e:
+            raise IntakeFatal(
+                "GitHub transport failure for %s: %s: %s. Network/TLS transport "
+                "condition, not a code error; fail-closed." % (full, type(e).__name__, e)
+            ) from e
         self.call_log.append({"kind": kind, "url": full, "status": status})
         if status == 403 and hdrs.get("x-ratelimit-remaining") == "0":
             raise IntakeFatal("GitHub rate limit exhausted (read budget). Stop; retry later "
