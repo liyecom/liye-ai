@@ -1,7 +1,10 @@
-# source-intake SPEC v1.0 — 受治理的 URL→产物轨道（github-scout × 官方 skill-creator 接缝）
+# source-intake SPEC v1.1 — 受治理的 URL→产物轨道（github-scout × 官方 skill-creator 接缝）
 
-**Status**: **v1.0 DRAFT**（operator 有条件通过整轨 2026-06-27：PR1 退役已合并 `432c198`；**本 SPEC = PR2，待 operator Accept**；PR3 impl / PR4 integration 只在本 SPEC 合并后启动）
-**Date**: 2026-06-27（接 skill-forge 退役 PR1 #182；双评 [我 + Codex] 收敛 + 代码核验后成稿）
+**Status**: **v1.1 DRAFT**（v1.0 → Codex 复审抓 2 blocker → v1.1 amend；**本 SPEC = PR2，待 operator Accept**；PR3 impl / PR4 integration 只在本 SPEC 合并后启动）
+**Date**: 2026-06-27（v1.0 双评成稿 → v1.1 Codex 复审 amend）
+**v1.1 amend（Codex #183 复审 2 blocker，均已落地）**:
+- **B1 quick_validate 事实锚更正**：原写「6 键含 `compatibility` + 明示 nested 注释」错；权威 Codex 系统版 `.codex/skills/.system/skill-creator/scripts/quick_validate.py:40` 实为 **5 键无注释**。承重机制改锚为「键检查只比顶层、不下钻 metadata」（§核验接地 + §4，机制成立不靠注释；披露磁盘 5/6 键版本漂移）。
+- **B2 request schema 解耦 scout-emit vs 人类选择**：原 `scout_recommendation` 误把 reference-only/reimplement 当 scout emit；实为 scout 默认 leaf + `allowed_recommendations[]` 菜单。§2.1 拆为 `source`（原样镜像 scout emit）+ `human_decision.chosen_leaf`（人从菜单亲选），并写清 `requested_product × chosen_leaf` 条件 + 新增 N11（chosen_leaf 须 ∈ scout allowed）。
 **输入基线**: liye_os main HEAD `432c198`（#182 skill-forge retire 已合并）
 **上游权威**:
 - `tools/github-scout/`（scout.py / declaration.yaml / license_policy.yaml SSOT）= 本轨上游探针，**不改一字节**
@@ -16,7 +19,7 @@
 **核验接地**（本 SPEC 全部设计决策的事实基线，均在 main@`432c198` 实测）:
 - scout 报告 candidate **不含 commit_sha**（`scout.py:304-311` metadata 仅 `repo/stars/pushed_at/description/url`）→ revision-pin 的 commit 必须由 source-intake 在 PLAN 阶段经 GitHub API 解析。
 - scout `strong_copyleft` ceiling 已是 `metadata_license`（`license_policy.yaml:85`），obligations `[copyleft-veto, clean-room-reimplement-from-public-docs-only]`（:89）→ scout 本就不抓 GPL repo 的 readme/tree；本轨 correction #3 是其**自然延伸**（source-intake 也不得抓 GPL 源码 tarball）。
-- 官方 `quick_validate.py:42-44` allowed-keys = `{name, description, license, allowed-tools, metadata, compatibility}` 且**明示「excluding nested keys under metadata」** → `metadata.sfc.*` provenance 合法、不触顶层键检查。
+- 官方 `quick_validate.py` 顶层 allowed-keys（Codex 实际系统版 `.codex/skills/.system/skill-creator/scripts/quick_validate.py:40`）= `{name, description, license, allowed-tools, metadata}`（**5 键，无 `compatibility`、无「excluding nested keys under metadata」注释**）。⚠ 磁盘存在版本漂移：部分 `.claude` marketplace 副本为 6 键含 `compatibility`——本 SPEC 不依赖具体 allowed-set。**承重机制 = 键检查 `unexpected_keys = set(frontmatter.keys()) - allowed_properties`（`:42`）只枚举顶层键、从不下钻 `metadata`** → `metadata.sfc.*` 嵌套因此天然通过（与是否 5/6 键、是否有注释无关）。
 - `sfc_ci_gate.mjs:4,17` 只扫 **repo 内** SKILL.md、要求 8 顶层键、CI `--mode warn` 永不失败（:68-70）→ 装在 repo 外的 official-class 产物**永不被它扫到**；零改 gate（correction #4）。
 - `Skills/00_Core_Utilities/development-tools/mcp-builder/SKILL.md` 存在 → mcp-draft delegate 现成。
 
@@ -26,7 +29,7 @@
 
 把 skill-forge 退役后**唯一值得保留的独门能力**——「从外部 GitHub repo / 文档 / llms.txt 的 URL ingest 源材料」——重新实现为 liye_os 受治理的 Layer-0 工具 `tools/source-intake/`，把 operator 设想的「从 URL 一键造 skill」落成一条**诚实形态的受控轨道**：
 
-> **github-scout（发现，只读）→ 人选候选 + 声明意图（语义闸）→ source-intake（pin/license/acquire/represent，机器+沙箱）→ 官方 skill-creator / mcp-builder（build）→ 人审 promote（仪式）。**
+> **github-scout（发现，只读，emit recommendation+allowed 菜单）→ 人选候选 + 从菜单亲选 leaf + 声明意图（语义闸）→ source-intake（pin/license/acquire/represent，机器+沙箱）→ 官方 skill-creator / mcp-builder（build）→ 人审 promote（仪式）。**
 
 **一句话**：保留独门 ingest 能力，但用三道正交闸 + 三类产物把「一键」改写为「人把关、可审计、终点由人拥有」的半自动轨；scout 不被污染，sfc_ci_gate 不被改动，第三方源码永不 vendor 进 repo。
 
@@ -39,7 +42,7 @@
 - **不把第三方源码 vendor 进 liye_os**（照 PR1 纪律：repo 内只留小 manifest，源材料归档/暂存于 repo 外）。
 - **不做真正的「一键」自动流水线**（无人值守 scout→build）。
 - **不在本轨复活 fork/clone-as-dependency**（守 Fork 纪律 + scout I1）。
-- **PR2 不创建 `tools/source-intake/`**（本 SPEC 仅设计；文件由 PR3 materialize，见 §8）。
+- **PR2 不创建 `tools/source-intake/`**（本 SPEC 仅设计；文件由 PR3 materialize，见 Definition of Done）。
 - mcp-draft **不纳入 MVP**（PR4 full-vision；MVP = reference-pack + skill-draft）。
 
 ---
@@ -65,7 +68,7 @@
 | D2 | skill-draft 门槛 | 人选 **reimplement** + **≥3 个真实场景** | 避免「能造就造」；skill-draft = reimplement 的产物，非 vendor 上游 |
 | D3 | 工具落点 | `tools/source-intake/`（Layer-0 Hands，带 declaration.yaml） | 与 github-scout 同层同形 |
 | D4 | 认证 | **NO-SCOPE / read-only token only，禁 ambient gh token** | 复用 scout I2（`declaration.yaml:22`）token 纪律 |
-| D5 | sfc_ci_gate | **零改动**（two-class + metadata.sfc） | `quick_validate.py:42-44` + `sfc_ci_gate.mjs:4` 实证 |
+| D5 | sfc_ci_gate | **零改动**（two-class + metadata.sfc） | `quick_validate.py:40-42`（顶层键检查不下钻 metadata）+ `sfc_ci_gate.mjs:4`（repo-only）实证 |
 | D6 | acquisition | **GitHub pinned tarball 优先于 git clone**；repomix 仅可选压缩 | 避 git protocol 注入/credential helper/submodule/LFS/history |
 | D7 | 旧脚本 | **clean rewrite，不 port**；skill-forge clone 归档 repo 外作参考 | trust-critical 路径全要替换 = 本质重写 |
 | D8 | mcp-draft | **PR4 full-vision，不纳入 MVP**；delegate 既存 mcp-builder | MVP 收敛在 reference-pack + skill-draft |
@@ -90,7 +93,7 @@
 ```
 
 ### S0 — INTAKE_REQUEST（人写，人类闸 #2）
-人据一份 github-scout 报告**亲自**编写 `source_intake_request.json`（schema 见 §2.1）：引用 scout 报告 + 选定 candidate（按 `repo`+`url`）、声明意图与场景、声明目标产物类。**机器不得从 scout 报告自动生成 request**（守 scout I1/non-goal）。这是语义 behavior-fit 的人类断言点。
+人据一份 github-scout 报告**亲自**编写 `source_intake_request.json`（schema 见 §2.1）：引用 scout 报告 + 选定 candidate（按 `repo`+`url`）、**原样镜像 scout emit 的 `recommendation` + `allowed_recommendations[]`（`source` 块）**、**再从该菜单亲选 `human_decision.chosen_leaf`（与 scout emit 解耦）**、声明意图与场景、声明目标产物类。**机器不得从 scout 报告自动生成 request、不得把人类选择伪装成 scout emit 字段**（守 scout I1/non-goal）。这是语义 behavior-fit 的人类断言点。`chosen_leaf` 必须 ∈ scout 该 candidate 的 `allowed_recommendations`（§2.1 约束）。
 
 ### S1 — PIN / RESOLVE（机器，PLAN 阶段）
 - 经 GitHub API 解析 candidate 默认分支 **HEAD commit SHA**（scout 不产此值，见接地）。
@@ -142,12 +145,17 @@
   "requested_by": "human-operator | agent-id",
   "intent": "free-text 需求/想法（WHY）",
   "scenarios": ["≥1；skill-draft 须 ≥3 个真实场景"],
-  "source": {
+  "source": {                             // ⚠ scout 实际 emit 的值，原样镜像，不掺人类选择
     "from_scout_report": "path-or-sha256 of the github-scout report that surfaced this",
     "candidate_repo": "owner/name (== scout candidates[].metadata.repo)",
     "candidate_url": "https://github.com/owner/name (== scout metadata.url)",
-    "scout_recommendation": "needs-human-review | reference-only | reimplement (镜像自 scout，供审计)",
+    "scout_recommendation": "scout emit 的 default leaf（recommend() 的 recommendation 字段，通常 needs-human-review 或 skip）",
+    "scout_allowed_recommendations": ["scout emit 的 allowed_recommendations[] 菜单，原样镜像"],
     "scout_license_tier_advisory": "scout 当时所见 tier（仅 advisory；S2 在 pinned commit 复验为准）"
+  },
+  "human_decision": {                     // ⚠ 人从 scout 的 allowed 菜单里**亲选**，与 scout emit 解耦
+    "chosen_leaf": "reference-only | reimplement | needs-human-review | skip",
+    "rationale": "人为何这样选（语义 behavior-fit 判断）"
   },
   "requested_product": "reference-pack | skill-draft | mcp-draft",
   "human_attestations": {
@@ -156,6 +164,13 @@
   }
 }
 ```
+
+**`requested_product` × `human_decision.chosen_leaf` 条件关系（机器校验，PR3 强制）**：
+- `requested_product=skill-draft` **要求** `chosen_leaf == reimplement` **且** `scenarios.length >= 3` **且** `human_attestations.harvest_adr_ref != null`；否则降级/拒（N6）。
+- `requested_product=reference-pack`（默认）**要求** `chosen_leaf ∈ {reference-only, reimplement, needs-human-review}`（蒸馏不依赖最终复用裁决，但 `skip` 不可启动 intake）。
+- `requested_product=mcp-draft`（非 MVP）同 reference-pack 的 leaf 约束 + delegate mcp-builder。
+- `chosen_leaf == skip` → 不应提交 request（人已自判不取）；若提交则 S2 之前即终止。
+- ⚠ `chosen_leaf` 必须**∈ scout 该 candidate 的 `scout_allowed_recommendations`**（人不能选 scout 该 tier 不允许的 leaf，如对 strong_copyleft 选 reference-only）；越界 = 拒。
 
 ### §2.2 `source_manifest.json`（工具产的 pinned + 审计记录）
 ```jsonc
@@ -246,7 +261,8 @@ future_split_direction: >
 | N3 | pinned-commit 复验 tier 与 scout advisory 不一致（TOCTOU） | 以 pinned-commit 为权威；降级即 fail-closed（哪怕 scout 说 permissive） | correction #1 |
 | N4 | 环境存在 ambient gh token（带任何 classic scope） | 拒；仅 NO-SCOPE/read-only token 放行 | D4 + scout I2 `declaration.yaml:22` |
 | N5 | candidate_url 含 git-protocol 注入（`ext::`/`fd::`/`file://`） | 拒；仅 `https://github.com/...` tarball | D6 |
-| N6 | requested_product=skill-draft 但场景 <3 或本应 reference-pack | 降级/拒（门槛闸） | D2 |
+| N6 | requested_product=skill-draft 但 `chosen_leaf != reimplement` / 场景 <3 / 无 harvest_adr_ref | 降级/拒（门槛闸） | D2 + §2.1 条件 |
+| N11 | `human_decision.chosen_leaf` ∉ scout 该 candidate 的 `allowed_recommendations`（如对 strong_copyleft 选 reference-only） | 拒（人不能越 scout tier 菜单） | §2.1 约束 + `license_policy.yaml` allowed 表 |
 | N7 | 无 human_attestation 的自动 promote 尝试 | 阻断；staged-only | correction #2 + I1 |
 | N8 | permissive-license repo 但 trust 审计 flagged/blocked | 仍阻断 promote（license≠trust） | I4 |
 | N9 | 尝试把已获取源码 vendor 进 repo | 阻断；repo 内仅小 manifest + reference-pack 蒸馏 | PR1 纪律 + I1 |
@@ -259,7 +275,7 @@ future_split_direction: >
 **实证矛盾的化解**：若一个只带 `{name, description, metadata}` 的官方风格 skill 落在 **repo 内**，`sfc_ci_gate.mjs` 会扫到它并报缺 8 键。但：
 1. `sfc_ci_gate.mjs:68-70` 只扫 `--root .`（repo 内）；CI `--mode warn` 永不失败（:4,103）。
 2. official-class 产物**落 repo 外 staging / active install（`~/.claude` | `~/.codex/skills`）** → sfc_ci_gate **永不扫到**。
-3. provenance 骑在 `metadata.sfc.*` → 过官方 `quick_validate.py:42-44`（allowed `metadata` + 明示「excluding nested keys under metadata」）。
+3. provenance 骑在 `metadata.sfc.*` → 过官方 `quick_validate.py`（顶层 allowed 含 `metadata`；键检查 `set(frontmatter.keys()) - allowed_properties` 只比顶层、不递归 metadata，故嵌套 `metadata.sfc.*` 不被拒——承重是机制非注释，见 §核验接地的版本漂移披露）。
 
 ⇒ **两类包**:
 
@@ -314,7 +330,7 @@ metadata:
 
 **PR3（impl）DoD（合并 PR2 后启动）**:
 - [ ] materialize `tools/source-intake/{cli, declaration.yaml}` + 2 JSON Schema 文件（§2）。
-- [ ] §3 负向清单 N1–N10 全部为 fail-closed 测试且绿。
+- [ ] §3 负向清单 N1–N11 全部为 fail-closed 测试且绿。
 - [ ] HG1–HG6 全过；scout / license_policy / sfc_ci_gate 三文件 0-diff 实证。
 - [ ] clean rewrite（D7，不 port 旧 skill-forge 脚本）。
 
@@ -340,4 +356,4 @@ metadata:
 - 被替代能力 provenance：`_meta/skill-factory/retired-skills/skill-forge.yaml`（PR1 #182 `432c198`）
 - 体例范本：`.planning/agentic-evolution/EVO-D-drift-monitor-physical-split/SPEC.md`
 - 记忆锚：memory `project_source_intake_track`
-- **下一步**：operator Accept 本 SPEC（PR2）→ PR3 impl（materialize + N1–N10 测试 + HG1–6）→ PR4 integration（mcp-draft，非 MVP）
+- **下一步**：operator Accept 本 SPEC（PR2）→ PR3 impl（materialize + N1–N11 测试 + HG1–6）→ PR4 integration（mcp-draft，非 MVP）
