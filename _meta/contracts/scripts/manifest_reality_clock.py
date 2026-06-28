@@ -28,7 +28,7 @@ import hashlib
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]            # liye_os/
@@ -101,6 +101,91 @@ def _git_path_dirty(repo: Path, path: Path) -> object:
         return bool([ln for ln in proc.stdout.splitlines() if ln.strip()])
     except Exception:
         return None
+
+
+def _day_eligibility(entries: list) -> dict:
+    """Collapse ledger entries to {utc_date(str): day_is_eligible(bool)}, fail-closed:
+    a day is eligible iff it has >=1 entry AND every entry that day has
+    clock_eligible_day is True. Tolerates entries missing the field (-> not eligible).
+    """
+    by_day: dict = {}
+    for e in entries:
+        d = e.get("utc_date")
+        if not isinstance(d, str):
+            continue
+        ok = e.get("clock_eligible_day") is True
+        by_day[d] = ok if d not in by_day else (by_day[d] and ok)
+    return by_day
+
+
+def analyze_continuity(prior_entries: list, today_entry: dict) -> dict:
+    """PURE continuity analysis. Given the entries already in the ledger plus the
+    entry about to be appended, compute streak/gap metadata. NEVER fabricates days.
+
+    Returns a dict (the value for today_entry['continuity']):
+      prev_entry_utc_date : str|None  last distinct ledger date strictly before today
+      gap_days            : [str]     calendar dates strictly between prev and today
+      continuity_break    : bool      len(gap_days) > 0
+      streak_reset        : bool      prior history exists AND yesterday was not a clean eligible day
+      current_streak_len  : int       consecutive eligible UTC days ending today (0 if today ineligible)
+      streak_start_utc_date : str|None first day of that streak
+    """
+    today_s = today_entry.get("utc_date")
+    today_d = date.fromisoformat(today_s)
+    today_ok = today_entry.get("clock_eligible_day") is True
+
+    day_ok = _day_eligibility(list(prior_entries) + [today_entry])
+
+    prior_dates = sorted({e.get("utc_date") for e in prior_entries
+                          if isinstance(e.get("utc_date"), str)
+                          and date.fromisoformat(e["utc_date"]) < today_d})
+    prev = prior_dates[-1] if prior_dates else None
+
+    gap_days = []
+    if prev is not None:
+        d = date.fromisoformat(prev) + timedelta(days=1)
+        while d < today_d:
+            gap_days.append(d.isoformat())
+            d += timedelta(days=1)
+
+    # streak: walk back day-by-day from today while each day is a clean eligible day
+    streak = 0
+    if today_ok:
+        d = today_d
+        while day_ok.get(d.isoformat()) is True:
+            streak += 1
+            d -= timedelta(days=1)
+    streak_start = (today_d - timedelta(days=streak - 1)).isoformat() if streak > 0 else None
+
+    yesterday = (today_d - timedelta(days=1)).isoformat()
+    streak_reset = (prev is not None) and (day_ok.get(yesterday) is not True)
+
+    return {
+        "prev_entry_utc_date": prev,
+        "gap_days": gap_days,
+        "continuity_break": len(gap_days) > 0,
+        "streak_reset": streak_reset,
+        "current_streak_len": streak,
+        "streak_start_utc_date": streak_start,
+    }
+
+
+def read_ledger(ledger: Path) -> list:
+    """Read existing JSONL ledger entries (tolerant: skip blank/malformed lines).
+    Returns [] if the file does not exist.
+    """
+    if not ledger.exists():
+        return []
+    out = []
+    for ln in ledger.read_text(encoding="utf-8").splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        try:
+            out.append(json.loads(ln))
+        except Exception:
+            continue
+    return out
 
 
 def _expected_manifest_hash() -> object:
@@ -199,7 +284,20 @@ def main() -> int:
     args = ap.parse_args()
 
     entry = run_once(args.engine_repo.resolve(), args.manifest_path.resolve())
+    prior = read_ledger(args.ledger)
+    entry["continuity"] = analyze_continuity(prior, entry)
     print(json.dumps(entry, indent=2, ensure_ascii=False))
+
+    cont = entry["continuity"]
+    if cont["continuity_break"] or cont["streak_reset"]:
+        print(
+            "ALARM: clock continuity break — prev=%s missing=%s streak_reset=%s "
+            "current_streak_len=%s streak_start=%s. NO backfill (fail-closed); "
+            "consecutive-day count restarts." % (
+                cont["prev_entry_utc_date"], cont["gap_days"], cont["streak_reset"],
+                cont["current_streak_len"], cont["streak_start_utc_date"]),
+            file=sys.stderr,
+        )
 
     if args.append:
         append_entry(args.ledger, entry)
