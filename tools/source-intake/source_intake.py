@@ -378,11 +378,9 @@ def gate_decision_for(policy: LicensePolicy, tier_name: str) -> dict:
 # --------------------------------------------------------------------------- #
 # S5 — sandbox audit over acquired content (I4: license-tier != trust-tier)
 # --------------------------------------------------------------------------- #
-_INJECTION_MARKERS = (
+_PROMPT_INJECTION_MARKERS = (
     "ignore previous instructions", "ignore all previous", "disregard the above",
     "disregard all prior", "system prompt", "you are now", "exfiltrate",
-    "curl http", "wget http", "base64 -d", "rm -rf", "<script", "data:text/html",
-    "__suspicious_member_path__", "__tarball_unreadable__",
 )
 _SECRET_RES = (
     re.compile(r"AKIA[0-9A-Z]{16}"),                 # AWS access key id
@@ -390,6 +388,24 @@ _SECRET_RES = (
     re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),     # Slack token
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
 )
+_ARCHIVE_INTEGRITY_MARKERS = (
+    "__suspicious_member_path__", "__tarball_unreadable__",
+)
+_EXECUTABLE_INSTRUCTION_MARKERS = (
+    "curl http", "wget http", "base64 -d", "rm -rf",
+)
+_SUPPLY_CHAIN_RES = (
+    re.compile(r"\bcurl\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash)\b", re.IGNORECASE),
+    re.compile(r"\bwget\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash)\b", re.IGNORECASE),
+    re.compile(r"\bnpx\b[^\n]*@latest\b", re.IGNORECASE),
+)
+_WEB_MARKUP_MARKERS = (
+    "<script", "data:text/html",
+)
+_TRUST_AUDIT_CHECKS = [
+    "prompt-injection", "secret-exposure", "archive-integrity",
+    "executable-instructions", "web-markup",
+]
 
 
 def extract_text_samples(tar_gz_bytes: bytes, max_members: int = 200,
@@ -430,17 +446,62 @@ def audit_staged_content(samples: list) -> dict:
     findings: list[dict] = []
     blob = "\n".join(s for s in samples if isinstance(s, str))
     low = blob.lower()
-    for marker in _INJECTION_MARKERS:
+
+    for marker in _PROMPT_INJECTION_MARKERS:
         if marker in low:
-            findings.append({"check": "prompt-injection", "marker": marker})
+            findings.append({
+                "class": "prompt-injection",
+                "severity": "blocked",
+                "marker": marker,
+            })
     for rx in _SECRET_RES:
         if rx.search(blob):
-            findings.append({"check": "secret-scan", "pattern": rx.pattern})
-    verdict = "blocked" if findings else "flagged"
+            findings.append({
+                "class": "secret-exposure",
+                "severity": "blocked",
+                "pattern": rx.pattern,
+            })
+    for marker in _ARCHIVE_INTEGRITY_MARKERS:
+        if marker in low:
+            findings.append({
+                "class": "archive-integrity",
+                "severity": "blocked",
+                "marker": marker,
+            })
+    for marker in _EXECUTABLE_INSTRUCTION_MARKERS:
+        if marker in low:
+            findings.append({
+                "class": "executable-instructions",
+                "severity": "info",
+                "marker": marker,
+            })
+    for rx in _SUPPLY_CHAIN_RES:
+        if rx.search(blob):
+            findings.append({
+                "class": "executable-instructions",
+                "severity": "flagged",
+                "risk": "supply-chain-pattern",
+                "pattern": rx.pattern,
+            })
+    for marker in _WEB_MARKUP_MARKERS:
+        if marker in low:
+            findings.append({
+                "class": "web-markup",
+                "severity": "flagged",
+                "marker": marker,
+            })
+
+    blocking_classes = sorted({f["class"] for f in findings if f["severity"] == "blocked"})
+    verdict = "blocked" if blocking_classes else "flagged"
+    if blocking_classes:
+        verdict_rationale = "blocked: %s finding(s) at severity=blocked" % ", ".join(blocking_classes)
+    else:
+        verdict_rationale = "flagged: no blocking finding; machine never emits pass"
     return {
         "verdict": verdict,
-        "checks": ["prompt-injection", "lethal-trifecta-surface", "secret-scan"],
+        "checks": _TRUST_AUDIT_CHECKS,
         "findings": findings,
+        "verdict_rationale": verdict_rationale,
         "machine_can_pass": False,   # only a human upgrades 'flagged' -> 'pass' at S6
         "notes": "license-tier != trust-tier; audited regardless of license permissiveness (I4).",
     }
