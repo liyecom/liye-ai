@@ -1,0 +1,38 @@
+# Manifest Reality Clock Continuity Tests
+#
+# Dedicated Python test gate for the manifest-reality 30-day clock runner.
+# The suite is self-contained, stdlib-only, and has ZERO cross-repo / network
+# dependency; it uses synthetic temp ledgers only. This PR keeps
+# clock_eligible_day and the main exit-code contract unchanged.
+
+name: Manifest Reality Clock Tests
+
+on:
+  pull_request:
+    paths:
+      - '_meta/contracts/scripts/manifest_reality_clock.py'
+      - '_meta/contracts/scripts/test_manifest_reality_clock.py'
+      - '_meta/contracts/scripts/manifest_reality_clock_README.md'
+      - '.github/workflows/manifest-reality-clock-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - '_meta/contracts/scripts/manifest_reality_clock.py'
+      - '_meta/contracts/scripts/test_manifest_reality_clock.py'
+      - '_meta/contracts/scripts/manifest_reality_clock_README.md'
+      - '.github/workflows/manifest-reality-clock-tests.yml'
+
+jobs:
+  python-tests:
+    name: unittest (manifest_reality_clock)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run manifest reality clock unittest
+        run: python3 _meta/contracts/scripts/test_manifest_reality_clock.py

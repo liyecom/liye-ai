@@ -28,6 +28,24 @@ scheduler's non-zero exit never loses the record.
 Gate-open evidence = **30 consecutive UTC-day PASS**. Any missing day OR any
 non-PASS entry resets the count (fail-closed). One run per UTC day.
 
+Each entry now includes a `continuity` block:
+
+- `prev_entry_utc_date` — last distinct ledger date strictly before today, or
+  `null` for genesis.
+- `gap_days` — UTC dates strictly between the previous ledger date and today.
+- `continuity_break` — `true` when `gap_days` is non-empty.
+- `streak_reset` — `true` when prior history exists and yesterday was not a
+  clean eligible day, either because it is missing or because it has a non-PASS
+  entry.
+- `current_streak_len` — consecutive eligible UTC days ending today, or `0` if
+  today is not eligible.
+- `streak_start_utc_date` — first UTC date in the current streak, or `null`.
+
+If `continuity_break` or `streak_reset` is true, the runner also emits a loud
+stderr `ALARM` line. On wake, the runner records only TODAY and never backfills
+a past day's PASS; a gap is surfaced in the field and alarm, never silently
+healed.
+
 ## Executor options
 
 | Option | Pros | Cons | When |
