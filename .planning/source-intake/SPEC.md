@@ -127,7 +127,30 @@
 ### S5 — STAGE + TRUST_AUDIT（机器+人，人类闸 #3 前置；correction #2 + trust 闸）
 - **correction #2**：official-class 产物落 **staging（repo 外，如 `~/.claude/skills-staging/`）**，**绝不 active install**。
 - **trust 沙箱闸**：对已获取源材料 + 生成草案做注入 / lethal-trifecta surface / secret-scan 审计，**无论 license tier 多宽松**（license≠trust）。verdict ∈ `{pass, flagged, blocked}` 记入 manifest。
-- `blocked`/`flagged` → 阻断 promote（哪怕 permissive license）。
+- `blocked`/`flagged` → 阻断**自动** promote（哪怕 permissive license）；`flagged` 经 S6 人类仪式可被升级为 `pass`，`blocked` 须先 remediate（见下 taxonomy）。
+
+#### S5 trust-audit taxonomy（v1；#188 裁决落定）
+> **设计切口**：severity 是 **finding 类的属性**，verdict 是**派生**——不是「有 finding ⟹ blocked」的扁平 bit。这样良性 install 片段（README 的 `curl`、Makefile 的 `rm -rf`）不再被冒充成 prompt-injection，`flagged → 人在 S6 升 pass` 通道才真正可达。
+
+| 类 | 是什么 | 成员 | 默认 severity |
+|----|--------|------|----------------|
+| **C1** prompt-injection (LLM01) | 劫持消费它的 LLM 的指令 | `ignore previous instructions` / `ignore all previous` / `disregard the above` / `disregard all prior` / `system prompt` / `you are now` / `exfiltrate` | **blocked** |
+| **C2** secret-exposure | 真凭证**格式** | `AKIA…` / `ghp_…` / `xox[baprs]-…` / `-----BEGIN … PRIVATE KEY-----`（**不**加 placeholder allowlist） | **blocked** |
+| **C3** archive-integrity | tarball 自身的结构红旗（非内容） | `__SUSPICIOUS_MEMBER_PATH__`（traversal/绝对路径）/ `__TARBALL_UNREADABLE__` | **blocked** |
+| **C4** executable-instructions | docs/build 里**预期**的 shell/install 片段 | `curl http` / `wget http` / `base64 -d` / `rm -rf` | **info**（不 gate verdict） |
+| **C4** supply-chain anti-pattern | 高风险供应链形态（C4 子类） | `curl … \| sh`（pipe-to-shell）/ `npx …@latest`（不锁版） | **flagged**（带 `risk=supply-chain-pattern`；**不** blocked） |
+| **C5** web/markup | XSS 式标记 | `<script` / `data:text/html` | **flagged** |
+
+**verdict 规则（写死，极简）：**
+```
+verdict = "blocked"  if any(finding.severity == "blocked")   # 仅 C1 / C2 / C3
+        = "flagged"  otherwise                                # 含 repos 只命中 C4(info/flagged) / C5
+machine_can_pass = False                                       # 机器永不 emit pass；只有 info 也仍是 flagged
+```
+manifest 的 `trust_audit` 逐条记录 `class` + `severity`（+ supply-chain 子类记 `risk`）+ 命中位置，外加 `verdict_rationale`（哪一类驱动了 verdict）。S6 人因此能看清每条命中及其 flagged/blocked 缘由。
+
+**v1 scope 边界（明确不做）：** ❌ file-type 感知（Makefile/*.sh 里 C4=预期 vs 异常文件升级）→ **v2**；❌ 200-member cap 覆盖率字段（`audit_sampled_members`/`truncated`）→ **defer**，等第二个大 repo。v1 只按 **marker 身份**分桶——足以解除 KuudoAI 类误 block。
+**invariant 不变：** I4（无论 license tier 一律审计）+ `machine_can_pass=False`（机器永不 grant pass）——本次只改 blocked↔flagged 切分，不动机器→pass 边界。
 
 ### S6 — PROMOTE（人类仪式）
 人审 staged 产物 + trust 审计后决定落地。工具**永不自动 promote**（镜像 scout「needs-human-review」+ harvest-ADR）:
@@ -209,9 +232,16 @@
     "staged_path": "<repo 外 quarantine 目录>",
     "representation": "raw | repomix-compressed"
   },
-  "trust_audit": {                               // 人类闸 #3
-    "verdict": "pass | flagged | blocked",
-    "checks": ["prompt-injection", "lethal-trifecta-surface", "secret-scan"],
+  "trust_audit": {                               // 人类闸 #3（v1 taxonomy，#188）
+    "verdict": "pass | flagged | blocked",       // 机器只 emit flagged/blocked；人在 S6 升 flagged->pass
+    "checks": ["prompt-injection", "secret-exposure", "archive-integrity", "executable-instructions", "web-markup"],
+    "findings": [                                 // 逐条带 class + severity（+ supply-chain 子类 risk）
+      { "class": "executable-instructions", "severity": "info", "marker": "curl http" },
+      { "class": "executable-instructions", "severity": "flagged", "risk": "supply-chain-pattern", "pattern": "curl…|sh" },
+      { "class": "web-markup", "severity": "flagged", "marker": "<script" }
+    ],
+    "verdict_rationale": "flagged: no blocking finding; machine never emits pass",
+    "machine_can_pass": false,
     "notes": "license-tier != trust-tier；无论 permissive 与否一律审计"
   },
   "product": {
@@ -268,7 +298,7 @@ future_split_direction: >
 | N6 | requested_product=skill-draft 但 `chosen_leaf != reimplement` / 场景 <3 / 无 harvest_adr_ref | 降级/拒（门槛闸） | D2 + §2.1 条件 |
 | N11 | `human_decision.chosen_leaf` ∉ scout 该 candidate 的 `allowed_recommendations`（如对 strong_copyleft 选 reference-only） | 拒（人不能越 scout tier 菜单） | §2.1 约束 + `license_policy.yaml` allowed 表 |
 | N7 | 无 human_attestation 的自动 promote 尝试 | 阻断；staged-only | correction #2 + I1 |
-| N8 | permissive-license repo 但 trust 审计 flagged/blocked | 仍阻断 promote（license≠trust） | I4 |
+| N8 | permissive-license repo 但 trust 审计 flagged/blocked | 仍阻断**自动** promote（license≠trust）；机器永不 emit `pass`，唯 S6 人类仪式可将 `flagged` 升 `pass`（`blocked` 须先 remediate，见 S5 taxonomy） | I4 |
 | N9 | 尝试把已获取源码 vendor 进 repo | 阻断；repo 内仅小 manifest + reference-pack 蒸馏 | PR1 纪律 + I1 |
 | N10 | 重下载 tarball_sha256 与 manifest 不一致 | fail-closed | S3 |
 

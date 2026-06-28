@@ -63,10 +63,27 @@
     "trust_audit": {
       "type": ["object", "null"],
       "additionalProperties": false,
+      "description": "v1 taxonomy (#188): severity is a property of the finding class; verdict is derived (blocked iff any finding severity==blocked, else flagged). machine_can_pass stays false (I4 unchanged).",
       "properties": {
         "verdict": {"enum": ["pass", "flagged", "blocked"], "description": "machine emits only flagged/blocked; a human upgrades flagged->pass at S6"},
-        "checks": {"type": "array", "items": {"type": "string"}},
-        "findings": {"type": "array", "items": {"type": "object"}},
+        "checks": {"type": "array", "items": {"type": "string"}, "description": "taxonomy class list audited"},
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["class", "severity"],
+            "properties": {
+              "class": {"enum": ["prompt-injection", "secret-exposure", "archive-integrity", "executable-instructions", "web-markup"]},
+              "severity": {"enum": ["blocked", "flagged", "info"], "description": "only blocked drives verdict=blocked"},
+              "marker": {"type": "string", "description": "matched substring marker (C1/C3/C4/C5)"},
+              "pattern": {"type": "string", "description": "matched regex pattern (C2 / C4 supply-chain)"},
+              "risk": {"type": "string", "description": "sub-class tag, e.g. supply-chain-pattern"},
+              "location": {"type": "string"}
+            }
+          }
+        },
+        "verdict_rationale": {"type": "string", "description": "which finding class drove the verdict"},
         "machine_can_pass": {"type": "boolean", "const": false},
         "notes": {"type": "string"}
       }
