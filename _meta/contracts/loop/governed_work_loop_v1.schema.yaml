@@ -544,7 +544,9 @@ allOf:
       required: [loop_identity, runtime]
 
   # C7: runner_enforced requires a HASH-anchored runner attestation (ref + hash, not
-  #     just a self-declared ref).
+  #     just a self-declared ref) AND a runner that actually exists — level must be
+  #     internal_beta+. "Enforced by a level:none runner" is the contradiction this pins:
+  #     a hash can be attached to a contract that declares there is no runner.
   - if:
       properties:
         contract_status: { const: runner_enforced }
@@ -555,8 +557,9 @@ allOf:
           required: [runner_readiness]
           properties:
             runner_readiness:
-              required: [attestation_ref, attested_hash]
+              required: [level, attestation_ref, attested_hash]
               properties:
+                level: { enum: [internal_beta, production_ready] }
                 attestation_ref: { type: string, minLength: 1 }
       required: [loop_identity]
 

@@ -64,6 +64,25 @@ function pathTouchesControlPlane(p) {
   if (p.endsWith('.schema.yaml')) return true;
   return p.split('/').some((seg) => CONTROL_PLANE_SEGMENTS.includes(seg));
 }
+
+// no_mutation is the SAME class of self-reported flag (it gates C2 fail_closed + C3
+// replay_safe). A loop can claim no_mutation:true while listing write actions, dodging
+// both. We DERIVE mutation from allowed_actions: any action token whose stem is a
+// mutating verb. Conservative by design — over-reporting (flagging a read-only action)
+// only forces the safe no_mutation:false path; under-reporting (missing a real write)
+// is the danger we close. Mirrors the control_plane_touch derivation above.
+const MUTATING_ACTION_STEMS = [
+  'write', 'patch', 'delete', 'put', 'post', 'mutate', 'apply',
+  'create', 'update', 'remove', 'push', 'upsert', 'overwrite',
+];
+function actionImpliesMutation(action) {
+  if (typeof action !== 'string') return false;
+  return action
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .some((tok) => tok && MUTATING_ACTION_STEMS.some((stem) => tok.startsWith(stem)));
+}
+
 function semanticErrors(doc) {
   const errs = [];
   const roots = doc?.scope?.scope_roots;
@@ -72,6 +91,13 @@ function semanticErrors(doc) {
     const declared = doc?.scope?.control_plane_touch === true;
     if (hit && !declared) {
       errs.push(`/scope/control_plane_touch derived=true (scope_root "${hit}" hits the control plane) but declared=false`);
+    }
+  }
+  const actions = doc?.scope?.allowed_actions;
+  if (Array.isArray(actions) && doc?.scope?.no_mutation === true) {
+    const mut = actions.find(actionImpliesMutation);
+    if (mut) {
+      errs.push(`/scope/no_mutation derived=mutation (allowed_action "${mut}" is a write) but declared=true — a mutation loop cannot self-report read-only (bypasses C2/C3)`);
     }
   }
   return errs;

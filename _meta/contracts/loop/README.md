@@ -32,7 +32,8 @@ yet** (`contract_status: schema_validated_only`) — pilots are driven attended.
 - **C6** `unattended_autonomous` ⇒ an `internal_beta`+ runner that BINDS the full
   attestation bundle: `attestation_ref` + `attested_hash` + `dedupe_key` + `lock_ref`.
 - **C7** `runner_enforced` ⇒ a hash-anchored attestation (`attestation_ref` +
-  `attested_hash`), not a self-declared ref.
+  `attested_hash`) **and** a runner that exists (`runner_readiness.level` ∈
+  `internal_beta` / `production_ready`) — you cannot "enforce" with a `level:none` runner.
 - **C8** a `per_run` instance ⇒ every authoritative evidence item carries the trust
   anchor `artifact_ref` + `sha256_hash` + `captured_at`. Templates may omit these — no
   run has happened yet, so a placeholder hash would be a fake (and a fake is a smell).
@@ -44,6 +45,12 @@ yet** (`contract_status: schema_validated_only`) — pilots are driven attended.
   the declared flag. A self-reported `false` over a control-plane scope is **rejected** —
   the flag that gates C4 cannot be quietly under-reported. Over-reporting (`true` while
   derived `false`) is allowed: that is the fail-closed direction.
+- `no_mutation` is **derived** from `allowed_actions` — any action whose token stem is a
+  mutating verb (`write` / `patch` / `delete` / `put` / `post` / `apply` / `create` /
+  `update` / `remove` / `mutate` / `push` / `upsert` / `overwrite`) makes the loop a
+  mutation loop. A self-reported `no_mutation:true` alongside a write action is
+  **rejected** — otherwise a mutation loop disguises itself as read-only and dodges C2/C3.
+  Over-reporting is the safe direction (forces the `no_mutation:false` fail-closed path).
 
 ## Design invariants baked in
 
@@ -64,9 +71,9 @@ node _meta/contracts/scripts/validate-governed-work-loop.mjs
 ```
 
 Templates and `valid_*` fixtures MUST pass **both layers**; `invalid_*` fixtures MUST be
-rejected by their target constraint (C1–C8 at Layer A, or the control-plane derivation at
-Layer B). The validator prints the violated keyword/layer so each rejection is for the
-right reason. Exit 0 = all met expectation, 1 = fail-closed.
+rejected by their target constraint (C1–C8 at Layer A, or a Layer-B derivation —
+control-plane or mutation). The validator prints the violated keyword/layer so each
+rejection is for the right reason. Exit 0 = all met expectation, 1 = fail-closed.
 
 ## Not in scope (v1)
 
@@ -75,4 +82,8 @@ right reason. Exit 0 = all met expectation, 1 = fail-closed.
 - Not declaring loamwise Layer 1 a unified autonomous loop runner — WriteEngine is a
   single-TaskRun orchestrator ("Not a scheduler. Not a worker. Not an autonomous loop.")
   with mock dispatchers (beta-readiness). Runner is a later, attested build.
-- CI wiring deferred (Actions billing blocked); validator is operator/local-run for now.
+- **CI / contracts-gate wiring deferred** (Actions billing blocked). This validator is
+  **not** registered in the contracts gate (`validate-contracts.mjs`), so a green
+  Contracts-Gate / CI run does **not** exercise C1–C8 or the Layer-B derivations —
+  enforcement is by running this script directly (operator/local). Wiring it into the
+  gate is a tracked follow-up; CI-green must not be read as "C1–C8 covered".
