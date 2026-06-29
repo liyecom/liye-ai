@@ -67,20 +67,24 @@ function pathTouchesControlPlane(p) {
 
 // no_mutation is the SAME class of self-reported flag (it gates C2 fail_closed + C3
 // replay_safe). A loop can claim no_mutation:true while listing write actions, dodging
-// both. We DERIVE mutation from allowed_actions: any action token whose stem is a
-// mutating verb. Conservative by design — over-reporting (flagging a read-only action)
-// only forces the safe no_mutation:false path; under-reporting (missing a real write)
-// is the danger we close. Mirrors the control_plane_touch derivation above.
-const MUTATING_ACTION_STEMS = [
-  'write', 'patch', 'delete', 'put', 'post', 'mutate', 'apply',
-  'create', 'update', 'remove', 'push', 'upsert', 'overwrite',
-];
-function actionImpliesMutation(action) {
-  if (typeof action !== 'string') return false;
-  return action
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .some((tok) => tok && MUTATING_ACTION_STEMS.some((stem) => tok.startsWith(stem)));
+// both. A mutating-verb BLACKLIST leaks forever — edit_file / modify_bid / set_budget /
+// send_email / rename_file / execute_request are all writes that no finite stem list
+// catches. So we use the inverse: a deny-by-default READ-ONLY ALLOWLIST. A no_mutation
+// loop may ONLY draw from this governed read-only vocabulary; ANY other action (or a
+// non-string) makes it a mutation loop. Over-restricting (rejecting a genuine read-only
+// action not yet listed) is the SAFE direction — the author adds it here (a deliberate,
+// reviewed schema change) or declares no_mutation:false. Mirrors the control_plane_touch
+// derivation: a load-bearing flag is never trusted blind.
+const READ_ONLY_ACTIONS = new Set([
+  'read_file',           // read a file within scope
+  'grep',                // search file contents
+  'run_tests',           // execute a checker/verifier — observes; does not mutate scope
+  'emit_candidate_diff', // PROPOSE a diff (proposes_only) — never self-applies
+  'emit_review_card',    // emit a review/finding artifact
+]);
+function isMutatingAction(action) {
+  // deny-by-default: anything not EXACTLY in the read-only vocabulary is a mutation.
+  return !READ_ONLY_ACTIONS.has(action);
 }
 
 function semanticErrors(doc) {
@@ -95,9 +99,10 @@ function semanticErrors(doc) {
   }
   const actions = doc?.scope?.allowed_actions;
   if (Array.isArray(actions) && doc?.scope?.no_mutation === true) {
-    const mut = actions.find(actionImpliesMutation);
-    if (mut) {
-      errs.push(`/scope/no_mutation derived=mutation (allowed_action "${mut}" is a write) but declared=true — a mutation loop cannot self-report read-only (bypasses C2/C3)`);
+    const offending = actions.filter(isMutatingAction);
+    if (offending.length) {
+      const allow = [...READ_ONLY_ACTIONS].join(', ');
+      errs.push(`/scope/no_mutation declared=true but allowed_action(s) [${offending.join(', ')}] are not in the read-only allowlist {${allow}} — read-only is deny-by-default; any non-allowlisted action counts as a mutation (bypasses C2/C3). Declare no_mutation:false, or add the action to READ_ONLY_ACTIONS (a governed change)`);
     }
   }
   return errs;

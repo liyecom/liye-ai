@@ -45,12 +45,17 @@ yet** (`contract_status: schema_validated_only`) — pilots are driven attended.
   the declared flag. A self-reported `false` over a control-plane scope is **rejected** —
   the flag that gates C4 cannot be quietly under-reported. Over-reporting (`true` while
   derived `false`) is allowed: that is the fail-closed direction.
-- `no_mutation` is **derived** from `allowed_actions` — any action whose token stem is a
-  mutating verb (`write` / `patch` / `delete` / `put` / `post` / `apply` / `create` /
-  `update` / `remove` / `mutate` / `push` / `upsert` / `overwrite`) makes the loop a
-  mutation loop. A self-reported `no_mutation:true` alongside a write action is
-  **rejected** — otherwise a mutation loop disguises itself as read-only and dodges C2/C3.
-  Over-reporting is the safe direction (forces the `no_mutation:false` fail-closed path).
+- `no_mutation` is checked against `allowed_actions` by a **deny-by-default read-only
+  allowlist** (`read_file` / `grep` / `run_tests` / `emit_candidate_diff` /
+  `emit_review_card`). A `no_mutation:true` loop may draw ONLY from this governed
+  vocabulary; **any** other action counts as a mutation and the self-reported
+  `no_mutation:true` is **rejected** — otherwise a mutation loop disguises itself as
+  read-only and dodges C2/C3. (A mutating-verb *blacklist* was tried first and leaks
+  forever — `edit_file` / `modify_bid` / `set_budget` / `execute_request` are writes no
+  finite stem list catches.) Over-restricting is the safe direction: a genuine read-only
+  action not yet listed is either added to the allowlist (a deliberate, reviewed schema
+  change) or the loop declares `no_mutation:false`. A richer structured-action model
+  (`{id, mutation_class}`) that lets the class itself drive C2/C3 is a deferred follow-up.
 
 ## Design invariants baked in
 
