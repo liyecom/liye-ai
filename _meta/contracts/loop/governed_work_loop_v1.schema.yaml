@@ -1,0 +1,578 @@
+# Governed Work Loop Contract v1.0.0
+# SSOT: _meta/contracts/loop/governed_work_loop_v1.schema.yaml
+#
+# WHAT THIS IS
+#   A draft-07 schema that validates a *governed work loop* contract — the
+#   declarative "task contract / runtime SLA" for any repeated agent loop that
+#   reads context → acts → verifies → repeats toward a verifiable stop condition.
+#   It is the SCHEMA layer of a deliberate three-layer split:
+#       1. schema   (this file)                — defines what a valid loop contract IS
+#       2. template (loop/templates/*.yaml)    — reusable per-loop-type fixed process
+#       3. instance (state/runtime/loop/*)     — one filled run (loop_id, evidence refs/hashes)
+#   instance_scope distinguishes layers 2/3; this schema validates both.
+#
+# WHY IT EXISTS (design lineage)
+#   Consolidates fragments already scattered across CLAUDE.md / DEFAULT_SKILL_POLICY /
+#   stop_gate.mjs / GHL Hard Gates / learning contracts / Session-Handoff discipline
+#   into ONE machine-checkable contract. Field set follows the five-field "task
+#   contract" (scope, invariants, evidence, budget, wrap-up) plus a verification spine
+#   (independent grader, deterministic stop). See design notes below.
+#
+# AUTHORITY / DOCTRINE (the load-bearing invariants this schema encodes)
+#   - BGHS (SYSTEMS.md "架构原则"): a loop's grader/stop ∈ Governance (cross-model-
+#     generation invariant), NOT Brain (model-contingent). => C1: any BLOCKING hard
+#     invariant must be graded deterministically, never by a model.
+#   - Evidence form is artifact_ref + sha256 (+ provenance), mirroring
+#     learning/fact_run_outcome_event_v1 ("payload reference — NOT raw_payload itself").
+#     A transcript <EVIDENCE> envelope is display-only, never the stop-gate fact source.
+#   - No new lifecycle FSM (GHL discipline): next_action_card is a VIEW over existing
+#     loamwise TaskStatus / NextStep / VerdictDecision, locked via const map below.
+#   - Runner reality (loamwise execute/write_engine.py: "Not a scheduler. Not a worker.
+#     Not an autonomous loop."; beta-readiness: all dispatchers mock, InMemory only):
+#     => C5/C6 forbid unattended_autonomous on a none/mock_proven runner; runner
+#     readiness is ATTESTED (C7), never self-declared.
+#   - Idempotency (loamwise IdempotencyResult primitive; GHL "写侧幂等" invariant):
+#     => C3 any mutation loop must declare replay_safe.
+#   - control_plane_mutation is proposes_only scoped to control-plane touches only
+#     (C4), not a global gag on all mutation.
+#
+# STATUS
+#   contract_status: schema_validated_only is the v1 reality — this ships a contract
+#   language + validator + manually/semi-manually driven pilots. NO autonomous runner
+#   is behind it yet; runner_enforced is a later, attested build.
+#
+# Validate:  node _meta/contracts/scripts/validate-governed-work-loop.mjs
+# Exit codes: 0 = all fixtures meet expectation, 1 = fail-closed.
+#
+# Normative: C-v4 decision (this package) + report goal-长任务Agent目标控制面 §3 (five
+#   fields) §6.3 (wrap-up mandatory) + Anthropic agent loop (gather→act→verify→repeat).
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/loop/governed_work_loop.v1"
+title: "Governed Work Loop Contract v1"
+description: "Declarative task contract / runtime SLA for a governed agent work loop. Schema layer of the schema/template/instance split."
+version: "1.0.0"
+type: object
+
+required:
+  - contract_kind
+  - schema_version
+  - contract_status
+  - instance_scope
+  - goal
+  - scope
+  - invariants
+  - evidence
+  - checker
+  - runtime
+  - budget
+  - control_plane_mutation
+  - next_action_card
+  - wrap_up
+
+properties:
+  # ----------------------------------------------------------------------- #
+  # Envelope
+  # ----------------------------------------------------------------------- #
+  contract_kind:
+    type: string
+    const: "governed_work_loop"
+
+  schema_version:
+    type: string
+    const: "1.0.0"
+
+  contract_status:
+    type: string
+    enum: [schema_validated_only, runner_enforced]
+    description: "v1 ships schema_validated_only. runner_enforced requires an attested runner (C7)."
+
+  instance_scope:
+    type: string
+    enum: [template, per_run]
+    description: "template = reusable per-loop-type definition; per_run = one filled execution."
+
+  # ----------------------------------------------------------------------- #
+  # Identity & runner binding (optional until runner_enforced)
+  # ----------------------------------------------------------------------- #
+  loop_identity:
+    type: object
+    additionalProperties: false
+    properties:
+      loop_id:
+        type: string
+        description: "Stable id for this loop instance (per_run)."
+      template_ref:
+        type: string
+        description: "Path/id of the template this instance was derived from."
+      runner_ref:
+        type: string
+        description: "Which executor will run iterations. Today: single_taskrun_executor only."
+      runner_readiness:
+        type: object
+        additionalProperties: false
+        required: [level]
+        properties:
+          level:
+            type: string
+            enum: [none, mock_proven, internal_beta, production_ready]
+            description: "Runner maturity. loamwise WriteEngine is single-run + mock dispatchers => internal_beta at most; real-action loops => mock_proven."
+          attestation_ref:
+            type: string
+            description: "Hash-anchored attestation artifact (phase4_prereq_attestation-style). Required when runner_enforced (C7). NOT self-declared."
+          attested_hash:
+            type: string
+            pattern: "^[a-f0-9]{64}$"
+            description: "sha256 of the attestation artifact content."
+
+  # ----------------------------------------------------------------------- #
+  # Goal (the verifiable target + lifecycle, mapped to TaskStatus subset)
+  # ----------------------------------------------------------------------- #
+  goal:
+    type: object
+    additionalProperties: false
+    required: [statement, lifecycle, success_criteria]
+    properties:
+      statement:
+        type: string
+        minLength: 1
+        description: "One sentence: the verifiable end state, not a process."
+      lifecycle:
+        type: string
+        enum: [active, paused, completed, blocked, cancelled]
+        description: "Subset view of loamwise TaskStatus; not a new FSM."
+      success_criteria:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, statement]
+          properties:
+            id: { type: string }
+            statement: { type: string }
+            evidence_ref:
+              type: string
+              description: "Points into evidence.authoritative[] that proves this criterion."
+
+  # ----------------------------------------------------------------------- #
+  # Scope (range + mutation posture). Vague scope => agent treats nice-to-have
+  # as necessary (report §3.1).
+  # ----------------------------------------------------------------------- #
+  scope:
+    type: object
+    additionalProperties: false
+    required: [scope_roots, no_mutation, allowed_actions, control_plane_touch]
+    properties:
+      scope_roots:
+        type: array
+        minItems: 1
+        items: { type: string }
+        description: "Dirs/modules/paths the loop may touch. Ties to Policy 9 Surgical Scope + context-audit."
+      no_mutation:
+        type: boolean
+        description: "true = read-only loop. Gates C2/C3."
+      control_plane_touch:
+        type: boolean
+        description: "true if scope_roots intersect control-plane globs (**/contracts/**, *.schema.yaml, **/policies/**, **/rubrics/**, **/_meta/**). The validator's Layer-B semantic pass DERIVES this from scope_roots and rejects any false negative (a self-reported false here is not trusted); gates C4."
+      allowed_actions:
+        type: array
+        items: { type: string }
+
+  # ----------------------------------------------------------------------- #
+  # Invariants — THE most important field (report §3.1: "agent 很擅长用局部成功
+  # 换全局风险"). Split hard (machine-checkable, blocking) vs review (human/advisory).
+  # ----------------------------------------------------------------------- #
+  invariants:
+    type: object
+    additionalProperties: false
+    required: [hard, review]
+    properties:
+      hard:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, statement, check_method, check_ref, violation_action]
+          properties:
+            id: { type: string }
+            statement: { type: string }
+            check_method:
+              type: string
+              enum: [ast-grep, api-diff, contract-test, lint, hash-equality, exit-code]
+              description: "All deterministic. A hard invariant is never model-judged (enforced by C1)."
+            check_ref:
+              type: string
+              minLength: 1
+              description: "REQUIRED: the concrete command / rule id / contract test that mechanically verifies this invariant. Without it, check_method is a label with nothing bound to it."
+            violation_action:
+              type: string
+              const: blocking
+      review:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, statement, reviewer]
+          properties:
+            id: { type: string }
+            statement: { type: string }
+            reviewer:
+              type: string
+              enum: [human, advisory_llm]
+
+  # ----------------------------------------------------------------------- #
+  # Evidence — authoritative = artifact ref + sha256 (mirrors fact_run_outcome
+  # ref+hash). transcript_envelope is display-only mirror for advisory evaluator.
+  # ----------------------------------------------------------------------- #
+  evidence:
+    type: object
+    additionalProperties: false
+    required: [authoritative]
+    properties:
+      authoritative:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [check, expected]
+          properties:
+            check:
+              type: object
+              additionalProperties: false
+              required: [command]
+              properties:
+                command: { type: string }
+                cwd: { type: string }
+            expected:
+              type: object
+              additionalProperties: false
+              required: [kind, value]
+              properties:
+                kind:
+                  type: string
+                  enum: [exit_code, string_match, byte_equality, hash_equality]
+                value: {}
+            artifact_ref:
+              type: string
+              description: "Repo-relative path to the captured artifact (the authoritative fact)."
+            sha256_hash:
+              type: string
+              pattern: "^[a-f0-9]{64}$"
+              description: "sha256 of artifact content. THIS is the trust anchor (not captured_at)."
+            captured_at:
+              type: string
+              format: date-time
+              description: "Metadata only; never a trust anchor (mtime is unreliable on this host)."
+      transcript_envelope:
+        type: object
+        additionalProperties: false
+        properties:
+          enabled: { type: boolean }
+          role:
+            type: string
+            const: display_only
+            description: "Transcript <EVIDENCE>…</EVIDENCE> feeds the advisory evaluator only. NEVER authoritative."
+          wrapper:
+            type: string
+            const: "<EVIDENCE>…</EVIDENCE>"
+
+  # ----------------------------------------------------------------------- #
+  # Checker — maker≠checker as a declared independence level (not a mechanism).
+  # ----------------------------------------------------------------------- #
+  checker:
+    type: object
+    additionalProperties: false
+    required: [independence_level, on_checker_error, readable_artifacts, hard_gate_grading]
+    properties:
+      independence_level:
+        type: string
+        enum: [deterministic, different_model, fresh_context_same_model, human_review]
+        description: "How independent the checker is from the maker. deterministic is strongest; fresh_context is the MINIMUM, not a substitute for independence."
+      hard_gate_grading:
+        type: string
+        const: deterministic_only
+        description: "Hard invariants/stop gates are graded by deterministic rules only."
+      advisory_evaluator:
+        type: object
+        additionalProperties: false
+        properties:
+          enabled: { type: boolean }
+          evidence_fed_required:
+            type: boolean
+            const: true
+            description: "An LLM evaluator may judge fuzzy criteria ONLY when fed authoritative evidence. It is the weakest signal."
+      on_checker_error:
+        type: string
+        enum: [fail_closed, emit_hold_inconclusive]
+        description: "On checker failure. emit_hold_inconclusive maps to VerdictDecision.HOLD + HoldReason.INSUFFICIENT_EVIDENCE (read-only loops only; C2 forces fail_closed for mutation loops). NEVER interpreted as PASS."
+      readable_artifacts:
+        type: array
+        items: { type: string }
+        description: "Exactly what the checker may read: the diff + criteria + evidence refs. MUST NOT include the maker's reasoning trace."
+      forbids_reading_maker_reasoning:
+        type: boolean
+        const: true
+
+  # ----------------------------------------------------------------------- #
+  # Runtime — attended vs unattended, with launchd dedupe.
+  # ----------------------------------------------------------------------- #
+  runtime:
+    type: object
+    additionalProperties: false
+    required: [mode, scheduler_owner]
+    properties:
+      mode:
+        type: string
+        enum: [attended, unattended_autonomous]
+        description: "attended = /goal or /loop with a human present. unattended_autonomous requires an attested production-grade runner (C6)."
+      scheduler_owner:
+        type: string
+        enum: [launchd, claude_loop, claude_goal, manual]
+        description: "Who drives the cadence. Use launchd for unattended infra (dedupe vs manifest-validator clock / heartbeat runner); claude_loop/claude_goal for attended."
+      dedupe_key:
+        type: string
+      lock_ref:
+        type: string
+      max_concurrency:
+        type: integer
+        minimum: 1
+
+  # ----------------------------------------------------------------------- #
+  # Budget — limits + explicit exhaustion behavior (report §3.4).
+  # ----------------------------------------------------------------------- #
+  budget:
+    type: object
+    additionalProperties: false
+    required: [limits, on_exhaustion]
+    properties:
+      limits:
+        type: object
+        additionalProperties: false
+        minProperties: 1
+        description: "At least one limit is required — an empty budget is no budget (report §3.4)."
+        properties:
+          turns: { type: integer, minimum: 1 }
+          wall_clock_seconds: { type: integer, minimum: 1 }
+          tokens: { type: integer, minimum: 1 }
+      on_exhaustion:
+        type: string
+        const: stop_new_mutations_then_wrap_up
+        description: "At budget end: stop new changes, tidy, hand off. Never hard-continue blindly."
+
+  # ----------------------------------------------------------------------- #
+  # Idempotency — required for mutation loops (C3). Ties to loamwise
+  # IdempotencyResult primitive + runtime.dedupe_key.
+  # ----------------------------------------------------------------------- #
+  idempotency:
+    type: object
+    additionalProperties: false
+    properties:
+      replay_safe:
+        type: boolean
+        description: "Re-running any iteration must not double-act."
+      key_strategy:
+        type: string
+        enum: [per_action_dedupe_key, content_hash, none]
+
+  # ----------------------------------------------------------------------- #
+  # Control-plane mutation posture (C4-gated)
+  # ----------------------------------------------------------------------- #
+  control_plane_mutation:
+    type: string
+    enum: [proposes_only, none]
+    description: "none = loop never touches spec/rubric/contract. proposes_only = may emit candidate changes but NEVER self-applies them (quarantine-first)."
+
+  # ----------------------------------------------------------------------- #
+  # next_action_card — a VIEW over existing loamwise FSMs, locked by const map.
+  # ----------------------------------------------------------------------- #
+  next_action_card:
+    type: object
+    additionalProperties: false
+    required: [enum, maps_to_existing_status]
+    properties:
+      enum:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          enum:
+            - continue
+            - ask_human
+            - stop_success
+            - stop_inconclusive
+            - stop_dormant
+            - escalate_live_authorization
+      maps_to_existing_status:
+        type: object
+        description: "Locked mapping to loamwise TaskStatus / NextStep / VerdictDecision. Prevents a 4th FSM."
+        const:
+          continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+          ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+          stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+          stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+          stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+          escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+  # ----------------------------------------------------------------------- #
+  # Wrap-up — MANDATORY (report §6.3). Failure must be catchable by the next
+  # session/agent. Promotes Session-Handoff discipline to a schema-required field.
+  # ----------------------------------------------------------------------- #
+  wrap_up:
+    type: object
+    additionalProperties: false
+    required: [done, undone, failed_commands, assumptions, next_steps]
+    properties:
+      done: { type: array, items: { type: string } }
+      undone: { type: array, items: { type: string } }
+      failed_commands: { type: array, items: { type: string } }
+      assumptions: { type: array, items: { type: string } }
+      next_steps: { type: array, items: { type: string } }
+
+additionalProperties: false
+
+# =========================================================================== #
+# Cross-field constraints C1–C7: make dangerous combinations unrepresentable.
+# (A "deep interface" = the validator rejects nonsense, not a comment that asks
+# nicely.) Each is an independent if/then under allOf.
+# =========================================================================== #
+allOf:
+  # C1: any BLOCKING hard invariant => the checker grades deterministically.
+  #     (BGHS: a Governance invariant must not be model-judged.)
+  - if:
+      properties:
+        invariants:
+          required: [hard]
+          properties:
+            hard: { minItems: 1 }
+      required: [invariants]
+    then:
+      properties:
+        checker:
+          properties:
+            independence_level: { const: deterministic }
+          required: [independence_level]
+      required: [checker]
+
+  # C2: a mutation loop (no_mutation:false) must fail_closed on checker error.
+  - if:
+      properties:
+        scope:
+          required: [no_mutation]
+          properties:
+            no_mutation: { const: false }
+      required: [scope]
+    then:
+      properties:
+        checker:
+          properties:
+            on_checker_error: { const: fail_closed }
+          required: [on_checker_error]
+      required: [checker]
+
+  # C3: a mutation loop must declare idempotency with replay_safe:true.
+  - if:
+      properties:
+        scope:
+          required: [no_mutation]
+          properties:
+            no_mutation: { const: false }
+      required: [scope]
+    then:
+      properties:
+        idempotency:
+          required: [replay_safe]
+          properties:
+            replay_safe: { const: true }
+      required: [idempotency]
+
+  # C4: touching the control plane => control_plane_mutation must be proposes_only.
+  - if:
+      properties:
+        scope:
+          required: [control_plane_touch]
+          properties:
+            control_plane_touch: { const: true }
+      required: [scope]
+    then:
+      properties:
+        control_plane_mutation: { const: proposes_only }
+      required: [control_plane_mutation]
+
+  # C5: a none/mock_proven runner may only run attended.
+  - if:
+      properties:
+        loop_identity:
+          required: [runner_readiness]
+          properties:
+            runner_readiness:
+              required: [level]
+              properties:
+                level: { enum: [none, mock_proven] }
+      required: [loop_identity]
+    then:
+      properties:
+        runtime:
+          properties:
+            mode: { const: attended }
+          required: [mode]
+      required: [runtime]
+
+  # C6: unattended_autonomous (highest blast radius) requires an internal_beta+ runner
+  #     that BINDS the full attestation bundle — a hash-anchored attestation AND the
+  #     concurrency guards (dedupe_key + lock_ref). A naked level enum is not enough:
+  #     an unattended loop with no attestation/lock is exactly what must be unrepresentable.
+  - if:
+      properties:
+        runtime:
+          required: [mode]
+          properties:
+            mode: { const: unattended_autonomous }
+      required: [runtime]
+    then:
+      properties:
+        loop_identity:
+          required: [runner_readiness]
+          properties:
+            runner_readiness:
+              required: [level, attestation_ref, attested_hash]
+              properties:
+                level: { enum: [internal_beta, production_ready] }
+        runtime:
+          required: [dedupe_key, lock_ref]
+      required: [loop_identity, runtime]
+
+  # C7: runner_enforced requires a HASH-anchored runner attestation (ref + hash, not
+  #     just a self-declared ref).
+  - if:
+      properties:
+        contract_status: { const: runner_enforced }
+      required: [contract_status]
+    then:
+      properties:
+        loop_identity:
+          required: [runner_readiness]
+          properties:
+            runner_readiness:
+              required: [attestation_ref, attested_hash]
+              properties:
+                attestation_ref: { type: string, minLength: 1 }
+      required: [loop_identity]
+
+  # C8: a per_run instance must carry the authoritative trust anchor on EVERY evidence
+  #     item — artifact_ref + sha256_hash + captured_at. (The template layer may omit
+  #     these: no run has happened, so there is no artifact to hash yet.) This is what
+  #     makes "authoritative evidence = artifact_ref + sha256" an enforced fact, not prose.
+  - if:
+      properties:
+        instance_scope: { const: per_run }
+      required: [instance_scope]
+    then:
+      properties:
+        evidence:
+          properties:
+            authoritative:
+              items:
+                required: [check, expected, artifact_ref, sha256_hash, captured_at]
+      required: [evidence]

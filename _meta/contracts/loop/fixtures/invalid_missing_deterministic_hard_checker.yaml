@@ -1,0 +1,75 @@
+# FIXTURE (expect: FAIL on C1) — declares a BLOCKING hard invariant but grades it
+# with a model-judged checker (independence_level != deterministic). BGHS forbids a
+# Governance invariant being model-judged. Everything else is valid to isolate C1.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+goal:
+  statement: "确保 public API 未被改动并给出 verdict。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "src/auth public API 签名零变化。"
+
+scope:
+  scope_roots: ["src/auth", "test/auth"]
+  no_mutation: true
+  control_plane_touch: false
+  allowed_actions: [read_file, grep]
+
+invariants:
+  hard:
+    - id: INV-API
+      statement: "src/auth 的 public API 不得变更。"
+      check_method: api-diff
+      check_ref: "node tools/api-diff.mjs src/auth"
+      violation_action: blocking
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "node tools/api-diff.mjs src/auth"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/api/api_diff.json"
+      sha256_hash: "d4b6f8a0c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6"
+      captured_at: "2026-06-28T09:00:00+00:00"
+
+checker:
+  independence_level: fresh_context_same_model   # <-- VIOLATES C1: hard invariant must be deterministic
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the diff"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+
+budget:
+  limits:
+    turns: 8
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

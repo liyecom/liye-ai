@@ -1,0 +1,80 @@
+# FIXTURE (expect: FAIL on C6) — an unattended_autonomous loop on an internal_beta
+# runner that carries NO attestation bundle. unattended is the highest-blast-radius
+# mode: it must bind attestation_ref + attested_hash + dedupe_key + lock_ref, none of
+# which are present. level=internal_beta so C5 does not force attended; contract_status
+# stays schema_validated_only so C7 does not fire — strengthened C6 is the sole gate.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+loop_identity:
+  loop_id: "drift-monitor-2026-06-28-001"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: internal_beta
+    # attestation_ref / attested_hash OMITTED  <-- VIOLATES C6
+
+goal:
+  statement: "每小时巡检 manifest drift 并发 HOLD/PASS verdict，不改任何文件。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "每轮巡检都产出一条 drift verdict。"
+
+scope:
+  scope_roots: ["state/runtime/manifest"]
+  no_mutation: true
+  control_plane_touch: false
+  allowed_actions: [read_file, grep]
+
+invariants:
+  hard: []
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "node tools/manifest-drift.mjs --check"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/drift/drift_report.json"
+      sha256_hash: "b1d3f5a7c9e0b2d4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2"
+      captured_at: "2026-06-28T09:00:00+00:00"
+
+checker:
+  independence_level: deterministic
+  hard_gate_grading: deterministic_only
+  on_checker_error: fail_closed
+  readable_artifacts: ["the drift report"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: unattended_autonomous   # requires the full attestation bundle (C6)
+  scheduler_owner: launchd
+  # dedupe_key / lock_ref OMITTED  <-- VIOLATES C6
+
+budget:
+  limits:
+    wall_clock_seconds: 600
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, stop_success, stop_inconclusive, stop_dormant]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

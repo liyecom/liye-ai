@@ -1,0 +1,75 @@
+# FIXTURE (expect: FAIL on C2) — a mutation loop (no_mutation:false) that sets
+# on_checker_error: emit_hold_inconclusive. A mutation loop must fail_closed on
+# checker error. idempotency is provided (replay_safe:true) so C3 is satisfied and
+# C2 is the sole violation.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+goal:
+  statement: "修复 test/auth 下失败测试，保持 src/auth public API 不变。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "test/auth 全绿。"
+
+scope:
+  scope_roots: ["src/auth", "test/auth"]
+  no_mutation: false
+  control_plane_touch: false
+  allowed_actions: [read_file, edit_file, run_tests]
+
+invariants:
+  hard: []
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "npm test -- test/auth"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/auth/test_result.json"
+      sha256_hash: "e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8"
+      captured_at: "2026-06-28T09:00:00+00:00"
+
+checker:
+  independence_level: deterministic
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive   # <-- VIOLATES C2: mutation loop must be fail_closed
+  readable_artifacts: ["the diff", "test output"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+
+budget:
+  limits:
+    turns: 20
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+idempotency:
+  replay_safe: true
+  key_strategy: per_action_dedupe_key
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, ask_human, stop_success, stop_inconclusive, stop_dormant]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

@@ -1,0 +1,71 @@
+# FIXTURE (expect: FAIL on C8) — a per_run instance whose authoritative evidence item
+# is missing its sha256_hash (the trust anchor). A per_run instance MUST carry
+# artifact_ref + sha256_hash + captured_at on every authoritative item. Read-only,
+# non-control-plane, hard:[] so C1–C7 do not fire — C8 is the sole violation.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+goal:
+  statement: "汇总 src/reporting 测试结果并给出 verdict，不改任何文件。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "每个 reporting generator 都有一条 pass/fail verdict。"
+
+scope:
+  scope_roots: ["src/reporting"]
+  no_mutation: true
+  control_plane_touch: false
+  allowed_actions: [read_file, grep, run_tests]
+
+invariants:
+  hard: []
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "npm test -- src/reporting"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/reporting/test_result.json"
+      captured_at: "2026-06-28T09:00:00+00:00"
+      # sha256_hash OMITTED  <-- VIOLATES C8: per_run authoritative item needs the hash anchor
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the test output", "the declared criteria"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+
+budget:
+  limits:
+    turns: 8
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, ask_human, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

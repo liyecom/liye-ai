@@ -1,0 +1,90 @@
+# FIXTURE (expect: PASS) — a per_run instance of the read-only architecture review loop.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+loop_identity:
+  loop_id: "arch-review-2026-06-28-001"
+  template_ref: "_meta/contracts/loop/templates/architecture_review_loop.template.yaml"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: none
+
+goal:
+  statement: "为本次 changed files 每个文件给出 boundary verdict，不改任何文件。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "scope 内每个 changed file 都有 verdict。"
+      evidence_ref: "ev_verdict_coverage"
+
+scope:
+  scope_roots:
+    - "_meta/portfolio/SYSTEMS.md"
+    - "_meta/adr/"
+  no_mutation: true
+  control_plane_touch: true   # scope reviews SYSTEMS.md / ADR (control plane); derived by validator Layer B
+  allowed_actions: [read_file, grep, emit_review_card]
+
+invariants:
+  hard: []
+  review:
+    - id: INV-LAYER
+      statement: "Layer 3 不污染 Layer 0。"
+      reviewer: advisory_llm
+
+evidence:
+  authoritative:
+    - check:
+        command: "node _meta/contracts/scripts/list-changed-files.mjs"
+        cwd: "."
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/architecture_review/changed_files.json"
+      sha256_hash: "3b5f1c0a9e2d4b6f8a1c3e5d7b9f0a2c4e6d8b0f1a3c5e7d9b1f3a5c7e9d0b2f"
+      captured_at: "2026-06-28T09:00:00+00:00"
+  transcript_envelope:
+    enabled: true
+    role: display_only
+    wrapper: "<EVIDENCE>…</EVIDENCE>"
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  advisory_evaluator:
+    enabled: true
+    evidence_fed_required: true
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the diff under review", "the declared invariants"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+  max_concurrency: 1
+
+budget:
+  limits:
+    turns: 12
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: proposes_only   # may emit candidate review findings on SYSTEMS.md/ADR; never self-applies (C4)
+
+next_action_card:
+  enum: [continue, ask_human, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []
