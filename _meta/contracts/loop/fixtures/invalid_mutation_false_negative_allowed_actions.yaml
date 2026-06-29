@@ -1,0 +1,88 @@
+# FIXTURE (expect: REJECT) — Finding-1 hardening (PR #194 adversarial review).
+#
+# The loop self-reports no_mutation:true but lists MUTATING allowed_actions
+# (write_file / ads_live_write). Without a Layer-B mutation-derivation guard this
+# PASSES ajv — C2 (fail_closed) and C3 (replay_safe) only trigger on
+# no_mutation:false — so a real mutation loop can disguise itself as read-only and
+# bypass both. Layer B must DERIVE mutation from allowed_actions and reject the
+# false negative, exactly as it already does for control_plane_touch.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: template
+
+loop_identity:
+  template_ref: "_meta/contracts/loop/templates/example.template.yaml"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: none
+
+goal:
+  statement: "宣称只读巡检 src 下文件，但 allowed_actions 含写动作。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "每个文件给出一条 verdict。"
+
+scope:
+  scope_roots:
+    - "src/app/"
+  no_mutation: true               # <-- the lie
+  control_plane_touch: false
+  allowed_actions:
+    - read_file
+    - write_file                  # <-- mutates; contradicts no_mutation:true
+    - ads_live_write              # <-- live write; unambiguously a mutation
+
+invariants:
+  hard: []
+  review:
+    - id: INV-1
+      statement: "不破坏既有行为。"
+      reviewer: advisory_llm
+
+evidence:
+  authoritative:
+    - check:
+        command: "node scripts/list-changed-files.mjs"
+        cwd: "."
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/x/changed_files.json"
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the diff under review"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+  max_concurrency: 1
+
+budget:
+  limits:
+    turns: 8
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

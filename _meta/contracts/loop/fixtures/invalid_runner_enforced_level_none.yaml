@@ -1,0 +1,88 @@
+# FIXTURE (expect: REJECT) — Finding-2 hardening (PR #194 adversarial review).
+#
+# contract_status: runner_enforced while runner_readiness.level: none — the contract
+# claims an ENFORCING runner while simultaneously declaring there is no runner.
+# Pre-hardening C7 only required attestation_ref + attested_hash, so this PASSED:
+# a hash can be attached while level stays none. C7 must ALSO pin
+# level ∈ {internal_beta, production_ready} — you cannot "enforce" with no runner.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: runner_enforced
+instance_scope: template
+
+loop_identity:
+  template_ref: "_meta/contracts/loop/templates/example.template.yaml"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: none                       # <-- "no runner" ...
+    attestation_ref: "state/runtime/loop/attestation/x.json"
+    attested_hash: "3b5f1c0a9e2d4b6f8a1c3e5d7b9f0a2c4e6d8b0f1a3c5e7d9b1f3a5c7e9d0b2f"
+    # ... yet contract_status says runner_enforced — the contradiction C7 must catch.
+
+goal:
+  statement: "声称 runner_enforced，但 runner level=none。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "占位 criterion。"
+
+scope:
+  scope_roots:
+    - "src/app/"
+  no_mutation: true
+  control_plane_touch: false
+  allowed_actions:
+    - read_file
+
+invariants:
+  hard: []
+  review:
+    - id: INV-1
+      statement: "占位 invariant。"
+      reviewer: advisory_llm
+
+evidence:
+  authoritative:
+    - check:
+        command: "node scripts/check.mjs"
+        cwd: "."
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/x/out.json"
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the diff under review"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended                      # C5: level none => attended (so only C7 fires post-fix)
+  scheduler_owner: manual
+  max_concurrency: 1
+
+budget:
+  limits:
+    turns: 8
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

@@ -1,0 +1,73 @@
+# FIXTURE (expect: FAIL on C4) — scope touches the control plane
+# (control_plane_touch:true, a *.schema.yaml in scope) but control_plane_mutation is
+# 'none' instead of 'proposes_only'. A loop that touches spec/rubric/contract may only
+# PROPOSE candidate changes, never self-apply. Read-only (no_mutation:true) so C2/C3
+# do not fire; hard:[] so C1 does not fire — C4 is the sole violation.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+goal:
+  statement: "审阅并建议改进 loop 契约 schema，本轮只产出 candidate diff。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "产出一份 candidate 变更说明。"
+
+scope:
+  scope_roots:
+    - "_meta/contracts/loop/governed_work_loop_v1.schema.yaml"
+  no_mutation: true
+  control_plane_touch: true
+  allowed_actions: [read_file, emit_candidate_diff]
+
+invariants:
+  hard: []
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "node _meta/contracts/scripts/validate-governed-work-loop.mjs"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/schema_review/result.json"
+      sha256_hash: "f8a0c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0"
+      captured_at: "2026-06-28T09:00:00+00:00"
+
+checker:
+  independence_level: human_review
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the candidate diff", "the current schema"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: manual
+
+budget:
+  limits:
+    turns: 6
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none   # <-- VIOLATES C4: control_plane_touch:true requires proposes_only
+
+next_action_card:
+  enum: [continue, ask_human, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

@@ -1,0 +1,74 @@
+# FIXTURE (expect: FAIL on Layer-B semantic check) — scope_roots clearly intersect the
+# control plane (a *.schema.yaml under _meta/contracts), yet control_plane_touch is
+# self-reported FALSE. AJV (Layer A) cannot catch this — control_plane_touch is a
+# boolean, structurally fine. The validator's Layer-B derivation must cross-check the
+# declared flag against the actual scope and reject the false negative. Evidence is
+# complete (so C8 passes) and hard:[] — the mislabel is the sole violation.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+goal:
+  statement: "审阅 governed_work_loop schema 并给出 boundary verdict，不改任何文件。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "schema 的每条 C 约束都有一条覆盖判断。"
+
+scope:
+  scope_roots:
+    - "_meta/contracts/loop/governed_work_loop_v1.schema.yaml"
+  no_mutation: true
+  control_plane_touch: false   # <-- VIOLATES Layer-B: scope hits a *.schema.yaml under _meta/contracts
+  allowed_actions: [read_file, grep, emit_review_card]
+
+invariants:
+  hard: []
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "node _meta/contracts/scripts/validate-governed-work-loop.mjs"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/architecture_review/schema_review.json"
+      sha256_hash: "a3f5c0d9e2b4f6a8c1e3d5b7f9a0c2e4d6b8f0a1c3e5d7b9f1a3c5e7d9b0f2a4"
+      captured_at: "2026-06-28T09:00:00+00:00"
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the schema under review", "the declared invariants"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+
+budget:
+  limits:
+    turns: 8
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, ask_human, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

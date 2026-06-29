@@ -1,0 +1,70 @@
+# FIXTURE (expect: FAIL on budget.limits minProperties) — declares an empty budget
+# (limits: {}). An empty budget is no budget; one of the five task-contract fields is
+# void. limits must carry at least one of turns | wall_clock_seconds | tokens.
+# Everything else is valid (read-only, complete evidence, hard:[]) to isolate the gap.
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+
+goal:
+  statement: "巡检 src/reporting 并给出 verdict，不改任何文件。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "每个 generator 都有一条 verdict。"
+
+scope:
+  scope_roots: ["src/reporting"]
+  no_mutation: true
+  control_plane_touch: false
+  allowed_actions: [read_file, grep]
+
+invariants:
+  hard: []
+  review: []
+
+evidence:
+  authoritative:
+    - check:
+        command: "npm test -- src/reporting"
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/reporting/test_result.json"
+      sha256_hash: "c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4"
+      captured_at: "2026-06-28T09:00:00+00:00"
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the test output"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+
+budget:
+  limits: {}   # <-- VIOLATES budget.limits minProperties: an empty budget is no budget
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, ask_human, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []

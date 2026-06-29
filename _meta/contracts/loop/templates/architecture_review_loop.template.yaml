@@ -1,0 +1,116 @@
+# Architecture Review Loop — TEMPLATE (layer 2 of schema/template/instance)
+# Validates against: _meta/contracts/loop/governed_work_loop_v1.schema.yaml
+#
+# The v1 pilot: lowest blast radius (read-only), most directly dogfoods the
+# maker≠checker grader pattern. no_mutation:true => no idempotency / fail_closed
+# pressure; on checker error it emits HOLD/INCONCLUSIVE rather than a false PASS.
+#
+# Run cadence is attended (a human drives /goal or /loop); runner is NOT bound at
+# template layer, so contract_status stays schema_validated_only.
+
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: template
+
+loop_identity:
+  template_ref: "_meta/contracts/loop/templates/architecture_review_loop.template.yaml"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: none   # no autonomous runner behind v1; attended only (C5)
+
+goal:
+  statement: "每个被审查的 changed file 都给出 boundary verdict（pass | violates <invariant-id>），不改任何文件。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "scope 内每个 changed file 都有一条 verdict，无遗漏。"
+      evidence_ref: "ev_verdict_coverage"
+    - id: SC2
+      statement: "每条 violates verdict 都指向一个声明过的 invariant id。"
+
+scope:
+  scope_roots:
+    - "_meta/portfolio/SYSTEMS.md"
+    - "_meta/adr/"
+    - "<changed-files-under-review>"
+  no_mutation: true
+  control_plane_touch: true   # scope reviews SYSTEMS.md / ADR (the control plane); derived by validator Layer B
+  allowed_actions:
+    - read_file
+    - grep
+    - emit_review_card
+
+invariants:
+  hard: []          # read-only review emits findings; it does not itself enforce a blocking gate
+  review:
+    - id: INV-LAYER
+      statement: "下层 repo 不得反向依赖上层治理（Layer 3 不污染 Layer 0）。"
+      reviewer: advisory_llm
+    - id: INV-BGHS
+      statement: "新组件须可归入 BGHS 之一；grader/stop 不得落在 Brain。"
+      reviewer: human
+
+evidence:
+  authoritative:
+    - check:
+        command: "node _meta/contracts/scripts/list-changed-files.mjs --scope SYSTEMS,adr"
+        cwd: "."
+      expected:
+        kind: exit_code
+        value: 0
+      # template layer: artifact_ref documents WHERE the run lands the artifact; the
+      # sha256_hash + captured_at are per_run facts (C8) — no run has happened yet, so
+      # we do NOT carry a placeholder hash here (a fake all-zero hash is a trust smell).
+      artifact_ref: "state/runtime/loop/architecture_review/changed_files.json"
+  transcript_envelope:
+    enabled: true
+    role: display_only
+    wrapper: "<EVIDENCE>…</EVIDENCE>"
+
+checker:
+  independence_level: fresh_context_same_model   # MINIMUM independence for the pilot
+  hard_gate_grading: deterministic_only
+  advisory_evaluator:
+    enabled: true
+    evidence_fed_required: true
+  on_checker_error: emit_hold_inconclusive        # read-only => may emit HOLD, never false PASS
+  readable_artifacts:
+    - "the diff under review"
+    - "the declared invariants"
+    - "evidence.authoritative refs"
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+  max_concurrency: 1
+
+budget:
+  limits:
+    turns: 12
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: proposes_only   # may emit candidate review findings on SYSTEMS.md/ADR; never self-applies (C4)
+
+next_action_card:
+  enum:
+    - continue
+    - ask_human
+    - stop_success
+    - stop_inconclusive
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions:
+    - "changed-files 列表由 list-changed-files.mjs 提供（pilot 期可手动喂）。"
+  next_steps: []

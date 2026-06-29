@@ -1,0 +1,92 @@
+# FIXTURE (expect: REJECT) — Finding-1 round-2 hardening (PR #194 adversarial review).
+#
+# The loop self-reports no_mutation:true but lists MUTATING allowed_actions whose
+# verb stems the FIRST hardening pass (a mutating-verb BLACKLIST) did not catch:
+# edit_file / modify_bid / set_budget are unambiguous writes, yet none start with
+# write/patch/delete/post/... so the blacklist let them PASS — a real mutation loop
+# still disguised as read-only, still bypassing C2 (fail_closed) + C3 (replay_safe).
+# The fix flips Layer B to a deny-by-default READ-ONLY ALLOWLIST: any allowed_action
+# not in the governed read-only vocabulary makes the loop a mutation loop, so
+# no_mutation:true here MUST be rejected. (A blacklist of "bad verbs" leaks forever;
+# an allowlist of "known-safe read-only actions" is fail-closed.)
+contract_kind: governed_work_loop
+schema_version: "1.0.0"
+contract_status: schema_validated_only
+instance_scope: template
+
+loop_identity:
+  template_ref: "_meta/contracts/loop/templates/example.template.yaml"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: none
+
+goal:
+  statement: "宣称只读巡检，但 allowed_actions 含黑名单漏掉的写动作（edit/modify/set）。"
+  lifecycle: active
+  success_criteria:
+    - id: SC1
+      statement: "每个目标给出一条 verdict。"
+
+scope:
+  scope_roots:
+    - "src/app/"
+  no_mutation: true               # <-- the lie
+  control_plane_touch: false
+  allowed_actions:
+    - read_file
+    - edit_file                   # <-- mutates; stem "edit" is not in the old blacklist
+    - modify_bid                  # <-- mutates a live bid; stem "modify" not blacklisted
+    - set_budget                  # <-- mutates a live budget; stem "set" not blacklisted
+
+invariants:
+  hard: []
+  review:
+    - id: INV-1
+      statement: "不破坏既有行为。"
+      reviewer: advisory_llm
+
+evidence:
+  authoritative:
+    - check:
+        command: "node scripts/list-changed-files.mjs"
+        cwd: "."
+      expected:
+        kind: exit_code
+        value: 0
+      artifact_ref: "state/runtime/loop/x/changed_files.json"
+
+checker:
+  independence_level: fresh_context_same_model
+  hard_gate_grading: deterministic_only
+  on_checker_error: emit_hold_inconclusive
+  readable_artifacts: ["the diff under review"]
+  forbids_reading_maker_reasoning: true
+
+runtime:
+  mode: attended
+  scheduler_owner: claude_goal
+  max_concurrency: 1
+
+budget:
+  limits:
+    turns: 8
+  on_exhaustion: stop_new_mutations_then_wrap_up
+
+control_plane_mutation: none
+
+next_action_card:
+  enum: [continue, stop_success, stop_inconclusive]
+  maps_to_existing_status:
+    continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
+    ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
+    stop_success: "TaskStatus.COMPLETED | VerdictDecision.PASS"
+    stop_inconclusive: "VerdictDecision.HOLD | HoldReason.INSUFFICIENT_EVIDENCE"
+    stop_dormant: "TaskStatus.BLOCKED | NextStep.RETRY_LATER"
+    escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
+
+wrap_up:
+  done: []
+  undone: []
+  failed_commands: []
+  assumptions: []
+  next_steps: []
