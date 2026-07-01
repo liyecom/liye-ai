@@ -46,7 +46,7 @@
 
 | repo | 可见性 | branch protection | secret scanning / push protection |
 |---|---|---|---|
-| `loudmirror/amazon-growth-engine`（AGE） | 私有 | ✅ 已配（PR + 1 review、禁 force-push/删除、`required_status_checks=null`=人审闸非 CI 硬闸、admin 保留 bypass） | ❌ 不可用（私有仓需 GitHub Advanced Security，个人 Pro 不含）→ 密钥防线靠本地 hooks + CI leak-guard + 凭证缺失 |
+| AGE（`amazon-growth-engine`，私有仓；精确 owner/URL 见受控渠道，不落 public 仓） | 私有 | ✅ 已配（PR + 1 review、禁 force-push/删除、`required_status_checks=null`=人审闸非 CI 硬闸、admin 保留 bypass） | ❌ 不可用（私有仓需 GitHub Advanced Security，个人 Pro 不含）→ 密钥防线靠本地 hooks + CI leak-guard + 凭证缺失 |
 | `liyecom/liye-ai`（liye_os） | 公开 | ⏳ 待配（公开仓免费；需 liyecom owner 操作，见触发表/onboarding） | ⏳ 待开（公开仓免费） |
 
 CI 暂**不**作 required check：AGE `ci.yml` 仅 guard-rail + best-effort verify，重测试在 post-merge path-scoped workflow；且 Actions 计费/runner 曾致 `steps:[]` 形态失败。等连续绿再启用。

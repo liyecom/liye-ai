@@ -10,8 +10,8 @@ iconexpert 入场即 **Human-D0**。D0 **禁止**以下，且由 `dev_doctor.sh`
 
 | # | 禁止 | 为什么（已核实的机制） |
 |---|---|---|
-| D0-1 | **不下发任何生产 env** | AGE 凭证从 `os.environ` 经 repo-root `.env.local`（`python-dotenv`，gitignored）注入。fresh clone **零凭证**=任何写路径（含 chokepoint 范围外的 legacy ad 写）都拿不到 Amazon 凭证。变量名：`SPAPI_LWA_CLIENT_ID/SECRET`、`SPAPI_REFRESH_TOKEN`、`ADS_CLIENT_ID/SECRET/REFRESH_TOKEN/PROFILE_ID`、店铺态 `XMEDEN_*`/`TIMO_*`/`MRMIAN_*`/`FONEYI_*` |
-| D0-2 | **不设 `AGE_WRITE_ENABLED`**（及任何 `AGE_*_WRITE_ENABLED` 通道保险丝） | live 写三重 fail-closed 锁：`AGE_WRITE_ENABLED=1`（默认 0）+ `AGE_EXECUTION_MODE=live`（默认 `dry_run`）+ clean-main 前置（防 `GIT_DIR`/`GIT_WORK_TREE` 伪造、无 `--allow-dirty` 旁路） |
+| D0-1 | **不下发任何生产 env** | AGE 凭证从 `os.environ` 经 repo-root `.env.local`（`python-dotenv`，gitignored）注入。fresh clone **零凭证**=任何写路径（含 chokepoint 范围外的 legacy ad 写）都拿不到 Amazon 凭证。变量名：`SPAPI_LWA_CLIENT_ID/SECRET`、`SPAPI_REFRESH_TOKEN`、`ADS_CLIENT_ID/SECRET/REFRESH_TOKEN/PROFILE_ID`、以及各店铺态前缀 `<STORE>_*`（真实店名单见私有仓，不写进 public 仓） |
+| D0-2 | **不设 `AGE_WRITE_ENABLED`**（及任何 `AGE_*_WRITE_ENABLED` 通道保险丝） | **governed listing / `execute_request` 路径**的三重 fail-closed 锁：`AGE_WRITE_ENABLED=1`（默认 0）+ `AGE_EXECUTION_MODE=live`（默认 `dry_run`）+ clean-main 前置（防 `GIT_DIR`/`GIT_WORK_TREE` 伪造、无 `--allow-dirty` 旁路）。⚠️ 此锁**不覆盖** legacy ad 写（见 D0-3）；那条路径的兜底 = D0-1 凭证缺失 |
 | D0-3 | **不跑 legacy ad write 脚本** | `live_chokepoint.py` 只覆盖 `live + listing review kinds`；`ad-only live → return None`（flagged follow-up, spec §7）。故 chokepoint **不是** ad 写的全覆盖闸，D0 安全靠「凭证缺失 + 不跑这类脚本」 |
 | D0-4 | **不共享 live DuckDB** | `data/amazon_growth.duckdb`（≈2.7GB）单写者、跨 worktree 硬链、禁并发写（AGE `CLAUDE.md`）。D0 用 fixture/synthetic，不碰 live warehouse |
 | D0-5 | **不进 Mac Studio shell** | Studio 上的 `.env.local`（chmod 600）含多店真生产凭证；给 shell = 绕过 D0-1。Studio 仅 owner 操作 |
@@ -23,8 +23,8 @@ iconexpert 入场即 **Human-D0**。D0 **禁止**以下，且由 `dev_doctor.sh`
 前提：他自己的 GitHub 账号、自己的 Claude/Codex 登录、SSH key 已加到 GitHub。
 
 ```bash
-# 1) clone（不带 .env.local ⇒ 零凭证 ⇒ 结构上无法 live 写）
-git clone git@github.com:loudmirror/amazon-growth-engine.git
+# 1) clone（不带 .env.local ⇒ 零凭证）
+git clone <AGE_REPO_SSH_URL>         # 精确 clone URL 由 owner 经受控渠道下发，不写进 public 仓
 cd amazon-growth-engine
 git submodule update --init          # vendor/liye-ai；compat 检查需要
 
@@ -36,13 +36,11 @@ uv sync
 
 # 4) 无凭证核心测试（semantic-live / integration 默认跳过，无需 key）
 uv run pytest
-
-# 5) D0 里程碑：fixture / synthetic dry-run（默认 dry_run + AGE_WRITE_ENABLED 未设）
-EXECUTION_REQUEST_PATH=<synthetic_request.json> \
-  uv run python -m src.execution.execute_request --mode dry_run
 ```
 
-**D0 完成标志**：`uv sync` 通过 + hooks 装上 + `pytest` 绿 + dry-run 产出 `DRY_RUN_APPLIED` receipt——全程无 prod creds、无 Studio shell。
+**Day-1 完成标志（本 PR 阶段）**：`uv sync` 通过 + hooks 装上 + `pytest` 绿——全程无 prod creds、无 Studio shell。
+
+**dry-run 里程碑（待 PR-2 解锁）**：`execute_request --mode dry_run` 需要一个 `EXECUTION_REQUEST_PATH` synthetic fixture。本 PR（契约先落）**不提供** fixture，故此步暂不可跑，勿假装可跑。PR-2 的 `dev_doctor.sh` 落地并附带最小 synthetic request 后，D0 里程碑才升级为「dry-run 产出 `DRY_RUN_APPLIED` receipt（默认 `dry_run` + `AGE_WRITE_ENABLED` 未设）」。
 
 ## 3. 服务端边界（已就位 / 待办）
 
@@ -62,7 +60,7 @@ EXECUTION_REQUEST_PATH=<synthetic_request.json> \
 |---|---|---|
 | **PR-0** | 本文件 + [[TEAM_DEV_MODEL]] | 冻结 D0 边界契约 |
 | PR-1 | AGE 准确 `.env.local.example.dev` | 现有 `.env.example` 失真（Docker 时代变量名）；进入 D1 前的前置（变量名取自 `config/store_pulse/*_instance.yaml` + `src/integrations/amazon_{spapi,ads}_credentials.py`） |
-| PR-2 | `dev_doctor.sh` | 强制校验：repo 内无 `.env.local`；shell 无 `SPAPI_*/ADS_*/XMEDEN_*` 等生产变量；`AGE_WRITE_ENABLED` 未设；hooks 已装；dry-run/test 可跑 |
+| PR-2 | `dev_doctor.sh` | 强制校验：repo 内无 `.env.local`；shell 无 `SPAPI_*/ADS_*/<STORE>_*` 等生产变量；`AGE_WRITE_ENABLED` 未设；hooks 已装；dry-run/test 可跑 |
 | PR-3 | `liye_os/bin/install-hooks.sh` | liye_os 当前缺 installer（靠手敲 `git config core.hooksPath .claude/.githooks`），补上对齐 AGE |
 | PR-4 | `dev-dotfiles` 私有仓 + `bootstrap.sh` | 装可共享配置模板（去密钥）、自动设两仓 hooksPath、提示登录/填密钥 |
 
