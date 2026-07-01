@@ -40,7 +40,8 @@ cat <<'EOF'
 
   Active hook:
     - pre-commit: guardrail (CLAUDE.md / Pack size limits) + blocks for
-      .DS_Store / >10MB files / data files / venv / .env* files, a staged
+      .DS_Store / >10MB files / data files / venv / .env / .env.local /
+      .env.production files, a staged
       secret-pattern scan (env / keys), the env-hygiene gate
       (.claude/scripts/env_hygiene_gate.mjs), and the forbidden-name lint
       (tools/lint_forbidden_names.sh).
