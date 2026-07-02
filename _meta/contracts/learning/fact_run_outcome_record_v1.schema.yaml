@@ -72,6 +72,7 @@ properties:
       - amazon-growth-engine
       - chaming
       - loamwise
+      - user-growth-engine
 
   source_repo:
     type: string
@@ -105,12 +106,14 @@ properties:
     type: string
     # Kept in sync with fact_run_outcome_event_v1.schema.yaml (per the line-15 maintenance contract).
     # write_outcome added per _meta/adr/ADR-Learning-Fact-Artifact-Type-Taxonomy.md (2026-06-14).
+    # growth_outcome added per _meta/adr/ADR-UGE-Fact-Taxonomy.md (2026-07-02, anchor e62e82e).
     enum:
       - verification_json
       - policy_suggestions_json
       - step_evaluation_instance
       - regression_replay_result
       - write_outcome
+      - growth_outcome
 
   artifact_path:
     type: string
