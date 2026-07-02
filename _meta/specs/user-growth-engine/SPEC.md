@@ -37,12 +37,12 @@
   - `runtime_gates[]`: 每项 `default_state: closed` + `evidence_required_for_open`（审计可读的开门条件）
   - `playbooks[]`: `lead_ingest` / `metrics_aggregate` / `content_fanout`，均 `status: placeholder`
   - `data_sources[]`: 只读 metrics 源（Rung 1）+ `fact_events_log`（未来 emit，Rung 2 才活）
-- **learning_sources.yaml**（**控制面 registry**：`liye_os/.claude/config/learning_sources.yaml`，**非** UGE repo 内文件）: `user-growth-engine` 条目存在且 **closed**（learning 门）。
+- **learning_sources.yaml**（**控制面 registry**：`liye_os/.claude/config/learning_sources.yaml`，**非** UGE repo 内文件）: `user-growth-engine` 条目存在且 `enabled: false` + `expected_manifest_hash: null`（learning 门 closed / fail-closed）。
 - **vendored fact-schema copy**: UGE repo 内 `DO-NOT-EDIT` 副本，byte-pin 到 liye_os canonical event schema **@ commit `6434849`（PR2 后，含 growth_outcome）**，freshness 测试钉 canonical-body sha256 + `EXPECTED_LIYE_OS_SOURCE_COMMIT=6434849`。
 
 ### 验收（DoD）
 1. manifest 通过 `engine_manifest.schema.v2.yaml` 校验 + `validate_manifest_reality.py`（gates 声明 = reality）。
-2. **两门可证 closed**：`write_capability_effective=none` ∧ 所有 `runtime_gates.default_state=closed` ∧ learning source closed → **物理上无法 emit / 无法写**（deny-by-default）。
+2. **两门可证 closed**：`write_capability_effective=none` ∧ 所有 `runtime_gates.default_state=closed` ∧ learning source `enabled:false` → **物理上无法 emit / 无法写**（deny-by-default）。
 3. contracts gate **守 21**（manifest 是 instance，不进 `schemaFiles[]`；vendored copy 亦非新 sealed schema）。
 4. vendored copy sha256 == liye_os canonical body @ `6434849`（freshness 绿）；canonical 漂移到新 commit 而 UGE 未 re-vendor → **freshness 红**（fail-closed 哨兵）。
 5. 激活只能靠**物理编辑 manifest**（status placeholder→active + default_state closed→open + effective 提升），env var 单独翻不动门。
@@ -84,14 +84,15 @@
 - **字段**: 同 §2 summary profile（string-encoded）。北极星 = `attributed_qualified_signup`（**非** raw signup）。
 - **qualified 规则**（纯函数、确定性、**config 驱动**，SPEC 定形状不定终值）:
   - 形状: `qualified = is_amazon_seller ∧ (monthly_gmv_band ≥ MIN_BAND) ∧ attribution_valid ∧ ¬filtered`
-  - `MIN_BAND` / 权重 / 归因窗口 = operator config（版本化，config_hash 入 audit）。
+  - `MIN_BAND` / `monthly_gmv_band_order`（allowed bands + ordinal mapping）/ 权重 / 归因窗口 = operator config（版本化，config_hash 入 audit）。
+  - unknown `monthly_gmv_band` 不得计 qualified；禁止字符串直接比较，必须经 config 的 ordinal mapping。
 - **反作弊/噪声过滤**（filtered=true 则不计 qualified）:
-  - **dedup**: 同一 lead 多次提交按 identity 去重（event_identity_key 天然收敛 + 业务去重键）。
+  - **dedup**: `event_identity_key` 只防同一 fact replay；同一 lead 多次提交必须按 UGE 私有 lead store 的 `business_dedup_key`（如 normalized contact hash / submitted_asin / attribution_click_id / time window）在 qualified 计数前过滤。
   - **bot/spam**: rate-limit、honeypot、disposable-email 域黑名单。
   - **attribution 完整性**: `attribution_click_id` 须有效、未 replay、在归因窗口内。
 
 ### 验收（DoD）
-1. qualified 规则给定 (inputs, config) → 确定性输出；规则版本 + config_hash 记入 fact/audit（可复算）。
+1. qualified 规则给定 (inputs, config) → 确定性输出；规则版本 + config_hash（含 band ordinal mapping）记入 fact/audit（可复算）。
 2. spam/dup lead 在计 qualified **之前**被 filtered（不污染北极星）。
 3. attribution 缺失/失效 → `attributed_qualified_signup=false`（即便其余 qualified）。
 4. 阈值改动只动 config，不改代码（无硬编码数值）。
