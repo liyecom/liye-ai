@@ -1,8 +1,8 @@
 # Fact Run Outcome Event Contract v1.0.0
 # SSOT: _meta/contracts/learning/fact_run_outcome_event_v1.schema.yaml
 #
-# AGE 端 emit_fact.py (D-14) 写入的 source event。
-# 落点 (per EV2-I-01 date-sharded UTC log):
+# 引擎端 emit_fact.py (D-14) 写入的 source event（emit_fact.py 首见于 AGE；schema 泛化支持所有已登记引擎，如 user-growth-engine）。
+# 落点 (per EV2-I-01 date-sharded UTC log；路径按引擎 <source_repo>/out/facts/…，下以 AGE 为例):
 #   amazon-growth-engine/out/facts/<UTC_DATE_FROM_emitted_at>/fact_run_outcome_events.jsonl
 #   amazon-growth-engine/out/facts/<UTC_DATE_FROM_emitted_at>/<event_identity_key>.json (event sidecar)
 #
@@ -13,7 +13,7 @@
 $schema: "http://json-schema.org/draft-07/schema#"
 $id: "https://liye.com/contracts/learning/fact_run_outcome_event.v1"
 title: "Fact Run Outcome Event Schema"
-description: "AGE-emitted source event capturing one run outcome artifact. Importer wraps this into fact_run_outcome_record_v1."
+description: "Engine-emitted source event capturing one run outcome artifact (e.g. AGE amazon-growth-engine; also user-growth-engine and other registered engines). Importer wraps this into fact_run_outcome_record_v1."
 version: "1.0.0"
 type: object
 
@@ -52,6 +52,7 @@ properties:
       - amazon-growth-engine
       - chaming
       - loamwise
+      - user-growth-engine
     description: "Layer-2/Layer-1 engine identifier emitting the event"
 
   source_repo:
@@ -100,14 +101,19 @@ properties:
       - step_evaluation_instance
       - regression_replay_result
       - write_outcome
+      - growth_outcome
     description: |
-      Engine artifact category. Covers AGE evaluation / inference / replay artifacts AND
-      execution/write outcomes. write_outcome = a write/execution receipt mapped into a fact
-      (e.g. an APPLIED CAMPAIGN_BUDGET_UPDATE). The concrete action kind lives in
-      raw_payload_summary.action_kind — NOT a per-kind artifact_type value: artifact_type is one of the
-      8 locked event_identity_key inputs, so minting per-kind values would fork identity space.
+      Engine artifact category. Covers AGE evaluation / inference / replay artifacts,
+      execution/write outcomes, AND observed growth/business outcomes. write_outcome = a
+      write/execution receipt mapped into a fact (e.g. an APPLIED CAMPAIGN_BUDGET_UPDATE).
+      growth_outcome = an observed business result attributed to content/channel (signup /
+      lead / trial) — NOT an engine's own write action (that is write_outcome). The concrete
+      action kind lives in raw_payload_summary.action_kind — NOT a per-kind artifact_type value:
+      artifact_type is one of the 8 locked event_identity_key inputs, so minting per-kind values
+      would fork identity space.
       Governance decisions (PROMOTED / DEMOTED / lifecycle / trust_matrix) use governance_event_v1 (per N-2 B-04).
       Taxonomy doctrine + rationale: _meta/adr/ADR-Learning-Fact-Artifact-Type-Taxonomy.md
+      UGE growth taxonomy (growth_outcome + source_system user-growth-engine): _meta/adr/ADR-UGE-Fact-Taxonomy.md
 
   artifact_path:
     type: string

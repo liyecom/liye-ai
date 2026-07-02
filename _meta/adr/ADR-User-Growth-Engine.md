@@ -11,19 +11,19 @@ is_bghs_doctrine: no
 > 文件名采非数字前缀以进入 CI-wired BGHS frontmatter gate（`adr-bghs-gate.yml`）有效扫描域。
 > **本 ADR 只做「登记 / 边界 / 门控」，不塞任何实现**：无 engine_manifest 文件、无 schema enum 编辑、无 Hands 代码、无 content。实现全部后置（见 §Non-scope 与 §Downstream 的 PR 排序）。
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-07-01
 **Decision Makers**: LiYe
 **SSOT**: 本文件（UGE 引擎定位 / 双平面边界 / 门控阶梯的架构决策）；生态分层/成熟度以 `_meta/portfolio/SYSTEMS.md` 为准（本 ADR 提议其新增登记行，见 §Decision-1）。
 **References**:
 - N-1（Normative）: `_meta/adr/ADR-001-control-plane-vs-domain-engine.md`（Accepted 2026-02-08）—— 控制平面（LiYe OS：调度/学习/治理/投递/计量）vs 域引擎（纯函数 playbooks，**禁自行调度/学习治理/投递/读写 OS 状态**，消费 learned bundle）的边界宪法。本 ADR **在其上新增一维**：UGE 的**执行物理发生在独立 Mac mini（Hands）**，而非控制面本机。
-- N-2（Normative）: `_meta/adr/ADR-UGE-Fact-Taxonomy.md`（Proposed，本决策包同 PR）—— UGE 的 fact 输出形状（content/channel→`write_outcome`；growth→`growth_outcome`；`source_system: user-growth-engine`）。本 ADR 引用其为 UGE→GHL learning 流的契约，解决 `source_system` 词表不 orphan 的 sequencing。
+- N-2（Normative）: `_meta/adr/ADR-UGE-Fact-Taxonomy.md`（Accepted 2026-07-02，anchor `e62e82e`；PR1 同批 merged）—— UGE 的 fact 输出形状（content/channel→`write_outcome`；growth→`growth_outcome`；`source_system: user-growth-engine`）。本 ADR 引用其为 UGE→GHL learning 流的契约，解决 `source_system` 词表不 orphan 的 sequencing。
 - N-3（Normative）: `_meta/contracts/engine/engine_manifest.schema.v2.yaml`（**当前活动版**，`schema_version: "2.0"`；未声明 schema_version 的旧 manifest 才 fallback 到 v1 `engine_manifest.schema.yaml`）—— D0→D1 登记的目标契约。UGE 的 placeholder manifest 须用 **v2 字段**：`write_capability_declared` + `write_capability_effective`（初始皆 `none`；v2.0 期 legacy `write_capability` 仅 deprecated_but_accepted）、`capabilities[]`（`status: placeholder`）、`runtime_gates[]`（`default_state: closed` + `evidence_required_for_open`）、`playbooks` + `data_sources`。**本 ADR 不创建 manifest 实例**（那是 Rung 0，PR2 之后）；仅声明 UGE 将来按 v2 协议注册。
 - N-4（Normative，Hands 治理模式，引用不重述）: `_meta/adr/ADR-Credential-Mediation.md`（凭证中介：平台/provider 明文密钥**不跨线抵达 Hands**，控制面只派发 `cred://` 引用，Hands 本地解析）、`_meta/adr/ADR-AGE-Wake-Resume.md`（Wake/Resume：append-only event stream 保证跨睡眠/重启不丢不重）、`_meta/adr/ADR-Loamwise-Guard-Content-Security.md`（内容写前 GuardChain）。UGE-Hands **复用**这些模式；KillSwitch(position-0) / WriteGate(shadow-first, deny-by-default) / TrustBoundaryDecl 等 Hands 执行细则由**后续独立 Hands-execution ADR** 正式钉死，不在本 ADR 展开。
 - N-5（Normative）: `_meta/portfolio/SYSTEMS.md` —— Codebase Registry（列 `Codebase|Layer|Role|Upstream|Downstream|Maturity|CLAUDE.md`）+ Domain 成熟度模型（D0 Standalone / D1 Registered / D2 Dispatchable / D3 Governed）+ 当前状态表（AGE/Chaming 现均 D0）。
 - S-1（Supporting）: a16z「New Media, One Year In」框架（signal from people not brands / barbell content / one longform→fan-out / owned vs rented audience / measured impact）；掌象AI（FirstLightClaw，`zhangxiang.com`）作为 AGE 对外 SaaS 版本的获客案例。
 
-**Commit anchor**: **pending**（Status=Proposed；承载本决策包的 liye_os PR 已开、尚未 merge）。post-squash merge 后回填。
+**Commit anchor**: **`e62e82e`**（liye_os PR #197 squash-merge，2026-07-02；`liyecom/liye-ai` origin/main）。
 
 ---
 

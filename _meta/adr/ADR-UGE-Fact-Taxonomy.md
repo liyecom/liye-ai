@@ -10,7 +10,7 @@ is_bghs_doctrine: no
 
 > 文件名采非数字前缀（`ADR-UGE-Fact-Taxonomy.md`）以进入 CI-wired BGHS frontmatter gate（`adr-bghs-gate.yml`）的有效扫描域，对齐 write_outcome 先例。
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-07-01
 **Decision Makers**: LiYe
 **SSOT**: 本文件（UGE fact artifact_type / source_system 分类教条）；schema SSOT = `_meta/contracts/learning/fact_run_outcome_event_v1.schema.yaml`（canonical）；UGE 端为未来 byte-pinned vendored copy（UGE repo scaffold 时才建，见 §Cross-repo edit sequence）。
@@ -30,7 +30,7 @@ is_bghs_doctrine: no
 - N-5（Normative，继承自先例 N-5）: `_meta/contracts/scripts/validate-contracts.mjs` —— schema-pass 计数 over 显式 `schemaFiles[]` 数组；全局 Summary pass 计数当前为 **21**。本决策**仅编辑既有数组成员 enum 值、不新增 `schemaFiles[]` entry** → schema-pass 与全局总数**零变化（守 21，无 carve-out）**。
 - S-1（Supporting）: `scratchpad/uge-fact-taxonomy-spike.md`（本 ADR 的 time-boxed spike 决策交付物：决策表 A/B/C/D + 推荐 C + schema-diff 风险 R1-R4 + 本骨架）；write_outcome 先例 micro-discuss `wf_0b114a29`（`generic_is_lossless=true / would_break_importer=false`）。
 
-**Commit anchor**: **pending**（Status=Proposed；承载本 ADR 的 liye_os PR 已开、尚未 merge；frontmatter 不预编 SHA）。对齐 ADR-GHL 教条「post-squash merge commit 为 durable anchor；无 pre-squash SHA 具规范性」——PR squash-merge 后回填。
+**Commit anchor**: **`e62e82e`**（liye_os PR #197 squash-merge，2026-07-02；`liyecom/liye-ai` origin/main）。对齐 ADR-GHL 教条「post-squash merge commit 为 durable anchor；无 pre-squash SHA 具规范性」。
 
 ---
 
