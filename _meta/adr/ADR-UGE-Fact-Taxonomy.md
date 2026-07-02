@@ -11,6 +11,7 @@ is_bghs_doctrine: no
 > 文件名采非数字前缀（`ADR-UGE-Fact-Taxonomy.md`）以进入 CI-wired BGHS frontmatter gate（`adr-bghs-gate.yml`）的有效扫描域，对齐 write_outcome 先例。
 
 **Status**: Accepted
+**Accepted-Date**: 2026-07-02
 **Date**: 2026-07-01
 **Decision Makers**: LiYe
 **SSOT**: 本文件（UGE fact artifact_type / source_system 分类教条）；schema SSOT = `_meta/contracts/learning/fact_run_outcome_event_v1.schema.yaml`（canonical）；UGE 端为未来 byte-pinned vendored copy（UGE repo scaffold 时才建，见 §Cross-repo edit sequence）。

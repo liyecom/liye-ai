@@ -12,6 +12,7 @@ is_bghs_doctrine: no
 > **本 ADR 只做「登记 / 边界 / 门控」，不塞任何实现**：无 engine_manifest 文件、无 schema enum 编辑、无 Hands 代码、无 content。实现全部后置（见 §Non-scope 与 §Downstream 的 PR 排序）。
 
 **Status**: Accepted
+**Accepted-Date**: 2026-07-02
 **Date**: 2026-07-01
 **Decision Makers**: LiYe
 **SSOT**: 本文件（UGE 引擎定位 / 双平面边界 / 门控阶梯的架构决策）；生态分层/成熟度以 `_meta/portfolio/SYSTEMS.md` 为准（本 ADR 提议其新增登记行，见 §Decision-1）。
