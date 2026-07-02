@@ -23,7 +23,7 @@ is_bghs_doctrine: no
 - N-5（Normative）: `_meta/portfolio/SYSTEMS.md` —— Codebase Registry（列 `Codebase|Layer|Role|Upstream|Downstream|Maturity|CLAUDE.md`）+ Domain 成熟度模型（D0 Standalone / D1 Registered / D2 Dispatchable / D3 Governed）+ 当前状态表（AGE/Chaming 现均 D0）。
 - S-1（Supporting）: a16z「New Media, One Year In」框架（signal from people not brands / barbell content / one longform→fan-out / owned vs rented audience / measured impact）；掌象AI（FirstLightClaw，`zhangxiang.com`）作为 AGE 对外 SaaS 版本的获客案例。
 
-**Commit anchor**: **pending**（Status=Proposed；承载本决策包的 liye_os PR 尚未开）。post-squash merge 后回填。
+**Commit anchor**: **pending**（Status=Proposed；承载本决策包的 liye_os PR 已开、尚未 merge）。post-squash merge 后回填。
 
 ---
 
