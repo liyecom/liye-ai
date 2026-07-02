@@ -34,6 +34,7 @@
 | loamwise | 1 | 编排中间层 | liye_os (contracts) | domain engines | — | Y |
 | amazon-growth-engine | 2 | 亚马逊广告引擎 | loamwise (目标态) | — | D0 | Y |
 | chaming | 2 | 域名投资管理 | loamwise (目标态) | — | D0 | — |
+| user-growth-engine | 2 | 用户增长引擎（掌象AI 获客） | loamwise (目标态) | — | D0 (Proposed) | — |
 | silkbay | 3 | Medusa v2 后端 Hub | — | storefront-kit, sf-* | — | Y |
 | storefronts | 3 | 品牌店铺前端集合 | silkbay, storefront-kit | — | — | Y |
 | kits | 3 | 共享包 (attribution-kit) | — | storefronts, growth-hub | — | — |
@@ -95,13 +96,14 @@ attribution-kit → growth-hub     npm: @loudmirror/attribution-kit
 |--------|--------|-----------------|------|
 | AGE | D0 | limited (internal) | 有独立治理框架，可写 bids/keywords/budget |
 | Chaming | D0 | none | 只读分析 + 人工执行 |
+| UGE | D0 (Proposed) | none | 内容/渠道增长；执行在独立 Mac mini Hands；两门 closed；北极星=attributed_qualified_signup（见 ADR-User-Growth-Engine） |
 
 ### Engine 接入清单
 
 **D0 → D1 (Registered):**
-- [ ] 创建 engine_manifest.yaml 实例（参照 `liye_os/_meta/contracts/engine/engine_manifest.schema.yaml`）
+- [ ] 创建 engine_manifest.yaml 实例（**新 engine 参照 `engine_manifest.schema.v2.yaml`**：`schema_version: "2.0"` + `write_capability_declared`/`write_capability_effective` + `capabilities[]` + `runtime_gates[]`；旧无 `schema_version` 的 manifest 才 fallback `engine_manifest.schema.yaml` v1）
 - [ ] 声明 playbooks + required_permissions
-- [ ] 声明 data_sources + write_capability 级别
+- [ ] 声明 data_sources + `write_capability_declared`/`write_capability_effective` 级别
 - [ ] 通过 schema 验证
 
 **D1 → D2 (Dispatchable):**
