@@ -12,6 +12,18 @@ report under LiYe governance.
 > in the L1 methodology (SKILL_CONSTITUTION §3 — no reverse dependency). This file
 > only tells Claude *when* and *how* to invoke, and points to L1.
 
+## Siblings & boundary (prior-art has three steps — don't confuse them)
+
+| Step |载体 | Form | 干什么 |
+|------|------|------|--------|
+| **DISCOVER** unknown repos | **this** (`tools/github-scout/` + this L3) | Tool | 给 idea → 搜候选 + license 卡关（advisory） |
+| **RESEARCH** a known repo | [`github-digest`](../../Skills/01_Research_Intelligence/prior-art/github-digest/) | Skill | 给一个**已知** repo → 读懂 → 判断对 LiYe 进化有没有用（verdict） |
+| **INGEST** a chosen repo | `tools/source-intake/` | Tool | 确定要拉进来 → pin + 审计 → 治理 artifact |
+
+Use **this** only to *find* candidates. If the user already has a specific repo URL and asks
+"研究一下它 / 对 LiYe 有没有帮助", that is **`github-digest`**, not scout. Placement rationale
+(Tool vs Skill, platform vs domain): `_meta/governance/SKILL_PLACEMENT.md`.
+
 ## When to Use
 
 - The user floats a new capability/idea and asks "has someone built this?" / "should
