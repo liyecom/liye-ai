@@ -14,19 +14,11 @@
 
 import fs from "fs";
 import path from "path";
-
-const REQUIRED_KEYS = [
-  "name",
-  "description",
-  "skeleton",
-  "triggers",
-  "inputs",
-  "outputs",
-  "failure_modes",
-  "verification",
-];
-
-const ALLOWED_SKELETONS = new Set(["workflow", "task", "reference", "capabilities"]);
+import {
+  checkCompliance,
+  extractFrontmatterBlock,
+  parseFrontmatter,
+} from "./sfc_frontmatter.mjs";
 
 function readFileSafe(p) {
   try {
@@ -34,27 +26,6 @@ function readFileSafe(p) {
   } catch {
     return null;
   }
-}
-
-function extractFrontmatter(md) {
-  // Simple YAML frontmatter extractor: --- ... ---
-  if (!md.startsWith("---")) return null;
-  const end = md.indexOf("\n---", 3);
-  if (end === -1) return null;
-  const yaml = md.slice(3, end).trim();
-  return yaml.length ? yaml : null;
-}
-
-function yamlHasKey(yaml, key) {
-  // Minimal check: "<key>:" at line start (allow spaces)
-  const re = new RegExp(`^\\s*${key}\\s*:`, "m");
-  return re.test(yaml);
-}
-
-function extractSkeletonValue(yaml) {
-  // Extract: skeleton: "workflow"
-  const m = yaml.match(/^\s*skeleton\s*:\s*["']?([a-zA-Z0-9_-]+)["']?\s*$/m);
-  return m ? m[1].toLowerCase() : null;
 }
 
 function main() {
@@ -91,21 +62,19 @@ function main() {
       );
     }
 
-    const fm = extractFrontmatter(md);
+    const fm = extractFrontmatterBlock(md);
     if (!fm) {
       warnings.push("Missing YAML frontmatter at top of SKILL.md (required by SFC).");
     } else {
-      for (const k of REQUIRED_KEYS) {
-        if (!yamlHasKey(fm, k)) {
-          warnings.push(`Frontmatter missing required key: ${k}`);
-        }
+      const compliance = checkCompliance(parseFrontmatter(md));
+      for (const k of compliance.missing) {
+        warnings.push(`Frontmatter missing required key: ${k}`);
       }
-      const skeleton = extractSkeletonValue(fm);
-      if (!skeleton) {
+      if (!compliance.skeleton) {
         warnings.push("Frontmatter missing 'skeleton' value.");
-      } else if (!ALLOWED_SKELETONS.has(skeleton)) {
+      } else if (!compliance.skeletonValid) {
         warnings.push(
-          `Invalid skeleton: "${skeleton}". Allowed: workflow | task | reference | capabilities`
+          `Invalid skeleton: "${compliance.skeleton}". Allowed: workflow | task | reference | capabilities`
         );
       }
     }

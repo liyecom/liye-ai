@@ -24,19 +24,11 @@
 
 import fs from "fs";
 import path from "path";
-
-const REQUIRED_KEYS = [
-  "name",
-  "description",
-  "skeleton",
-  "triggers",
-  "inputs",
-  "outputs",
-  "failure_modes",
-  "verification",
-];
-
-const ALLOWED_SKELETONS = new Set(["workflow", "task", "reference", "capabilities"]);
+import {
+  checkCompliance,
+  extractFrontmatterBlock,
+  parseFrontmatter,
+} from "./sfc_frontmatter.mjs";
 
 const SKIP_DIR_NAMES = new Set([
   ".git",
@@ -120,55 +112,6 @@ function walkForSkillMd(rootDir) {
   return Array.from(results);
 }
 
-function extractFrontmatter(md) {
-  if (!md) return null;
-  const trimmed = md.trimStart();
-  if (!trimmed.startsWith("---")) return null;
-
-  const lines = trimmed.split("\n");
-  // Find closing --- after first line
-  let end = -1;
-  for (let i = 1; i < Math.min(lines.length, 300); i++) {
-    if (lines[i].trim() === "---") {
-      end = i;
-      break;
-    }
-  }
-  if (end === -1) return null;
-
-  const fm = lines.slice(1, end).join("\n");
-  return fm;
-}
-
-function hasKey(frontmatter, key) {
-  // Top-level YAML key existence heuristic: ^key:
-  // Also allow indented accidentally? keep strict to top-level to reduce false positives.
-  const re = new RegExp(`^${key}\\s*:`, "m");
-  return re.test(frontmatter);
-}
-
-function getSkeletonValue(frontmatter) {
-  const m = frontmatter.match(/^skeleton\s*:\s*(.+)\s*$/m);
-  if (!m) return null;
-  let v = m[1].trim();
-  // strip quotes
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1).trim();
-  }
-  // normalize
-  return v.toLowerCase();
-}
-
-function getNameValue(frontmatter) {
-  const m = frontmatter.match(/^name\s*:\s*(.+)\s*$/m);
-  if (!m) return null;
-  let v = m[1].trim();
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1).trim();
-  }
-  return v;
-}
-
 function bestEffortVerification(frontmatter, md) {
   // best-effort: check "evidence_required: true" OR "how_to_verify"
   const inFM = /evidence_required\s*:\s*true/i.test(frontmatter || "");
@@ -204,28 +147,27 @@ function scoreSkill(skillDir, rootDir) {
     };
   }
 
-  const fm = extractFrontmatter(md);
+  const fm = extractFrontmatterBlock(md);
+  const parsed = parseFrontmatter(md);
+  const compliance = checkCompliance(parsed);
   if (!fm) {
     debt += 60;
     warnings.push("Missing YAML frontmatter");
-    for (const k of REQUIRED_KEYS) missingKeys.push(k);
+    missingKeys.push(...compliance.missing);
   } else {
-    for (const k of REQUIRED_KEYS) {
-      if (!hasKey(fm, k)) {
-        debt += 8;
-        missingKeys.push(k);
-      }
+    for (const k of compliance.missing) {
+      debt += 8;
+      missingKeys.push(k);
     }
 
-    const skeleton = getSkeletonValue(fm);
-    if (skeleton && !ALLOWED_SKELETONS.has(skeleton)) {
+    if (compliance.skeleton && !compliance.skeletonValid) {
       debt += 12;
-      warnings.push(`Invalid skeleton: ${skeleton}`);
+      warnings.push(`Invalid skeleton: ${compliance.skeleton}`);
     }
 
     const v = bestEffortVerification(fm, md);
     // If verification key exists but lacks evidence_required=true & has no how_to_verify, add debt
-    if (hasKey(fm, "verification") && !v.evidenceRequired && !v.hasHowTo) {
+    if ((parsed?.verification || parsed?.metadata?.liye?.verification) && !v.evidenceRequired && !v.hasHowTo) {
       debt += 6;
       warnings.push("verification present but missing evidence_required/how_to_verify (best-effort)");
     }
@@ -238,8 +180,8 @@ function scoreSkill(skillDir, rootDir) {
     warnings.push(`SKILL.md too long: ${lineCount} lines (>500)`);
   }
 
-  const name = fm ? getNameValue(fm) || "(missing name)" : "(no frontmatter)";
-  const skeleton = fm ? getSkeletonValue(fm) || "(missing skeleton)" : "(no frontmatter)";
+  const name = fm ? parsed?.name || "(missing name)" : "(no frontmatter)";
+  const skeleton = fm ? compliance.skeleton || "(missing skeleton)" : "(no frontmatter)";
 
   // PASS if no debt at all
   const status = debt === 0 ? "PASS" : "DEBT";

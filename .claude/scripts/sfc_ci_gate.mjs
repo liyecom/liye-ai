@@ -13,27 +13,9 @@
 
 import fs from "fs";
 import path from "path";
-
-const REQUIRED = ["name","description","skeleton","triggers","inputs","outputs","failure_modes","verification"];
+import { checkCompliance, parseFrontmatter } from "./sfc_frontmatter.mjs";
 
 function read(p){ try{return fs.readFileSync(p,"utf8")}catch{return null} }
-
-function extractFrontmatter(md){
-  const t = md.trimStart();
-  if(!t.startsWith("---")) return null;
-  const lines = t.split("\n");
-  let end = -1;
-  for(let i=1;i<Math.min(lines.length,500);i++){
-    if(lines[i].trim()==="---"){ end=i; break; }
-  }
-  if(end===-1) return null;
-  return lines.slice(1,end).join("\n");
-}
-
-function hasKey(fm,key){
-  const re = new RegExp(`^${key}\\s*:`, "m");
-  return re.test(fm);
-}
 
 function walkSkillMd(rootDir){
   const res=[];
@@ -75,16 +57,10 @@ const debtList=[];
 for(const f of files){
   const md=read(f);
   if(!md) continue;
-  const fm=extractFrontmatter(md);
-  if(!fm){
+  const compliance=checkCompliance(parseFrontmatter(md));
+  if(!compliance.compliant){
     debtCount++;
-    debtList.push({file:f, missing:["frontmatter"]});
-    continue;
-  }
-  const missing=REQUIRED.filter(k=>!hasKey(fm,k));
-  if(missing.length){
-    debtCount++;
-    debtList.push({file:f, missing});
+    debtList.push({file:f, missing:compliance.missing});
   }
 }
 
