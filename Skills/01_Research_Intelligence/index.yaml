@@ -1,0 +1,22 @@
+# Skills/01_Research_Intelligence/index.yaml
+# 研究智能域技能索引
+
+domain: 01_Research_Intelligence
+name: 研究智能
+description: 学术研究、文献综述、信息检索、开源 prior-art 侦察相关技能
+
+# 域内原生技能
+native_skills:
+  - path: prior-art/github-digest
+    status: active
+    description: 研究已知 GitHub repo，判断对 LiYe Systems 进化的可借鉴性，产出 recon-log 报告
+    triggers: ["/github-digest", "研究这个 repo", "这个项目对 liye 有没有帮助"]
+    l1_methodology: docs/methodology/01_Research_Intelligence/recon-log/
+    siblings: ["tools/github-scout（发现未知 repo）", "tools/source-intake（受控 intake）"]
+
+# 元数据
+metadata:
+  created: 2026-07-01
+  updated: 2026-07-01
+  version: 1.0.0
+  activated_by: prior-art/github-digest
