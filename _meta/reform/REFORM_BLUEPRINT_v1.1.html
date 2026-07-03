@@ -1,0 +1,371 @@
+<title>LiYe 改革蓝图 v1.0</title>
+<style>
+  :root{
+    --paper:#FAFAF8; --ink:#1A1E23; --muted:#5C6670; --line:#E3E1DB;
+    --accent:#0F5A6E; --accent-soft:#EAF1F3;
+    --signal:#B4530A; --signal-soft:#FBF2E9;
+    --good:#2F7D4F; --warn:#9A6B00; --bad:#A63B33; --dead:#6B6B66;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+    --serif:"Songti SC","STSong","Noto Serif CJK SC",serif;
+    --sans:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC",sans-serif;
+  }
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.75;margin:0;padding:0 20px 96px}
+  .wrap{max-width:820px;margin:0 auto}
+  header.doc{border-bottom:3px double var(--accent);padding:56px 0 28px;margin-bottom:40px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--accent);
+    text-transform:uppercase;margin:0 0 14px}
+  h1{font-family:var(--serif);font-weight:700;font-size:40px;line-height:1.25;margin:0 0 18px;text-wrap:balance}
+  .pins{display:flex;flex-wrap:wrap;gap:8px 20px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .pins b{color:var(--ink);font-weight:600}
+  h2{font-family:var(--serif);font-size:26px;font-weight:700;margin:64px 0 6px;text-wrap:balance}
+  h2 .sn{color:var(--accent);margin-right:10px}
+  .h2sub{color:var(--muted);font-size:14px;margin:0 0 22px}
+  h3{font-family:var(--serif);font-size:19px;margin:36px 0 12px}
+  p{margin:0 0 14px;max-width:70ch}
+  .lede{font-size:17px;line-height:1.85}
+  .lede strong{color:var(--accent)}
+  mark{background:var(--signal-soft);color:inherit;padding:0 3px}
+  code,.k{font-family:var(--mono);font-size:.86em;background:#F0EFEA;padding:1px 5px;border-radius:3px}
+  a{color:var(--accent)}
+  /* chips */
+  .chip{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    padding:1px 8px;border-radius:10px;vertical-align:1px;white-space:nowrap}
+  .c-good{background:#E6F1EA;color:var(--good)}
+  .c-warn{background:#F7EFDC;color:var(--warn)}
+  .c-bad{background:#F6E7E5;color:var(--bad)}
+  .c-dead{background:#ECECE8;color:var(--dead)}
+  .c-info{background:var(--accent-soft);color:var(--accent)}
+  /* tables */
+  .tblwrap{overflow-x:auto;margin:18px 0 26px;border:1px solid var(--line);border-radius:4px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.6}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);text-align:left;font-weight:600;border-bottom:2px solid var(--line);
+    padding:10px 14px;background:#F5F4F0;white-space:nowrap}
+  td{border-bottom:1px solid var(--line);padding:9px 14px;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num,.mono{font-family:var(--mono);font-size:12.5px}
+  /* pipeline diagram */
+  .pipe{font-family:var(--mono);font-size:13px;background:#22272E;color:#D8DEE4;border-radius:6px;
+    padding:22px 26px;overflow-x:auto;line-height:1.9;margin:20px 0 26px}
+  .pipe em{color:#7CC5D9;font-style:normal}
+  .pipe i{color:#E5B567;font-style:normal}
+  .pipe .dim{color:#768390}
+  /* decision cards */
+  .dcard{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:4px;
+    background:#fff;margin:20px 0;padding:18px 22px 14px}
+  .dcard h4{font-family:var(--serif);font-size:17px;margin:0 0 10px;line-height:1.5}
+  .dcard h4 .did{font-family:var(--mono);font-size:12px;color:var(--accent);
+    letter-spacing:.08em;margin-right:10px;font-weight:600}
+  .dl{display:grid;grid-template-columns:52px 1fr;gap:6px 14px;font-size:13.5px;margin:0}
+  .dl dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted);
+    text-transform:uppercase;padding-top:3px}
+  .dl dd{margin:0;line-height:1.65}
+  .dl dd.mono-s{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  /* phases */
+  .phase{display:grid;grid-template-columns:96px 1fr;gap:0 22px;border-top:1px solid var(--line);padding:18px 0}
+  .phase:last-of-type{border-bottom:1px solid var(--line)}
+  .pnum{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;line-height:1.9}
+  .phase h4{font-size:15.5px;margin:0 0 6px;font-family:var(--sans);font-weight:600}
+  .phase p{font-size:13.5px;color:#3A4148;margin:0 0 6px}
+  .phase .dep{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  /* question cards */
+  .qcard{border:1px solid #E8CDB2;border-left:4px solid var(--signal);border-radius:4px;
+    background:var(--signal-soft);margin:18px 0;padding:16px 22px}
+  .qcard h4{font-size:15.5px;margin:0 0 8px;font-family:var(--sans);font-weight:600}
+  .qcard h4 .qid{font-family:var(--mono);font-size:12px;color:var(--signal);margin-right:10px;font-weight:600}
+  .qcard p{font-size:13.5px;margin:0 0 6px}
+  .qcard .why{color:var(--muted);font-size:12.5px}
+  /* misc */
+  .redline li{margin-bottom:6px}
+  ul,ol{padding-left:24px;margin:0 0 16px}
+  li{margin-bottom:4px}
+  .toc{background:#fff;border:1px solid var(--line);border-radius:4px;padding:18px 26px;margin:0 0 8px}
+  .toc ol{margin:0;columns:2;column-gap:40px;font-size:13.5px;padding-left:20px}
+  .toc a{text-decoration:none;color:var(--ink)}
+  .toc a:hover{color:var(--accent)}
+  .toc .sn{font-family:var(--mono);font-size:11px;color:var(--accent);margin-right:6px}
+  .foot{margin-top:72px;border-top:1px solid var(--line);padding-top:18px;
+    font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:2}
+  @media (max-width:640px){
+    h1{font-size:30px}
+    .toc ol{columns:1}
+    .dl{grid-template-columns:1fr}
+    .dl dt{padding-top:8px}
+    .phase{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="doc">
+  <p class="eyebrow">LiYe Systems · 第一性原理改革工程 · 供 Owner 终审</p>
+  <h1>改革蓝图 v1.1<br>诚实化 · 资产硬化 · 闭环通电</h1>
+  <div class="pins">
+    <span>钉点 <b>AGE origin/main 58bc918</b></span>
+    <span>liye_os <b>PR#200 已 MERGE（6afb13e）</b></span>
+    <span>日期 <b>2026-07-03</b></span>
+    <span>证据 <b>15 路侦察 + Codex 外审 + 4 路对抗复核（324k tokens）</b></span>
+  </div>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#s1"><span class="sn">§1</span>总判</a></li>
+    <li><a href="#s2"><span class="sn">§2</span>概念定版（三件套）</a></li>
+    <li><a href="#s3"><span class="sn">§3</span>证据地图</a></li>
+    <li><a href="#s4"><span class="sn">§4</span>十二裁决 D1–D12</a></li>
+    <li><a href="#s5"><span class="sn">§5</span>作战序列 Phase 0–6</a></li>
+    <li><a href="#s6"><span class="sn">§6</span>Owner 裁决区 Q1–Q5</a></li>
+    <li><a href="#s7"><span class="sn">§7</span>不动清单（红线）</a></li>
+    <li><a href="#s8"><span class="sn">§8</span>规模与风险</a></li>
+    <li><a href="#s9"><span class="sn">§9</span>外审裁决（v1.1 修订记录）</a></li>
+  </ol>
+</nav>
+
+<h2 id="s1"><span class="sn">§1</span>总判</h2>
+<p class="lede"><strong>骨架真实而优秀，皮肤大面积幻觉。</strong>AGE 的五层契约管线是实弹级的（最近一组 compile→verdict→report 全链产物落在 2026-07-02），fail-closed 写门链 G0–G7 逐行可核，审批已按 action_kind 三层分级，asin-growth v5 的"文档即合约"结构与 Anthropic 官方 SOTA 同构。<mark>但三层都挂着与现实脱节的自我描述</mark>：20 个 YAML agent 和 2 个 crew 没有任何执行路径（CrewAI 依赖根本不存在）；ads-governance 描述的 4 个核心脚本在 git 全史中从未存在；liye_os 的 SKILL_CONSTITUTION 自称 HARD BLOCK 而执法挂着 "(planned)" 五个月；真正扣扳机的 live 广告写入口 loamwise-ops 游离在 git 之外。</p>
+<p class="lede">因此改革不是推倒重来——执行面值得保留和推广。改革是三件事：<strong>诚实化</strong>（让描述=现实，删掉规格僵尸与假治理面）、<strong>资产硬化</strong>（经验→手册→剧本→软件的梯度成为制度）、<strong>闭环通电</strong>（学习层 Layer B 目前是真空：live 库无 <code>fact_measurement_verdict</code> 表，verdict JSON 躺在 out/ 没进真值层）。</p>
+
+<h2 id="s2"><span class="sn">§2</span>概念定版（已对齐，落盘为制度）</h2>
+<p class="h2sub">三件套互相咬合：业务主干说"做什么"，五概念说"用什么载体"，硬化梯度说"资产往哪沉"。</p>
+
+<div class="pipe">
+<span class="dim">// 业务主干（你的手绘 + 闭环下半场）</span><br>
+数据 → 因子 → <em>决策</em> → 执行 → 回执 → 验证 → <i>学习</i><br>
+<span class="dim">        每个"如何XX?" = 一个 Skill      compile→execute→receipt→verdict（已实弹）   ← Layer B 真空，D9 通电</span><br>
+<span class="dim">横切：治理门禁（G0–G7 · 灰度 · 人审检查点） │ 结果回灌：因子再加权 · 技能再进化</span>
+</div>
+
+<div class="tblwrap"><table>
+  <tr><th>概念</th><th>量化类比</th><th>本质</th><th>控制流在哪</th><th>出错修什么</th><th>归宿</th></tr>
+  <tr><td><b>Tool</b></td><td>行情终端 / 下单网关</td><td>确定性计算</td><td>无——被调用</td><td>改代码</td><td class="mono">tools/</td></tr>
+  <tr><td><b>Skill</b></td><td>策略卡 / 风控守则</td><td>固化的判断标准</td><td>无——被阅读</td><td>改手册</td><td class="mono">Skills/ · 域repo .claude/skills/</td></tr>
+  <tr><td><b>Agent</b></td><td>交易员</td><td>带判断的执行者（=Claude）</td><td>模型脑子里</td><td>改手册 / 加门禁</td><td class="mono">运行时，不是 YAML</td></tr>
+  <tr><td><b>Workflow</b></td><td>制度化流程</td><td>确定性控制流，agent 填空</td><td>剧本/代码里</td><td>改剧本</td><td class="mono">workflows · pipeline · loamwise(L1)</td></tr>
+  <tr><td><b>Team</b></td><td>交易台</td><td>多 agent + 协作结构</td><td>协作协议里</td><td>改分工/协议</td><td class="mono">剧本制优先（可审计）</td></tr>
+</table></div>
+
+<p><b>资产硬化梯度</b>（架构总原则）：<code>经验 → Skill(手册) → Workflow(剧本) → Tool(软件)</code>。能力随成熟度下沉——每降一级：确定性↑ 可审计↑ 边际成本↓；边界情况反向上浮给判断，教训写回手册。节制律：<b>从最简形态开始，能用 Tool 别用 Agent，能用单 Agent 别开 Team。</b></p>
+<p>落盘位置：<code>liye_os/_meta/governance/CAPABILITY_MODEL.md</code>（新，与 SKILL_PLACEMENT.md 配对：那个管"放哪"，这个管"是什么"），并植入 AGE CLAUDE.md 顶部。</p>
+
+<h2 id="s3"><span class="sn">§3</span>证据地图</h2>
+<p class="h2sub">15 路侦察的头条事实。完整报告存 scratchpad，全部钉证据（file:line / commit / 实测）。</p>
+<div class="tblwrap"><table>
+  <tr><th>路</th><th>头条事实</th><th>态</th></tr>
+  <tr><td class="mono">exemplar:asin-growth</td><td>v5=瘦路由器(248行)+14 references+17 锚点+sha256 词表+四道防rot防线；<b>但自带 7 条幽灵引用</b>，demo 私货入正文，三版本轴无机器绑定</td><td><span class="chip c-good">good</span> <span class="chip c-warn">清账</span></td></tr>
+  <tr><td class="mono">inventory:age-skills</td><td>ads-governance 4 个核心脚本 git 全史从未存在；amazon-ad-optimization 死而 SFC-PASS——<b>lint 与健康度完全倒挂</b>；check_skill_references 只盖 2/6 且不在 CI</td><td><span class="chip c-bad">broken</span></td></tr>
+  <tr><td class="mono">map:age-core</td><td>五层契约+G0–G7 门链真实可核；32k LOC 废弃 CrewAI 子树占 src/ 35%；execute_request.py 3757 行六周 +45%</td><td><span class="chip c-good">good</span> <span class="chip c-dead">死码</span></td></tr>
+  <tr><td class="mono">map:age-knowledge</td><td>docs 三层年轮：新鲜快照 / ~110 份已完成使命的设计史平躺 / initial-commit 尸体（Agents·knowledge·memory）；CLAUDE.md 纯规则零路由，04-15 起未更新</td><td><span class="chip c-warn">aging</span></td></tr>
+  <tr><td class="mono">diverge:age-branches</td><td>canonical-realign 六个 ahead 全无独有价值（5 merge + 1 已被 #535 超集）；<b>.planning/ 5.7MB 活资产待救</b>（bea-v2 / mcp-cutover / cc-primitives 87 文件 / cosmo / skills-refactor）</td><td><span class="chip c-info">裁决</span></td></tr>
+  <tr><td class="mono">sweep:liye-os</td><td>"骨架优秀肌肉萎缩"：48 CI 全绿，但 Skills/ 15 域 11 空壳、tools/ 14 个 3 活、SFC 门禁永远 warn、宪法执法 "(planned)"、CLAUDE.md 描述不存在的 cli/</td><td><span class="chip c-bad">假治理面</span></td></tr>
+  <tr><td class="mono">sota:anthropic</td><td>官方标准：frontmatter 只认 name+description，自造字段入 metadata:；<b>SFC 的 triggers 字段引擎根本不读</b>；description 要 what+when（SFC 规则相反）；evals 先行；副作用 skill 用 disable-model-invocation</td><td><span class="chip c-info">v0.2 依据</span></td></tr>
+  <tr><td class="mono">sota:agent-patterns</td><td>Pacvue"护栏+审批+可审计"、Amazon 官方 Ads Agent"可配置人审检查点"、LinkFox 1000+ skill 市场——行业标准形态=分析→推荐→受控执行</td><td><span class="chip c-info">借鉴</span></td></tr>
+  <tr><td class="mono">recon:siblings</td><td>可推广落点仅 loamwise（55 commits 未推送待确认）与 chaming（无 remote，2415 行核心数据单点）；L3 全休眠；全生态 0 个第二 engine_manifest</td><td><span class="chip c-warn">partial</span></td></tr>
+  <tr><td class="mono">recon:agent-layer</td><td><b>Agent/Crew 层=配置化的幻觉</b>：liye_os 3+2、AGE 15 个 YAML 零实例化路径；真实运行的是三套互不相认的自研系统（TS task runner / CARGE / flow orchestrator）</td><td><span class="chip c-dead">规格僵尸</span></td></tr>
+  <tr><td class="mono">recon:runtime</td><td>DuckDB 2.7GB=<b>合法积累</b>（17M 搜索词行）非事故；eval/=有意冻结的 standby，阻塞在上游（等 ≥3 行 canonical verdict）；E2E 链 07-02 实证全通；<b>live 库缺 skill_version 列、无 fact_measurement_verdict 表</b></td><td><span class="chip c-good">生产真</span> <span class="chip c-bad">LayerB空</span></td></tr>
+  <tr><td class="mono">recon:global-skills</td><td>~/.claude/skills 105 项：<b>loamwise-ops（live 广告写入口）零 git 审计=CRITICAL</b>；79 个 gsd-* 无版本无来源；4 个 AGE symlink 指向 diverged 树（生效面≠范本）</td><td><span class="chip c-bad">治理洞</span></td></tr>
+  <tr><td class="mono">recon:403-coupling</td><td>#403 只剩 Phase 1b emit_fact live wiring；<b>与改革零文件冲突可并行</b>；审批已按 action_kind 三层分级+fail-closed（唯缺金额阈值）；~470/504 测试文件 CI-dark</td><td><span class="chip c-good">无冲突</span></td></tr>
+</table></div>
+
+<h2 id="s4"><span class="sn">§4</span>十二裁决</h2>
+<p class="h2sub">每条自带证据、动作、波及面。D 编号即蓝图执行时的工作项编号。</p>
+
+<div class="dcard"><h4><span class="did">D1</span>Agent 层诚实化——删除规格僵尸，不引入 CrewAI</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>20 个 agent YAML + 2 crew YAML 零实例化路径；CrewAI 不在任何 package 依赖里；真实编排=剧本（workflow/flow/CARGE）+ Claude</dd>
+  <dt>行动</dt><dd>删 liye_os <code>Agents/core/*.yaml</code>、<code>Crews/</code>（geo JS 三件套改名收编为函数库）；AGE 的 15 个随死子树一起走（见 D9）；CAPABILITY_MODEL.md 定版"Agent=运行时的 Claude，不是 YAML 人设"</dd>
+  <dt>波及</dt><dd class="mono-s">git 可恢复；Agents/README 的假 import 示例一并清除；先核 flow_orchestrator 真实调用者</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D2</span>改革基座 = origin/main；live 树收敛；.planning 分层救援</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>canonical-realign 六个 ahead 无独有价值（诊断报告逐个核过）；live 树 behind 31 导致 symlink 生效面加载旧版 skill；.planning/ 5.7MB 含本次改革的直接输入（cosmo PROMPT_PACK 已验证搬运成功，虚惊）</dd>
+  <dt>行动</dt><dd>live 树切回 main 并同步（4 个 symlink 生效面自动修复）；分支 tag 存档后删【<b>Q2 授权</b>】；.planning CAT-A 五项转正式分支/落盘，CAT-B 计划落地，CAT-C 评审，deepbi 审计后归档</dd>
+  <dt>波及</dt><dd class="mono-s">git branch -D 属破坏性操作，等 Owner 当轮明确 go；救援期间 .planning 先整体备份</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D3</span>SFC v0.2——对齐官方开放标准，单链切换</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>官方 spec 顶层只认 name+description；SFC 自造 9 个顶层字段；triggers 引擎不读（触发全靠 description）；description 规则与官方相反；官方 evals 体系本地为零</dd>
+  <dt>行动</dt><dd>次序钉死：<b>① v0.2 spec 定稿</b>（自造字段入 metadata:，description=what+when 第三人称关键词前置，废 triggers 改 when_to_use，≤500 行，references 一层深，evals/ 子目录，副作用 skill 加 disable-model-invocation）→ <b>② lint 重写为实质校验</b>（引用存在性 check_skill_references 扩全 skill+接 CI、版本互绑、行数）→ <b>③ 24 个 skill 一次迁移</b>（liye_os 18 + AGE 6）→ <b>④ 门禁 warn→strict + 宪法可 lint 规则并入</b></dd>
+  <dt>波及</dt><dd class="mono-s">SKILL_FACTORY_CONTRACT、sfc_lint/sfc_ci_gate、两 repo 全部 skill frontmatter；顺序错了会两 repo 连环红（批判官 gap#7 的裁决）</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D4</span>asin-growth 清账立范本（v5.1，不是推倒重构）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>v5 结构已与官方 SOTA 同构（瘦路由+分层+锚点+防rot），推倒重构是浪费；但 7 条幽灵引用、demo 私货（B0C5Q8L7FP 舞台细节固化正文）、三版本轴（SKILL 5.0.0/playbook 2.0.1/vocab v1 互不机器绑定）、playbook 内失效行号，账没清不能称范本</dd>
+  <dt>行动</dt><dd>清偿 7 refs → demo 私货下沉 out/ → playbook 声明兼容 SKILL 版本区间 → SFC v0.2 迁移 → 建 evals/（复用 eval/asin-growth B0 的 35 案例编目，接官方 evals.json 范式）→ 宣布范本</dd>
+  <dt>波及</dt><dd class="mono-s">doc-contract 测试未钉 Quickstart，删改低风险；17 锚点与被钉 token 不动；COSMO §P1-v2 已验证在位，保全</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D5</span>ads-governance 按现实重写（第二范本：执行类 skill 示范）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>SKILL.md 主体工作流的 4 个脚本从未存在（git --all 零记录），照文档不可执行；但它是 asin-growth/marketplace-growth 声明的执行层，位置不能空</dd>
+  <dt>行动</dt><dd>按 scripts/ads/ 28 个真实脚本 + execution_kernel + write_automation_policy_v1 重写；顺便示范执行类 skill 的官方姿势：<code>disable-model-invocation: true</code> + 审批分级声明引用（不各自硬编码）</dd>
+  <dt>波及</dt><dd class="mono-s">asin-growth/marketplace-growth 委派描述同步；playbook-lint 已监听其 SKILL.md</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D6</span>AGE 退役与归档清单</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>amazon-ad-optimization 官方标 legacy 无人引用 3.5 月；顶层 skills/ 双轨违反 placement；~110 份设计史文档与常青文档平铺；SYSTEM_OVERVIEW(根) 被双重取代</dd>
+  <dt>行动</dt><dd>amazon-ad-optimization：TES/3-3-3 方法论抢救评估→归档；skills/ 两文件并入 docs 或删；设计史 → docs/archive/（快照标锚点、evergreen 标 superseded 定为惯例）；dated runbook 加 status 字段公约</dd>
+  <dt>波及</dt><dd class="mono-s">CODEBASE_MAP 注记同步；文档相对链接检查；无代码依赖</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D7</span>全局生效面治理（105 项收编）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd><b>loamwise-ops = live 广告写 NL 入口，零 git 审计，凭证读 AGE .env.local</b>——全体系管住了 repo 每行代码，没管住扣扳机的入口；79 个 gsd-* 无版本无来源；product-selection 未曝露（与其他 3 skill 不一致）</dd>
+  <dt>行动</dt><dd>loamwise-ops → <code>loamwise/.claude/skills/</code> + 版本号 + PR（最高优先）；domain-hunter → chaming（等 remote 建立）；download-video → AGE；gsd-* 来源调查【<b>Q3</b>】；第三方 15 项加 lock drift 检查；product-selection 曝露补齐</dd>
+  <dt>波及</dt><dd class="mono-s">收编后 ~/.claude/skills 全部变 symlink 或 lock 管理，实体私有清零</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D8</span>liye_os 减肥与去幻觉</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>11 个 PLACEHOLDER 空壳域 6 个月零更新（02 域已被 SKILL_PLACEMENT 架空）；60+ 治理脚本一半死；CLAUDE.md 三处已证伪（cli/ 不存在、assembler 无执行面、Two-Speed hooks 未注册）；宪法零执法</dd>
+  <dt>行动</dt><dd>空壳域删除（域随首个真 skill 再生）；死脚本以"被 workflow/hook 引用"为生死线清算；CLAUDE.md 去幻觉+植入概念模型路由；tools/ 二分（活的补 declaration 照 source-intake 模板，死的归档）；三宪法 authority map 一页（SYSTEMS / ARCHITECTURE_CONSTITUTION / SKILL_CONSTITUTION 优先序）</dd>
+  <dt>波及</dt><dd class="mono-s">CLAUDE.md 是每会话 resident context，失真污染所有下游——最高杠杆的文档修复</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D9</span>AGE 死码移除（32k LOC 四件套）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>src/domain/amazon-growth（连字符不可 import）+ amazon_ops_agent_v2（自述 DEAD）= src/ 35% LOC；Agents/ knowledge/ memory/ 三目录唯一锚点就是该子树；架构快照已书面宣判</dd>
+  <dt>行动</dt><dd>先解绑 scripts/migrations 一处 KOI 引用 + 核实 flow_orchestrator 调用者 → 四件套（子树+Agents/+knowledge/+memory/）整体移除；#548 孤儿测试 rebuild-vs-delete 一并收口；crewai optional-extra 移除</dd>
+  <dt>波及</dt><dd class="mono-s">R6 import-graph 门、SYSTEM_OVERVIEW 指针；零生产引用，运行面无风险</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D10</span>学习层通电（闭环右半场）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>live 库 fact_exec_action 362 行<b>缺 skill_version 列</b>、fact_measurement_verdict 表<b>不存在</b>；verdict JSON 躺 out/ 未入真值层；eval B0 万事俱备只等 ≥3 行 canonical verdict 触发；#403 Phase 1b 与改革零文件冲突</dd>
+  <dt>行动</dt><dd>live 树收敛（前置，含 v10 alter）→ #403 Phase 1b emit_fact live wiring（并行推进）→ verdict truth sync 跑通 → eval B0 自动解锁 B1a。这一步把"经验→企业资产"从口号变成数据流</dd>
+  <dt>波及</dt><dd class="mono-s">write_automation_policy status flip 在 Phase 1b 内闭合；与 GHL liye_os 侧 SEALED 面无需改动</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D11</span>净增量借鉴（SOTA 过滤后）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>sota 8 条建议中 2 条已建成（receipt 链、渐进披露）、1 条前提被证伪（审批已分级）——照单全收会重复建设；真正的净增量五项</dd>
+  <dt>行动</dt><dd>① 审批加 spend-delta 金额阈值维度（唯一缺口）② 人审检查点声明化进 engine_manifest（Amazon Ads Agent 模式，policy 已是雏形）③ 副作用 skill 全部 disable-model-invocation ④ CI allowlist 同步纪律成文（新测试必须同步 workflow，~470 文件 CI-dark 的教训）⑤ as-of-commit 快照纪律定为全生态文档标准</dd>
+  <dt>波及</dt><dd class="mono-s">engine_manifest.schema 需 liye_os 侧配合加检查点声明段</dd>
+</dl></div>
+
+<div class="dcard"><h4><span class="did">D12</span>生态推广路径（收敛完成定义）</h4>
+<dl class="dl">
+  <dt>证据</dt><dd>可落点仅 loamwise（唯一有 contracts+tests+双域 adapter，但 55 commits 未推送【<b>Q1</b>】）与 chaming（CLAUDE.md 自述目标态=注册 manifest，但无 remote、schema 引用路径失效）；L3 全休眠；growth-hub/kits/sites 零回报</dd>
+  <dt>行动</dt><dd>AGE 范式验证 → loamwise 第一跳（推送积压+植入 .claude/skills+收编 loamwise-ops）→ chaming 最小 D0→D1（建 remote+manifest+修路径）→ L3 卫生批处理后接入 silkbay-governance 既有 gate（不平行再造）；growth-hub/kits/sites 显式除名</dd>
+  <dt>波及</dt><dd class="mono-s">"推广到全 liye systems"的完成定义收敛为：loamwise + chaming + silkbay/storefronts</dd>
+</dl></div>
+
+<h2 id="s5"><span class="sn">§5</span>作战序列</h2>
+<p class="h2sub">每 Phase 一至数个 PR，全部走对抗审 + Owner merge。Phase 2/3 是关键路径；4/5 可与之并行。</p>
+
+<div class="phase"><div class="pnum">Phase –1<br>蓝图固化</div><div>
+  <h4>PRD + evidence ledger 落 repo（docs-only，外审采纳项）</h4>
+  <p>本蓝图 v1.1 + 142 分支分诊 RESCUE_MANIFEST + Codex 裁决记录 → <code>liye_os/_meta/reform/</code> 走 PR。此后一切破坏性动作以落盘 PRD 为授权面，不以会话对话为授权面。</p>
+  <p class="dep">依赖：无。产出：docs PR ×1</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 0A<br>全量冻结</div><div>
+  <h4>bundle 先行，零删除（AGE，本地零风险）</h4>
+  <p><code>git bundle create --all</code>（~20–40MB：142 分支 · 449 个 not-on-remote commits · stash 尖 · 全 tag）→ <code>bundle verify</code> → 存 repo 外持久位置 → .planning/ 5.7MB 活资产快照归档。分诊已完成：45 零独有 + 54 squash 已落 main + 11 remote 安全 + 7 review 草稿 + 15 已被超越 + <b>9 真独有（共 13 commits，多为刻意私有/隔离的历史内容）</b>。</p>
+  <p class="dep">依赖：无。产出：bundle + RESCUE_MANIFEST.md（并入 Phase –1 PR）</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 0B<br>生效面收敛</div><div>
+  <h4>live 树回 main（可逆，不含任何删除）</h4>
+  <p>live 树 switch main（<b>已证零内容损失</b>：canonical-realign 唯一实质 commit 63598c2 的文件与 main #535 逐字节相同；untracked 全保留）→ age-main-cron worktree ff 更新（behind 24，cron 正跑旧代码，选空窗执行）→ liye_os 树回 main（#200 已 merge）。紧迫性：~/.claude/skills 三个 symlink 正在服务 behind-32 的旧 skill。</p>
+  <p class="dep">依赖：Phase 0A bundle 验证通过 + Q2 条件授权。产出：无 PR，纯本地态收敛</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 1<br>制度定版</div><div>
+  <h4>概念与政策落盘（liye_os，docs-only）</h4>
+  <p>PR #200 已 MERGE ✓（6afb13e）→ CAPABILITY_MODEL.md + SFC v0.2 spec 定稿（先解 v0.1/v0.2 自我冲突：liye_os 现行 sfc_lint 强制的字段正是 v0.2 禁止的顶层字段）+ linter 先跑 report-only + CLAUDE.md 去幻觉（含 navigator 修正：age-main-cron 实为 AGE worktree 非独立仓库）+ 三宪法 authority map + D1 规格僵尸移除</p>
+  <p class="dep">依赖：无（可与 Phase 0 并行）。产出：docs PR ×2</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 2<br>范本工程</div><div>
+  <h4>两个迁移范本 + 一个诚实化重写（AGE + liye_os）</h4>
+  <p>SFC 迁移范本改选 <b>asin-growth</b>（描述已 what+when、213 行、references 一层深——纯 frontmatter 机械迁移，最高价值 skill 零行为风险）+ <b>github-digest</b>（其 diff 即 16 个 vendored skill 的批量脚本配方）。ads-governance 现实重写照旧（4 个幽灵脚本诚实化——这是重写不是迁移，不当首刀范本）→ check_skill_references 扩全 6 skill 接 CI（先清 7+4 条幽灵引用后接）→ KOI 边界注记 micro-PR（文本已在 R8 FROZEN §4 备好，触及 tracked skill 文件需单独授权）</p>
+  <p class="dep">依赖：SFC v0.2 spec（Phase 1）。产出：PR ×3–4</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 3<br>执法切换</div><div>
+  <h4>迁移构成修正 → strict（两 repo 协同）</h4>
+  <p>真实构成（复核实测，替代 v1.0"24 个一批"口径）：<b>手迁 7</b>（AGE 5 + liye_os 原生 2）· <b>脚本迁 16</b>（vendored 第三方，同一台机打 v0.1 模板，一个脚本折入 metadata:）· <b>已合规 3</b>（age-md2html 即"完工参照"）· <b>拆分 1</b>（product-selection 749 行超限，单列计划）· <b>退役裁决 2</b>（amazon-ad-optimization——死 skill 且是最重 KOI skill 面；download-video.md）· <b>回迁 2</b>（loamwise-ops / domain-hunter 回域 repo，placement 教义）。全部绿后 sfc-ci warn→strict + ess 去 <code>|| true</code>。今日 strict-first 实测 = 23/24 红（外审"全生态红灯"判断成立）。</p>
+  <p class="dep">依赖：Phase 2 范本验证 + 批量脚本以 github-digest diff 为 fixture。产出：PR ×2–3</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 4<br>大扫除</div><div>
+  <h4>删除类全部集中此处，逐批授权（AGE）</h4>
+  <p>D9 四件套移除 → D6 退役归档清单 → <b>分支清理</b>：133 个可删分支按分诊类（A 零独有 45 / B squash 已落 54 / D review 草稿 7 / E 已被超越 15 + 部分 G）分批 <code>branch -D</code>，每批单独 go，bundle 在手全可逆；先移除 7 个挡路的 stale worktree；9 个真独有分支按 RESCUE_MANIFEST 逐项裁（推荐：私有内容推 <code>archive/*</code> ref 或留 bundle 即可）→ D12(AGE) CLAUDE.md 规则+路由双层化</p>
+  <p class="dep">依赖：Phase 0A bundle verify 通过 + Owner 分批 go。产出：AGE PR ×3 + 分支清理操作记录</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 5<br>闭环通电</div><div>
+  <h4>D10 学习层 + D11 净增量 + KOI 出口门（AGE + liye_os）</h4>
+  <p>#403 Phase 1b（并行线，互不阻塞）→ verdict truth sync → eval B0 解锁 → spend-delta 阈值 + 检查点声明化 + disable-model-invocation 铺开。<b>KOI 出口面（D4 重定义）</b>：port_scrub_gate 从"工具+runbook"升级为强制门（首个接线点 = asin-keyword-koi → 掌象 handoff 的 P6 渲染门）；FirstLightClaw EXTERNAL_EXPOSED 跟进（通知对方 scrub/服务端改写——真正的残余风险在外部拷贝，不在本 repo）；W3 git 历史审计按 W2 建议升 GO 评估。execute_request 拆分（3591 行实测）等 Phase 1b 落地后：先 split map + characterization tests，后机械拆分。</p>
+  <p class="dep">依赖：Phase 0（live 收敛）。KOI 内部面不重开（R8 FROZEN 决定 A）</p>
+</div></div>
+<div class="phase"><div class="pnum">Phase 6<br>生态推广</div><div>
+  <h4>D12 loamwise → chaming → L3</h4>
+  <p>loamwise 推送+skill 层植入+loamwise-ops 收编 → chaming D0→D1 → L3 卫生+接入既有 gate → 除名清单落 SYSTEMS.md</p>
+  <p class="dep">依赖：Q1 确认 + AGE 范式验证（Phase 2-4 收官）</p>
+</div></div>
+
+<h2 id="s6"><span class="sn">§6</span>Owner 裁决区</h2>
+<p class="h2sub">只有你能答的五个问题。答案直接改变作战序列，其余一概不等你。</p>
+
+<div class="qcard"><h4><span class="qid">Q1</span>loamwise 55 个未推送 commit → 建议：push 已有 baseline 分支，不直推 master</h4>
+<p>复核实测：<code>release/p2-p3-baseline-2026-06-02</code> 分支<b>已在本地存在</b>（bb3c389 = master 同点，无 upstream）。外审建议的"开 archive/release 分支"已经半完成。</p>
+<p class="why">建议拍板：push 该分支（发布动作，需你 go）→ 跑最小 CI/contract audit → 通过后作为 Phase 6 第一跳的基线；master 的 55 commits 不直接推。</p></div>
+
+<div class="qcard"><h4><span class="qid">Q2</span>AGE 分支处置 → 建议：条件授权（0A bundle + 0B 切 main 现在做；branch -D 全部延至 Phase 4）</h4>
+<p>核查定谳：canonical-realign 实质独有内容 = <b>0</b>（唯一非 merge commit 63598c2 的文件与 main 上 #535 逐字节相同——外审"必须先救援该 commit"经内容级核查为伪需求）。全仓真独有 = 9 分支 13 commits，已列 RESCUE_MANIFEST 待你逐项裁。</p>
+<p class="why">建议拍板：现在授权 <b>0A</b>（bundle --all，零风险）+ <b>0B</b>(live 树切 main，已证零损失，untracked 全保留)；133 个可删分支延至 Phase 4 分批 go。生效面正在漂移（skill symlink 服务 behind-32 旧版；cron 跑 behind-24 旧 main），0B 有紧迫性。</p></div>
+
+<div class="qcard"><h4><span class="qid">Q3</span>gsd-* 79 个 → 建议：keep + lock（复核已回答"来源"问题）</h4>
+<p>复核定谳：GSD = npm 包 <code>get-shit-done-cc</code> v1.37.1（2026-04-18 一次性安装，非 plugin），wiring 面 = 79 skills + 31 agents + 10 hooks + statusline + runtime 树 + hash manifest。<b>在用</b>：两 repo 的 .planning/codebase/ 由 /gsd-map-codebase 产出（liye_os 6 天前刚刷新）；AGE tracked 治理文档引用 gsd-docpack 产物。</p>
+<p class="why">建议拍板：keep + 落锁定记录（v1.37.1 + gsd-file-manifest.json 为锁）+ wiring surface 文档。未来若要删，必须整体卸载（含 settings.json hooks / agents / runtime），绝不能只删 skills 目录——那是截肢不是卸载。</p></div>
+
+<div class="qcard"><h4><span class="qid">Q4</span>KOI 密级 → 建议：维持 R8 FROZEN，此问已非悬案</h4>
+<p>复核定谳：该问题<b>已于 2026-06-27 由你批准 FROZEN</b>（决定 A：internal_operator 保留公式——公式本就必须存在于 src/scripts，scrub 内部 .md 零边际保密收益）。执法已落地且经 CI 强制：customer_safe 全树基线 0 findings、每 PR 扫描、port_scrub_gate fail-closed 带路径测试（外审要求的"lint path 测试"早已存在）。</p>
+<p class="why">建议拍板：维持 FROZEN；KOI 工作流重定义为出口面三件事（出口门强制接线 / FirstLightClaw 外泄跟进——这才是真正的残余风险 / W3 历史审计升 GO），撤销任何内部 scrub 议程。</p></div>
+
+<div class="qcard"><h4><span class="qid">Q5</span>execute_request.py（3591 行实测）拆分 → 建议：等 #403 Phase 1b 落地后（双方共识）</h4>
+<p>外审与 v1.0 原建议一致：延后。它是所有 action-kind 的必经 chokepoint，学习链通电前少动大骨架。</p>
+<p class="why">执行纪律：先写 split map + characterization tests，后机械拆分；与 #403 零文件冲突已实测，纯节奏选择。</p></div>
+
+<h2 id="s7"><span class="sn">§7</span>不动清单</h2>
+<ul class="redline">
+  <li><b>不引入 CrewAI</b>——往幻觉上加真依赖是反方向（D1 选项 A 已裁弃）</li>
+  <li><b>不平台化域 skill 本体</b>——机制上升、工作流不搬家（SKILL_PLACEMENT 反规则）</li>
+  <li><b>KOI/TES 公式面零触碰</b>——R8 最高优先，改革全程 grep 验证零泄漏</li>
+  <li><b>G0–G7 门链与 ADR-0013 五层契约语义不动</b>——改革对象是描述与组织，不是治理语义</li>
+  <li><b>不 vendor 开源</b>——Fork 纪律照旧，一切借鉴 clean-room</li>
+  <li><b>PR #200 内容不重开</b>——placement 教义已定，本蓝图是其下游</li>
+</ul>
+
+<h2 id="s8"><span class="sn">§8</span>规模与风险</h2>
+<div class="tblwrap"><table>
+  <tr><th>维度</th><th>量级</th><th>说明</th></tr>
+  <tr><td>PR 总量</td><td class="num">~15–18 个</td><td>docs-only ×5 · AGE 代码 ×8 · 跨 repo ×3；全部对抗审 + Owner merge</td></tr>
+  <tr><td>关键路径</td><td class="num">Phase 1→2→3</td><td>SFC 单链（spec→迁移→strict）不可乱序；其余可并行</td></tr>
+  <tr><td>最大单项风险</td><td class="num">D3 迁移</td><td>frontmatter 迁移触发 doc-contract 测试连锁（#522 教训：先改测试为闭包模型再动 frontmatter）；根因已定位——liye_os sfc_lint v0.1 强制的字段正是 v0.2 禁止的顶层字段，spec 先行可拆弹；16/23 失败为同一机打模板，一个脚本折入 metadata:</td></tr>
+  <tr><td>回滚性</td><td class="num">高</td><td><code>bundle --all</code> 先行并 verify（含 449 个 not-on-remote commits + stash 尖 + 全 tag，~20–40MB）；此后一切删除全量可逆；无任何先删后备的路径</td></tr>
+  <tr><td>并行冲突</td><td class="num">已清</td><td>#403 Phase 1b 零文件冲突（实测矩阵）；bea-v2/mcp-cutover 救援走独立分支</td></tr>
+</table></div>
+
+<h2 id="s9"><span class="sn">§9</span>外审裁决（v1.1 修订记录）</h2>
+<p class="h2sub">Codex 审核意见逐条对抗核查后的裁决。原则：主张对错看证据，不看谁提的。核查手段：4 路独立复核 agent（324k tokens · 81 次工具调用）+ 内容级 git 分诊全部 142 分支。</p>
+<div class="tblwrap"><table>
+  <tr><th>Codex 主张</th><th>裁决</th><th>证据 / 修订落点</th></tr>
+  <tr><td>蓝图三主轴与概念定版成立；PRD + evidence ledger + stop-lines，不是 shell runbook</td><td><span class="chip c-good">采纳</span></td><td>v1.1 全面制度化：新增 Phase –1 蓝图固化；删除类全部集中 Phase 4 逐批授权；破坏性动作以落盘 PRD 为授权面</td></tr>
+  <tr><td>Phase 0 应=冻结/救援/clean base，删除放最后</td><td><span class="chip c-good">采纳并强化</span></td><td>正确原语是 <code>bundle --all</code> 一步覆盖 449 commits——比"救援单个 commit"完整两个量级；Phase 0 拆为 0A 冻结 / 0B 收敛，零删除</td></tr>
+  <tr><td>"canonical-realign 有独有 commit 63598c2，删前必须先救援"</td><td><span class="chip c-bad">驳回</span></td><td>内容级核查：该文件已由 PR #535（e5bf4e9）逐字节落在 origin/main，diff 为空。外审只查了 commit 可达性未查 patch 等价性；v1.0 证据地图原判（"已被 #535 超集"）正确</td></tr>
+  <tr><td>SFC 不应一次迁 24 个；先 spec + linter + 2 范本</td><td><span class="chip c-info">部分采纳</span></td><td>v1.0 本就范本先行；真修正是构成：手迁 7 + 脚本迁 16（vendored 同模板）+ 拆分 1 + 退役 2 + 回迁 2；strict-first 实测 23/24 红（"全生态红灯"成立）；根因=v0.1/v0.2 规则自我冲突。范本改选 asin-growth + github-digest（ads-governance 是重写不是迁移）</td></tr>
+  <tr><td>GSD 79 个不应归档，先 lock/source metadata</td><td><span class="chip c-good">采纳</span></td><td>核实为 npm 包 get-shit-done-cc v1.37.1 且在用（两 repo .planning/codebase 为其产物，liye_os 6 天前刷新；AGE tracked 文档引用其产物）；若未来删除必须整体卸载（hooks/agents/runtime 一体），不能只删 skills</td></tr>
+  <tr><td>KOI 不应全 scrub；internal 保留公式 + export 零泄漏 + lint path 测试</td><td><span class="chip c-info">采纳但降级</span></td><td>这不是新提案，是 2026-06-27 已 FROZEN 且已实施政策的重述（PR #524 + 58bc918；path 测试已存在）。真缺口在别处：出口门无人强制调用、FirstLightClaw EXTERNAL_EXPOSED 未整改、W3 历史审计待升 GO——KOI 工作流按此重定义</td></tr>
+  <tr><td>execute_request 拆分延后</td><td><span class="chip c-good">本就共识</span></td><td>v1.0 Q5 原建议即"等 #403 Phase 1b"；3591 行实测确认；加执行纪律：split map + characterization tests 先行</td></tr>
+  <tr><td>loamwise 先开 archive/release 分支 + 最小 CI，不直推 master</td><td><span class="chip c-good">采纳</span></td><td>release/p2-p3-baseline-2026-06-02 分支已在本地存在（bb3c389），只差 push + CI</td></tr>
+  <tr><td>PR #200 已合并，蓝图前置提醒过时</td><td><span class="chip c-good">核实</span></td><td>MERGED 2026-07-03（6afb13e）；v1.1 已更新</td></tr>
+</table></div>
+<p><b>外审漏项（本轮复核新增）：</b>① 生效面漂移有紧迫性——skill symlink 正在服务 behind-32 的旧 skill，age-main-cron 的 cron 正跑 behind-24 的旧 main，0B 不是洁癖是止漂；② 7 个 stale worktree 钉住已合并分支，挡住删除路径，需先移除；③ navigator 文档称 age-main-cron"非 git 仓库"，实为 AGE worktree（去幻觉清单 +1）；④ amazon-ad-optimization 双重问题（死 skill + 最重 KOI skill 面，calculate_tes.py 为可运行公式载体），退役优先级上调；⑤ loamwise-ops / domain-hunter 两个自研域 skill 游离在 ~/.claude 全局层，按 placement 教义应回迁域 repo。</p>
+
+<p class="foot">LiYe Systems 改革蓝图 v1.1 · 2026-07-03 · 证据钉点 AGE origin/main 58bc918 / liye_os PR#200 MERGED（6afb13e）<br>
+勘察：10 workflow agents（650k tokens）+ 5 补勘 + 批判官 13 gaps 关闭 + Codex 外审 + 4 路对抗复核（324k tokens · 142 分支全量分诊）<br>
+下一步：Owner 批准 v1.1 + 答 Q1–Q5 → Phase –1 / 0A 立即开工</p>
+
+</div>
