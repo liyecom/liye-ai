@@ -16,6 +16,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install parser dep
+        run: npm install yaml
+
       - name: SFC CI Gate (warn)
         run: node .claude/scripts/sfc_ci_gate.mjs --root . --mode warn
 
