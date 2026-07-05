@@ -95,12 +95,12 @@ runner 一旦建,按契约消费:输入 = `agent-ready` open issues;触发 = **o
 - ❌ 自动轮询 / 抢占式优先级队列 / 自动出队
 - ❌ agent 自我授权打 `agent-ready`
 - ❌ agent 自 merge / 自 close
-- ❌ 碰 control-plane / exec / 生产写(锁在各自门,如 AGE #403)
+- ❌ 碰 control-plane / exec / 生产写(锁在各自门,不在本 policy 解锁)
 - ❌ 因「token 富余」扩大 scope(Surgical Scope 优先于吞吐)
 
 ## 9. 试点范围与回滚
 
-- **范围:** 首个 pilot 仅 AGE(公开项目名 `amazon-growth-engine`,私有 repo;owner 见部署配置,勿写入治理文档 — leak-guard)。推广到其他 repo(如本仓 `liye-ai`)须单独评估(含 gh 账号路径)。
+- **范围:** 首个 pilot 仅 AGE private repo;owner-qualified repo refs、issue numbers、issue titles、label ids 不写入 public governance docs。推广到其他 repo(如本仓 `liye-ai`)须单独评估(含 gh 账号路径)。
 - **成功判据:** detection report 显示 0 裸奔;抽查 `agent-ready` 子集每条真满足 §4 + 有 §5.1 audit comment。
 - **回滚:** label 层功能上可回滚,但删 label **会丢当前分类视图**;回滚前先导出 issue-label snapshot 存档,再删。非"无残留"。
 
@@ -133,6 +133,6 @@ gh issue list -R $R --state open --limit 200 --json number,title,labels \
 
 ---
 
-**Version:** 0.1 (DRAFT / pilot)
+**Version:** 0.1 (PILOT VALIDATED / AGE only)
 **Created:** 2026-07-03
-**Owner:** loudmirror
+**Owner:** LiYe governance

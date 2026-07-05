@@ -1,9 +1,16 @@
-OK	#146	needs-operator	[wave-script] API response parser mismatch — 207 M
-OK	#147	needs-operator	[ads-api-quirk] PLACEMENT percentage=0 readback su
-OK	#148	needs-operator	[wave-script] fact_exec_action / fact_action_oblig
-OK	#202	needs-operator	Phase 7: semantic shadow→active promotion readines
-OK	#346	control-plane	P0: Prevent CA ads cross-store leak in canon_ads_a
-OK	#403	control-plane	ADR-0018 Step A follow-up: CAMPAIGN_BUDGET_UPDATE 
-OK	#498	needs-operator	P0-D.7 switchback INFEASIBLE_INSUFFICIENT_PERIODS 
-OK	#527	needs-operator	[EVO-D · AGE route-golden] PARKED pending 写路径激活 (f
-OK	#547	needs-operator	[EVO-D gap G-routing] Persist RoutingPolicy.decide
+Backlog intake detection report (public redacted)
+captured_at: 2026-07-05
+source: AGE private repo issue labels
+privacy: issue numbers, titles, owner-qualified repo refs, and label ids withheld
+
+open_issues: 10
+admission_state_counts:
+  agent-ready: 0
+  needs-operator: 7
+  control-plane: 3
+orthogonal_chore_count: 4
+naked: 0
+conflict: 0
+result: PASS
+
+note: one new control-plane issue opened after the 2026-07-03 pilot and was classified before PR merge.
