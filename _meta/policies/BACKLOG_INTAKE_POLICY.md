@@ -100,7 +100,7 @@ runner 一旦建,按契约消费:输入 = `agent-ready` open issues;触发 = **o
 
 ## 9. 试点范围与回滚
 
-- **范围:** 首个 pilot 仅 `loudmirror/amazon-growth-engine`。推广到其他 repo(如 `liyecom/liye-ai`)须单独评估(含 gh 账号路径)。
+- **范围:** 首个 pilot 仅 AGE(公开项目名 `amazon-growth-engine`,私有 repo;owner 见部署配置,勿写入治理文档 — leak-guard)。推广到其他 repo(如本仓 `liye-ai`)须单独评估(含 gh 账号路径)。
 - **成功判据:** detection report 显示 0 裸奔;抽查 `agent-ready` 子集每条真满足 §4 + 有 §5.1 audit comment。
 - **回滚:** label 层功能上可回滚,但删 label **会丢当前分类视图**;回滚前先导出 issue-label snapshot 存档,再删。非"无残留"。
 
@@ -121,7 +121,7 @@ runner 一旦建,按契约消费:输入 = `agent-ready` open issues;触发 = **o
 ## 附录:Detection report 命令(§6)
 
 ```bash
-R=loudmirror/amazon-growth-engine
+R="${AGE_REPO:?export AGE_REPO=<AGE 私有 owner/repo>;勿把 owner 写入治理文档 — leak-guard}"
 gh issue list -R $R --state open --limit 200 --json number,title,labels \
   | jq -r '.[]
       | ([.labels[].name] | map(select(. == "agent-ready" or . == "needs-operator" or . == "control-plane"))) as $adm
