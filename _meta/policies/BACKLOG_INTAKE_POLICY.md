@@ -1,6 +1,6 @@
 # BACKLOG INTAKE POLICY
 
-> **Status:** PILOT (AGE only) — DRAFT,pilot 通过 §9 判据前不升为 portfolio 稳定制度。
+> **Status:** PILOT VALIDATED (AGE only) — portfolio rollout requires separate approval.（AGE pilot 2026-07-03 已过 §9 判据:9/9 恰好一个准入态、agent-ready=0、0 裸奔;证据见 `evidence/backlog-intake-pilot-2026-07-03/`。）
 > **Layer:** 0 (Governance)｜**Concern:** Governance
 > **关联:** governed-work-loop 契约 `_meta/contracts/loop/`;执行基线 `DEFAULT_SKILL_POLICY.md` Policy 9 (Surgical Scope)。
 > **不变量:** 拉取永远由 operator 人工触发,绝无自动出队。本 policy 不引入 autonomous runner。
