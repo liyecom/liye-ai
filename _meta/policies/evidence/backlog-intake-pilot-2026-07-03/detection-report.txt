@@ -1,0 +1,16 @@
+Backlog intake detection report (public redacted)
+captured_at: 2026-07-05
+source: AGE private repo issue labels
+privacy: issue numbers, titles, owner-qualified repo refs, and label ids withheld
+
+open_issues: 10
+admission_state_counts:
+  agent-ready: 0
+  needs-operator: 7
+  control-plane: 3
+orthogonal_chore_count: 4
+naked: 0
+conflict: 0
+result: PASS
+
+note: one new control-plane issue opened after the 2026-07-03 pilot and was classified before PR merge.
