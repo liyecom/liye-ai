@@ -177,10 +177,12 @@ properties:
         type: object
         required:
           - "amazon-growth-engine"
+          - "user-growth-engine"
           - chaming
           - loamwise
         properties:
           "amazon-growth-engine": { type: integer, minimum: 0 }
+          "user-growth-engine": { type: integer, minimum: 0 }
           chaming: { type: integer, minimum: 0 }
           loamwise: { type: integer, minimum: 0 }
         additionalProperties: false
@@ -249,6 +251,7 @@ properties:
           - IDENTITY_MISMATCH
           - CONTENT_MISMATCH
           - SIDECAR_LOG_MISMATCH
+          - SOURCE_MISMATCH
         properties:
           SCHEMA_INVALID: { type: integer, minimum: 0 }
           NUMERIC_NOT_STRING: { type: integer, minimum: 0 }
@@ -257,6 +260,7 @@ properties:
           IDENTITY_MISMATCH: { type: integer, minimum: 0 }
           CONTENT_MISMATCH: { type: integer, minimum: 0 }
           SIDECAR_LOG_MISMATCH: { type: integer, minimum: 0 }
+          SOURCE_MISMATCH: { type: integer, minimum: 0 }
         additionalProperties: false
     additionalProperties: false
 
@@ -415,10 +419,19 @@ properties:
             description: "Strict PASS-only: c1 satisfied for a source iff fail==0 AND warn==0 AND pass>=1 (WARN is NOT a pass)."
             required:
               - "amazon-growth-engine"
+              - "user-growth-engine"
               - chaming
               - loamwise
             properties:
               "amazon-growth-engine":
+                type: object
+                required: [pass, warn, fail]
+                properties:
+                  pass: { type: integer, minimum: 0 }
+                  warn: { type: integer, minimum: 0 }
+                  fail: { type: integer, minimum: 0 }
+                additionalProperties: false
+              "user-growth-engine":
                 type: object
                 required: [pass, warn, fail]
                 properties:

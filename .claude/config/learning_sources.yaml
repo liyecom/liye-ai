@@ -5,10 +5,10 @@
 # Per Hard Gate 5 (any接入 source 必须通过 manifest reality validator) and
 # per N-2 I-01 (allowed_branches + expected_manifest_hash required fields).
 #
-# CRITICAL CONTRACT (per ADR §0d + Pilot 1 scope):
+# CRITICAL CONTRACT (per ADR §0d + Pilot 1 scope + UGE Rung 2 Stage C):
 # - Pilot 1 = negative learning only, time-bounded ≥ 90 days from ADR Accept (2026-05-19 → ≥ 2026-08-17).
-# - AGE is the ONLY known source. emit_fact.py is time-locked to Sprint 9 readout (D-14, Phase 1a).
-# - enabled=false on all sources until both (a) Sprint 9 readout signed AND (b) Phase 1a complete.
+# - AGE remains disabled until both (a) Sprint 9 readout signed AND (b) Phase 1a complete.
+# - UGE Rung 2 Stage C is armed for fact import only; fact emit does NOT imply platform write capability.
 # - validate_manifest_reality.py (Phase 0c.4, gated on Sprint 9 readout) verifies each source's
 #   actual deployed manifest hash matches expected_manifest_hash here; mismatch → source flagged dirty.
 #

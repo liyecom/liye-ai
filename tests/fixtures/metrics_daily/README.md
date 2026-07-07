@@ -21,10 +21,10 @@ commands (always with `--dry-run`, so the producer never writes back into this t
 ## Expected day-1 aggregation (asserted by the test suite)
 
 - counts: records 2 · conflicts 1 · rejects 2 · trials 2 · transitions 1
-- by_source_system: amazon-growth-engine 2 · by_manifest_validator_status: PASS 1 / WARN 1 / FAIL 0
+- by_source_system: amazon-growth-engine 2 / user-growth-engine 0 · by_manifest_validator_status: PASS 1 / WARN 1 / FAIL 0
 - by_redaction_status: redacted 1 / no_sensitive_fields_detected 1 · source_dirty 1/1 · provenance_dirty 1/1
 - reject by_reason: PATH_UNSAFE 1 / SCHEMA_INVALID 1 · c4_path_unsafe_reject_count 1 · c2_duplicate_conflict_count 1
-- c1 per_source amazon-growth-engine: pass 1 / warn 1 / fail 0 (WARN is NOT a pass — strict PASS-only)
+- c1 per_source amazon-growth-engine: pass 1 / warn 1 / fail 0; user-growth-engine: pass 0 / warn 0 / fail 0 (WARN is NOT a pass — strict PASS-only)
 - policy_trials: NEEDS_HUMAN 1 / FAIL 1 · evidence production_observed 1 / golden_regression 1
 - d11: agree 1 · eligible 2 · rate 0.5 · critical_false_negative_count_today 1 · with_operator_feedback_count 2
 - c2_dedupe_hit_rate: `unobservable_from_disk` (structurally half-blind — silent-skip 0 on disk)

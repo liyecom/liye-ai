@@ -6,10 +6,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { importFacts, computeProvenanceDirty } from '../import_facts.mjs';
 import {
-  loadGolden, tmpEngineRepo, tmpRoot, writeRegistry, placeSidecar, identityHex,
+  loadGolden, goldenAst, tmpEngineRepo, tmpRoot, writeRegistry, placeSidecar, identityHex,
+  withField, reseal, emit, strNode, countLines,
 } from './_helpers.mjs';
 
 const G = loadGolden();
@@ -80,6 +82,73 @@ test('integration — Phase 1b record is always provenance_dirty=true', () => {
   const { report, rec } = importGolden();
   assert.equal(report.provenance_dirty_all, true);
   assert.equal(rec.provenance.provenance_dirty, true);
+});
+
+function writePassingManifest(engineRepo) {
+  const text = [
+    'schema_version: "2.0"',
+    'engine_id: user-growth-engine',
+    'engine_version: "0.0.0"',
+    'domain: user-growth',
+    'contracts_compat: ">=2.0 <3.0"',
+    'playbooks: []',
+    'data_sources: []',
+    'write_capability_declared: none',
+    'write_capability_effective: none',
+    'capabilities: []',
+    'runtime_gates: []',
+    '',
+  ].join('\n');
+  writeFileSync(join(engineRepo, 'engine_manifest.yaml'), text, 'utf-8');
+  return 'sha256:' + createHash('sha256').update(text).digest('hex');
+}
+
+function ugeSidecarText(manifestHash, { traceId, declaredManifestHash = manifestHash }) {
+  let ast = goldenAst();
+  ast = withField(ast, 'source_system', strNode('user-growth-engine'));
+  ast = withField(ast, 'source_repo', strNode('user-growth-engine'));
+  ast = withField(ast, 'source_worktree_id', strNode('user-growth-engine'));
+  ast = withField(ast, 'artifact_type', strNode('growth_outcome'));
+  ast = withField(ast, 'playbook_ref', strNode('lead_ingest'));
+  ast = withField(ast, 'step_id', strNode('ingest'));
+  ast = withField(ast, 'trace_id', strNode(traceId));
+  ast = withField(ast, 'artifact_path', strNode('out/facts/growth/signup.json'));
+  ast = withField(ast, 'manifest_hash', strNode(declaredManifestHash));
+  ast = reseal(ast, { identity: true, content: true });
+  return emit(ast);
+}
+
+test('integration — armed UGE clean and dirty records are reported separately', () => {
+  const eng = tmpEngineRepo();
+  const manifestHash = writePassingManifest(eng);
+
+  const clean = ugeSidecarText(manifestHash, { traceId: 'uge-clean' });
+  placeSidecar(eng, '2026-07-01', identityHex(JSON.parse(clean).event_identity_key) + '.json', clean);
+
+  const dirty = ugeSidecarText(manifestHash, {
+    traceId: 'uge-dirty',
+    declaredManifestHash: 'sha256:' + 'f'.repeat(64),
+  });
+  placeSidecar(eng, '2026-07-02', identityHex(JSON.parse(dirty).event_identity_key) + '.json', dirty);
+
+  const root = tmpRoot();
+  const reg = writeRegistry(root, { sourceId: 'user-growth-engine', expected_manifest_hash: manifestHash });
+  const recordsOut = join(root, 'records.jsonl');
+  const report = importFacts({ source: 'user-growth-engine', engineRepo: eng, rootDir: root, recordsOut, registryPath: reg, mode: 'live' });
+
+  assert.equal(report.rejects, 0, `unexpected rejects: ${JSON.stringify(report.per_reject)}`);
+  assert.equal(report.new_records, 2);
+  assert.equal(report.provenance_dirty_true_count, 1);
+  assert.equal(report.provenance_dirty_false_count, 1);
+  assert.equal(report.provenance_dirty_all, false);
+  assert.equal(report.provenance_dirty_any, true);
+  assert.ok(report.provenance_reasons_sample.some((r) => r.includes('manifest_hash')));
+  assert.equal(countLines(recordsOut), 2);
+
+  const [cleanRec, dirtyRec] = readFileSync(recordsOut, 'utf-8').trim().split('\n').map((line) => JSON.parse(line));
+  assert.equal(cleanRec.provenance.manifest_validator_status, 'PASS');
+  assert.equal(cleanRec.provenance.provenance_dirty, false);
+  assert.equal(dirtyRec.provenance.provenance_dirty, true);
 });
 
 test('validator guard — WARN (not crash) when engine repo has no engine_manifest.yaml', () => {
