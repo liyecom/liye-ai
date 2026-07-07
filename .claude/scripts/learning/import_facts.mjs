@@ -74,6 +74,7 @@ const RECORD_HASH_EXCLUDED = ['ingested_at', 'importer_version', 'canonical_reco
 // NOT emit_fact's weaker ^[a-zA-Z0-9_./-]+$ (allows leading '/').
 const STRICT_PATH_RE = /^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$/;
 const PATH_GUARDED_FIELDS = ['raw_payload_ref', 'artifact_path'];
+const SOURCE_ID_RE = /^[a-z][a-z0-9-]{0,63}$/;
 
 export const REJECT_REASONS = {
   SCHEMA_INVALID: 'SCHEMA_INVALID',
@@ -316,7 +317,16 @@ function writeReject(rootDir, sourceSegment, rawBytes, rawText, reason, recomput
 function loadRegistry(registryPath) {
   const path = registryPath || join(PROJECT_ROOT, '.claude/config/learning_sources.yaml');
   const parsed = parseYaml(readFileSync(path, 'utf-8')) || {};
-  return parsed.sources || {};
+  const sources = parsed.sources || {};
+  for (const [sourceId, source] of Object.entries(sources)) {
+    if (!SOURCE_ID_RE.test(sourceId)) {
+      throw new Error(`invalid registry source id: ${JSON.stringify(sourceId)}`);
+    }
+    if (!source || source.source_id !== sourceId) {
+      throw new Error(`registry source_id mismatch for ${sourceId}`);
+    }
+  }
+  return sources;
 }
 
 function repoNameFromUrl(value) {
