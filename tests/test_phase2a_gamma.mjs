@@ -484,9 +484,9 @@ test('DoD#11/#7: input anchors + 1e producer + confidence_formulas + File-B are 
   const pins = {
     '_meta/contracts/learning/policy_trial_v1.schema.yaml': '2cd8df6bb1ec41489a3921f5d89e851269d6ac6c6e8f72b945b7f173be6fa7a2',
     '_meta/contracts/learning/operator_feedback_v1.schema.yaml': '4389f79aca7f330dcc7ece399af60992b43b22f82f015ec9edf5f89b272ec2db',
-    '_meta/contracts/learning/metrics_daily_v1.schema.yaml': 'ed43abfda3b1bc0ae094cb6532d1574d06fe16341dc3b7f0d68a3cc607c6417c',
+    '_meta/contracts/learning/metrics_daily_v1.schema.yaml': 'f3b0b8d9e3bf65618170fdc3afe192b36bb098fb6a81b30e47088aec985fbadb',
     '_meta/contracts/learning/confidence_formulas.yaml': '2c6ceff8620addb3022f70c27087e8ac2a1d769b463306b6c6702bfef7fb4a74',
-    '.claude/scripts/learning/metrics_daily_producer.mjs': 'cb807545cd8937b45287236ea5e4bb7d3c8ca20de9ad3a14e97dbdcb4b11bb46',
+    '.claude/scripts/learning/metrics_daily_producer.mjs': '1576dee008beb258f4d4022c37754fb911566fb9f90f4ab9de54b8f07e2455bf',
     'scripts/heartbeat_runner.mjs': 'aa2256947ef3cac8ac0c3cab9a639502d977df7eaf5d054cf4f5eecd2d570d13',
   };
   for (const [rel, sha] of Object.entries(pins)) {
