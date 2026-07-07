@@ -491,6 +491,7 @@ function processSidecar(ctx, sidecarPath, eventsLogMap) {
     return;
   }
 
+  report.provenance_dirty_all = report.provenance_dirty_all && dirty;
   report.new_records += 1;
   report.provenance_reasons_sample = report.provenance_reasons_sample || reasons;
   if (mode === 'live') {
@@ -539,7 +540,7 @@ export function importFacts(options = {}) {
     mode,
     scanned: 0, new_records: 0, silent_skips: 0, conflicts: 0, rejects: 0,
     per_reject: [], per_conflict: [],
-    provenance_dirty_all: true, // Phase 1b invariant (expected_manifest_hash=null)
+    provenance_dirty_all: true,
     records_out: recordsOutAbs,
     window_start: windowStart,
     window_end: null,
