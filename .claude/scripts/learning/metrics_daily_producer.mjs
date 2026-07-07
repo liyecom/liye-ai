@@ -80,12 +80,12 @@ const LATE_ARRIVALS_REL = 'state/runtime/learning/metrics_daily_late_arrivals.js
 const LOCK_REL = 'state/runtime/learning/metrics_daily.lock';
 
 // Enum vocabularies, aligned to the frozen input schemas' full tokens (red-team M8).
-const SOURCE_SYSTEMS = ['amazon-growth-engine', 'chaming', 'loamwise'];
+const SOURCE_SYSTEMS = ['amazon-growth-engine', 'user-growth-engine', 'chaming', 'loamwise'];
 const MANIFEST_STATUSES = ['PASS', 'WARN', 'FAIL'];
 const REDACTION_STATUSES = ['redacted', 'no_sensitive_fields_detected', 'unknown'];
 const REJECT_REASON_KEYS = [
   'SCHEMA_INVALID', 'NUMERIC_NOT_STRING', 'PATH_UNSAFE', 'FILENAME_MISMATCH',
-  'IDENTITY_MISMATCH', 'CONTENT_MISMATCH', 'SIDECAR_LOG_MISMATCH',
+  'IDENTITY_MISMATCH', 'CONTENT_MISMATCH', 'SIDECAR_LOG_MISMATCH', 'SOURCE_MISMATCH',
 ];
 const SYSTEM_VERDICTS = ['PASS', 'FAIL', 'DOWNGRADED', 'NEEDS_HUMAN'];
 const EVIDENCE_ORIGINS = ['production_observed', 'historical_replay', 'golden_regression', 'synthetic'];

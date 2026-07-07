@@ -550,7 +550,7 @@ test('DoD#11: the 5 sealed schemas are content-pinned (0-diff guard)', () => {
     'operator_feedback_v1.schema.yaml': '4389f79aca7f330dcc7ece399af60992b43b22f82f015ec9edf5f89b272ec2db',
     'learned_policy_ghl_v1.schema.yaml': '3bcf21fe178c9d31c3066f3be06482164dd0a259a4aae1cef8c6c9aa7d9b1f81',
     'confidence_formulas.yaml': '2c6ceff8620addb3022f70c27087e8ac2a1d769b463306b6c6702bfef7fb4a74',
-    'metrics_daily_v1.schema.yaml': 'ed43abfda3b1bc0ae094cb6532d1574d06fe16341dc3b7f0d68a3cc607c6417c',
+    'metrics_daily_v1.schema.yaml': 'f3b0b8d9e3bf65618170fdc3afe192b36bb098fb6a81b30e47088aec985fbadb',
   };
   for (const [name, sha] of Object.entries(pins)) {
     const content = readFileSync(join(REPO, '_meta/contracts/learning', name), 'utf-8');

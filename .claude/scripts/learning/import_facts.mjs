@@ -6,7 +6,7 @@
  * Normative: SPEC `.planning/phase-1b/SPEC.md` v1.0 (blob 4a606e18).
  * CODE-SSOT for hash algorithms: AGE `scripts/learning/emit_fact.py` @ main 7b28956.
  *
- * liye_os ACTIVELY PULLS AGE event sidecars
+ * liye_os ACTIVELY PULLS enabled engine event sidecars
  *   <engine_repo>/out/facts/<UTC_DATE>/<event_identity_key>.json
  * → dual-hash verify + dedupe → writes canonical fact_run_outcome_record_v1 to
  *   state/memory/facts/fact_run_outcome_records.jsonl
@@ -16,9 +16,9 @@
  * legacy discover_new_runs.mjs (whose sole consumer is heartbeat_runner.mjs;
  * heartbeat upgrade is Phase 1d). discover_new_runs.mjs + heartbeat are NOT touched.
  *
- * Phase 1b posture: dry-run-first (default), manual CLI only, NO scheduler, does
- * NOT flip registry enabled:true, does NOT pin expected_manifest_hash. AGE is
- * enabled:false today → a real (live) run imports 0 facts, consistent with dry-run-first.
+ * Phase 1b/Stage-C posture: dry-run-first (default), manual CLI only, NO scheduler.
+ * Registry sources are processed only when enabled:true, and each sidecar must match
+ * its registry source id before it can be imported.
  *
  * Hard boundaries (SPEC §2): never mutate AGE / loamwise / frozen schemas / legacy
  * fact_run_outcomes.jsonl / heartbeat; never generate policy trials; observability
@@ -74,6 +74,7 @@ const RECORD_HASH_EXCLUDED = ['ingested_at', 'importer_version', 'canonical_reco
 // NOT emit_fact's weaker ^[a-zA-Z0-9_./-]+$ (allows leading '/').
 const STRICT_PATH_RE = /^(?![~/])(?!.*\.\.)[a-zA-Z0-9_./-]+$/;
 const PATH_GUARDED_FIELDS = ['raw_payload_ref', 'artifact_path'];
+const SOURCE_ID_RE = /^[a-z][a-z0-9-]{0,63}$/;
 
 export const REJECT_REASONS = {
   SCHEMA_INVALID: 'SCHEMA_INVALID',
@@ -83,6 +84,7 @@ export const REJECT_REASONS = {
   IDENTITY_MISMATCH: 'IDENTITY_MISMATCH',
   CONTENT_MISMATCH: 'CONTENT_MISMATCH',
   SIDECAR_LOG_MISMATCH: 'SIDECAR_LOG_MISMATCH',
+  SOURCE_MISMATCH: 'SOURCE_MISMATCH',
 };
 
 const DEFAULT_RECORDS_OUT = 'state/memory/facts/fact_run_outcome_records.jsonl';
@@ -315,14 +317,37 @@ function writeReject(rootDir, sourceSegment, rawBytes, rawText, reason, recomput
 function loadRegistry(registryPath) {
   const path = registryPath || join(PROJECT_ROOT, '.claude/config/learning_sources.yaml');
   const parsed = parseYaml(readFileSync(path, 'utf-8')) || {};
-  return parsed.sources || {};
+  const sources = parsed.sources || {};
+  for (const [sourceId, source] of Object.entries(sources)) {
+    if (!SOURCE_ID_RE.test(sourceId)) {
+      throw new Error(`invalid registry source id: ${JSON.stringify(sourceId)}`);
+    }
+    if (!source || source.source_id !== sourceId) {
+      throw new Error(`registry source_id mismatch for ${sourceId}`);
+    }
+  }
+  return sources;
 }
 
-/** Resolve the local engine repo dir: explicit override, else sibling clone if present. */
-function resolveEngineRepo(explicit) {
+function repoNameFromUrl(value) {
+  if (typeof value !== 'string') return null;
+  const clean = value.replace(/\/+$/, '');
+  const last = clean.split('/').pop();
+  if (!last) return null;
+  return last.endsWith('.git') ? last.slice(0, -4) : last;
+}
+
+/** Resolve the local engine repo dir: explicit override, else source-specific sibling clone. */
+function resolveEngineRepo(explicit, source) {
   if (explicit) return existsSync(explicit) ? realpathSync(explicit) : null;
-  const sibling = join(PROJECT_ROOT, '..', 'amazon-growth-engine');
-  return existsSync(sibling) ? realpathSync(sibling) : null;
+  const candidates = [
+    repoNameFromUrl(source && source.engine_repo),
+    source && source.source_id,
+  ].filter(Boolean).map((name) => join(PROJECT_ROOT, '..', name));
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return realpathSync(candidate);
+  }
+  return null;
 }
 
 // --------------------------------------------------------------------------- //
@@ -405,6 +430,10 @@ function processSidecar(ctx, sidecarPath, eventsLogMap) {
   }
   // Schema passed → source_system is a trusted enum from here on.
   const sourceSystem = eventObj.source_system;
+  if (sourceSystem !== sourceId) {
+    reject(REJECT_REASONS.SOURCE_MISMATCH, sourceId, { declared_source_system: sourceSystem, registry_source: sourceId });
+    return;
+  }
 
   // S1b — numeric-not-string content policy (Pilot 1 string-encode-all).
   const summaryNode = getEntry(eventAst, 'raw_payload_summary');
@@ -492,7 +521,14 @@ function processSidecar(ctx, sidecarPath, eventsLogMap) {
   }
 
   report.new_records += 1;
-  report.provenance_reasons_sample = report.provenance_reasons_sample || reasons;
+  if (dirty) {
+    report.provenance_dirty_true_count += 1;
+    report.provenance_dirty_any = true;
+    if (report.provenance_reasons_sample.length === 0) report.provenance_reasons_sample = reasons;
+  } else {
+    report.provenance_dirty_false_count += 1;
+  }
+  report.provenance_dirty_all = report.provenance_dirty_false_count === 0;
   if (mode === 'live') {
     const line = emitCanonical(recordAst) + '\n';
     mkdirSync(dirname(recordsOutAbs), { recursive: true });
@@ -518,7 +554,7 @@ function processSidecar(ctx, sidecarPath, eventsLogMap) {
  * @param {string|null} [options.since]       ISO8601; filter by UTC date dir
  * @param {'dry_run'|'live'} [options.mode]   default 'dry_run'
  * @param {string} [options.recordsOut]       default state/memory/facts/fact_run_outcome_records.jsonl
- * @param {string|null} [options.engineRepo]  local AGE repo dir (validator + realpath); default sibling clone
+ * @param {string|null} [options.engineRepo]  local engine repo dir override; default source-specific sibling clone
  * @param {string} [options.rootDir]          liye_os root for sinks/records (test seam); default PROJECT_ROOT
  * @param {string} [options.registryPath]     learning_sources.yaml path (test seam); default canonical registry
  * @returns {object} RunReport
@@ -532,14 +568,17 @@ export function importFacts(options = {}) {
 
   const validators = buildValidators();
   const registry = loadRegistry(options.registryPath); // default = canonical registry
-  const engineRepoReal = resolveEngineRepo(options.engineRepo);
 
   const report = {
     source: options.source || null,
     mode,
     scanned: 0, new_records: 0, silent_skips: 0, conflicts: 0, rejects: 0,
     per_reject: [], per_conflict: [],
-    provenance_dirty_all: true, // Phase 1b invariant (expected_manifest_hash=null)
+    provenance_dirty_all: true,
+    provenance_dirty_any: false,
+    provenance_dirty_true_count: 0,
+    provenance_dirty_false_count: 0,
+    provenance_reasons_sample: [],
     records_out: recordsOutAbs,
     window_start: windowStart,
     window_end: null,
@@ -560,6 +599,7 @@ export function importFacts(options = {}) {
       report.skipped_sources.push({ source: sourceId, reason: 'enabled=false' });
       continue;
     }
+    const engineRepoReal = resolveEngineRepo(options.engineRepo, source);
     const factsBase = engineRepoReal ? join(engineRepoReal, 'out', 'facts') : null;
     if (!factsBase || !existsSync(factsBase)) {
       report.skipped_sources.push({ source: sourceId, reason: engineRepoReal ? 'out/facts absent' : 'engine repo not on disk (provenance WARN)' });
@@ -615,7 +655,7 @@ Options:
   --since <ISO8601>    Filter by UTC date directory (>= date)
   --mode <dry_run|live>  Default dry_run (Phase 1b locks dry-run-first; 0 disk writes)
   --records-out <path> Default state/memory/facts/fact_run_outcome_records.jsonl
-  --engine-repo <dir>  Local AGE repo root (validator + realpath); default sibling clone
+  --engine-repo <dir>  Local engine repo root override; default source-specific sibling clone
   --registry-path <p>  learning_sources.yaml override (test / alt-config); default canonical registry
   --json               Print the RunReport as JSON on stdout
   --help               Show this help and exit 0

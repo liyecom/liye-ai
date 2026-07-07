@@ -5,10 +5,10 @@
 # Per Hard Gate 5 (any接入 source 必须通过 manifest reality validator) and
 # per N-2 I-01 (allowed_branches + expected_manifest_hash required fields).
 #
-# CRITICAL CONTRACT (per ADR §0d + Pilot 1 scope):
+# CRITICAL CONTRACT (per ADR §0d + Pilot 1 scope + UGE Rung 2 Stage C):
 # - Pilot 1 = negative learning only, time-bounded ≥ 90 days from ADR Accept (2026-05-19 → ≥ 2026-08-17).
-# - AGE is the ONLY known source. emit_fact.py is time-locked to Sprint 9 readout (D-14, Phase 1a).
-# - enabled=false on all sources until both (a) Sprint 9 readout signed AND (b) Phase 1a complete.
+# - AGE remains disabled until both (a) Sprint 9 readout signed AND (b) Phase 1a complete.
+# - UGE Rung 2 Stage C is armed for fact import only; fact emit does NOT imply platform write capability.
 # - validate_manifest_reality.py (Phase 0c.4, gated on Sprint 9 readout) verifies each source's
 #   actual deployed manifest hash matches expected_manifest_hash here; mismatch → source flagged dirty.
 #
@@ -75,17 +75,17 @@ sources:
     allowed_branches:
       - main
 
-    # null = un-armed. UGE emits nothing until Rung 2; do NOT arm before then
-    # (every imported fact provenance_dirty by design, same as AGE).
-    expected_manifest_hash: null
+    # Armed after UGE Rung 2 Stage B merge (#9, c116986e52724c1ab58f12074031a0a15901cb50).
+    # Hash is the raw-byte sha256 of the activated engine_manifest.yaml on UGE main.
+    expected_manifest_hash: sha256:3a5380d91209d31b0f06a92fdb0e8d2c40d51071b5fc853bbe4c0ebaccb4552c
 
     # Fact emission paths (per EV2-I-01 date-sharded UTC + event sidecar).
-    # Declared for shape only — Rung 0 has NO emit entry (no emit_script; UGE
-    # emits nothing yet). emit_script is added when the Rung 2 emit path lands.
+    # UGE Rung 2 emits growth_outcome facts via lead_ingest.mjs; true emit still
+    # requires the runtime second key UGE_FACT_EMIT_ENABLED=1.
     fact_emit_path: out/facts/<UTC_DATE>/fact_run_outcome_events.jsonl
     event_sidecar_path: out/facts/<UTC_DATE>/<event_identity_key>.json
+    emit_script: src/playbooks/lead_ingest.mjs
 
-    # Rung 0 inert registration (UGE SPEC anchor 29df235): the registry knows UGE
-    # exists but does NOT trust / import / execute it. enabled=false and
-    # expected_manifest_hash=null keep it 100% inert.
-    enabled: false
+    # Stage C registry arming: importer may trust UGE facts whose provenance
+    # matches allowed_branches + expected_manifest_hash.
+    enabled: true

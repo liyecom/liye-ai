@@ -45,7 +45,7 @@
 2. **两门可证 closed**：`write_capability_effective=none` ∧ 所有 `runtime_gates.default_state=closed` ∧ learning source `enabled:false` → **物理上无法 emit / 无法写**（deny-by-default）。
 3. contracts gate **守 21**（manifest 是 instance，不进 `schemaFiles[]`；vendored copy 亦非新 sealed schema）。
 4. vendored copy sha256 == liye_os canonical body @ `6434849`（freshness 绿）；canonical 漂移到新 commit 而 UGE 未 re-vendor → **freshness 红**（fail-closed 哨兵）。
-5. 激活只能靠**物理编辑 manifest**（status placeholder→active + default_state closed→open + effective 提升），env var 单独翻不动门。
+5. 激活只能靠**物理编辑 manifest**，env var 单独翻不动门。Rung 2 fact emit 激活仅允许 `status: placeholder→active` + `runtime_gates.default_state: closed→open`；`write_capability_effective` 保持 `none`，只在 Rung 3 safe-write 激活时按写能力 rung 另行提升。
 
 ---
 

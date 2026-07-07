@@ -544,7 +544,7 @@ test('frozen 7 sealed anchors 0-diff (git-blob sha-pin)', () => {
     ['.claude/scripts/learning/phase_1_exit_gate_check.mjs', 'a510fb14'],
     ['.claude/scripts/learning/trial_observation_predicate.mjs', 'dfbde771'],
     ['.claude/scripts/learning/heartbeat_runner.mjs', '54944884'],
-    ['.claude/scripts/learning/metrics_daily_producer.mjs', '5057fc5a'],
+    ['.claude/scripts/learning/metrics_daily_producer.mjs', '036ace6b'],
     ['scripts/heartbeat_runner.mjs', 'e63cf86c'],
   ];
   for (const [rel, expect] of anchors) {

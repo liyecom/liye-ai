@@ -64,6 +64,47 @@ test('S1b NUMERIC_NOT_STRING — native number in raw_payload_summary', () => {
   assert.equal(report.per_reject[0].reason, REJECT_REASONS.NUMERIC_NOT_STRING);
 });
 
+test('S1c SOURCE_MISMATCH — sidecar source_system must match registry source id', () => {
+  const eng = tmpEngineRepo();
+  placeSidecar(eng, '2026-05-20', GOLDEN_HEX + '.json', G.sidecar_text);
+  const root = tmpRoot();
+  const reg = writeRegistry(root, { sourceId: 'user-growth-engine' });
+  const recordsOut = join(root, 'records.jsonl');
+  const report = importFacts({ engineRepo: eng, rootDir: root, recordsOut, registryPath: reg, mode: 'live' });
+  assert.equal(report.scanned, 1);
+  assert.equal(report.new_records, 0);
+  assert.equal(report.rejects, 1);
+  assert.equal(report.per_reject[0].reason, REJECT_REASONS.SOURCE_MISMATCH);
+  assert.equal(countLines(recordsOut), 0);
+});
+
+test('registry guard — invalid source id fails before SOURCE_MISMATCH reject can escape sink root', () => {
+  const eng = tmpEngineRepo();
+  placeSidecar(eng, '2026-05-20', GOLDEN_HEX + '.json', G.sidecar_text);
+  const root = tmpRoot();
+  const escapeName = `escape-pr206-${process.pid}`;
+  const sourceId = `../../../../../${escapeName}`;
+  const reg = join(root, 'registry.yaml');
+  writeFileSync(reg, [
+    'sources:',
+    `  "${sourceId}":`,
+    `    source_id: "${sourceId}"`,
+    '    allowed_branches: [main]',
+    '    expected_manifest_hash: null',
+    '    enabled: true',
+    '',
+  ].join('\n'), 'utf-8');
+  const recordsOut = join(root, 'records.jsonl');
+
+  assert.throws(
+    () => importFacts({ source: sourceId, engineRepo: eng, rootDir: root, recordsOut, registryPath: reg, mode: 'live' }),
+    /invalid registry source id/,
+  );
+  assert.equal(existsSync(join(root, 'state/runtime/learning/fact_rejects')), false);
+  assert.equal(existsSync(join(root, '..', escapeName)), false);
+  assert.equal(countLines(recordsOut), 0);
+});
+
 test('S2 PATH_UNSAFE — colon injection via artifact_path (no schema pattern)', () => {
   const ast = withField(goldenAst(), 'artifact_path', strNode('out/2026:05/x.json'));
   const { report } = runOne(emit(ast));
