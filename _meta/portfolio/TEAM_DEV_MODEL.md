@@ -1,6 +1,7 @@
-# Team Dev Model (治理原生的多人开发模型) v0.1
+# Team Dev Model (治理原生的多人开发模型) v0.2
 
-> 状态：v0.1，随 [[ICONEXPERT_ONBOARDING]] 一同首次落地（第 2 位开发者 iconexpert 入场）。
+> 状态：v0.2，随 [[ICONEXPERT_ONBOARDING]] 一同首次落地（第 2 位开发者 iconexpert 入场）。
+> v0.2 更新：2026-07-08 owner directive 将 iconexpert 从 Human-D0 升级为 AGE Full Operator / Human-D3。
 > 定位：本文件定义「**人类开发者如何作为受治理 actor 加入这套系统**」的总原则。
 > 权威序：本文件服从 `_meta/portfolio/SYSTEMS.md`（架构 SSOT）与各 repo 的 contracts/CLAUDE.md；冲突以后者为准。
 
@@ -28,7 +29,7 @@
 | **D0**（入职默认） | 只读数据、fixture/synthetic dry-run、测试、开 PR | — | 不发任何生产 env + 不设 `AGE_WRITE_ENABLED`（凭证缺失即结构性阻断，见 [[ICONEXPERT_ONBOARDING]] §2） |
 | **D1** | staging/sandbox 写、独立修低风险模块 | 3–5 个 PR 通过，无 secret/data/live 边界事故 | 发 sandbox/只读 API 凭证；仍不设 live 保险丝 |
 | **D2** | 备 readiness packet、跑受控 rehearsal | 多次完成端到端闭环 | 受限 env + owner 监督 |
-| **D3** | 可执行 production live | 极少数核心 operator | 现有三重 fail-closed 锁 + 双人 approval |
+| **D3** | 可执行 production live | 极少数核心 operator；owner explicit directive | 现有三重 fail-closed 锁 + 双人 approval；per-action 授权不继承 |
 
 晋升 = owner 卸下审批负担的明确通道，避免 owner 永久成为瓶颈。
 
@@ -37,10 +38,19 @@
 | 角色 | GitHub | Secrets | Data | AGE Live | 说明 |
 |---|---|---|---|---|---|
 | Owner | Admin | Prod + Dev | Full | 可批准 | 你 / 核心负责人 |
+| Full Operator | Write/Maintain（branch protection 仍生效） | Prod + Dev（受控分发，不入库） | Full / DB exclusive-window write | 可执行已授权 live | **iconexpert 当前状态 = Human-D3**；可作为 production runner/operator，但不等于绕过 fail-closed gate |
 | Core Dev | Write/Maintain | Dev + 选定 staging | Read | 不可直接 live | 可独立开发核心模块 |
-| Contributor | Write（feature 分支） | 仅 Dev | Read scoped | 否 | **iconexpert 初期在此 = Human-D0** |
+| Contributor | Write（feature 分支） | 仅 Dev | Read scoped | 否 | iconexpert 初期在此 = Human-D0；2026-07-08 已 superseded |
 | Analyst / FDE | Triage/Read | 客户专属 | Read scoped | 否 / 仅 approval | 看报表、跑部署/诊断 |
 | Automation Bot | 最小 app 权限 | OIDC/service acct | None/scoped | 否（除非 gated） | CI、release（**触发后才建**） |
+
+### 3.1 当前 operator 任命
+
+| Actor | Effective from | Level | Scope | Non-bypass gates |
+|---|---|---|---|---|
+| iconexpert | 2026-07-08 | Human-D3 / AGE Full Operator | AGE canonical worktree preflight；docs/PR；read-only reports；dry-run/rehearsal；Operator Workbench；canonical DB migration/repair in exclusive-access windows；truth-layer/receipt repair with evidence；SP-API/Ads/listing live execution when separately approved | No shared auth/session；no committed secrets；no dirty-main live；no blanket `AGE_WRITE_ENABLED`；no Phase authorization inheritance；dual approval remains when policy requires it |
+
+Full Operator 是受治理 production operator，不是 unrestricted admin。它授予「可承接生产操作流程」的资格；每次 live write、rollback、canonical DB mutation、truth-layer manual repair 仍必须绑定明确 scope、commit/request hash、receipt/readback、rollback path 和当次授权。
 
 ## 4. 真边界 = 服务端 gate（现状，2026-06-30 核实）
 
@@ -54,6 +64,7 @@ CI 暂**不**作 required check：AGE `ci.yml` 仅 guard-rail + best-effort veri
 ## 5. 数据策略（按「他做什么」分流）
 
 - **做 AGE 开发**：D0 阶段**不需要**大数据；warehouse `data/amazon_growth.duckdb`（≈2.7GB）是**单写者 + 跨 worktree 硬链 + 禁并发写**（AGE `CLAUDE.md`），**绝不可用 SMB 共享 live 文件**。需分析时给**带日期的只读快照副本**。
+- **AGE Full Operator / D3 例外**：可在 canonical clean worktree + exclusive-access window 内读写 live warehouse，但必须先确认 no-WAL / no-concurrent-writer，并在 decision log 或 receipt 中记录 postcheck。该例外不适用于 D0-D2。
 - **碰 silkbay / 少宁服饰数据（≈20GB）**：那是 silkbay 产品线数据，**AGE 代码零引用**；仅当涉及 silkbay 时才走 **NAS/SMB 只读挂载、不拷贝**。
 
 ## 6. Secrets 策略（与现有 ADR 一致）
