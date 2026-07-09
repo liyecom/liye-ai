@@ -1,25 +1,25 @@
-# FIXTURE (expect: FAIL on budget.limits minProperties) — declares an empty budget
-# (limits: {}). An empty budget is no budget; one of the five task-contract fields is
-# void. limits must carry at least one of turns | wall_clock_seconds | tokens.
-# Everything else is valid (read-only, complete evidence, v2 blocks, hard:[]) to
-# isolate the gap.
+# FIXTURE (expect: FAIL on C13) — a read-only loop (no_mutation:true) that carries
+# escalate_live_authorization in its declared card enum. A read loop has no write
+# authorization to escalate to; the affordance itself is the hazard — a read loop
+# that can ask for live writes is a mutation loop wearing a read-only badge.
+# allowed_actions are all read-only (Layer B passes) — C13 is the sole violation.
 contract_kind: governed_work_loop
 schema_version: "2.0.0"
 contract_status: schema_validated_only
-instance_scope: per_run
+instance_scope: template
 
 goal:
-  statement: "巡检 src/reporting 并给出 verdict，不改任何文件。"
+  statement: "巡检 AGE 广告快照并给出 anomaly verdict，不改任何文件。"
   lifecycle: active
   success_criteria:
     - id: SC1
-      statement: "每个 generator 都有一条 verdict。"
+      statement: "每个 campaign 快照都有一条 verdict。"
 
 scope:
-  scope_roots: ["src/reporting"]
+  scope_roots: ["state/runtime/ads_snapshots"]
   no_mutation: true
   control_plane_touch: false
-  allowed_actions: [read_file, grep]
+  allowed_actions: [read_file, grep, emit_review_card]
 
 invariants:
   hard: []
@@ -28,19 +28,17 @@ invariants:
 evidence:
   authoritative:
     - check:
-        command: "npm test -- src/reporting"
+        command: "node tools/snapshot-anomaly.mjs --check"
       expected:
         kind: exit_code
         value: 0
-      artifact_ref: "state/runtime/loop/reporting/test_result.json"
-      sha256_hash: "c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4"
-      captured_at: "2026-06-28T09:00:00+00:00"
+      artifact_ref: "state/runtime/loop/ads_review/anomaly_report.json"
 
 checker:
   independence_level: fresh_context_same_model
   hard_gate_grading: deterministic_only
   on_checker_error: emit_hold_inconclusive
-  readable_artifacts: ["the test output"]
+  readable_artifacts: ["the anomaly report"]
   forbids_reading_maker_reasoning: true
 
 runtime:
@@ -48,27 +46,30 @@ runtime:
   scheduler_owner: claude_goal
 
 budget:
-  limits: {}   # <-- VIOLATES budget.limits minProperties: an empty budget is no budget
+  limits:
+    turns: 8
   on_exhaustion: stop_new_mutations_then_wrap_up
 
 stop_condition:
   success_check:
-    kind: deterministic_predicate
-    check_ref: "npm test -- src/reporting"
+    kind: all_success_criteria_met
+    check_ref: "node tools/snapshot-anomaly.mjs --verify-coverage"
   max_iterations: 8
   on_max_iterations: stop_inconclusive_then_wrap_up
 
 evidence_package:
   required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
-  package_ref: "state/runtime/loop/reporting/package/2026-06-28-001/"
-  package_hash: "3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f3e8f"
-  packaged_at: "2026-06-28T09:30:00+00:00"
+  package_ref: "state/runtime/loop/ads_review/package/"
 
 control_plane_mutation: none
 
 next_action_card:
-  final_card: stop_inconclusive
-  enum: [continue, ask_human, stop_success, stop_inconclusive]
+  enum:
+    - continue
+    - ask_human
+    - stop_success
+    - stop_inconclusive
+    - escalate_live_authorization   # <-- VIOLATES C13: a read-only loop may not carry the escalation card
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
     ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"

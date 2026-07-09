@@ -1,19 +1,25 @@
-# FIXTURE (expect: FAIL on C2) — a mutation loop (no_mutation:false) that sets
-# on_checker_error: emit_hold_inconclusive. A mutation loop must fail_closed on
-# checker error. idempotency is provided (replay_safe:true) so C3 is satisfied,
-# kill_switch is declared (C10) and v2 blocks are complete (C9/C12) — C2 is the
-# sole violation.
+# FIXTURE (expect: REJECT) — C10 Layer-B: a mutation loop cannot own its halt lever.
+# The kill switch is declared and tested, but the file_sentinel location sits inside
+# scope_roots ("src/auth"). A loop that can edit its own sentinel has no external
+# kill switch.
 contract_kind: governed_work_loop
 schema_version: "2.0.0"
 contract_status: schema_validated_only
 instance_scope: per_run
 
+loop_identity:
+  loop_id: "auth-test-fix-2026-07-09-002"
+  runner_ref: "single_taskrun_executor"
+  runner_readiness:
+    level: none
+
 goal:
   statement: "修复 test/auth 下失败测试，保持 src/auth public API 不变。"
-  lifecycle: active
+  lifecycle: completed
   success_criteria:
     - id: SC1
       statement: "test/auth 全绿。"
+      evidence_ref: "ev_test_green"
 
 scope:
   scope_roots: ["src/auth", "test/auth"]
@@ -22,7 +28,12 @@ scope:
   allowed_actions: [read_file, edit_file, run_tests]
 
 invariants:
-  hard: []
+  hard:
+    - id: INV-API
+      statement: "src/auth 的 public API 不得变更。"
+      check_method: api-diff
+      check_ref: "node tools/api-diff.mjs src/auth"
+      violation_action: blocking
   review: []
 
 evidence:
@@ -34,18 +45,19 @@ evidence:
         value: 0
       artifact_ref: "state/runtime/loop/auth/test_result.json"
       sha256_hash: "e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8"
-      captured_at: "2026-06-28T09:00:00+00:00"
+      captured_at: "2026-07-09T08:00:00+00:00"
 
 checker:
   independence_level: deterministic
   hard_gate_grading: deterministic_only
-  on_checker_error: emit_hold_inconclusive   # <-- VIOLATES C2: mutation loop must be fail_closed
-  readable_artifacts: ["the diff", "test output"]
+  on_checker_error: fail_closed
+  readable_artifacts: ["the diff", "test output", "api-diff report"]
   forbids_reading_maker_reasoning: true
 
 runtime:
   mode: attended
   scheduler_owner: claude_goal
+  max_concurrency: 1
 
 budget:
   limits:
@@ -54,23 +66,26 @@ budget:
 
 stop_condition:
   success_check:
-    kind: deterministic_predicate
-    check_ref: "npm test -- test/auth"
+    kind: all_success_criteria_met
+    check_ref: "npm test -- test/auth && node tools/api-diff.mjs src/auth"
   max_iterations: 10
   on_max_iterations: stop_inconclusive_then_wrap_up
 
 kill_switch:
-  mechanism: env_gate
-  location: "LOOP_AUTH_FIX_ENABLED"
+  mechanism: file_sentinel
+  location: "src/auth/LOOP_AUTH_FIX_ENABLED"
   polarity: enable_required
   halt_semantics: no_new_iterations_then_wrap_up
-  tested: false   # attended loop: declaration required (C10), drill not yet (C11 fires only on tested:true / unattended)
+  tested: true
+  test_evidence_ref: "state/runtime/loop/auth/kill_switch_drill.json"
+  test_evidence_hash: "a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8b0f2a4c6"
+  last_tested_at: "2026-07-08T09:00:00+00:00"
 
 evidence_package:
   required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
-  package_ref: "state/runtime/loop/auth/package/2026-06-28-001/"
-  package_hash: "8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a"
-  packaged_at: "2026-06-28T09:30:00+00:00"
+  package_ref: "state/runtime/loop/auth/package/2026-07-09-002/"
+  package_hash: "c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2f4a6c8e0"
+  packaged_at: "2026-07-09T08:30:00+00:00"
 
 idempotency:
   replay_safe: true
@@ -79,8 +94,8 @@ idempotency:
 control_plane_mutation: none
 
 next_action_card:
-  final_card: stop_inconclusive
-  enum: [continue, ask_human, stop_success, stop_inconclusive, stop_dormant]
+  final_card: stop_success
+  enum: [continue, ask_human, stop_success, stop_inconclusive, stop_dormant, escalate_live_authorization]
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
     ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"
@@ -90,8 +105,8 @@ next_action_card:
     escalate_live_authorization: "NextStep.ENABLE_WRITES | NextStep.CLEAR_KILL_SWITCH"
 
 wrap_up:
-  done: []
+  done: ["3 个失败测试修复", "api-diff 零变更验证"]
   undone: []
   failed_commands: []
-  assumptions: []
-  next_steps: []
+  assumptions: ["test/auth 的 flaky 测试已在前置 PR 隔离"]
+  next_steps: ["把 kill switch drill 纳入月度演练"]

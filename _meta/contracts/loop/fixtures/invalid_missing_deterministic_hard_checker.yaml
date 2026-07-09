@@ -1,8 +1,9 @@
 # FIXTURE (expect: FAIL on C1) — declares a BLOCKING hard invariant but grades it
 # with a model-judged checker (independence_level != deterministic). BGHS forbids a
-# Governance invariant being model-judged. Everything else is valid to isolate C1.
+# Governance invariant being model-judged. Everything else is valid (incl. v2
+# blocks) to isolate C1.
 contract_kind: governed_work_loop
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 contract_status: schema_validated_only
 instance_scope: per_run
 
@@ -55,9 +56,23 @@ budget:
     turns: 8
   on_exhaustion: stop_new_mutations_then_wrap_up
 
+stop_condition:
+  success_check:
+    kind: deterministic_predicate
+    check_ref: "node tools/api-diff.mjs src/auth"
+  max_iterations: 8
+  on_max_iterations: stop_inconclusive_then_wrap_up
+
+evidence_package:
+  required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
+  package_ref: "state/runtime/loop/api/package/2026-06-28-001/"
+  package_hash: "1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c1d0c"
+  packaged_at: "2026-06-28T09:30:00+00:00"
+
 control_plane_mutation: none
 
 next_action_card:
+  final_card: stop_success
   enum: [continue, stop_success, stop_inconclusive]
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"

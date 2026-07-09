@@ -55,9 +55,9 @@ jobs:
         run: |
           node _meta/contracts/scripts/validate-contracts.mjs
 
-      - name: Run Governed Work Loop Validator (C1-C8)
+      - name: Run Governed Work Loop Validator (C1-C13)
         run: |
-          # Layer A (ajv structural / cross-field C1-C8) + Layer B (semantic derivations).
+          # Layer A (ajv structural / cross-field C1-C13) + Layer B (semantic derivations).
           # Expect-table semantics: valid_*/templates MUST pass, invalid_* MUST be rejected.
           # Exit 1 on any expectation miss (fail-closed).
           node _meta/contracts/scripts/validate-governed-work-loop.mjs

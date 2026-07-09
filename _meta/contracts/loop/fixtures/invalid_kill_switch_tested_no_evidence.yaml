@@ -1,12 +1,13 @@
-# FIXTURE (expect: FAIL on C2) — a mutation loop (no_mutation:false) that sets
-# on_checker_error: emit_hold_inconclusive. A mutation loop must fail_closed on
-# checker error. idempotency is provided (replay_safe:true) so C3 is satisfied,
-# kill_switch is declared (C10) and v2 blocks are complete (C9/C12) — C2 is the
-# sole violation.
+# FIXTURE (expect: FAIL on C11a) — a kill_switch that CLAIMS tested:true but binds
+# no drill evidence (test_evidence_ref / test_evidence_hash omitted). "We tested it"
+# is exactly the class of self-declared claim this contract exists to reject: tested
+# is free to say and expensive to prove, so the proof is what the schema requires.
+# tested:false would be honest and valid here; tested:true without evidence is not.
+# Attended + C10-satisfied so C11a is the sole violation.
 contract_kind: governed_work_loop
 schema_version: "2.0.0"
 contract_status: schema_validated_only
-instance_scope: per_run
+instance_scope: template
 
 goal:
   statement: "修复 test/auth 下失败测试，保持 src/auth public API 不变。"
@@ -33,13 +34,11 @@ evidence:
         kind: exit_code
         value: 0
       artifact_ref: "state/runtime/loop/auth/test_result.json"
-      sha256_hash: "e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8"
-      captured_at: "2026-06-28T09:00:00+00:00"
 
 checker:
   independence_level: deterministic
   hard_gate_grading: deterministic_only
-  on_checker_error: emit_hold_inconclusive   # <-- VIOLATES C2: mutation loop must be fail_closed
+  on_checker_error: fail_closed
   readable_artifacts: ["the diff", "test output"]
   forbids_reading_maker_reasoning: true
 
@@ -64,13 +63,13 @@ kill_switch:
   location: "LOOP_AUTH_FIX_ENABLED"
   polarity: enable_required
   halt_semantics: no_new_iterations_then_wrap_up
-  tested: false   # attended loop: declaration required (C10), drill not yet (C11 fires only on tested:true / unattended)
+  tested: true
+  # test_evidence_ref / test_evidence_hash OMITTED  <-- VIOLATES C11a: tested:true
+  # is a claim; the drill artifact (ref + sha256) is what makes it a fact.
 
 evidence_package:
   required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
-  package_ref: "state/runtime/loop/auth/package/2026-06-28-001/"
-  package_hash: "8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a8b7a"
-  packaged_at: "2026-06-28T09:30:00+00:00"
+  package_ref: "state/runtime/loop/auth/package/"
 
 idempotency:
   replay_safe: true
@@ -79,8 +78,7 @@ idempotency:
 control_plane_mutation: none
 
 next_action_card:
-  final_card: stop_inconclusive
-  enum: [continue, ask_human, stop_success, stop_inconclusive, stop_dormant]
+  enum: [continue, ask_human, stop_success, stop_inconclusive]
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"
     ask_human: "TaskStatus.AWAITING_APPROVAL | NextStep.REQUEST_APPROVAL"

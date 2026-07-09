@@ -17,7 +17,7 @@
 | 资产 | 路径 | 一句话 |
 |------|------|--------|
 | 契约 SSOT（21-schema gate） | `_meta/contracts/` | learning×13 · engine×2（v1+v2）· governance×3 · loop×1 · playbook×1 · proactive×1；其中 16 个注册在 `validate-contracts.mjs` `schemaFiles[]`，5 个由专用校验器覆盖 |
-| loop contract（C1-C8） | `_meta/contracts/loop/` | governed work loop 契约语言层：schema + template + fixtures，两层校验（ajv 结构 + 语义派生）；`contract_status: schema_validated_only`，背后无 runner |
+| loop contract v2（C1-C13） | `_meta/contracts/loop/` | governed work loop 契约语言层：schema + template + fixtures，两层校验（ajv 结构 + 语义派生）；v2 增 stop_condition/kill_switch/evidence_package/词表收紧；`contract_status: schema_validated_only`，背后无 runner |
 | 政策 | `_meta/policies/` | `DEFAULT_SKILL_POLICY.md`（9 条，Policy 9=Surgical Scope）+ `BACKLOG_INTAKE_POLICY.md`（agent 只 propose、operator 翻牌） |
 | ADR | `_meta/adr/` | 22 份；新决策先查重再增 |
 | SPEC | `_meta/specs/` | 跨仓 SPEC（含 user-growth-engine） |
@@ -33,7 +33,7 @@
 ```bash
 node _meta/contracts/scripts/validate-contracts.mjs              # 契约总校验
 node _meta/contracts/scripts/validate-contracts.mjs --check-ssot # SSOT 单实例检查
-node _meta/contracts/scripts/validate-governed-work-loop.mjs     # loop C1-C8（已接 contracts-gate CI）
+node _meta/contracts/scripts/validate-governed-work-loop.mjs     # loop C1-C13（已接 contracts-gate CI）
 python3 _meta/contracts/scripts/validate_manifest_reality.py     # Hard Gate 5 / manifest reality
 node .claude/scripts/guardrail.mjs                               # 本文件+packs 字数门
 npm test                                                         # vitest（已 exclude node:test 系列）
@@ -58,7 +58,7 @@ launchd `com.liye.manifest-reality-clock`：每日本地 09:05 跑 `_meta/contra
 
 ## CI（48 workflow，按域切分）
 
-- 契约门：`contracts-gate.yml`（连字符，真门：validate-contracts + loop C1-C8 + playbook IO）。⚠️ 另有同名旧门 `contracts_gate.yml`（下划线，Phase-1 `src/contracts/` 校验）——checks UI 显示名相同，勿混淆。
+- 契约门：`contracts-gate.yml`（连字符，真门：validate-contracts + loop C1-C13 + playbook IO）。⚠️ 另有同名旧门 `contracts_gate.yml`（下划线，Phase-1 `src/contracts/` 校验）——checks UI 显示名相同，勿混淆。
 - 其余按域：`learning-*`（每 phase 一个）、`sfc-ci`、`manifest-reality-clock-tests`、`kernel-guard`（本文件）、`i18n-gate`、`security-gate`、`memory-gate`、`layer-dependency-gate` 等。
 
 ## 静止区（文件在、近两月基本无变动；按需进入，勿按旧文档假设运行态）

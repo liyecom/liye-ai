@@ -1,28 +1,27 @@
-# FIXTURE (expect: FAIL on Layer-B semantic check) — scope_roots clearly intersect the
-# control plane (a *.schema.yaml under _meta/contracts), yet control_plane_touch is
-# self-reported FALSE. AJV (Layer A) cannot catch this — control_plane_touch is a
-# boolean, structurally fine. The validator's Layer-B derivation must cross-check the
-# declared flag against the actual scope and reject the false negative. Evidence is
-# complete (so C8 passes), v2 blocks provided (so C9/C12 pass), hard:[] — the
-# mislabel is the sole violation.
+# FIXTURE (expect: FAIL on Layer-B final_card derivation) — a per_run instance whose
+# final_card (stop_dormant) is a member of the GLOBAL six-word vocabulary (so Layer A
+# passes) but NOT of this loop's own declared enum. A run cannot end on a card its
+# contract never declared: the declared enum is the loop's whole vocabulary, and an
+# outcome outside it is unreportable by construction. Only Layer B can compare the
+# two instance-level arrays. Everything else is complete (C8/C12 anchored) — the
+# out-of-vocabulary final_card is the sole violation.
 contract_kind: governed_work_loop
 schema_version: "2.0.0"
 contract_status: schema_validated_only
 instance_scope: per_run
 
 goal:
-  statement: "审阅 governed_work_loop schema 并给出 boundary verdict，不改任何文件。"
+  statement: "汇总 src/reporting 测试结果并给出 verdict，不改任何文件。"
   lifecycle: active
   success_criteria:
     - id: SC1
-      statement: "schema 的每条 C 约束都有一条覆盖判断。"
+      statement: "每个 reporting generator 都有一条 pass/fail verdict。"
 
 scope:
-  scope_roots:
-    - "_meta/contracts/loop/governed_work_loop_v2.schema.yaml"
+  scope_roots: ["src/reporting"]
   no_mutation: true
-  control_plane_touch: false   # <-- VIOLATES Layer-B: scope hits a *.schema.yaml under _meta/contracts
-  allowed_actions: [read_file, grep, emit_review_card]
+  control_plane_touch: false
+  allowed_actions: [read_file, grep, run_tests]
 
 invariants:
   hard: []
@@ -31,19 +30,19 @@ invariants:
 evidence:
   authoritative:
     - check:
-        command: "node _meta/contracts/scripts/validate-governed-work-loop.mjs"
+        command: "npm test -- src/reporting"
       expected:
         kind: exit_code
         value: 0
-      artifact_ref: "state/runtime/loop/architecture_review/schema_review.json"
-      sha256_hash: "a3f5c0d9e2b4f6a8c1e3d5b7f9a0c2e4d6b8f0a1c3e5d7b9f1a3c5e7d9b0f2a4"
+      artifact_ref: "state/runtime/loop/reporting/test_result.json"
+      sha256_hash: "d6b8f0a2c4e6d8b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8"
       captured_at: "2026-06-28T09:00:00+00:00"
 
 checker:
   independence_level: fresh_context_same_model
   hard_gate_grading: deterministic_only
   on_checker_error: emit_hold_inconclusive
-  readable_artifacts: ["the schema under review", "the declared invariants"]
+  readable_artifacts: ["the test output"]
   forbids_reading_maker_reasoning: true
 
 runtime:
@@ -57,21 +56,21 @@ budget:
 
 stop_condition:
   success_check:
-    kind: all_success_criteria_met
-    check_ref: "node _meta/contracts/scripts/validate-governed-work-loop.mjs"
+    kind: deterministic_predicate
+    check_ref: "npm test -- src/reporting"
   max_iterations: 8
   on_max_iterations: stop_inconclusive_then_wrap_up
 
 evidence_package:
   required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
-  package_ref: "state/runtime/loop/architecture_review/package/2026-06-28-002/"
-  package_hash: "7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d7c4d"
+  package_ref: "state/runtime/loop/reporting/package/2026-06-28-004/"
+  package_hash: "b0f2a4c6e8d0b2f4a6c8e0d2b4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8b0f2"
   packaged_at: "2026-06-28T09:30:00+00:00"
 
 control_plane_mutation: none
 
 next_action_card:
-  final_card: stop_success
+  final_card: stop_dormant   # <-- VIOLATES Layer-B: not in this loop's declared enum below
   enum: [continue, ask_human, stop_success, stop_inconclusive]
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"

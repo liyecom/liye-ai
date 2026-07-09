@@ -1,5 +1,29 @@
-# Governed Work Loop Contract v1.0.0
-# SSOT: _meta/contracts/loop/governed_work_loop_v1.schema.yaml
+# Governed Work Loop Contract v2.0.0
+# SSOT: _meta/contracts/loop/governed_work_loop_v2.schema.yaml
+#
+# v2 (2026-07-09, operator-ruled batch A3) adds four capabilities on top of v1's
+# C1–C8, as constraints C9–C13 (no consumer existed for v1 — no runner, no per_run
+# instances in state/runtime — so v1 is REPLACED wholesale, not dual-shipped):
+#   C9  stop_condition   — deterministic success_check + max_iterations hard bound;
+#                          an unbounded loop is unrepresentable, and hitting the
+#                          bound is NEVER success (stop_inconclusive_then_wrap_up).
+#   C10 kill_switch      — every mutation loop must declare one, with fail-closed
+#                          polarity locked to enable_required (key REMOVED => halt;
+#                          a press-to-stop polarity is unrepresentable). Mirrors the
+#                          UGE dual-key posture (env gate absent => refuse).
+#   C11 kill-switch-tested — tested:true must bind drill evidence (ref + sha256);
+#                          unattended_autonomous requires a TESTED kill switch.
+#                          An undrilled kill switch is decoration, not containment.
+#   C12 evidence_package — the wrap-up-time attestation input: closed content
+#                          manifest (const) + package_ref; per_run must anchor
+#                          package_hash + packaged_at + final_card. This is what a
+#                          future runner audits POST-HOC (perimeter + contract +
+#                          post-hoc attestation, not per-step approval).
+#   C13 card vocabulary  — the six-word next_action_card vocabulary stays locked by
+#                          the const map; a read-only loop may not carry
+#                          escalate_live_authorization (no write to escalate to).
+#                          Layer B additionally pins final_card ∈ the loop's own
+#                          declared enum.
 #
 # WHAT THIS IS
 #   A draft-07 schema that validates a *governed work loop* contract — the
@@ -37,9 +61,11 @@
 #     (C4), not a global gag on all mutation.
 #
 # STATUS
-#   contract_status: schema_validated_only is the v1 reality — this ships a contract
-#   language + validator + manually/semi-manually driven pilots. NO autonomous runner
-#   is behind it yet; runner_enforced is a later, attested build.
+#   contract_status: schema_validated_only is still the v2 reality — this ships a
+#   contract language + validator + manually/semi-manually driven pilots. NO autonomous
+#   runner is behind it yet; runner_enforced is a later, attested build. v2 is the
+#   language a future runner will be held to (stop bound, tested kill switch,
+#   post-hoc evidence package) — shipping the leash before the dog.
 #
 # Validate:  node _meta/contracts/scripts/validate-governed-work-loop.mjs
 # Exit codes: 0 = all fixtures meet expectation, 1 = fail-closed.
@@ -48,10 +74,10 @@
 #   fields) §6.3 (wrap-up mandatory) + Anthropic agent loop (gather→act→verify→repeat).
 
 $schema: "http://json-schema.org/draft-07/schema#"
-$id: "https://liye.com/contracts/loop/governed_work_loop.v1"
-title: "Governed Work Loop Contract v1"
+$id: "https://liye.com/contracts/loop/governed_work_loop.v2"
+title: "Governed Work Loop Contract v2"
 description: "Declarative task contract / runtime SLA for a governed agent work loop. Schema layer of the schema/template/instance split."
-version: "1.0.0"
+version: "2.0.0"
 type: object
 
 required:
@@ -66,9 +92,13 @@ required:
   - checker
   - runtime
   - budget
+  - stop_condition
+  - evidence_package
   - control_plane_mutation
   - next_action_card
   - wrap_up
+  # kill_switch is NOT globally required: a read-only attended loop may omit it.
+  # C10 requires it for every mutation loop; C11 requires it (tested) for unattended.
 
 properties:
   # ----------------------------------------------------------------------- #
@@ -80,7 +110,7 @@ properties:
 
   schema_version:
     type: string
-    const: "1.0.0"
+    const: "2.0.0"
 
   contract_status:
     type: string
@@ -362,6 +392,86 @@ properties:
         description: "At budget end: stop new changes, tidy, hand off. Never hard-continue blindly."
 
   # ----------------------------------------------------------------------- #
+  # Stop condition (C9, v2) — the loop's DETERMINISTIC exit door, distinct from
+  # budget: budget bounds resources (turns/tokens/wall-clock), stop_condition
+  # bounds the LOOP itself (success predicate + iteration hard cap). Doctrine:
+  # verifiable done (loop-engineering consensus) — "done" is a machine-checked
+  # predicate, never the maker's self-assessment; and an unbounded loop is
+  # unrepresentable. Hitting max_iterations is NEVER success: the loop wraps up
+  # as stop_inconclusive (VerdictDecision.HOLD), it does not declare victory.
+  # ----------------------------------------------------------------------- #
+  stop_condition:
+    type: object
+    additionalProperties: false
+    required: [success_check, max_iterations, on_max_iterations]
+    properties:
+      success_check:
+        type: object
+        additionalProperties: false
+        required: [kind, check_ref]
+        properties:
+          kind:
+            type: string
+            enum: [all_success_criteria_met, deterministic_predicate]
+            description: "all_success_criteria_met = every goal.success_criteria proven via evidence; deterministic_predicate = one command's exit decides."
+          check_ref:
+            type: string
+            minLength: 1
+            description: "REQUIRED: the concrete command/rule that mechanically evaluates 'done'. Same doctrine as invariants.hard[].check_ref — a stop condition without a binding is a label."
+      max_iterations:
+        type: integer
+        minimum: 1
+        description: "Hard upper bound on loop iterations, independent of success. Not the same unit as budget.limits.turns (an iteration may span multiple turns)."
+      on_max_iterations:
+        type: string
+        const: stop_inconclusive_then_wrap_up
+        description: "Hitting the bound emits stop_inconclusive (HOLD) and wraps up. 'Ran out of iterations' must never be read as PASS."
+
+  # ----------------------------------------------------------------------- #
+  # Kill switch (C10/C11, v2) — an EXTERNAL halt lever, outside the agent's
+  # writable scope. Polarity is locked fail-closed: enable_required means the
+  # switch is an ENABLE key (absent/cleared => loop halts), mirroring the UGE
+  # dual-key posture (env gate unset => refuse). A press-to-stop polarity
+  # (absent => run) is deliberately unrepresentable. Halting never skips
+  # wrap-up: the evidence package still gets emitted (C12).
+  # ----------------------------------------------------------------------- #
+  kill_switch:
+    type: object
+    additionalProperties: false
+    required: [mechanism, location, polarity, halt_semantics, tested]
+    properties:
+      mechanism:
+        type: string
+        enum: [env_gate, file_sentinel, registry_flag]
+        description: "env_gate = env var (e.g. UGE_FACT_EMIT_ENABLED); file_sentinel = presence-checked file; registry_flag = e.g. learning_sources.yaml enabled field."
+      location:
+        type: string
+        minLength: 1
+        description: "Env var name / sentinel path / registry key. MUST live outside the loop's scope_roots — a loop that can edit its own kill switch has none."
+      polarity:
+        type: string
+        const: enable_required
+        description: "Fail-closed: key ABSENT/cleared => halt. The only representable polarity."
+      halt_semantics:
+        type: string
+        const: no_new_iterations_then_wrap_up
+        description: "Halt = stop opening iterations; wrap_up + evidence_package still run."
+      tested:
+        type: boolean
+        description: "Has this switch actually been drilled (flipped, loop observed halting)? tested:true must bind evidence (C11); unattended requires tested:true (C11)."
+      test_evidence_ref:
+        type: string
+        minLength: 1
+        description: "Artifact from the drill: the run record showing the switch flipped and the loop halted."
+      test_evidence_hash:
+        type: string
+        pattern: "^[a-f0-9]{64}$"
+      last_tested_at:
+        type: string
+        format: date-time
+        description: "Metadata only; the trust anchor is test_evidence_hash."
+
+  # ----------------------------------------------------------------------- #
   # Idempotency — required for mutation loops (C3). Ties to loamwise
   # IdempotencyResult primitive + runtime.dedupe_key.
   # ----------------------------------------------------------------------- #
@@ -375,6 +485,40 @@ properties:
       key_strategy:
         type: string
         enum: [per_action_dedupe_key, content_hash, none]
+
+  # ----------------------------------------------------------------------- #
+  # Evidence package (C12, v2) — the wrap-up-time bundle a completed run MUST
+  # land: one hash-anchored artifact set a future runner (or today's operator)
+  # audits POST-HOC. This is the runner paradigm made contractual — perimeter +
+  # contract validation + post-hoc attestation, NOT per-step approval. The
+  # content manifest is a closed const: no run gets to decide it emitted
+  # "enough" evidence by leaving items out.
+  # ----------------------------------------------------------------------- #
+  evidence_package:
+    type: object
+    additionalProperties: false
+    required: [required_contents, package_ref]
+    properties:
+      required_contents:
+        description: "Closed manifest of what the package MUST contain. const — not author-editable per loop."
+        const:
+          - contract_snapshot   # the per_run contract doc as executed
+          - iteration_log       # per-iteration record: action, checker verdict, card emitted
+          - evidence_items      # the evidence.authoritative artifacts (or refs to them)
+          - final_verdict       # the deterministic stop-check output
+          - wrap_up             # the five-field wrap_up as landed
+      package_ref:
+        type: string
+        minLength: 1
+        description: "Where the package lands (template: intended path; per_run: the real one)."
+      package_hash:
+        type: string
+        pattern: "^[a-f0-9]{64}$"
+        description: "sha256 over the package manifest content. per_run REQUIRED (C12) — the post-hoc audit trust anchor."
+      packaged_at:
+        type: string
+        format: date-time
+        description: "Metadata only; never a trust anchor."
 
   # ----------------------------------------------------------------------- #
   # Control-plane mutation posture (C4-gated)
@@ -392,6 +536,15 @@ properties:
     additionalProperties: false
     required: [enum, maps_to_existing_status]
     properties:
+      final_card:
+        type: string
+        enum:
+          - ask_human
+          - stop_success
+          - stop_inconclusive
+          - stop_dormant
+          - escalate_live_authorization
+        description: "per_run REQUIRED (C12): the card the run actually ended on. 'continue' is not a terminal card. Layer B additionally pins final_card ∈ this loop's own declared enum."
       enum:
         type: array
         minItems: 1
@@ -433,9 +586,10 @@ properties:
 additionalProperties: false
 
 # =========================================================================== #
-# Cross-field constraints C1–C7: make dangerous combinations unrepresentable.
+# Cross-field constraints C1–C13: make dangerous combinations unrepresentable.
 # (A "deep interface" = the validator rejects nonsense, not a comment that asks
-# nicely.) Each is an independent if/then under allOf.
+# nicely.) Each is an independent if/then under allOf. C9 has no if/then — it is
+# enforced structurally by stop_condition's own required/const fields above.
 # =========================================================================== #
 allOf:
   # C1: any BLOCKING hard invariant => the checker grades deterministically.
@@ -579,3 +733,89 @@ allOf:
               items:
                 required: [check, expected, artifact_ref, sha256_hash, captured_at]
       required: [evidence]
+
+  # C10: a mutation loop (no_mutation:false) must DECLARE a kill switch. Read-only
+  #      attended loops may omit one (the human closing the laptop is the switch);
+  #      the moment a loop writes, an external halt lever must exist by contract.
+  - if:
+      properties:
+        scope:
+          required: [no_mutation]
+          properties:
+            no_mutation: { const: false }
+      required: [scope]
+    then:
+      required: [kill_switch]
+
+  # C11a: kill_switch.tested:true is a CLAIM — it must bind drill evidence
+  #       (test_evidence_ref + test_evidence_hash). An untested switch may say
+  #       tested:false honestly; it may not say tested:true for free.
+  - if:
+      properties:
+        kill_switch:
+          required: [tested]
+          properties:
+            tested: { const: true }
+      required: [kill_switch]
+    then:
+      properties:
+        kill_switch:
+          required: [test_evidence_ref, test_evidence_hash]
+
+  # C11b: unattended_autonomous requires a kill switch that has actually been
+  #       drilled (tested:true, which via C11a forces the evidence binding).
+  #       An undrilled kill switch on an unattended loop is decoration.
+  - if:
+      properties:
+        runtime:
+          required: [mode]
+          properties:
+            mode: { const: unattended_autonomous }
+      required: [runtime]
+    then:
+      properties:
+        kill_switch:
+          required: [tested]
+          properties:
+            tested: { const: true }
+      required: [kill_switch]
+
+  # C12: a per_run instance must land the ANCHORED evidence package (package_hash +
+  #      packaged_at on top of package_ref) and record the terminal card the run
+  #      actually ended on (final_card). Template layer declares shape/intent only —
+  #      same split as C8: no run, no hash, and a placeholder hash would be a fake.
+  - if:
+      properties:
+        instance_scope: { const: per_run }
+      required: [instance_scope]
+    then:
+      properties:
+        evidence_package:
+          required: [required_contents, package_ref, package_hash, packaged_at]
+        next_action_card:
+          required: [final_card]
+      required: [evidence_package, next_action_card]
+
+  # C13: a read-only loop (no_mutation:true) may not carry escalate_live_authorization
+  #      in its declared card enum — there is no write authorization to escalate to.
+  #      The affordance itself is the hazard: a read loop that can ask for live writes
+  #      is a mutation loop wearing a read-only badge.
+  - if:
+      properties:
+        scope:
+          required: [no_mutation]
+          properties:
+            no_mutation: { const: true }
+      required: [scope]
+    then:
+      properties:
+        next_action_card:
+          properties:
+            enum:
+              items:
+                enum:
+                  - continue
+                  - ask_human
+                  - stop_success
+                  - stop_inconclusive
+                  - stop_dormant
