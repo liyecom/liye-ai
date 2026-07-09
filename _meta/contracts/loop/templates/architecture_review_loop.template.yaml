@@ -1,7 +1,7 @@
 # Architecture Review Loop — TEMPLATE (layer 2 of schema/template/instance)
-# Validates against: _meta/contracts/loop/governed_work_loop_v1.schema.yaml
+# Validates against: _meta/contracts/loop/governed_work_loop_v2.schema.yaml
 #
-# The v1 pilot: lowest blast radius (read-only), most directly dogfoods the
+# The pilot loop: lowest blast radius (read-only), most directly dogfoods the
 # maker≠checker grader pattern. no_mutation:true => no idempotency / fail_closed
 # pressure; on checker error it emits HOLD/INCONCLUSIVE rather than a false PASS.
 #
@@ -9,7 +9,7 @@
 # template layer, so contract_status stays schema_validated_only.
 
 contract_kind: governed_work_loop
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 contract_status: schema_validated_only
 instance_scope: template
 
@@ -90,6 +90,19 @@ budget:
   limits:
     turns: 12
   on_exhaustion: stop_new_mutations_then_wrap_up
+
+stop_condition:
+  success_check:
+    kind: all_success_criteria_met
+    check_ref: "node _meta/contracts/scripts/list-changed-files.mjs --verify-coverage"
+  max_iterations: 12
+  on_max_iterations: stop_inconclusive_then_wrap_up
+
+# template layer declares the package shape + intended landing path; the
+# package_hash / packaged_at / final_card are per_run facts (C12).
+evidence_package:
+  required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
+  package_ref: "state/runtime/loop/architecture_review/package/"
 
 control_plane_mutation: proposes_only   # may emit candidate review findings on SYSTEMS.md/ADR; never self-applies (C4)
 

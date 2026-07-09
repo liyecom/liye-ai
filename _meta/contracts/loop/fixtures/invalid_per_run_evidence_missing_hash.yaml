@@ -1,9 +1,10 @@
 # FIXTURE (expect: FAIL on C8) — a per_run instance whose authoritative evidence item
 # is missing its sha256_hash (the trust anchor). A per_run instance MUST carry
 # artifact_ref + sha256_hash + captured_at on every authoritative item. Read-only,
-# non-control-plane, hard:[] so C1–C7 do not fire — C8 is the sole violation.
+# non-control-plane, hard:[] so C1–C7 do not fire; the evidence_PACKAGE is fully
+# anchored so C12 passes — the missing evidence-ITEM hash (C8) is the sole violation.
 contract_kind: governed_work_loop
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 contract_status: schema_validated_only
 instance_scope: per_run
 
@@ -51,9 +52,23 @@ budget:
     turns: 8
   on_exhaustion: stop_new_mutations_then_wrap_up
 
+stop_condition:
+  success_check:
+    kind: deterministic_predicate
+    check_ref: "npm test -- src/reporting"
+  max_iterations: 8
+  on_max_iterations: stop_inconclusive_then_wrap_up
+
+evidence_package:
+  required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
+  package_ref: "state/runtime/loop/reporting/package/2026-06-28-002/"
+  package_hash: "6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e6f5e"
+  packaged_at: "2026-06-28T09:30:00+00:00"
+
 control_plane_mutation: none
 
 next_action_card:
+  final_card: stop_success
   enum: [continue, ask_human, stop_success, stop_inconclusive]
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"

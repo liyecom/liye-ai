@@ -6,7 +6,7 @@
 # a hash can be attached while level stays none. C7 must ALSO pin
 # level ∈ {internal_beta, production_ready} — you cannot "enforce" with no runner.
 contract_kind: governed_work_loop
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 contract_status: runner_enforced
 instance_scope: template
 
@@ -67,6 +67,17 @@ budget:
   limits:
     turns: 8
   on_exhaustion: stop_new_mutations_then_wrap_up
+
+stop_condition:
+  success_check:
+    kind: deterministic_predicate
+    check_ref: "node scripts/check.mjs"
+  max_iterations: 8
+  on_max_iterations: stop_inconclusive_then_wrap_up
+
+evidence_package:
+  required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
+  package_ref: "state/runtime/loop/x/package/"
 
 control_plane_mutation: none
 

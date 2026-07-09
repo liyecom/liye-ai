@@ -1,23 +1,24 @@
-# FIXTURE (expect: FAIL on C6) — an unattended_autonomous loop on an internal_beta
-# runner that carries NO attestation bundle. unattended is the highest-blast-radius
-# mode: it must bind attestation_ref + attested_hash + dedupe_key + lock_ref, none of
-# which are present. level=internal_beta so C5 does not force attended; contract_status
-# stays schema_validated_only so C7 does not fire; a TESTED kill switch with drill
-# evidence is provided so C10/C11 pass — strengthened C6 is the sole gate.
+# FIXTURE (expect: FAIL on C11b) — an unattended_autonomous loop whose kill_switch
+# honestly says tested:false. Honesty does not buy unattended: with nobody watching,
+# an undrilled kill switch is decoration, and the loop may not run unattended until
+# the switch has been flipped in a drill and the halt observed (tested:true + C11a
+# evidence). The full C6 attestation bundle IS present (internal_beta runner,
+# attestation ref+hash, dedupe_key, lock_ref) so C6 passes — C11b is the sole gate.
 contract_kind: governed_work_loop
 schema_version: "2.0.0"
 contract_status: schema_validated_only
-instance_scope: per_run
+instance_scope: template
 
 loop_identity:
-  loop_id: "drift-monitor-2026-06-28-001"
+  template_ref: "_meta/contracts/loop/templates/example.template.yaml"
   runner_ref: "single_taskrun_executor"
   runner_readiness:
     level: internal_beta
-    # attestation_ref / attested_hash OMITTED  <-- VIOLATES C6
+    attestation_ref: "state/runtime/loop/attestation/drift_runner.json"
+    attested_hash: "0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f0e9f"
 
 goal:
-  statement: "每小时巡检 manifest drift 并发 HOLD/PASS verdict，不改任何文件。"
+  statement: "无人值守巡检 manifest drift 并发 verdict，不改任何文件。"
   lifecycle: active
   success_criteria:
     - id: SC1
@@ -41,8 +42,6 @@ evidence:
         kind: exit_code
         value: 0
       artifact_ref: "state/runtime/loop/drift/drift_report.json"
-      sha256_hash: "b1d3f5a7c9e0b2d4f6a8c0e2d4b6f8a0c2e4d6b8f0a2c4e6d8b0f2a4c6e8d0b2"
-      captured_at: "2026-06-28T09:00:00+00:00"
 
 checker:
   independence_level: deterministic
@@ -52,9 +51,10 @@ checker:
   forbids_reading_maker_reasoning: true
 
 runtime:
-  mode: unattended_autonomous   # requires the full attestation bundle (C6)
+  mode: unattended_autonomous
   scheduler_owner: launchd
-  # dedupe_key / lock_ref OMITTED  <-- VIOLATES C6
+  dedupe_key: "drift-monitor-hourly"
+  lock_ref: "state/runtime/loop/drift/.lock"
 
 budget:
   limits:
@@ -70,24 +70,18 @@ stop_condition:
 
 kill_switch:
   mechanism: file_sentinel
-  location: "state/runtime/loop/drift/ENABLE"   # outside scope_roots (state/runtime/manifest)
+  location: "state/runtime/loop/drift/ENABLE"
   polarity: enable_required
   halt_semantics: no_new_iterations_then_wrap_up
-  tested: true
-  test_evidence_ref: "state/runtime/loop/drift/kill_switch_drill.json"
-  test_evidence_hash: "4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d4c3d"
-  last_tested_at: "2026-06-27T09:00:00+00:00"
+  tested: false   # <-- VIOLATES C11b: unattended requires a DRILLED kill switch
 
 evidence_package:
   required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
-  package_ref: "state/runtime/loop/drift/package/2026-06-28-001/"
-  package_hash: "2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b2a1b"
-  packaged_at: "2026-06-28T09:30:00+00:00"
+  package_ref: "state/runtime/loop/drift/package/"
 
 control_plane_mutation: none
 
 next_action_card:
-  final_card: stop_dormant
   enum: [continue, stop_success, stop_inconclusive, stop_dormant]
   maps_to_existing_status:
     continue: "TaskStatus.EXECUTING | VerdictDecision.EXPAND"

@@ -10,7 +10,7 @@
 # no_mutation:true here MUST be rejected. (A blacklist of "bad verbs" leaks forever;
 # an allowlist of "known-safe read-only actions" is fail-closed.)
 contract_kind: governed_work_loop
-schema_version: "1.0.0"
+schema_version: "2.0.0"
 contract_status: schema_validated_only
 instance_scope: template
 
@@ -71,6 +71,17 @@ budget:
   limits:
     turns: 8
   on_exhaustion: stop_new_mutations_then_wrap_up
+
+stop_condition:
+  success_check:
+    kind: all_success_criteria_met
+    check_ref: "node scripts/list-changed-files.mjs --verify-coverage"
+  max_iterations: 8
+  on_max_iterations: stop_inconclusive_then_wrap_up
+
+evidence_package:
+  required_contents: [contract_snapshot, iteration_log, evidence_items, final_verdict, wrap_up]
+  package_ref: "state/runtime/loop/x/package/"
 
 control_plane_mutation: none
 
