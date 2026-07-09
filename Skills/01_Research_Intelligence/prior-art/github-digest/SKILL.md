@@ -5,39 +5,42 @@ domain: 01_Research_Intelligence
 category: prior-art
 version: 1.0.0
 status: active
-skeleton: workflow
-triggers:
-  commands: ["/github-digest"]
-  patterns:
-    - "研究这个 repo"
-    - "研究一下这个项目"
-    - "这个项目对 liye 有没有帮助"
-    - "对 liye systems 的进化有什么帮助"
-    - "digest this repo"
-    - "study this github project"
-    - "跑下一个 repo"
-inputs:
-  required: ["repo_url"]
-  optional: ["focus_question"]
-outputs:
-  artifacts:
-    - "docs/methodology/01_Research_Intelligence/recon-log/<YYYY-MM-DD>-<repo-slug>.md"
-    - "recon-log README 索引行"
-failure_modes:
-  - symptom: "克隆失败（网络 / 404 / private）"
-    recovery: "退回 `gh repo view <owner>/<repo>` + 网页元数据；报告显式标注『未能完整获取，判断基于 X』，证据强度降级"
-  - symptom: "repo 内容稀薄 / 几乎为空"
-    recovery: "如实说明，verdict=忽略，不硬凑"
-  - symptom: "强 copyleft（GPL/AGPL）许可"
-    recovery: "仅概念参照；frontmatter 记 license_caution；绝不复制其源码进任何 LiYe 仓"
-verification:
-  evidence_required: true
-  how_to_verify:
-    - "node .claude/scripts/sfc_lint.mjs Skills/01_Research_Intelligence/prior-art/github-digest"
-    - "确认 recon-log 新增条目 frontmatter 有 verdict + 证据强度声明"
-governance:
-  constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
-  policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
+metadata:
+  liye:
+    sfc_version: "0.2"
+    skeleton: workflow
+    triggers:
+      commands: ["/github-digest"]
+      patterns:
+        - "研究这个 repo"
+        - "研究一下这个项目"
+        - "这个项目对 liye 有没有帮助"
+        - "对 liye systems 的进化有什么帮助"
+        - "digest this repo"
+        - "study this github project"
+        - "跑下一个 repo"
+    inputs:
+      required: ["repo_url"]
+      optional: ["focus_question"]
+    outputs:
+      artifacts:
+        - "docs/methodology/01_Research_Intelligence/recon-log/<YYYY-MM-DD>-<repo-slug>.md"
+        - "recon-log README 索引行"
+    failure_modes:
+      - symptom: "克隆失败（网络 / 404 / private）"
+        recovery: "退回 `gh repo view <owner>/<repo>` + 网页元数据；报告显式标注『未能完整获取，判断基于 X』，证据强度降级"
+      - symptom: "repo 内容稀薄 / 几乎为空"
+        recovery: "如实说明，verdict=忽略，不硬凑"
+      - symptom: "强 copyleft（GPL/AGPL）许可"
+        recovery: "仅概念参照；frontmatter 记 license_caution；绝不复制其源码进任何 LiYe 仓"
+    verification:
+      evidence_required: true
+      how_to_verify:
+        - "node .claude/scripts/sfc_lint.mjs Skills/01_Research_Intelligence/prior-art/github-digest"
+        - "确认 recon-log 新增条目 frontmatter 有 verdict + 证据强度声明"
+    governance:
+      constitution: "_meta/governance/SKILL_CONSTITUTION_v0.1.md"
+      policy: "_meta/policies/DEFAULT_SKILL_POLICY.md"
 ---
 
 # GitHub Digestion — 进化情报侦察
