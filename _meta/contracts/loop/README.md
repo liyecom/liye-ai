@@ -87,8 +87,15 @@ rejection is for the right reason. Exit 0 = all met expectation, 1 = fail-closed
 - Not declaring loamwise Layer 1 a unified autonomous loop runner — WriteEngine is a
   single-TaskRun orchestrator ("Not a scheduler. Not a worker. Not an autonomous loop.")
   with mock dispatchers (beta-readiness). Runner is a later, attested build.
-- **CI / contracts-gate wiring deferred** (Actions billing blocked). This validator is
-  **not** registered in the contracts gate (`validate-contracts.mjs`), so a green
-  Contracts-Gate / CI run does **not** exercise C1–C8 or the Layer-B derivations —
-  enforcement is by running this script directly (operator/local). Wiring it into the
-  gate is a tracked follow-up; CI-green must not be read as "C1–C8 covered".
+- Not registering the loop schema in `validate-contracts.mjs` `schemaFiles[]` — the loop
+  contract stays one of the dedicated-validator contracts in the 21-schema gate count
+  (enum-only carve-out), because its expect-table semantics (`invalid_*` fixtures MUST be
+  rejected) don't fit the generic validator's pass-only model.
+
+## CI wiring (since contracts-gate step "Run Governed Work Loop Validator")
+
+This validator runs as a dedicated fail-closed step in
+`.github/workflows/contracts-gate.yml`: any PR touching `_meta/contracts/**` (or the
+workflow itself) fails the Contracts Gate if a template/fixture stops meeting its
+expectation — C1–C8 at Layer A, or a Layer-B derivation. A green Contracts-Gate run
+now DOES exercise C1–C8. Local enforcement is unchanged: run the script directly.
