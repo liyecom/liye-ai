@@ -1,273 +1,77 @@
-## System Role
-- Layer: 0（制度底座 — 整个 LiYe Systems 的基础层）
-- **系统级 SSOT**: `_meta/portfolio/SYSTEMS.md` — 生态分层、角色、依赖、成熟度
-- **项目级 SSOT**: `_meta/contracts/`、`src/kernel/GOVERNANCE_RULES.yaml`、`Agents/`、`Crews/` — 本仓库内部的治理规则和能力定义
-- 讨论整个生态的角色/层级/依赖时，以 SYSTEMS.md 为准
-- 讨论本仓库内部的治理/contract/world model 时，以项目内文件为准
-
----
-
 # CLAUDE.md (Kernel)
 
-This file is the **startup router / minimal resident context** for LiYe OS. Do not put long SOPs, protocols, or complete skill documentation here.
-Load `.claude/packs/` on demand when details are needed, or use the assembler to generate `.claude/.compiled/context.md`.
+> 本文件是 liye_os（GitHub repo `liyecom/liye-ai`）的启动路牌 + 最小常驻 context。
+> 只放导航、命令、纪律；不放 SOP/协议/skill 全文。
+> 本文件受机器门保护：guardrail ≤10,000 chars（`node .claude/scripts/guardrail.mjs`）；
+> 改动本文件的 PR 标题须 `kernel:`/`governance:` 前缀或 `kernel-change` label（Kernel Guard CI）。
 
-## Repo Root
-- Repo: `~/github/liye_os`
-- Claude execution directory: Use the currently opened repo (do not rely on CLAUDE.md under ~)
+## System Role
 
-## Most Used Commands (Top)
+- Layer: **0（制度底座）**——整个 LiYe Systems 的治理原语、引擎接入协议、学习管线契约、世界模型。
+- **系统级 SSOT**: `_meta/portfolio/SYSTEMS.md`（生态分层、BGHS 四分法、D0-D3 成熟度、依赖方向）。
+- **项目级 SSOT**: `_meta/contracts/`。讨论生态角色/层级以 SYSTEMS.md 为准；讨论本仓治理以 contracts 为准。
+- 本仓不做具体业务逻辑：对 loamwise 输出合约，对 domain engines（AGE/UGE/chaming）输出 manifest 协议约束。
 
-### Notion Sync (run from repo root)
+## 治理面导航（2026-07 现状；计数会漂移，以命令重数为准）
 
-```bash
-# Test Notion connection
-node tools/notion-sync/notion-test.js
+| 资产 | 路径 | 一句话 |
+|------|------|--------|
+| 契约 SSOT（21-schema gate） | `_meta/contracts/` | learning×13 · engine×2（v1+v2）· governance×3 · loop×1 · playbook×1 · proactive×1；其中 16 个注册在 `validate-contracts.mjs` `schemaFiles[]`，5 个由专用校验器覆盖 |
+| loop contract（C1-C8） | `_meta/contracts/loop/` | governed work loop 契约语言层：schema + template + fixtures，两层校验（ajv 结构 + 语义派生）；`contract_status: schema_validated_only`，背后无 runner |
+| 政策 | `_meta/policies/` | `DEFAULT_SKILL_POLICY.md`（9 条，Policy 9=Surgical Scope）+ `BACKLOG_INTAKE_POLICY.md`（agent 只 propose、operator 翻牌） |
+| ADR | `_meta/adr/` | 22 份；新决策先查重再增 |
+| SPEC | `_meta/specs/` | 跨仓 SPEC（含 user-growth-engine） |
+| 学习管线 | `.claude/scripts/learning/` | import_facts → pattern_detector → crystallizer → promotion → heartbeat → metrics → phase4_entry_gate；**全部 operator/CI 触发，无调度器** |
+| 学习源注册表 | `.claude/config/learning_sources.yaml` | 写门之一：enabled + expected_manifest_hash 双字段；arm 只授权 import 信任，不授权 emit/平台写 |
+| 外源引入 | `tools/source-intake/` | URL→artifact 受控轨道 S0-S6 七阶三门；`tools/github-scout/` 只读探查 |
+| skill 工厂 | `_meta/skill-factory/` | SFC v0.2 契约 + 单一 SSOT frontmatter 解析器 + `sfc-ci.yml` |
+| 台账 | `_meta/contracts/ledger/` | manifest reality 每日 append-only 记录（Band B 时钟证据） |
+| 改革蓝图 | `_meta/reform/` | v1.1 |
 
-# Analyze Notion content
-node tools/notion-sync/analyze-notion-content.js
-
-# Daily sync
-node tools/notion-sync/notion-daily-sync.js
-
-# Use new scaffold (pull/push/diff)
-cd tools/notion-sync
-npm run pull    # Pull from Notion to local
-npm run push    # Push local to Notion
-npm run diff    # View differences
-```
-
-**Environment Configuration:**
-- `tools/notion-sync/.env` requires `NOTION_API_KEY` and `NOTION_DATABASE_ID`
-- Refer to `tools/notion-sync/.env.example` for configuration
-- Ensure `.env` is in .gitignore
-
-### Generate Task Context (Recommended)
+## 常用校验命令（从仓库根跑）
 
 ```bash
-# Auto-load relevant Packs based on task
-node .claude/scripts/assembler.mjs --task "Optimize Amazon Listing"
-
-# Then have Claude read the compiled context:
-# Read .claude/.compiled/context.md
+node _meta/contracts/scripts/validate-contracts.mjs              # 契约总校验
+node _meta/contracts/scripts/validate-contracts.mjs --check-ssot # SSOT 单实例检查
+node _meta/contracts/scripts/validate-governed-work-loop.mjs     # loop C1-C8（已接 contracts-gate CI）
+python3 _meta/contracts/scripts/validate_manifest_reality.py     # Hard Gate 5 / manifest reality
+node .claude/scripts/guardrail.mjs                               # 本文件+packs 字数门
+npm test                                                         # vitest（已 exclude node:test 系列）
+node --test .claude/scripts/learning/tests/                      # learning 套件（node 内建 runner）
 ```
 
-### File System Governance
+- ⚠️ governance 测试共享 `execution_tiers.yaml` 临时改写：**本地串行跑，禁并行**（并行=假阴性）。
+- ⚠️ vitest 与 `node --test` 收集范围互斥（vitest.config.ts 显式 exclude），勿用一个 runner 跑另一个的套件。
 
-```bash
-# Check if CLAUDE.md and Packs exceed limits
-node .claude/scripts/guardrail.mjs
+## 无人值守自动化（当前仅一条，勿凭旧文档假设更多）
 
-# View governance documentation
-cat _meta/docs/FILE_SYSTEM_GOVERNANCE.md
-```
+launchd `com.liye.manifest-reality-clock`：每日本地 09:05 跑 `_meta/contracts/scripts/manifest_reality_clock.py --append`，对 AGE manifest 做 R1-R6 reality 校验，append 到 `_meta/contracts/ledger/manifest_reality_amazon-growth-engine.jsonl`。Band B 30 天 streak：**漏一天即 reset，fail-closed 不 backfill**。日志 `~/Library/Logs/liye/`。学习管线没有任何 cron/launchd 挂载。
 
-## On-Demand Pack Loading (Key Rules)
+## 工作纪律（机器门之上的手工纪律）
 
-| Task Type | Which Pack to Load | Trigger Keywords |
-| --------- | ------------------ | ---------------- |
-| Amazon/Cross-border/Operations/Keywords/PPC | `.claude/packs/operations.md` | amazon, asin, ppc, listing |
-| Medical Research/Evidence-based/Clinical/Literature/CrewAI | `.claude/packs/research.md` | medical, treatment, drug, clinical, crew |
-| Architecture/Notion/PARA/Config/Naming | `.claude/packs/infrastructure.md` | notion, para, architecture, config, sync |
-| Multi-agent Collaboration/Responsibilities/Protocols | `.claude/packs/protocols.md` | multi-agent, collaboration, protocol |
+1. **禁 `git add -A` / `git add .`**——一律按名 add。仓库根常驻 untracked 工件（`.codegraph/` 等），误 add 即污染。
+2. **禁 `--no-verify`**。本地 hooks（`bin/install-hooks.sh` → `.claude/.githooks/`）是 LOCAL GUARDRAILS 不是 enforcement，真执行在 CI——但绕过本地门仍是违规。
+3. merge 只用 `gh pr merge N --squash --delete-branch`；author 不自 approve、不自合。
+4. **主 checkout 不可碰**：改动从 `origin/main` 起 sibling worktree（多会话并发是常态）。
+5. forbidden-name lint 扫**整个 staged blob** 而非 diff：改任何源文件可能翻出预存声明阻断——不绕过，最小重命名+披露。
+6. 涉密纪律：pre-commit 硬拦 Bearer token 与 `.env*`；fixture 需要凭证形状时 runtime materialize，不实体入库。
 
-**Usage:**
-1. **Manual loading**: Directly `Read .claude/packs/operations.md`
-2. **Auto loading**: Use Assembler to automatically concatenate based on task keywords
+## CI（48 workflow，按域切分）
 
-## Core Principles (Guardrails)
+- 契约门：`contracts-gate.yml`（连字符，真门：validate-contracts + loop C1-C8 + playbook IO）。⚠️ 另有同名旧门 `contracts_gate.yml`（下划线，Phase-1 `src/contracts/` 校验）——checks UI 显示名相同，勿混淆。
+- 其余按域：`learning-*`（每 phase 一个）、`sfc-ci`、`manifest-reality-clock-tests`、`kernel-guard`（本文件）、`i18n-gate`、`security-gate`、`memory-gate`、`layer-dependency-gate` 等。
 
-### Performance Boundaries
-- `CLAUDE.md` <= 10,000 chars (this file)
-- Each Pack <= 15,000 chars
-- Exceeding limits blocks commits (pre-commit hook)
+## 静止区（文件在、近两月基本无变动；按需进入，勿按旧文档假设运行态）
 
-### Separation of Concerns
-- **Kernel (this file)**: Startup routing, common commands, Pack index
-- **Packs**: Domain-specific detailed rules (operations, research, infrastructure, protocols)
-- **Skills**: Complete skill documentation (10-module standard)
-- **Systems**: Executable code systems (amazon_growth_os, notion_sync, etc.)
+`src/`（gateway/MCP/mission broker/world model runner）、`tools/notion-sync/`、`.claude/packs/` + `assembler.mjs`、Two-Speed 会话钩子（`.claude/scripts/pre_tool_check.mjs`/`stop_gate.mjs`，**未默认注册**，issue #145 未收口）。2026-05 以来的活跃面在 `_meta/` 治理层与 `.claude/scripts/learning/`，不在 `src/`。
 
-### Check Commands
+## 其他资产
 
-```bash
-# Run Guardrail check
-node .claude/scripts/guardrail.mjs
-
-# If failed, view specific oversized files and simplify
-```
-
-## Directory Structure Quick Reference
-
-```
-~/github/liye_os/
-├── CLAUDE.md              # This file (Kernel)
-├── .claude/               # Claude configuration and scripts
-│   ├── packs/             # On-demand detailed rules
-│   ├── scripts/           # Tool scripts (assembler, guardrail)
-│   ├── .compiled/         # Compiled output (not versioned)
-│   └── .githooks/         # Git hooks
-├── _meta/                 # Metadata and documentation
-│   ├── docs/              # Architecture documentation
-│   ├── contracts/         # Machine-executable constraints (NEW)
-│   ├── schemas/           # JSON schemas for validation
-│   └── templates/         # Template library
-├── tracks/                # Execution containers (domain-scoped)
-├── Skills/                # Skill library
-├── src/domain/            # Domain implementations
-├── tools/                 # Tool scripts
-├── Projects_Engine/       # Project management
-└── Artifacts_Vault/       # Artifact archive
-```
-
-## Contracts & Verdicts
-
-| Directory | Purpose | Consumer |
-|-----------|---------|----------|
-| `_meta/contracts/` | Governance constraints (machine-enforced) | CI / Gates / Validators |
-| `verdicts/` | Decision semantics (human-readable) | Auditing / Explanation |
-
-**Contracts** = "Can the system do this?" (治理约束)
-- Global templates in `_meta/contracts/`
-- Project instances in `tracks/<track_id>/`
-- Skills write instances, Builders read instances
-
-**Verdicts** = "What does the decision mean?" (判定语义)
-- Human-readable explanation of machine decisions
-- NOT consumed by CI or validators
-- Used for auditing, replay interpretation
-
-**Validation**:
-```bash
-python _meta/governance/validator.py
-```
-
-## Architecture Boundaries (Important)
-
-### LiYe CLI vs LiYe OS
-
-| Concept | Responsibility | Location |
-|---------|---------------|----------|
-| **LiYe CLI** | Command entry, route commands | `cli/` |
-| **LiYe OS** | Capability platform (knowledge + skills + engines) | All other directories |
-| **Context Compiler** | Smart context compilation | `.claude/scripts/assembler.mjs` (belongs to OS) |
-
-**Key Boundaries**:
-- CLI only parses commands and calls assembler.mjs
-- CLI does not compile context, execute Agents, or manage knowledge
-- assembler.mjs belongs to OS, not a CLI component
-
-### Runtime != CLI
-
-Note terminology distinction:
-- **Runtime** = OS execution engine layer (`src/runtime/`), contains AgentExecutor, MCP
-- **CLI** = Command line entry (`cli/`), only does routing
-- These are not the same thing
-
-## Quick Start
-
-### First Time Use
-
-```bash
-# 1. Install Notion sync dependencies
-cd tools/notion-sync
-npm install
-
-# 2. Configure environment variables
-cp .env.example .env
-# Edit .env, fill in NOTION_API_KEY and NOTION_DATABASE_ID
-
-# 3. Test connection
-node notion-test.js
-
-# 4. Run Guardrail to ensure compliance
-cd ~/github/liye_os
-node .claude/scripts/guardrail.mjs
-```
-
-### Typical Workflow
-
-```bash
-# 1. Before starting a new task, generate context
-node .claude/scripts/assembler.mjs --task "your task description"
-
-# 2. Claude reads the compiled context
-# Read .claude/.compiled/context.md
-
-# 3. Execute task...
-
-# 4. Check before committing
-node .claude/scripts/guardrail.mjs
-git add -A
-git commit -m "..."
-```
-
-## Important Reminders
-
-1. **Do not pollute Kernel**: Add new rules to corresponding Pack, do not write back to this file
-2. **Use Assembler**: Let the system auto-load needed Packs, avoid manual maintenance
-3. **Follow Guardrails**: Exceeding limits will be blocked by pre-commit hook
-4. **Externalize data files**: `.env`, data files, logs, etc. should not be versioned
-5. **Keep versioned**: All content in `.claude/` should be in Git (except `.compiled/`)
-
-## Reference Documentation
-
-- Architecture Constitution: `_meta/docs/ARCHITECTURE_CONSTITUTION.md`
-- File System Governance: `_meta/docs/FILE_SYSTEM_GOVERNANCE.md`
-- Evolution Roadmap: `_meta/EVOLUTION_ROADMAP_2025.md`
-- Notion Sync Documentation: `tools/notion-sync/README.md`
+- `websites/`：7 个 Astro 站源码（kuachu/zhangxiang 为 UGE Rung1 grounding 真实资产；部署走 Vercel）。
+- `verdicts/`：判定语义（人读，不进 CI）。Contracts=「系统能不能做」，Verdicts=「决定意味着什么」。
 
 ---
 
-## Execution Policy: Two-Speed (D) + Traces-First (F1)
-
-### Concepts (plain language)
-- **Session** = this chat's temporary cockpit (keep goal/phase/next actions aligned)
-- **Track** = long-lived project folder for audit, handoff, governance
-
-### Default Mode
-- Start in **Fast Path** unless an active Track is detected.
-- Fast Path writes facts to **traces/** only.
-- Only after upgrade to **Governed Path**, we curate traces into **memory_brief** (and ADR if needed).
-
-### 3-Strike Protocol (Stop-loss)
-- Count **consecutive** failures.
-- On the 3rd consecutive failure → enter **Recovery Mode** and auto-upgrade to **governed**.
-
-### Upgrade Triggers (Fast → Governed)
-- consecutive_errors >= 3 (3-strike)
-- multi-session continuation / PR / handoff / publication
-- new terminology / new constraints / decisions requiring ADR
-
-### Hook Setup (Project settings)
-> Do NOT commit your `.claude/settings.local.json`.
-Use Claude Code `/hooks` to register commands below (project scope).
-
-**Recommended hooks**
-- SessionStart → ensure memory_state + session plan (no Track)
-- UserPromptSubmit (fallback alignment) → pre_tool_check
-- PreToolUse → pre_tool_check (best-effort; may be flaky in some versions)
-- PostToolUse → pre_tool_check --post (to update counters / strike)
-- Stop → stop_gate (completion gate)
-
-**Commands**
-```bash
-node "$CLAUDE_PROJECT_DIR/.claude/scripts/pre_tool_check.mjs"
-node "$CLAUDE_PROJECT_DIR/.claude/scripts/pre_tool_check.mjs" --post
-node "$CLAUDE_PROJECT_DIR/.claude/scripts/stop_gate.mjs"
-```
-
-### Mode Defaults & Upgrade Rules
-- Default: **fast** (no blocking)
-- Upgrade to **governed** only when:
-  - `active_track` exists, OR
-  - `3-strike` consecutive failures >= 3, OR
-  - PR / publish / handoff signals detected (git push/commit, gh pr, wrangler/vercel/npm publish, 交接/发布)
-- Stop Gate blocks only in **governed**
-
----
-
-**Version**: 2.2
-**Last Updated**: 2026-01-13
-**Char Count**: ~6,500 / 10,000
-**i18n**: English SSOT | Chinese display: `i18n/display/zh-CN/CLAUDE.display.md`
+**Version**: 3.0（治理面路牌重写）
+**Last Updated**: 2026-07-09
+**前身**: v2.2（2026-01-13，描绘 src/ 运行时与 Notion/packs 工作流——该形态已归入静止区，历史见 git）
