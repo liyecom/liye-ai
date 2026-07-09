@@ -1,0 +1,49 @@
+name: Governance Evals Gate
+
+on:
+  pull_request:
+    paths:
+      - '_meta/evals/governance/**'
+      - '.github/workflows/governance-evals-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - '_meta/evals/governance/**'
+      - '.github/workflows/governance-evals-gate.yml'
+
+jobs:
+  evals-gate:
+    name: Validate Eval Tasks + Grader Selftest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install validator deps
+        run: npm install yaml ajv ajv-formats
+
+      - name: Validate eval task definitions (schema + semantics, fail-closed)
+        run: node _meta/evals/governance/scripts/validate-eval-tasks.mjs
+
+      - name: Grader selftest — pass_run must PASS
+        run: |
+          node _meta/evals/governance/scripts/grade-governance-eval.mjs \
+            _meta/evals/governance/fixtures/selftest_task.yaml \
+            _meta/evals/governance/fixtures/runs/pass_run
+      - name: Grader selftest — fail_run must FAIL (for the right reasons)
+        run: |
+          # Expect exit 1 AND verdict FAIL with >=4 failing checks (H1..H4).
+          set +e
+          OUT=$(node _meta/evals/governance/scripts/grade-governance-eval.mjs \
+            _meta/evals/governance/fixtures/selftest_task.yaml \
+            _meta/evals/governance/fixtures/runs/fail_run)
+          CODE=$?
+          set -e
+          echo "$OUT"
+          test "$CODE" -eq 1 || { echo "expected exit 1, got $CODE"; exit 1; }
+          echo "$OUT" | grep -q '"verdict": "FAIL"' || { echo "verdict is not FAIL"; exit 1; }
+          FAILS=$(echo "$OUT" | grep -c '"result": "FAIL"')
+          test "$FAILS" -ge 4 || { echo "expected >=4 failing checks, got $FAILS"; exit 1; }
