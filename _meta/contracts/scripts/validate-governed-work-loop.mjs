@@ -12,7 +12,8 @@
  *                 scope_roots and reject any false negative;
  *             (2) no_mutation is checked against allowed_actions via a deny-by-default
  *                 read-only allowlist;
- *             (3) next_action_card.final_card must be a member of the loop's OWN
+ *             (3) kill_switch.location must not live inside scope_roots;
+ *             (4) next_action_card.final_card must be a member of the loop's OWN
  *                 declared enum — a run cannot end on a card outside its vocabulary
  *                 (the schema can pin final_card to the global six-word vocabulary,
  *                 but not to the per-loop declared subset).
@@ -93,6 +94,24 @@ function isMutatingAction(action) {
   return !READ_ONLY_ACTIONS.has(action);
 }
 
+function normalizeRepoPath(p) {
+  if (typeof p !== 'string') return '';
+  return p.replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/\/+$/, '');
+}
+
+function locationInsideScope(location, roots) {
+  const loc = normalizeRepoPath(location);
+  if (!loc || !Array.isArray(roots)) return null;
+  for (const root of roots) {
+    const normalizedRoot = normalizeRepoPath(root);
+    if (!normalizedRoot || normalizedRoot.includes('<') || normalizedRoot.includes('*')) continue;
+    if (normalizedRoot === '.' || loc === normalizedRoot || loc.startsWith(`${normalizedRoot}/`)) {
+      return normalizedRoot;
+    }
+  }
+  return null;
+}
+
 function semanticErrors(doc) {
   const errs = [];
   const roots = doc?.scope?.scope_roots;
@@ -111,7 +130,17 @@ function semanticErrors(doc) {
       errs.push(`/scope/no_mutation declared=true but allowed_action(s) [${offending.join(', ')}] are not in the read-only allowlist {${allow}} — read-only is deny-by-default; any non-allowlisted action counts as a mutation (bypasses C2/C3). Declare no_mutation:false, or add the action to READ_ONLY_ACTIONS (a governed change)`);
     }
   }
-  // (3) final_card ∈ the loop's OWN declared enum (C13 companion). Layer A pins
+  // (3) kill_switch must be outside the loop's own writable scope. Schema can require
+  // the field and fail-closed polarity, but only Layer B can compare location with
+  // scope_roots. env_gate names are process environment keys, not repo paths.
+  const killSwitch = doc?.kill_switch;
+  if (killSwitch?.mechanism !== 'env_gate') {
+    const owningRoot = locationInsideScope(killSwitch?.location, roots);
+    if (owningRoot) {
+      errs.push(`/kill_switch/location "${killSwitch.location}" is inside scope_root "${owningRoot}" — a loop that can edit its own halt lever has no external kill switch`);
+    }
+  }
+  // (4) final_card ∈ the loop's OWN declared enum (C13 companion). Layer A pins
   // final_card to the global six-word vocabulary; only Layer B can compare two
   // instance-level arrays. A run that ends on a card its contract never declared
   // is reporting an outcome outside its own vocabulary.

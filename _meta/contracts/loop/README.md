@@ -82,6 +82,10 @@ drilled kill switch, post-hoc evidence package — the leash ships before the do
   action not yet listed is either added to the allowlist (a deliberate, reviewed schema
   change) or the loop declares `no_mutation:false`. A richer structured-action model
   (`{id, mutation_class}`) that lets the class itself drive C2/C3 is a deferred follow-up.
+- (v2) `kill_switch.location` is checked against `scope_roots`: a `file_sentinel` or
+  `registry_flag` that lives inside the loop's own scope is **rejected**. A loop that
+  can edit its own halt lever has no external kill switch. `env_gate` locations are
+  process environment keys, not repo paths, so they are not path-compared here.
 - (v2) `next_action_card.final_card` must be a member of the loop's **own declared
   enum**, not just the global six-word vocabulary (which Layer A pins). A run cannot
   end on a card its contract never declared. Only Layer B can compare two
