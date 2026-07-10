@@ -75,6 +75,6 @@ launchd `com.liye.manifest-reality-clock`：每日本地 09:05 跑 `_meta/contra
 
 ---
 
-**Version**: 3.1（C2 SSOT/navigation truth-sync）
+**Version**: 3.2（C4 execution contract v0）
 **Last Updated**: 2026-07-10
 **前身**: v2.2（2026-01-13，描绘 src/ 运行时与 Notion/packs 工作流——该形态已归入静止区，历史见 git）
