@@ -1,0 +1,5 @@
+fixture_kind: governed_execution_mutation
+base_fixture: valid_resumed_dry_run.yaml
+mutations:
+  - operation: remove
+    json_pointer: /resume/checkpoint

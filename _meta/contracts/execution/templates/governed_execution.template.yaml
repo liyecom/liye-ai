@@ -1,0 +1,14 @@
+# Governed Execution — template layer only.
+# This is a contract-language profile, not an engine binding or a runner claim.
+contract_kind: governed_execution
+schema_version: "0.1.0"
+contract_status: schema_validated_only
+instance_scope: template
+template_ref: _meta/contracts/execution/templates/governed_execution.template.yaml
+
+semantic_profile:
+  approval: envelope_or_explicit_decision
+  resume: checkpoint_authoritative
+  receipt: immutable_hash_anchored_with_readback
+  verdict: receipt_bound
+  reversible_execution: rollback_ref_when_available

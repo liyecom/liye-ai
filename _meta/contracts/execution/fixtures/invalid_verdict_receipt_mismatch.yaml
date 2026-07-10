@@ -1,0 +1,6 @@
+fixture_kind: governed_execution_mutation
+base_fixture: valid_live_pre_authorized.yaml
+mutations:
+  - operation: replace
+    json_pointer: /verdict/receipt_id
+    value: receipt-wrong

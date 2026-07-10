@@ -1,0 +1,65 @@
+contract_kind: governed_execution
+schema_version: "0.1.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+template_ref: _meta/contracts/execution/templates/governed_execution.template.yaml
+semantic_profile:
+  approval: envelope_or_explicit_decision
+  resume: checkpoint_authoritative
+  receipt: immutable_hash_anchored_with_readback
+  verdict: receipt_bound
+  reversible_execution: rollback_ref_when_available
+execution_identity:
+  execution_id: exec-example-003
+  task_id: task-example-003
+  run_id: run-example-003
+  changeset_id: changeset-example-003
+  execution_mode: dry_run
+authority:
+  kind: not_required
+resume:
+  mode: from_checkpoint
+  checkpoint:
+    checkpoint_id: checkpoint-example-003
+    phase: dry_run
+    snapshot_version: "1"
+    state_snapshot_ref: evidence/checkpoints/checkpoint-example-003.json
+    state_snapshot_sha256: "2222222222222222222222222222222222222222222222222222222222222222"
+    persisted_at: "2026-07-10T03:00:00Z"
+    checkpoint_status: resumable
+receipt:
+  receipt_id: receipt-example-003
+  execution_id: exec-example-003
+  task_id: task-example-003
+  run_id: run-example-003
+  changeset_id: changeset-example-003
+  execution_mode: dry_run
+  emitted_at: "2026-07-10T03:02:00Z"
+  receipt_sha256: "3333333333333333333333333333333333333333333333333333333333333333"
+  entries:
+    - action_id: action-example-004
+      action_kind: update_example
+      status: DRY_RUN_SIMULATED
+      idempotency_result: EXECUTE
+      readback_verified: null
+      rollback:
+        capability: unavailable
+  readback_verified: null
+  summary:
+    total: 1
+    succeeded: 0
+    partial_success: 0
+    failed: 0
+    skipped: 0
+    halted: 0
+    simulated: 1
+verdict:
+  verdict_id: verdict-example-003
+  execution_id: exec-example-003
+  task_id: task-example-003
+  run_id: run-example-003
+  changeset_id: changeset-example-003
+  receipt_id: receipt-example-003
+  decision: HOLD
+  hold_reason: AWAITING_OBSERVATION
+  issued_at: "2026-07-10T03:03:00Z"

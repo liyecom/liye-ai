@@ -1,0 +1,9 @@
+fixture_kind: governed_execution_mutation
+base_fixture: valid_live_pre_authorized.yaml
+mutations:
+  - operation: replace
+    json_pointer: /receipt/entries/0/readback_verified
+    value: null
+  - operation: replace
+    json_pointer: /receipt/readback_verified
+    value: null
