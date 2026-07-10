@@ -1,4 +1,4 @@
-# LiYe Systems Architecture v1.0
+# LiYe Systems Architecture v1.1
 
 > 整个系统生态的单一真相源（SSOT）。
 > 所有 codebase 的角色、层级、依赖关系以此为准。
@@ -14,34 +14,36 @@
 ## 四层架构
 
 ### Layer 0: LiYe OS — 制度底座
-定义治理原语、引擎协议、世界模型(T1/T2/T3)、审计合约、MCP 工具协议。
-不做具体业务逻辑。
+LiYe OS 的长期身份是 governance / contract compiler + 窄控制面工具：定义 doctrine、schema、validator、eval、evidence/reality contract、引擎协议，以及有真实 consumer 的语义合约。
+工具必须是“被调用 + 有界工作 + 退出”；不预建常驻、中介通信并持有状态的通用 agent runtime。世界模型 T1/T2/T3 等语义只有在真实引擎 consumer 被证实时才收割入合约，实现下沉到各引擎。
 
 ### Layer 1: Loamwise — 编排中间层
-将 OS 抽象治理落成可执行管控。
-核心：CARGE 管线、Task Ledger、PolicyEngine、GuardChain、KillSwitch。
+当前 L1 席位仍由 Loamwise 占据，但其执行范围已收窄：不是 AGE 默认执行路径，只接受自然出现的跨域/跨账户等 in-scope 案例。
+2026-08-23 复评窗结束前不得提前撤销 L1；若届时仍零自然调用，则在同一变更中撤销 mandatory L1、改为“L1 可选、按需出现”，并完成 D2 定义改写和 Loamwise 收割/封存。未来 runner 不自动继承 L1 席位。
 
 ### Layer 2: Domain Engines — 专业执行器
-在特定领域产出 domain truth。遵守 engine_manifest 协议，通过 loamwise 调度（目标态）。
+在特定领域产出 domain truth。遵守 engine_manifest 与治理合约，各自实现执行面；当前 D2 正式定义仍引用 Loamwise，须等 execution contract 落地后的独立变更才能改写。
 
 ### Layer 3: Product Lines — 业务产品线
-面向用户的产品系统。独立于 Layer 0-2 演进。
+面向用户的产品系统。可复用共享治理语言与经过验证的代码，但不共享 privileged execution cell；客户凭证、状态、写信封、刹车和审计链默认隔离。
 
 ## Codebase Registry
 
 | Codebase | Layer | Role | Upstream | Downstream | Maturity | CLAUDE.md |
 |----------|-------|------|----------|------------|----------|-----------|
-| liye_os | 0 | 制度底座 | — | loamwise | — | Y |
-| loamwise | 1 | 编排中间层 | liye_os (contracts) | domain engines | — | Y |
-| amazon-growth-engine | 2 | 亚马逊广告引擎 | loamwise (目标态) | — | D0 | Y |
-| chaming | 2 | 域名投资管理 | loamwise (目标态) | — | D0 | — |
-| user-growth-engine | 2 | 用户增长引擎（掌象AI 获客） | loamwise (目标态) | — | D0 (Proposed) | — |
-| silkbay | 3 | Medusa v2 后端 Hub | — | storefront-kit, sf-* | — | Y |
-| storefronts | 3 | 品牌店铺前端集合 | silkbay, storefront-kit | — | — | Y |
-| kits | 3 | 共享包 (attribution-kit) | — | storefronts, growth-hub | — | — |
-| themes | 3 | 主题资产包 | liye_os builder | storefronts | — | — |
-| growth-hub | 3 | Astro 内容站 | — | Link Router → sf-* | — | — |
-| sites | — | 独立项目 | — | — | — | — |
+| liye_os | 0 | governance / contract compiler + 窄工具 | — | contract consumers | — | Y |
+| loamwise | 1 | 收窄的条件式编排层；非 AGE 默认路径；2026-08-23 复评 | liye_os (contracts) | in-scope domain engines | — | Y |
+| amazon-growth-engine | 2 | 亚马逊广告引擎 | liye_os (contracts) | — | D0 formal label；promotion pending | Y |
+| chaming | 2 | 域名投资管理 | liye_os (contracts) | — | D0 | Y |
+| user-growth-engine | 2 | 用户增长引擎 | liye_os (contracts) | — | D0 formal label；promotion pending | — |
+| silkbay | 3 | Medusa v2 后端 Hub；处置定级 pending | — | storefront-kit, sf-*（declared） | grade pending | Y |
+| storefronts | 3 | 品牌店铺前端集合；处置定级 pending | silkbay, storefront-kit（declared） | — | grade pending | Y |
+| kits | 3 | 共享包；处置定级 pending | — | 已证消费者 + 声明边 | grade pending | — |
+| themes | 3 | 主题资产包；处置定级 pending | liye_os builder（declared） | 已证站点消费者 + 声明边 | grade pending | — |
+| growth-hub | 3 | 内容站资产；处置定级 pending | — | Link Router → sf-*（declared） | grade pending | — |
+| sites | — | 独立站点项目；不得驻留 L0 checkout | — | — | per-site | — |
+
+主轴 B 资产的 standing strategic privilege 已撤销，但这不等于删除授权。逐仓部署、续费、包/consumer、外部用户与可恢复性仍须按 inventory 逐项定级；当前全部 disposition / grade 为 `PENDING`。证据与边界见 `_meta/portfolio/decommission/main-axis-b-inventory-2026-07-10.md`。
 
 ## 依赖方向
 
@@ -53,17 +55,19 @@ liye_os → domain engines         engine_manifest 协议约束
 
 ### Runtime（运行时/调度）
 ```
-loamwise → domain engines        dispatch / policy / evidence（目标态）
-growth-hub → Link Router → sf-*  内容 → 路由 → 成交
+loamwise → domain engines        当前 D2 目标态；不是 AGE 当前默认执行路径
+growth-hub → Link Router → sf-*  DECLARED；live caller / route 未由 C1 证实
 ```
 
 ### Package / API
 ```
 sf-* → storefront-kit            npm: @loudmirror/storefront-kit
-storefront-kit → silkbay         HTTP: Medusa v2 Store API
-attribution-kit → storefronts    npm: @loudmirror/attribution-kit
-attribution-kit → growth-hub     npm: @loudmirror/attribution-kit
+storefront-kit → silkbay         DECLARED HTTP: Medusa v2 Store API；live call 未证实
+attribution-kit → storefronts    CONFIRMED repo consumers
+attribution-kit → growth-hub     DECLARED；growth-hub remote main 未见 package/runtime
 ```
+
+依赖图使用证据词汇：`CONFIRMED` 是当前 Git/runtime 证据；`DECLARED` 只表示文档或 manifest 声明，不能替代 live 调用。C1 未建立的依赖边不得在 C2 中臆造修复。
 
 ### 禁止方向
 ```
@@ -93,11 +97,13 @@ attribution-kit → growth-hub     npm: @loudmirror/attribution-kit
 
 ### 当前状态
 
-| Engine | 成熟度 | Write Capability | 备注 |
-|--------|--------|-----------------|------|
-| AGE | D0 | limited (internal) | 有独立治理框架，可写 bids/keywords/budget |
-| Chaming | D0 | none | 只读分析 + 人工执行 |
-| UGE | D0 (Proposed) | none | 内容/渠道增长；执行在独立 Mac mini Hands；两门 closed；北极星=attributed_qualified_signup（见 ADR-User-Growth-Engine） |
+| Engine | 正式成熟度标签 | Manifest write（declared / effective） | 已观察执行边界 |
+|--------|----------------|---------------------------------------|----------------|
+| AGE | D0；D1 checklist 已有证据，promotion rule pending | `none / none`（v2） | 引擎内部已有受监督写入与 receipt/readback；不等于 OS manifest write，per-client cell readiness 尚未认证 |
+| Chaming | D0 | manifest 未发现 | 只读分析 + 人工执行；持仓维护/续费/state backup 属 continuity `(c) irreversible-loss`，增长投资为 Tier 3 有界赌注、可归零 |
+| UGE | D0；D1 checklist 已有证据，promotion rule pending | `none / none`（v2） | `fact_emit` capability 与学习源 registry 已启用，runtime env 仍是第二门；无外部平台写，真实站点 source wiring 尚未认证 |
+
+`Write Capability` 的 manifest 字段只描述 OS/engine contract 所声明的外部写能力，不能覆盖引擎内部执行事实；“checklist 已满足”也不自动改变正式 D0 标签。AGE/UGE 的 promotion gate 在成文前保持 pending，禁止静默升降级。
 
 ### Engine 接入清单
 
@@ -118,27 +124,36 @@ attribution-kit → growth-hub     npm: @loudmirror/attribution-kit
 - [ ] Replay 验证通过
 - [ ] Policy compliance 全覆盖
 
-## 两条主轴
+## Portfolio 方向与投资准入
 
-**主轴 A — LiYe OS 生态（能力平台）**
-liye_os → loamwise → domain engines
-North Star: 新增 domain 的接入成本持续下降
+**三年主形态：A（深自动化精品）。** 代运营是主业；已验证付费需求与客户责任优先，其次是主业 flywheel、有界资产型赌注，最后才是通用平台完整性。AGE / DTC 交付引擎自动化属于 Tier 1 主业成长投资，不是平台美学。
 
-**主轴 B — Commerce & Growth（业务产品线）**
-silkbay + storefronts + growth-hub + kits + themes
-North Star: 站点复制效率 + attribution 完整性
+LiYe OS 默认是 for-self infrastructure。投资只接受三种拉力：
 
-两条主轴独立演进。LiYe OS 是方法论底座，Commerce 是业务场景之一。
-不要把产品线硬塞进 OS 体系当 domain，也不要让 OS 层长出业务逻辑。
+1. `demand-pull`：活跃价值流中反复出现的真实风险或 incurred manual，并有具名 consumer + SLA；
+2. `risk-pull`：具名 hazard + 可信损失剧本；
+3. 有界研究：doctrine / ADR / SPEC / fixture / 一次性探针；偶发 S 级，禁止留下 resident code 或前向兼容承诺。
+
+“新 domain 接入成本”只在真实 onboarding 发生时作为事件指标，不授权通用性预建。任何 resident runtime 必须重新通过 demand-pull 或 risk-pull 立项。
+
+- **B（shared chassis）预注册触发器：** AGE 与 DTC 出现至少两个同形、反复发生的 incurred manual 或 hazard，且两侧各有真实 consumer。触发前只投资 contract spine。
+- **Portfolio view 预注册触发器：** operator 跨 cell 手工对账反复发生，且可声明 consumer + SLA；触发前不建。
+- **C（多 operator 服务网）不是目标形态：** 只吸收 continuity、dead-man、service playbook 与授权信封件。自动化是主扩容路径；第二 operator 先承担连续性、adversarial sampling 与峰值容量。
+
+原主轴 B（silkbay / storefronts / growth-hub / kits / themes）已失去 standing strategic privilege；存量资产按 inventory 先枚举、后定级，禁止从“今天不会再建”推导“应删除”。UGE 的旧业务席位同时作废，须在 Pilot-1 证据窗口（不早于 2026-08-07 / 2026-08-17）按真实商业关系重新登记。
 
 ## Known Gaps
 
 | Gap | 现状 | 收口策略 |
 |-----|------|---------|
-| AGE 自治 | D0, 独立治理 | Contract-first: 先注册 manifest 到 D1，不强迁移 |
-| Chaming 孤岛 | D0 | 先跑通业务，后注册 |
-| OS→Loamwise 链路 | 概念对齐，无代码连接 | 协议先行，合约驱动 |
-| SilkBay 整合 | W0-W4 计划已定 | 按 W0→W4 顺序执行 |
+| AGE / UGE 成熟度标签 | v2 manifest 与 D1 checklist 证据存在，正式标签仍为 D0 | 单独成文 promotion gate；C2 不自动升 D1 |
+| Loamwise L1 | 已收窄、非 AGE 默认路径，2026-08-23 复评未到期 | 不提前收窗；复评与 execution contract、D2 改写、收割/封存绑定 |
+| 主轴 B 存量 | standing privilege 已撤销；逐仓 grade/disposition 仍 pending | 消费 C1 inventory，逐 root 证据包后由 operator 定级；禁自动删除 |
+| L0 websites | Kuachu 已迁出；其余 business sites / example 仍待迁；UGE 指针有漂移 | 按 C1.5 逐站迁移；当前 Live Site Gate fail-open，不得称机器 enforcement |
+| AGE client cells | 当前共享 runtime 不构成已认证隔离 | 写能力开启前完成 per-client credential + write partition gate 的机器 enforcement 与实弹认证 |
+| 世界模型语义 consumer | AGE consumer 目前只是待证假设 | 以真实 import/call chain、runtime registration、调用记录或 receipt 审计，不作保留前提 |
+
+Websites 当前拓扑、grounding 与逐站 disposition 见 `_meta/portfolio/decommission/websites-disposition-inventory-2026-07-10.md`。该 inventory 只授权事实同步，不授权迁移、部署或 gate 修复。
 
 ## 架构原则（BGHS Separation）
 
@@ -210,7 +225,9 @@ artifact_name, source_kind (concept|fork|paper|vendor_doc), source_uri
 ## 进化路线（能力吸收）
 
 从 OpenClaw / Hermes Agent / Managed Agents 吸收 patterns 的路线图。
-**原则：先防火再繁殖，先 ADR 再代码，Loamwise 只吸收 patterns 不吸收产品人格。**
+**状态说明（2026-07-10）：以下为历史候选队列，不是 standing implementation authorization。** Doctrine / ADR / SPEC 可作为有界研究；任何常驻代码、注册表、部分 runtime 或前向兼容承诺，必须重新满足 demand-pull / risk-pull。Loamwise 相关实现还受 2026-08-23 复评窗约束。
+
+**原则：先防火再繁殖，先 ADR 再代码；语义入宪、实现下沉、中央常驻体退场。**
 
 ### P1 — 8 份 ADR（Doctrine-first 顺序）
 
@@ -238,7 +255,7 @@ artifact_name, source_kind (concept|fork|paper|vendor_doc), source_uri
 | 不做 | — | Smart model routing / auto skill repair / Honcho 用户建模 / vault 基础设施 / 统一 session 存储 / monorepo | — | 不进路线图 |
 
 ### Loamwise 吸收边界
-Loamwise 只吸收 Hermes 的 runtime pattern，不吸收它的产品人格：
+如真实 in-scope 案例触发 Loamwise 继续演进，它只吸收经立项的 runtime pattern，不吸收产品人格：
 - 不引入重用户建模（Honcho）
 - 不引入 auto skill repair
 - 不引入 smart routing
