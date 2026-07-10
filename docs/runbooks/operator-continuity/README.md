@@ -24,7 +24,7 @@ Missing the target window does not create permission to run late. It leaves C8 o
 This runbook defines one ceremony with two timed passes over the same sealed fixture packet:
 
 1. **Pass A — owner no-AI:** the sovereignty-root operator locates, explains, operates, and recovers the four load-bearing boundaries without model assistance.
-2. **Pass B — restricted-operator hands-off:** a second human operator repeats the bounded recovery path without owner guidance, delegation, or scope expansion. The no-AI rule remains active, so the same ceremony also tests whether the artifacts are independently legible.
+2. **Pass B — restricted-operator hands-off:** a second human operator repeats the bounded recovery path without owner guidance, delegation, or scope expansion. The no-AI rule remains active, but Pass B does not claim independent artifact legibility when that actor observed Pass A; it still tests bounded hands-off continuity without owner help.
 
 The four load-bearing boundaries are deliberately small:
 
@@ -270,6 +270,8 @@ A joint `PASS` certifies only:
 - Q10: the four declared load-bearing boundaries were legible and recoverable without AI in this pinned fixture/commit;
 - Q7: this restricted operator completed this bounded hands-off fixture exercise without owner help.
 
+Q10 independent legibility is carried by Pass A. When `pass_b_observed_pass_a: true`, Pass B contributes only the bounded Q7 hands-off claim; reproducing a procedure after watching Pass A is not independent-legibility evidence. When it is `false`, Pass B may be recorded as additional supporting evidence, but it does not expand the joint certification scope.
+
 It does **not** certify:
 
 - 30 continuous days of operation;
@@ -314,6 +316,7 @@ actors:
   pass_b_actor: "<role>"
   pass_a_observer: "<role>"
   pass_b_observer: "<role>"
+  pass_b_observed_pass_a: false
   pass_a_no_ai_attested: false
   pass_b_no_ai_attested: false
   pass_b_no_owner_assistance_attested: false
