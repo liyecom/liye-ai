@@ -3,8 +3,8 @@
 - **Status:** C1 evidence inventory — disposition and grade pending
 - **Snapshot:** 2026-07-10 (Asia/Shanghai)
 - **Decision anchor:** LiYe Systems verdict v1.1, Q3 / S1 / C1
-- **Decision artifact:** `~/github/outputs/liye_systems_verdict_2026-07-10.md`
-  at SHA-256 `4480f0b85222386ac750047dd38b69c94d02ff8da65d09582e054be83bf1e823`
+- **Decision artifact:** LiYe Systems architecture verdict v1.1 (2026-07-10),
+  SHA-256 `4480f0b85222386ac750047dd38b69c94d02ff8da65d09582e054be83bf1e823` (operator-private)
 - **Inventory branch base:** `liye_os origin/main@d86789f653c8`
 - **Consumer:** C2 SSOT truth-sync decision packet and later per-asset disposition PRs
 
