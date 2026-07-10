@@ -14,7 +14,7 @@
 | Envelope ID | `AGE-OPS-ICONEXPERT-2026Q3` |
 | Actor | iconexpert |
 | Effective from | 2026-07-08 |
-| Valid through | **2026-10-06 23:59 Asia/Shanghai**（90 天；不自动续期） |
+| Valid through | **2026-10-06T15:59:00Z**（90 天；UTC；不自动续期） |
 | Base scope | canonical worktree preflight、docs/PR、read-only report、fixture/synthetic dry-run、rehearsal、Operator Workbench、review/ack、已授权动作的 recovery prep |
 | Standing mutation authority | **None** |
 | Revocation authority | owner 可随时 freeze/revoke；到期后授权层面为零 privileged action |
