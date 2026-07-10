@@ -1,0 +1,6 @@
+fixture_kind: governed_execution_mutation
+base_fixture: valid_live_explicit_approval.yaml
+mutations:
+  - operation: replace
+    json_pointer: /authority/approval_decision/request_id
+    value: approval-wrong

@@ -62,6 +62,13 @@ jobs:
           # Exit 1 on any expectation miss (fail-closed).
           node _meta/contracts/scripts/validate-governed-work-loop.mjs
 
+      - name: Run Governed Execution Contract Validator (v0)
+        run: |
+          # Layer A (ajv structure/conditions) + Layer B (identity, receipt,
+          # readback, and verdict recomputation). Negative fixtures bind an
+          # intended layer + marker, so unrelated rejection is not a green test.
+          node _meta/contracts/scripts/validate-governed-execution.mjs
+
       - name: Check SSOT (Single Source of Truth)
         run: |
           # Delegate to validator's own checkSSOT() — accepts legacy learned_policy.schema

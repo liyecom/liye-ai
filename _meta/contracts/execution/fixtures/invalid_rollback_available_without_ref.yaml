@@ -1,0 +1,5 @@
+fixture_kind: governed_execution_mutation
+base_fixture: valid_live_explicit_approval.yaml
+mutations:
+  - operation: remove
+    json_pointer: /receipt/entries/0/rollback/rollback_ref

@@ -1,0 +1,405 @@
+# Governed Execution Contract v0.1.0
+# SSOT: _meta/contracts/execution/governed_execution_v0.schema.yaml
+#
+# This contract harvests only execution semantics already proven in Loamwise:
+# approval, checkpoint-authoritative resume, receipt/readback, receipt-bound verdict,
+# and rollback references for reversible actions. It defines no runner, queue,
+# scheduler, state broker, or cross-domain orchestration protocol.
+#
+# contract_status is deliberately locked to schema_validated_only. A conforming YAML
+# document proves only that the contract package and its semantic validator accept the
+# document; it does not prove that an execution engine is bound to this contract.
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/execution/governed_execution.v0"
+title: "Governed Execution Contract v0"
+description: "Schema/template/per-run language for governed execution evidence; no runner implied."
+version: "0.1.0"
+type: object
+additionalProperties: false
+required:
+  - contract_kind
+  - schema_version
+  - contract_status
+  - instance_scope
+  - semantic_profile
+properties:
+  contract_kind:
+    const: governed_execution
+  schema_version:
+    const: "0.1.0"
+  contract_status:
+    const: schema_validated_only
+  instance_scope:
+    enum: [template, per_run]
+  template_ref:
+    type: string
+    minLength: 1
+  semantic_profile:
+    type: object
+    additionalProperties: false
+    required: [approval, resume, receipt, verdict, reversible_execution]
+    properties:
+      approval:
+        const: envelope_or_explicit_decision
+      resume:
+        const: checkpoint_authoritative
+      receipt:
+        const: immutable_hash_anchored_with_readback
+      verdict:
+        const: receipt_bound
+      reversible_execution:
+        const: rollback_ref_when_available
+  execution_identity:
+    $ref: "#/definitions/execution_identity"
+  authority:
+    $ref: "#/definitions/authority"
+  resume:
+    $ref: "#/definitions/resume"
+  live_safety:
+    $ref: "#/definitions/live_safety"
+  receipt:
+    $ref: "#/definitions/receipt"
+  verdict:
+    $ref: "#/definitions/verdict"
+
+allOf:
+  - if:
+      properties:
+        instance_scope: { const: template }
+      required: [instance_scope]
+    then:
+      required: [template_ref]
+      not:
+        anyOf:
+          - required: [execution_identity]
+          - required: [authority]
+          - required: [resume]
+          - required: [live_safety]
+          - required: [receipt]
+          - required: [verdict]
+  - if:
+      properties:
+        instance_scope: { const: per_run }
+      required: [instance_scope]
+    then:
+      required: [template_ref, execution_identity, authority, resume, receipt, verdict]
+  - if:
+      properties:
+        execution_identity:
+          properties:
+            execution_mode: { const: live }
+          required: [execution_mode]
+      required: [execution_identity]
+    then:
+      required: [live_safety]
+      properties:
+        authority:
+          properties:
+            kind:
+              enum: [pre_authorized, explicit_decision]
+  - if:
+      properties:
+        authority:
+          properties:
+            kind: { const: not_required }
+          required: [kind]
+      required: [authority]
+    then:
+      properties:
+        execution_identity:
+          properties:
+            execution_mode: { const: dry_run }
+        authority:
+          not:
+            anyOf:
+              - required: [envelope_ref]
+              - required: [authorization_ref]
+              - required: [authorization_sha256]
+              - required: [approval_request]
+              - required: [approval_decision]
+  - if:
+      properties:
+        authority:
+          properties:
+            kind: { const: pre_authorized }
+          required: [kind]
+      required: [authority]
+    then:
+      properties:
+        authority:
+          required: [envelope_ref, authorization_ref, authorization_sha256]
+          not:
+            anyOf:
+              - required: [approval_request]
+              - required: [approval_decision]
+  - if:
+      properties:
+        authority:
+          properties:
+            kind: { const: explicit_decision }
+          required: [kind]
+      required: [authority]
+    then:
+      properties:
+        authority:
+          required: [envelope_ref, approval_request, approval_decision]
+          not:
+            anyOf:
+              - required: [authorization_ref]
+              - required: [authorization_sha256]
+  - if:
+      properties:
+        resume:
+          properties:
+            mode: { const: fresh }
+          required: [mode]
+      required: [resume]
+    then:
+      properties:
+        resume:
+          not:
+            required: [checkpoint]
+  - if:
+      properties:
+        resume:
+          properties:
+            mode: { const: from_checkpoint }
+          required: [mode]
+      required: [resume]
+    then:
+      properties:
+        resume:
+          required: [checkpoint]
+
+definitions:
+  sha256:
+    type: string
+    pattern: "^[a-f0-9]{64}$"
+  execution_identity:
+    type: object
+    additionalProperties: false
+    required: [execution_id, task_id, run_id, changeset_id, execution_mode]
+    properties:
+      execution_id: { type: string, minLength: 1 }
+      task_id: { type: string, minLength: 1 }
+      run_id: { type: string, minLength: 1 }
+      changeset_id: { type: string, minLength: 1 }
+      execution_mode:
+        enum: [dry_run, live]
+  authority:
+    type: object
+    additionalProperties: false
+    required: [kind]
+    properties:
+      kind:
+        enum: [not_required, pre_authorized, explicit_decision]
+      envelope_ref:
+        type: string
+        minLength: 1
+      authorization_ref:
+        type: string
+        minLength: 1
+      authorization_sha256:
+        $ref: "#/definitions/sha256"
+      approval_request:
+        type: object
+        additionalProperties: false
+        required: [request_id, artifact_ref, sha256]
+        properties:
+          request_id: { type: string, minLength: 1 }
+          artifact_ref: { type: string, minLength: 1 }
+          sha256:
+            $ref: "#/definitions/sha256"
+      approval_decision:
+        type: object
+        additionalProperties: false
+        required: [request_id, decision, decided_at, artifact_ref, sha256]
+        properties:
+          request_id: { type: string, minLength: 1 }
+          decision: { const: APPROVED }
+          decided_at: { type: string, format: date-time }
+          artifact_ref: { type: string, minLength: 1 }
+          sha256:
+            $ref: "#/definitions/sha256"
+  resume:
+    type: object
+    additionalProperties: false
+    required: [mode]
+    properties:
+      mode:
+        enum: [fresh, from_checkpoint]
+      checkpoint:
+        type: object
+        additionalProperties: false
+        required:
+          - checkpoint_id
+          - phase
+          - snapshot_version
+          - state_snapshot_ref
+          - state_snapshot_sha256
+          - persisted_at
+          - checkpoint_status
+        properties:
+          checkpoint_id: { type: string, minLength: 1 }
+          phase:
+            enum: [gate_check, approval_wait, dry_run, live_pending, measuring]
+          snapshot_version: { type: string, minLength: 1 }
+          state_snapshot_ref: { type: string, minLength: 1 }
+          state_snapshot_sha256:
+            $ref: "#/definitions/sha256"
+          persisted_at: { type: string, format: date-time }
+          checkpoint_status:
+            const: resumable
+  live_safety:
+    type: object
+    additionalProperties: false
+    required: [brake, readback]
+    properties:
+      brake:
+        type: object
+        additionalProperties: false
+        required: [placement, policy, mechanism_ref, drill_evidence_ref, drill_evidence_sha256]
+        properties:
+          placement:
+            const: called_party
+          policy:
+            const: enable_required
+          mechanism_ref: { type: string, minLength: 1 }
+          drill_evidence_ref: { type: string, minLength: 1 }
+          drill_evidence_sha256:
+            $ref: "#/definitions/sha256"
+      readback:
+        type: object
+        additionalProperties: false
+        required: [required]
+        properties:
+          required:
+            const: true
+  receipt:
+    type: object
+    additionalProperties: false
+    required:
+      - receipt_id
+      - execution_id
+      - task_id
+      - run_id
+      - changeset_id
+      - execution_mode
+      - emitted_at
+      - receipt_sha256
+      - entries
+      - readback_verified
+      - summary
+    properties:
+      receipt_id: { type: string, minLength: 1 }
+      execution_id: { type: string, minLength: 1 }
+      task_id: { type: string, minLength: 1 }
+      run_id: { type: string, minLength: 1 }
+      changeset_id: { type: string, minLength: 1 }
+      execution_mode:
+        enum: [dry_run, live]
+      emitted_at: { type: string, format: date-time }
+      receipt_sha256:
+        $ref: "#/definitions/sha256"
+      entries:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/definitions/receipt_entry"
+      readback_verified:
+        type: [boolean, "null"]
+      summary:
+        $ref: "#/definitions/receipt_summary"
+  receipt_entry:
+    type: object
+    additionalProperties: false
+    required:
+      - action_id
+      - action_kind
+      - status
+      - idempotency_result
+      - readback_verified
+      - rollback
+    properties:
+      action_id: { type: string, minLength: 1 }
+      action_kind: { type: string, minLength: 1 }
+      status:
+        enum: [SUCCESS, PARTIAL_SUCCESS, FAILED, SKIPPED, HALTED, DRY_RUN_SIMULATED]
+      idempotency_result:
+        enum: [EXECUTE, SKIP, UNKNOWN_STATE]
+      readback_verified:
+        type: [boolean, "null"]
+      external_action_ref:
+        type: string
+        minLength: 1
+      error:
+        type: string
+        minLength: 1
+      rollback:
+        type: object
+        additionalProperties: false
+        required: [capability]
+        properties:
+          capability:
+            enum: [unavailable, available]
+          rollback_ref:
+            type: string
+            minLength: 1
+        allOf:
+          - if:
+              properties:
+                capability: { const: available }
+              required: [capability]
+            then:
+              required: [rollback_ref]
+          - if:
+              properties:
+                capability: { const: unavailable }
+              required: [capability]
+            then:
+              not:
+                required: [rollback_ref]
+  receipt_summary:
+    type: object
+    additionalProperties: false
+    required: [total, succeeded, partial_success, failed, skipped, halted, simulated]
+    properties:
+      total: { type: integer, minimum: 1 }
+      succeeded: { type: integer, minimum: 0 }
+      partial_success: { type: integer, minimum: 0 }
+      failed: { type: integer, minimum: 0 }
+      skipped: { type: integer, minimum: 0 }
+      halted: { type: integer, minimum: 0 }
+      simulated: { type: integer, minimum: 0 }
+  verdict:
+    type: object
+    additionalProperties: false
+    required: [verdict_id, execution_id, task_id, run_id, changeset_id, receipt_id, decision, issued_at]
+    properties:
+      verdict_id: { type: string, minLength: 1 }
+      execution_id: { type: string, minLength: 1 }
+      task_id: { type: string, minLength: 1 }
+      run_id: { type: string, minLength: 1 }
+      changeset_id: { type: string, minLength: 1 }
+      receipt_id: { type: string, minLength: 1 }
+      decision:
+        enum: [PASS, FAIL, HOLD]
+      hold_reason:
+        enum: [INSUFFICIENT_EVIDENCE, AWAITING_OBSERVATION, PARTIAL_VERIFICATION]
+      issued_at: { type: string, format: date-time }
+    allOf:
+      - if:
+          properties:
+            decision: { const: HOLD }
+          required: [decision]
+        then:
+          required: [hold_reason]
+      - if:
+          properties:
+            decision:
+              enum: [PASS, FAIL]
+          required: [decision]
+        then:
+          not:
+            required: [hold_reason]

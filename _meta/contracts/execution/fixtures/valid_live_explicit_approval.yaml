@@ -1,0 +1,85 @@
+contract_kind: governed_execution
+schema_version: "0.1.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+template_ref: _meta/contracts/execution/templates/governed_execution.template.yaml
+semantic_profile:
+  approval: envelope_or_explicit_decision
+  resume: checkpoint_authoritative
+  receipt: immutable_hash_anchored_with_readback
+  verdict: receipt_bound
+  reversible_execution: rollback_ref_when_available
+execution_identity:
+  execution_id: exec-example-001
+  task_id: task-example-001
+  run_id: run-example-001
+  changeset_id: changeset-example-001
+  execution_mode: live
+authority:
+  kind: explicit_decision
+  envelope_ref: envelopes/example-write-v1
+  approval_request:
+    request_id: approval-example-001
+    artifact_ref: evidence/approval/request-example-001.yaml
+    sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  approval_decision:
+    request_id: approval-example-001
+    decision: APPROVED
+    decided_at: "2026-07-10T01:00:00Z"
+    artifact_ref: evidence/approval/decision-example-001.yaml
+    sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+resume:
+  mode: fresh
+live_safety:
+  brake:
+    placement: called_party
+    policy: enable_required
+    mechanism_ref: called-party/write-gate
+    drill_evidence_ref: evidence/drills/write-gate-example.json
+    drill_evidence_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  readback:
+    required: true
+receipt:
+  receipt_id: receipt-example-001
+  execution_id: exec-example-001
+  task_id: task-example-001
+  run_id: run-example-001
+  changeset_id: changeset-example-001
+  execution_mode: live
+  emitted_at: "2026-07-10T01:02:00Z"
+  receipt_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+  entries:
+    - action_id: action-example-001
+      action_kind: update_example
+      status: SUCCESS
+      idempotency_result: EXECUTE
+      readback_verified: true
+      external_action_ref: external/example-001
+      rollback:
+        capability: available
+        rollback_ref: rollback/example-001
+    - action_id: action-example-002
+      action_kind: update_example
+      status: SKIPPED
+      idempotency_result: SKIP
+      readback_verified: null
+      rollback:
+        capability: unavailable
+  readback_verified: true
+  summary:
+    total: 2
+    succeeded: 1
+    partial_success: 0
+    failed: 0
+    skipped: 1
+    halted: 0
+    simulated: 0
+verdict:
+  verdict_id: verdict-example-001
+  execution_id: exec-example-001
+  task_id: task-example-001
+  run_id: run-example-001
+  changeset_id: changeset-example-001
+  receipt_id: receipt-example-001
+  decision: PASS
+  issued_at: "2026-07-10T01:03:00Z"

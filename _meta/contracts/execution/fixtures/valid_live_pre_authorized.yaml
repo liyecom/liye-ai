@@ -1,0 +1,69 @@
+contract_kind: governed_execution
+schema_version: "0.1.0"
+contract_status: schema_validated_only
+instance_scope: per_run
+template_ref: _meta/contracts/execution/templates/governed_execution.template.yaml
+semantic_profile:
+  approval: envelope_or_explicit_decision
+  resume: checkpoint_authoritative
+  receipt: immutable_hash_anchored_with_readback
+  verdict: receipt_bound
+  reversible_execution: rollback_ref_when_available
+execution_identity:
+  execution_id: exec-example-002
+  task_id: task-example-002
+  run_id: run-example-002
+  changeset_id: changeset-example-002
+  execution_mode: live
+authority:
+  kind: pre_authorized
+  envelope_ref: envelopes/example-write-v1
+  authorization_ref: evidence/authorization/envelope-example-002.yaml
+  authorization_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+resume:
+  mode: fresh
+live_safety:
+  brake:
+    placement: called_party
+    policy: enable_required
+    mechanism_ref: called-party/write-gate
+    drill_evidence_ref: evidence/drills/write-gate-example.json
+    drill_evidence_sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  readback:
+    required: true
+receipt:
+  receipt_id: receipt-example-002
+  execution_id: exec-example-002
+  task_id: task-example-002
+  run_id: run-example-002
+  changeset_id: changeset-example-002
+  execution_mode: live
+  emitted_at: "2026-07-10T02:02:00Z"
+  receipt_sha256: "1111111111111111111111111111111111111111111111111111111111111111"
+  entries:
+    - action_id: action-example-003
+      action_kind: update_example
+      status: SUCCESS
+      idempotency_result: EXECUTE
+      readback_verified: true
+      external_action_ref: external/example-003
+      rollback:
+        capability: unavailable
+  readback_verified: true
+  summary:
+    total: 1
+    succeeded: 1
+    partial_success: 0
+    failed: 0
+    skipped: 0
+    halted: 0
+    simulated: 0
+verdict:
+  verdict_id: verdict-example-002
+  execution_id: exec-example-002
+  task_id: task-example-002
+  run_id: run-example-002
+  changeset_id: changeset-example-002
+  receipt_id: receipt-example-002
+  decision: PASS
+  issued_at: "2026-07-10T02:03:00Z"
