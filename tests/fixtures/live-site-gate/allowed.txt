@@ -1,0 +1,5 @@
+websites/example-site/src/pages/index.astro
+websites/example-site/public/favicon.svg
+websites/_templates/base/README.md
+websites/.gitignore
+websites/README.md

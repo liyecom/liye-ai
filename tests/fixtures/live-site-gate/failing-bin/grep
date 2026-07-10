@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "synthetic grep failure" >&2
+exit 2

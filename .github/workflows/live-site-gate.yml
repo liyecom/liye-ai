@@ -10,6 +10,10 @@ on:
   pull_request:
     paths:
       - 'websites/**'
+      - '.github/workflows/live-site-gate.yml'
+      - '.github/scripts/check-live-site-files.sh'
+      - 'tests/governance/test_live_site_gate.sh'
+      - 'tests/fixtures/live-site-gate/**'
 
 jobs:
   check-live-sites:
@@ -22,13 +26,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Run classifier regression fixtures
+        run: bash tests/governance/test_live_site_gate.sh
+
       - name: Check for Live Site files
         run: |
           echo "🛡️ §4.6 Live Site Gate - Checking for unauthorized site files..."
           echo ""
 
           # Get changed files in websites/ directory
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^websites/' || true)
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- websites/)
 
           if [ -z "$CHANGED" ]; then
             echo "✅ No websites/ changes detected"
@@ -39,10 +46,14 @@ jobs:
           echo "$CHANGED"
           echo ""
 
-          # Check for Live site files (anything except example-site/, .gitignore, README.md, _templates/)
-          LIVE_FILES=$(echo "$CHANGED" | grep -E '^websites/(?!example-site/|\.gitignore$|README\.md$|_templates/)' || true)
+          # Classify with a runner-compatible ERE. Status 1 is a policy block;
+          # status 2+ is a matcher/tool failure and must also fail closed.
+          set +e
+          LIVE_FILES=$(printf '%s\n' "$CHANGED" | .github/scripts/check-live-site-files.sh)
+          CLASSIFIER_STATUS=$?
+          set -e
 
-          if [ -n "$LIVE_FILES" ]; then
+          if [ "$CLASSIFIER_STATUS" -eq 1 ]; then
             echo ""
             echo "❌ BLOCKED: Live site files detected in PR!"
             echo ""
@@ -56,6 +67,13 @@ jobs:
             echo "🔧 Fix: Remove these files from your commit:"
             echo "   git rm -r --cached <path>"
             echo "   git commit --amend"
+            exit 1
+          fi
+
+          if [ "$CLASSIFIER_STATUS" -ne 0 ]; then
+            echo ""
+            echo "❌ BLOCKED: Live site classifier failed (exit $CLASSIFIER_STATUS)"
+            echo "The gate cannot classify safely, so this PR fails closed."
             exit 1
           fi
 
