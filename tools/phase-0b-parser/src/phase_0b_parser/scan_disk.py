@@ -11,10 +11,11 @@ Scope per SPEC §2 line 29-32:
     - **/.env*  (all variants: .env.local, .env.localkeys, .env.production, .env.production.example, ...)
     - **/.envrc (direnv)
 
-PORTFOLIO_REPOS allowlist sourced from liye_os/CLAUDE.md "Repo 索引" + "索引外仓库"
-sections — only the 10 layer-0/1/2/3 repos participate in governance scans; the
-explicitly out-of-scope repos (hermes-agent / openclaw / openclaw-skillgate /
-claw-price-intel / age-main-cron / financial-services) are skipped.
+PORTFOLIO_REPOS is this scanner's reviewed execution allowlist snapshot. Portfolio
+roles and reference/satellite relationships are canonical in
+liye_os/_meta/portfolio/SYSTEMS.md; this code does not parse or generate from that
+Markdown. Registry changes therefore require a separate code-and-test decision
+before scan scope changes. All sibling roots absent from PORTFOLIO_REPOS are skipped.
 
 Fingerprint formula locked at SPEC §5.2 line 175:
     sha256(token.utf-8).hexdigest()[:12]  — no salt, lowercase.
@@ -39,10 +40,10 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Portfolio allowlist — derived from liye_os/CLAUDE.md "Repo 索引" section.
-# Only these repos are governance-scanned. Repos listed under "索引外仓库"
-# (hermes-agent, openclaw, openclaw-skillgate, claw-price-intel, age-main-cron,
-# financial-services) are explicitly excluded.
+# Operational scan allowlist — not generated from the portfolio SSOT.
+# SYSTEMS.md owns role/navigation truth; changing this tuple is a separate
+# behavior change that requires explicit tests. C3 repairs the authority pointer
+# without changing the scanner's current scope.
 # ---------------------------------------------------------------------------
 PORTFOLIO_REPOS: tuple[str, ...] = (
     "liye_os", "loamwise",
