@@ -73,7 +73,7 @@
 4. 触碰 workflow / gate / allowlist 的 PR **自动升级,且不能更换自己的判定器**。
 
 **「固定 expected App source」是必要非充分**：GitHub Actions 不同 workflow **共用同一个 `github-actions` App identity**——固定 expected App 只绑定 App,不天然绑定**具体受保护 workflow**。**Stage-3 前必须证明 check context 无法被其它 workflow 冒名。** 可接受路线三选一：
-1. **dedicated App**：发布 required check 的凭据**最小化为 `checks:write` + `statuses:write`**——**绝不含** contents-write / approve / merge / admin;该发布凭据**与 PR-head 执行面物理隔离**(不注入任何 PR-triggered、可被 head 代码读取的步骤)。故与 §7 条 3「读取面只读」**不矛盾**:**只读**约束读 PR head 数据面,**checks/statuses-write** 是发布判定结果的独立窄面；
+1. **dedicated App**：发布 required check 的凭据**最小化为 `checks:write` 或 `statuses:write`**——**绝不含** contents、pull_requests、issues、actions、administration、approve 或 merge 权限;该发布凭据 / App signing credential **与 PR-head 执行面物理隔离**(不注入任何 PR-triggered、可被 head 代码读取的步骤)。故与 §7 条 3「读取面只读」**不矛盾**:**只读**约束读 PR head 数据面,**checks/statuses-write** 是发布判定结果的独立窄面；
 2. 具备**固定受保护 workflow identity** 能力的组织 / ruleset；
 3. 二者皆无 → **Stage-3/4 HOLD（在可信 producer 不存在期间,非"永久"字面锁死）;停留 Stage-2 live shadow,继续 blanket review,不得宣称 trusted required check**。
 
@@ -140,7 +140,7 @@ MRT-3 authorization =
 ```
 merge click 主体不限;不要求 operator 亲手点击,也不引入 approve/merge gatekeeper（GitHub 原生规则无法按 tier 限定「最后由谁点击 merge」,亲手语义须独占 merger identity,与 §7 冲突）。
 
-- **MRT-3 acknowledgement 须机读、hash-bound**：tier 确认不得为自由文本;须落成 machine-parseable、sha256-bound(绑定 exact head SHA)、tier-tagged 的 approval artifact,gate 可校验——对齐 §9 `authorization_ref` + `authorization_sha256` shape;缺该 artifact,gate 判 HOLD。
+- **MRT-3 acknowledgement 须机读、hash-bound**：tier 确认不得为自由文本;须落成 machine-parseable、sha256-bound(绑定 exact head SHA)、tier-tagged 的 approval artifact,gate 可校验——至少含 `approver`、`head_sha`、`merge_risk_tier=MRT-3`、`authorization_scope=changeset_merge_only`、`live_execution_authorized=false`、`decided_at`;对齐 §9 `authorization_ref` + `authorization_sha256` shape;缺该 artifact,gate 判 HOLD,自由文本 review 不得单独构成授权事实。
 
 **MRT-3 范围（措辞）**：MRT-3 = **触碰或改变 live-write surface 的 changeset**,不是「live-write 动作本身」。真正的生产 API 动作**完全在本 spec 之外**,另走 bounded write envelope——不得从「允许合入代码」滑成「允许执行生产写」（上式末条 authorization 断言显式封此滑坡）。
 
