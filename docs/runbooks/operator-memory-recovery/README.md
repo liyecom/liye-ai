@@ -81,7 +81,7 @@ material, and raw listings remain in an operator-private activation inventory.
 | ID | Logical source | Current evidence | Current verdict |
 |---|---|---|---|
 | `M1` | Claude project memory roots | Five roots; 296 files; about 2.5 MiB; no root is versioned | `UNVERSIONED`; single-machine hazard confirmed |
-| `M2` | Codex memory root | 203 files; about 2.3 MiB; one clean local Git baseline; no remote | Local change history has begun; independent copy `NOT_OBSERVED` |
+| `M2` | Codex memory root | 88 tracked content files; 203 total files including local Git metadata; about 2.3 MiB; one clean local Git baseline; no remote | Local history is present, but provenance/adoption is pending; independent copy `NOT_OBSERVED` |
 | `M3` | Claude-mem structured and vector state | 36 files; about 3.36 GiB; live worker and active SQLite WAL observed; no Git or independent backup observed | Application-consistent snapshot required; blind file copy forbidden |
 | `M4` | Operator playbook | Seven files; about 100 KiB; no Git | `UNVERSIONED`; content is not proven reconstructable |
 | `M5` | Local operational ledgers | 54 files; about 236 KiB; no Git | `UNVERSIONED`; several ledgers are not derivable from repository history |
@@ -110,13 +110,28 @@ This does **not** remove truncation governance. It changes the honest rule:
 - before pruning or compaction, preserve a versioned pre-change snapshot and
   require operator curation of the replacement.
 
-### 3.2 Drift already observed
+### 3.2 Unattributed drift already observed
 
 The Codex memory root gained a local Git baseline after the architecture verdict
-was written. C11 records the improvement without upgrading it to disaster
-recovery: a history stored on the same disk fails with that disk. Every later
-inventory must inspect the filesystem and writer state again; it may not infer
-current posture from this repository's clean status.
+was written. Its Git metadata reports a `Codex` automation identity and the UTC
+anchor `2026-07-12T12:01:19Z`, 57 minutes before C11 recorded the snapshot. That
+metadata identifies a claimed author/committer; it does not prove the initiating
+task, operator authority, or mutation envelope. No corresponding operator flip
+or receipt was observed.
+
+C11 did not initialize or commit that root and does not ratify the mutation. It
+records the state as `UNATTRIBUTED_PRE_EXISTING_MUTATION`, outside the C11
+docs-only envelope and pending operator disposition. Before activation can use
+this baseline, the operator must explicitly choose one of three outcomes:
+
+1. accept it as the starting local history and record the exception/provenance
+   gap;
+2. rebuild a reviewed baseline under a new activation envelope; or
+3. retire it after preserving any evidence the operator elects to keep.
+
+Regardless of that choice, a history stored on the same disk is not disaster
+recovery. Every later inventory must inspect the filesystem and writer state
+again; it may not infer current posture from this repository's clean status.
 
 ## 4. Source classes and disposition rules
 
@@ -219,6 +234,9 @@ The operator-private activation packet must bind:
 - one opaque activation ID and a UTC validity window;
 - owner, abort owner, and any restricted operator envelope;
 - the exact logical source set and explicit exclusions;
+- for every pre-existing version root, its observed actor/time evidence and an
+  operator disposition of `accept`, `rebuild`, or `retire`; unknown authority
+  may be inventoried but may not be silently adopted;
 - source class, writer, quiesce/native-snapshot method, and restart/readback for
   every included database;
 - backend and independent-failure-domain evidence;
@@ -480,6 +498,9 @@ artifact only if both claim sets retain their own entry gates and receipts.
   destination, credential, or live source was changed.
 - The active database integrity state is `NOT_CERTIFIED`; C11 did not stop the
   writer or pretend an immutable read of a live WAL database was authoritative.
+- The pre-existing local Git baseline is not a C11 write exception: its metadata
+  predates C11 observation, no C11 command initialized or committed that root,
+  and its initiating authority remains `UNKNOWN` pending operator disposition.
 - No backup product, resident runtime, shared chassis, schema validator, or
   scheduler is introduced.
 - No customer identifier, private path, private artifact filename, secret value,
