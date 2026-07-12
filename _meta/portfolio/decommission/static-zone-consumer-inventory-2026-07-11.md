@@ -254,14 +254,19 @@ rg -n 'assembler.mjs|pre_tool_check.mjs|stop_gate.mjs|tools/notion-sync' \
   CLAUDE.md README.md .github .claude docs tools _meta
 gh run list --workflow contracts-gate.yml --limit 10
 gh run list --workflow contracts_gate.yml --limit 10
-gh api repos/liyecom/liye-ai/branches/main/protection
-gh api repos/liyecom/liye-ai/rulesets
+gh api repos/liyecom/liye-ai/branches/main --jq '{name, protected}'
+GH_TOKEN="$(gh auth token --hostname github.com --user liyecom)" \
+  gh api repos/liyecom/liye-ai/branches/main/protection
+GH_TOKEN="$(gh auth token --hostname github.com --user liyecom)" \
+  gh api repos/liyecom/liye-ai/rulesets
 ```
 
-Expected owner-scoped readback: one approving review, stale-review dismissal,
-and conversation resolution; `enforce_admins=false`; no required status checks;
-empty ruleset list. A 404 under a non-owner identity is authorization-
-indeterminate and must not be recorded as absent protection.
+Expected public branch-object readback: `protected=true`. Expected owner-scoped
+detail: one approving review, stale-review dismissal, and conversation
+resolution; `enforce_admins=false`; no required status checks; empty ruleset
+list. The detail endpoints require the owner credential shown above. A 404
+under a non-owner identity is authorization-indeterminate and must not be
+recorded as absent protection.
 
 ## Appendix A — complete `src/` top-level ledger
 
