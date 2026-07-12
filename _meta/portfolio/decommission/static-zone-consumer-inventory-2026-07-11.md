@@ -29,9 +29,11 @@ are separate small PRs after operator review.
 Current GitHub evidence must be stated narrowly:
 
 - Both contracts workflows are active and have successful runs.
-- The repository has no observed `main` branch protection or ruleset at this
-  snapshot. Therefore workflow success/failure is `CI_OBSERVED` detection and
-  evidence; it is not, by itself, Q6-certified fail-closed merge enforcement.
+- Owner-scoped readback shows `main` branch protection requiring one approving
+  review, stale-review dismissal, and conversation resolution. It does not
+  require status checks, does not enforce protection for admins, and has no
+  repository ruleset. Workflow results are therefore `CI_OBSERVED` evidence,
+  not independently Q6-certified required merge gates.
 - No `src/` server, mission runner, world-model runner, Notion sync process,
   pack assembler, or repository-local Two-Speed hook process was observed in
   the local process/launchd scan. Only the manifest reality clock was observed
@@ -44,7 +46,7 @@ secret installation, or workflow consolidation.
 
 | Component | Consumer / enforcement evidence | Current classification | Next decision packet |
 |---|---|---|---|
-| `_meta/contracts/**` + `contracts-gate.yml` | `CI_OBSERVED`; latest observed PR/push runs on 2026-07-10; validates core, loop, execution, SSOT, and playbook I/O contracts | **Retain / strengthen honesty**. This is the contract spine, but not merge-layer fail-closed while branch enforcement is absent. | Keep the hyphen workflow. Any later enforcement claim must separately prove branch/ruleset behavior. |
+| `_meta/contracts/**` + `contracts-gate.yml` | `CI_OBSERVED`; latest observed PR/push runs on 2026-07-10; validates core, loop, execution, SSOT, and playbook I/O contracts | **Retain / strengthen honesty**. This is the contract spine, but its CI is not a required merge gate and admins are not covered by protection. | Keep the hyphen workflow. Any later fail-closed claim must separately prove required-check and admin-enforcement behavior. |
 | `src/governance/learning/**` + `src/reasoning/**` | Multiple path-scoped workflows execute the policy-trial, execution-tier, replay, and reasoning validators; recent code history extends into 2026-06 | **Active enforcement slice; not static by assumption.** | Audit each workflow's fail-open commands separately; do not retire with the rest of `src/`. |
 | `src/contracts/phase1/**` + gateway bundle | `CI_OBSERVED` most recently 2026-05-09 through `contracts_gate.yml`; `gateway:start` and tests are declared; no live process observed | **Dormant validated bundle**, not a proven resident consumer. | First decide whether any current adapter/customer workflow consumes Phase-1 request/response semantics. If yes, migrate schemas under the contract spine; if no, preservation-grade or reference-grade packet. |
 | `src/mcp/**` + `src/runtime/mcp/**` | `DECLARED_ENTRYPOINT` in package/Docker files; `mcp-federation-ci` exists; no live service observed | **Runtime-shaped and demand evidence not proven.** | Consumer/SLA packet required before retention as runtime. Harvest only semantics that have a named engine consumer. |
@@ -73,9 +75,10 @@ Observed consumers:
 Observed activity: successful pull-request and push runs on 2026-07-10.
 This workflow directly consumes the C4 execution contract and is retained.
 
-Honesty boundary: the job exits non-zero when a validator fails, but no branch
-protection/ruleset was observed. The accurate label is **active CI validator**,
-not independently certified merge gate.
+Honesty boundary: the job exits non-zero when a validator fails. Branch
+protection enforces review/conversation rules, but no required status checks are
+configured and admin enforcement is disabled. The accurate label is **active CI
+validator**, not independently certified required check or merge gate.
 
 ### 3.2 Underscore workflow: Phase-1 bundle
 
@@ -255,8 +258,10 @@ gh api repos/liyecom/liye-ai/branches/main/protection
 gh api repos/liyecom/liye-ai/rulesets
 ```
 
-Expected caveat: a 404 branch-protection response plus an empty ruleset list is
-recorded as "not observed", not as a timeless GitHub entitlement claim.
+Expected owner-scoped readback: one approving review, stale-review dismissal,
+and conversation resolution; `enforce_admins=false`; no required status checks;
+empty ruleset list. A 404 under a non-owner identity is authorization-
+indeterminate and must not be recorded as absent protection.
 
 ## Appendix A — complete `src/` top-level ledger
 
