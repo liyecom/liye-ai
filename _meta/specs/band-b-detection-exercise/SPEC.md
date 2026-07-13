@@ -58,8 +58,10 @@ The exercise is valid only when all of these remain true:
 - the production validator is invoked through `validate_one()` with JSON output;
 - `manifest_reality_clock.py` is not imported or invoked;
 - `--append` is never present;
-- no AGE checkout, real engine manifest, live ledger, launchd job, log, or
-  learning-source registry is read or written;
+- the harness does not resolve, read, or write any AGE checkout, real engine
+  manifest, live ledger, launchd job, log, or learning-source registry;
+- operator-side pre/post SHA-256 readback may inspect live-surface bytes only to
+  prove non-mutation; those paths and bytes are never inputs to the harness;
 - the PR changes only this SPEC, the fixture harness, and its CI wiring;
 - no test performs repair, backfill, auto-fix, capability promotion, or
   activation.
