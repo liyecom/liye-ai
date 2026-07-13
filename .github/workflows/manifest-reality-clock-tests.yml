@@ -1,9 +1,9 @@
 # Manifest Reality Clock Continuity Tests
 #
-# Dedicated Python test gate for the manifest-reality 30-day clock runner.
-# The suite is self-contained, stdlib-only, and has ZERO cross-repo / network
-# dependency; it uses synthetic temp ledgers only. This PR keeps
-# clock_eligible_day and the main exit-code contract unchanged.
+# Dedicated Python test gate for the manifest-reality detector and 30-day clock.
+# All suites are fixture/tempdir-only with ZERO cross-repo / runtime network
+# dependency. C12 does not touch the live manifest, ledger, launchd job, or
+# clock_eligible_day contract.
 
 name: Manifest Reality Clock Tests
 
@@ -12,19 +12,29 @@ on:
     paths:
       - '_meta/contracts/scripts/manifest_reality_clock.py'
       - '_meta/contracts/scripts/test_manifest_reality_clock.py'
+      - '_meta/contracts/scripts/validate_manifest_reality.py'
+      - '_meta/contracts/scripts/test_manifest_reality_detection_exercise.py'
+      - '_meta/contracts/scripts/validate_manifest_reality_fixtures/**'
+      - '_meta/contracts/engine/engine_manifest.schema.v2.yaml'
       - '_meta/contracts/scripts/manifest_reality_clock_README.md'
+      - '_meta/specs/band-b-detection-exercise/SPEC.md'
       - '.github/workflows/manifest-reality-clock-tests.yml'
   push:
     branches: [main]
     paths:
       - '_meta/contracts/scripts/manifest_reality_clock.py'
       - '_meta/contracts/scripts/test_manifest_reality_clock.py'
+      - '_meta/contracts/scripts/validate_manifest_reality.py'
+      - '_meta/contracts/scripts/test_manifest_reality_detection_exercise.py'
+      - '_meta/contracts/scripts/validate_manifest_reality_fixtures/**'
+      - '_meta/contracts/engine/engine_manifest.schema.v2.yaml'
       - '_meta/contracts/scripts/manifest_reality_clock_README.md'
+      - '_meta/specs/band-b-detection-exercise/SPEC.md'
       - '.github/workflows/manifest-reality-clock-tests.yml'
 
 jobs:
   python-tests:
-    name: unittest (manifest_reality_clock)
+    name: fixture-only R1-R6 + clock continuity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,5 +44,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run manifest reality clock unittest
+      - name: Install manifest validator dependencies
+        run: python3 -m pip install pyyaml jsonschema
+
+      - name: Run bundled manifest reality self-test
+        run: python3 _meta/contracts/scripts/validate_manifest_reality.py --self-test
+
+      - name: Run C12 controlled R1-R6 detection exercise
+        run: python3 _meta/contracts/scripts/test_manifest_reality_detection_exercise.py
+
+      - name: Run manifest reality clock continuity unittest
         run: python3 _meta/contracts/scripts/test_manifest_reality_clock.py
