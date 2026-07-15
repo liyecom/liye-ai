@@ -3,17 +3,15 @@
 #
 # 防止 Live 站点（客户资产）被意外提交到公开仓库
 # 只有 example-site/ 允许被 tracked
+#
+# 刻意在每个 PR 上运行（无 paths 过滤）：GitHub required status check
+# 不出勤即永久阻塞合并，path 过滤会把不碰 websites/ 的 PR 全部卡死。
+# 未改动 websites/ 时 git diff 为空，classifier 直接放行，成本为秒级。
 
 name: Live Site Gate
 
 on:
   pull_request:
-    paths:
-      - 'websites/**'
-      - '.github/workflows/live-site-gate.yml'
-      - '.github/scripts/check-live-site-files.sh'
-      - 'tests/governance/test_live_site_gate.sh'
-      - 'tests/fixtures/live-site-gate/**'
 
 jobs:
   check-live-sites:
