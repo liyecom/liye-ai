@@ -1,0 +1,447 @@
+# Engine Manifest Contract v2.1.0
+# SSOT: _meta/contracts/engine/engine_manifest.schema.v2.1.yaml
+# Predecessor: engine_manifest.schema.v2.yaml (v2.0, retained; dual-accept window)
+#
+# Domain Engine 能力声明规范 v2.1 — 两个已批准变更一次落地：
+#
+# 1. 移除 deprecated 字段 `write_capability`（兑现 v2.0 头注 "REMOVED in v2.1"）。
+#    v2.0 承诺的兼容期 ≥30 天（自 GHL ADR Accepted 2026-05-19）已届满；
+#    两仓 grep 证实该 v1 字段零机器消费者（审计:
+#    amazon-growth-engine docs/prompt-audits/2026-07-15-phase3-eval-registry-
+#    contract-audit.md §1.2）。注: GHL ADR 原将此动作归属 Phase 4；本次随
+#    prompting-playbook Phase 3 前移，由 operator 在本 schema 的引入 PR 追认。
+#
+# 2. 新增 `eval_suites` 声明（prompting-playbook 落地方案 Phase 3,
+#    liye_os docs/plans/2026-07-08-prompting-playbook-adoption.md）:
+#    suite id、覆盖决策点、提示词面、分集规模、promotion gate、最近绿灯证据。
+#    v2.1 下 eval_suites 为 required 且 minItems 1 —— "引擎无 Eval 声明 =
+#    协议不完整"（方案原文）。尚无 eval suite 的引擎停留在 v2.0（双收期内合法），
+#    这是有意的协议压力，不是迁移障碍。
+#
+# 路由（Phase 0c.2 延伸）:
+# - validate-contracts.mjs routeManifestSchema: 缺 schema_version → v1;
+#   "2.0" → v2; "2.1" → 本 schema; 其他 → fail-closed。
+# - validate_manifest_reality.py R5: "2.0"/"2.1" 双收，各自绑定 $id。
+#   部署顺序（审计 F-2）: 本文件 + 双收路由必须先于任何 manifest 实例 bump 合并，
+#   否则 Band B reality clock 当日 FAIL 并重置 streak。
+# - eval_suites 的 reality 校验（R7: suite_path/entrypoint 实存）有意暂缓——
+#   新 R 检查失败会重置 Band B streak，先声明、观察一个周期再入 clock（审计 §5）。
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://liye.com/contracts/engine/engine_manifest.v2.1"
+title: "Engine Manifest Schema v2.1"
+description: "Domain Engine 能力声明 v2.1 — 移除 deprecated write_capability + 新增 eval_suites 声明。"
+version: "2.1.0"
+type: object
+
+required:
+  - schema_version
+  - engine_id
+  - engine_version
+  - domain
+  - contracts_compat
+  - playbooks
+  - data_sources
+  - write_capability_declared
+  - write_capability_effective
+  - capabilities
+  - runtime_gates
+  - eval_suites
+
+properties:
+  schema_version:
+    type: string
+    enum:
+      - "2.1"
+    description: |
+      manifest 自身的 schema 版本。validate-contracts.mjs 按本字段路由到对应 schema：
+      - "2.1": 当前活动版本（write_capability 已移除; eval_suites required）
+      - "2.0": 前代（engine_manifest.schema.v2.yaml），双收期内继续接受
+      未声明 schema_version 的 manifest 视为 v1.x（fallback 走 engine_manifest.schema.yaml）。
+    examples:
+      - "2.1"
+
+  engine_id:
+    type: string
+    pattern: "^[a-z0-9-]+$"
+    minLength: 3
+    maxLength: 64
+    description: "Engine 唯一标识符，小写字母+数字+连字符"
+    examples:
+      - amazon-growth-engine
+      - chaming
+      - notion-sync-engine
+
+  engine_version:
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+    description: "Engine 版本号 (SemVer)"
+    examples:
+      - "1.0.0"
+      - "2.1.0"
+
+  domain:
+    type: string
+    description: "所属领域，必须与 learned_policy_ghl_v1.domain 对应"
+    examples:
+      - amazon-advertising
+      - domain-investment
+      - notion-sync
+
+  contracts_compat:
+    type: string
+    pattern: "^>=\\d+\\.\\d+(\\.\\d+)? <\\d+\\.\\d+(\\.\\d+)?$"
+    description: "兼容的 contract schema 版本范围 (SemVer range)"
+    examples:
+      - ">=2.0 <3.0"
+
+  playbooks:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - entrypoint
+        - description
+        - required_permissions
+        - io_schema
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Playbook 唯一标识符"
+        entrypoint:
+          type: string
+          description: "可执行路径，相对 engine repo root"
+        description:
+          type: string
+          maxLength: 200
+        required_permissions:
+          type: array
+          items:
+            type: string
+            enum:
+              - read:metrics
+              - read:ads_api
+              - read:learned_bundle
+              - read:alert_history
+              - read:duckdb
+              - read:fact_events
+              - write:bids
+              - write:keywords
+              - write:budget
+              - write:evidence_package
+              - write:fact_events
+          description: "所需权限。GHL 引入 read:fact_events / write:fact_events 用于 emit_fact pipeline (D-14)。"
+        io_schema:
+          type: object
+          required:
+            - inputs
+            - outputs
+          properties:
+            inputs:
+              type: object
+              additionalProperties: true
+            outputs:
+              type: object
+              additionalProperties: true
+          additionalProperties: false
+        status:
+          type: string
+          enum:
+            - active
+            - deprecated
+            - placeholder
+          default: active
+      additionalProperties: false
+    description: "Engine 提供的 playbooks 列表"
+
+  data_sources:
+    type: array
+    items:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          enum:
+            - ads_api
+            - duckdb
+            - qdrant
+            - postgres
+            - sqlite
+            - api
+            - fact_events_log
+          description: "数据源类型。GHL 引入 fact_events_log 用于 emit_fact pipeline (D-14)。"
+        description:
+          type: string
+          maxLength: 200
+        required:
+          type: boolean
+          default: true
+      additionalProperties: false
+    description: "数据源声明 (不含凭据)"
+
+  write_capability_declared:
+    type: string
+    enum:
+      - none
+      - limited
+      - full
+    description: |
+      manifest 静态声明的写入能力 (policy 设计意图):
+      - none: 只读 (推荐 GHL Pilot 1)
+      - limited: 有限写入 (需 OS execute_limited 层级许可)
+      - full: 完整写入 (需特殊审批)
+      GHL Pilot 1 期间 (≥ 90 天 from 2026-05-09) 所有 engine 必须声明 declared=none，per Hard Gate 8。
+
+  write_capability_effective:
+    type: string
+    enum:
+      - none
+      - limited
+      - full
+    description: |
+      runtime 实际可执行的写入能力 (declared ∩ runtime_gates 实际状态)。
+      约束 (由 validate_manifest_reality.py 验证, Phase 0c.4):
+      - effective ≤ declared (manifest 不能 effective 比 declared 更宽)
+      - effective = none if Pilot 1 期间 (Hard Gate 8)
+      - effective 由所有 runtime_gates 共同决定 (任一 gate=closed → effective 降级)
+
+  # 注: v1 字段 `write_capability` 在 v2.1 已移除（additionalProperties: false 拒绝）。
+  # v2.0 兼容期（≥30 天, 2026-05-19 起）已届满; 仍带该字段的 manifest 请停留在
+  # schema_version "2.0" 或随升版删除该行。
+
+  capabilities:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - description
+        - boundary
+        - required_permissions
+        - runtime_gate_refs
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Capability 唯一标识符 (engine 范围内)"
+          examples:
+            - emit_fact_run_outcome
+            - submit_skill_candidate
+            - apply_bid_adjustment
+        description:
+          type: string
+          maxLength: 200
+        boundary:
+          type: string
+          enum:
+            - content_guard
+            - truth_write_guard
+            - context_inject_guard
+            - shadow_guard
+            - fact_emit
+            - none
+          description: |
+            Capability 归属的 loamwise P3 boundary (per ADR-Loamwise-P3-Candidate-Operation-Guard-Coverage)。
+            fact_emit = GHL emit_fact pipeline 新引入 (D-14)。
+            none = capability 不经过任何 guard (例如纯读)。
+        required_permissions:
+          type: array
+          items:
+            type: string
+        runtime_gate_refs:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9_]+$"
+          description: "引用 runtime_gates[].id；所有引用 gate 必须 = open 才能 effective"
+        status:
+          type: string
+          enum:
+            - active
+            - deprecated
+            - placeholder
+          default: active
+      additionalProperties: false
+    description: "Engine 显式列举的 capabilities 及其 boundary / gates 归属"
+
+  runtime_gates:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required:
+        - id
+        - kind
+        - default_state
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Gate 唯一标识符 (engine 范围内)"
+        kind:
+          type: string
+          enum:
+            - env_var
+            - feature_flag
+            - manual_approval
+        var_name:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]*$"
+          description: "若 kind=env_var，对应环境变量名 (大写蛇形)"
+          examples:
+            - AGE_BD_SP_WRITE_ENABLED
+            - AGE_FACT_EMIT_ENABLED
+        description:
+          type: string
+          maxLength: 200
+        default_state:
+          type: string
+          enum:
+            - open
+            - closed
+          description: "未配置时的默认状态"
+        evidence_required_for_open:
+          type: string
+          description: "什么样的 evidence 才能让此 gate 转 open (审计可读)"
+      additionalProperties: false
+    description: "Engine 所有 runtime 闸门的显式列表 (per validate_manifest_reality.py 验证 reality)"
+
+  eval_suites:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - id
+        - decision_point
+        - suite_path
+        - prompt_surfaces
+        - split_sizes
+        - promotion_gate
+        - last_green_run
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9_]+$"
+          description: "Eval suite 唯一标识符 (engine 范围内)"
+          examples:
+            - product_selection
+            - measurement_verdict
+            - campaign_blueprint
+        decision_point:
+          type: string
+          maxLength: 200
+          description: "本 suite 覆盖的决策点（人读，一句话）"
+        suite_path:
+          type: string
+          minLength: 1
+          description: "Eval suite 目录，相对 engine repo root (e.g. eval/campaign_blueprint)"
+        prompt_surfaces:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+          description: |
+            本 suite 守护的提示词面（相对 engine repo root 的路径/glob）。
+            这些路径的 diff 必须以本 suite 绿灯为合并前提（Phase 3 CI 门禁语义）。
+            同一路径可被多个 suite 声明 —— diff 时全部对应 suite 都要绿。
+        split_sizes:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            type: integer
+            minimum: 0
+          description: |
+            分集规模。key 为该 suite 自己的分集词表（e.g. control/edge/boundary,
+            train/holdout, scenarios），value 为场景数。不强制统一分类学 ——
+            各 suite 的分集语义由其 SCENARIO_SCHEMA/README 定义。
+        promotion_gate:
+          type: object
+          required:
+            - gate_commands
+          properties:
+            gate_commands:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                minLength: 1
+              description: "从 engine repo root 执行、必须全部 exit 0 的门禁命令（确定性）"
+            threshold:
+              type: string
+              maxLength: 200
+              description: "人读阈值描述; 缺省语义 = gate_commands 全绿"
+          additionalProperties: false
+          description: "Promotion gate: 提示词面 diff 合并前必须通过的确定性命令组"
+        last_green_run:
+          type:
+            - string
+            - "null"
+          description: |
+            最近绿灯证据指针（CI run id / ledger 引用 / 本地验证记录路径）。
+            null = 尚无落盘证据（e.g. 需 API key 的 live 跑分未建基线, 或 CI 未接线）。
+            有意为可空的运营态字段：绿灯证据的 SSOT 在 CI/ledger 侧，manifest 不
+            要求每次绿灯回写（避免 manifest churn + hash 漂移; 审计 §5 裁决方向 ①+②）。
+        status:
+          type: string
+          enum:
+            - active
+            - placeholder
+          default: active
+      additionalProperties: false
+    description: |
+      Engine 的 Eval suite 声明（prompting-playbook Phase 3）。
+      引擎无 Eval 声明 = 协议不完整 —— v2.1 下本字段 required 且至少一条。
+      本声明是提示词面 CI 门禁的"声明面" SSOT。
+
+  bundle_consumption:
+    type: object
+    properties:
+      env_var:
+        type: string
+        default: "LEARNED_BUNDLE_PATH"
+      required:
+        type: boolean
+        default: false
+      min_version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+    additionalProperties: false
+    description: "Bundle 消费配置 (v1 保留)"
+
+  health_check:
+    type: object
+    properties:
+      entrypoint:
+        type: string
+      timeout_seconds:
+        type: integer
+        minimum: 1
+        maximum: 60
+        default: 10
+    additionalProperties: false
+    description: "健康检查配置 (v1 保留)"
+
+  metadata:
+    type: object
+    properties:
+      maintainer:
+        type: string
+      repository:
+        type: string
+        format: uri
+      documentation:
+        type: string
+        format: uri
+    additionalProperties: false
+    description: "元数据 (v1 保留)"
+
+additionalProperties: false

@@ -3,7 +3,8 @@
 validate_manifest_reality.py — Engine Manifest Reality Validator (Phase 0c.4)
 
 SSOT: _meta/contracts/scripts/validate_manifest_reality.py
-Schema: _meta/contracts/engine/engine_manifest.schema.v2.yaml (delegated)
+Schema: _meta/contracts/engine/engine_manifest.schema.v2.yaml /
+        engine_manifest.schema.v2.1.yaml (delegated; routed by schema_version)
 
 Schema validation answers "is the manifest shape correct?" (validate-contracts.mjs).
 Reality validation answers "does the manifest claim match the filesystem / git
@@ -16,8 +17,13 @@ Reality checks (minimal set per Phase 0c.4 design):
   R2  data_sources[].path           — if a path key is present, file/dir exists
   R3  capability runtime_gate_refs  — every ref resolves to a runtime_gates[].id
   R4  effective ≤ declared          — write_capability_effective not wider than declared
-  R5  schema_version routing        — "2.0" routes to v2 schema $id
+  R5  schema_version routing        — "2.0"/"2.1" route to their schema $id (dual-accept
+                                      per prompting-playbook Phase 3 eval registry)
   R6  Pilot 1 invariant             — engine_id=amazon-growth-engine → effective=none
+
+Note: eval_suites reality checks (suite_path/prompt_surfaces existence) are
+deliberately NOT part of R1-R6 yet — a new R check failing would reset the
+Band B streak; declare first, observe a cycle, then gate (audit 2026-07-15 §5).
 
 CLI:
   validate_manifest_reality.py --manifest-path <path> [--engine-repo <dir>] [--json]
@@ -42,6 +48,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 V2_SCHEMA_PATH = PROJECT_ROOT / "_meta/contracts/engine/engine_manifest.schema.v2.yaml"
 V2_SCHEMA_ID = "https://liye.com/contracts/engine/engine_manifest.v2"
+V21_SCHEMA_PATH = PROJECT_ROOT / "_meta/contracts/engine/engine_manifest.schema.v2.1.yaml"
+V21_SCHEMA_ID = "https://liye.com/contracts/engine/engine_manifest.v2.1"
 FIXTURES_DIR = SCRIPT_DIR / "validate_manifest_reality_fixtures"
 
 # Total order on write_capability levels (per v2 schema enum semantics).
@@ -55,12 +63,22 @@ def load_yaml(path: Path) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def _schema_path_for(schema_version: Any) -> Path:
+    """Route manifest schema_version to its schema file.
+
+    "2.1" → v2.1; anything else → v2 (whose enum then rejects unsupported
+    versions, keeping the fail-closed behavior in the schema layer).
+    Reads module globals at call time so tests can monkeypatch *_SCHEMA_PATH.
+    """
+    return V21_SCHEMA_PATH if schema_version == "2.1" else V2_SCHEMA_PATH
+
+
 def schema_check(manifest: dict[str, Any]) -> list[str]:
     """Delegate-equivalent: run jsonschema Draft7Validator on manifest.
 
     Returns list of error messages. Empty list = schema valid.
     """
-    schema = load_yaml(V2_SCHEMA_PATH)
+    schema = load_yaml(_schema_path_for(manifest.get("schema_version")))
     validator = Draft7Validator(schema)
     errors = sorted(validator.iter_errors(manifest), key=lambda e: list(e.absolute_path))
     return [
@@ -129,18 +147,25 @@ def check_r4_effective_within_declared(manifest: dict[str, Any]) -> list[str]:
 
 def check_r5_schema_version_routing(manifest: dict[str, Any]) -> list[str]:
     sv = manifest.get("schema_version")
-    schema = load_yaml(V2_SCHEMA_PATH)
-    actual_id = schema.get("$id")
     if sv == "2.0":
+        actual_id = load_yaml(V2_SCHEMA_PATH).get("$id")
         if actual_id != V2_SCHEMA_ID:
             return [
                 f"R5 routing mismatch: schema_version='2.0' but v2 schema $id "
                 f"is '{actual_id}', expected '{V2_SCHEMA_ID}'"
             ]
         return []
+    if sv == "2.1":
+        actual_id = load_yaml(V21_SCHEMA_PATH).get("$id")
+        if actual_id != V21_SCHEMA_ID:
+            return [
+                f"R5 routing mismatch: schema_version='2.1' but v2.1 schema $id "
+                f"is '{actual_id}', expected '{V21_SCHEMA_ID}'"
+            ]
+        return []
     return [
         f"R5 unsupported schema_version: {sv!r}. validate_manifest_reality.py "
-        f"binds to v2 ('2.0') only; v1 manifests are out-of-scope here."
+        f"binds to v2 ('2.0') / v2.1 ('2.1') only; v1 manifests are out-of-scope here."
     ]
 
 
