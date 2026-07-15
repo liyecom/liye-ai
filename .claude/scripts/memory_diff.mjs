@@ -55,7 +55,7 @@ function parseMemoryBrief(content) {
   if (glossaryMatch) result.glossary_ref = glossaryMatch[1].trim();
 
   // Extract terms from table
-  const tableMatch = content.match(/\| Term \| Definition \| Formula \|\n\|[-|]+\|\n([\s\S]*?)(?=\n\n|\n##|$)/);
+  const tableMatch = content.match(/\| Term \| Definition(?: \(EN SSOT\))? \| Formula \|(?: Version \|)?\n\|[-|]+\|\n([\s\S]*?)(?=\n\n|\n##|$)/);
   if (tableMatch) {
     const rows = tableMatch[1].trim().split("\n");
     for (const row of rows) {
