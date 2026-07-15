@@ -1,0 +1,5 @@
+GOVERNANCE DRILL — CONTROLLED VIOLATION (2026-07-15)
+
+This synthetic file intentionally violates the Live Site Gate allowlist
+to certify that the required status check physically blocks merge.
+It contains no real client content. This PR must be CLOSED, never merged.
