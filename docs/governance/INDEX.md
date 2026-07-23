@@ -22,7 +22,6 @@ These files form the governance baseline. Changes require explicit governance-te
 |------|---------|--------------|
 | `.github/CODEOWNERS` | Define code ownership and required reviewers | Branch Protection |
 | `.github/workflows/architecture-gate.yml` | Enforce architectural boundaries | CODEOWNERS |
-| `.github/workflows/constitution-bmad-boundary-gate.yml` | Prevent BMAD leakage into runtime | CODEOWNERS |
 | `.github/workflows/layer-dependency-gate.yml` | Enforce layer dependencies | CODEOWNERS |
 | `.github/workflows/constitution-external-tools-gate.yml` | Control external tool usage | CODEOWNERS |
 

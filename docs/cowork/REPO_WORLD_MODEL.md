@@ -241,7 +241,6 @@ node .claude/scripts/guardrail.mjs
 |--------|------|
 | `amazon-leak-guard.yml` | Amazon 数据泄露防护 |
 | `kernel-guard.yml` | 内核保护 |
-| `bmad-dehydration-guard.yml` | BMAD 边界防护 |
 
 #### 其他工作流 (Stable)
 
