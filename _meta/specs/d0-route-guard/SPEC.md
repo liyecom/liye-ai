@@ -1,14 +1,14 @@
-# D0 账号路由守卫 — SPEC（L0 受治理写执行边界；`governed_execution_v0` engine binding）
+# D0 账号路由守卫 — SPEC（L0 受治理写执行边界；`governed_execution_v0` engine-binding 设计契约）
 
 > 本 SPEC 是 D0 账号路由**写执行**的 contract-first 边界：钉 broker 独立-uid 凭据边界、L0 authority 绑定、冻结的 v0 操作面、broker TCB、durable 幂等身份与 fail-closed 判定语义，**不写实现、不改运行代码、不创建 GitHub App、不迁移凭据、不碰 live-write**。
 > **本 SPEC 明确不做**：不建 broker/wrapper/hook 实现、不创建 App、不迁移凭据入 broker、不撤销 agent 写能力、不 provisioning / cutover / activation、不进入 M1。
 > **不断言非 repo 事实**：本文件引用的多模型审核阶梯 / 会话结论一律标 **design rationale**，不写成 repo 已有事实；引用的 provider API 行为标注为**设计假设**，实测下沉 Stage-1。
 
-**Status**: **Ratify-on-merge SSOT contract**——本文本陈述 D0 受治理写执行的冻结契约；**合并即 ratify 本文本**，不留 operator-review-pending 过期态。MERGE = **独立 operator 翻牌**；Stage-1（实现 / provisioning / cutover / activation）= **NO-GO**，依 §13 逐级另行授权。本轮 SSOT PR 的 review 状态与 operator verdict matrix 见 **PR description**（ephemeral，不入 canonical 正文）。
-**Stage**: Stage-0（SSOT contract 定稿中）· Stage-1 = 实现 / provisioning / cutover / activation，**全 NO-GO**，依 §13 逐级另行 operator 授权（互不继承）。
+**Status**: **Ratify-on-merge SSOT contract**——本文本陈述 D0 受治理写执行的冻结契约；**合并即 ratify 本文本**，不留 operator-review-pending 过期态。MERGE = **独立 operator 翻牌**；Stage-1（实现 / provisioning / cutover / activation）= **NO-GO**，依 §13 逐级另行授权。
+**Stage**: Stage-0（SSOT contract）· Stage-1 = 实现 / provisioning / cutover / activation，**全 NO-GO**，依 §13 逐级另行 operator 授权（互不继承）。
 **L0 纯度**: 只放跨会话 / 跨 provider 的不变量与冻结契约；broker 源码、精确 provisioning、cutover 编排、hook runtime 细节全部下沉 Stage-1。
 **Upstream**:
-- `_meta/contracts/execution/governed_execution_v0.schema.yaml`（`authority` / `receipt` / `verdict` / `rollback` 语义；**D0 = 其首个真实 engine binding**，§2 / §9 逐字段对齐）
+- `_meta/contracts/execution/governed_execution_v0.schema.yaml`（`authority` / `receipt` / `verdict` / `rollback` 语义；**D0 = 其首个 ratified engine-binding 设计契约**——非运行时 binding；真实运行时 binding 须 Stage-1 cite 该 schema 且产 per-run evidence（README「A future engine binding must cite this schema and provide per-run evidence」），§2 / §9 逐字段对齐）
 - `_meta/contracts/execution/README.md`（engine binding 须 cite 该 schema 且「符合 schema 不自动继承 authority」）
 **Downstream**: Stage-1 实现 evidence（broker 源 / TCB provenance / 负例回放 / 两 runtime hook 实测；§7 / §13，未授权）
 
@@ -27,7 +27,7 @@
 
 ## 2. Authority 绑定 `governed_execution_v0`（不另造授权语言）
 
-### 2.1 D0 = 首个真实 engine binding
+### 2.1 D0 = 首个 engine-binding 设计契约（非运行时 binding）
 
 D0 不改、不复制 L0；只新增窄扩展 `d0_route_guard_ext.v0` 承 L0 未覆盖的安全字段（`authorization_signature` / `valid_from`+`expires_at`(TTL) / `nonce` / `target_pseudonym`(HMAC) / `typed_precondition`(§3) / `operation_constraints`(§2.3)）。映射：
 - agent 发 **`execution_request`** → L0 `per_run` 的 `execution_identity`（`execution_mode: live`）。
@@ -145,7 +145,7 @@ RESERVED → EXECUTING → COMMITTED | UNKNOWN_STATE
 
 - **journal = broker-owned durable 存储**（与 §5 policy epoch 高水位同信任域，单写者）。
 - **[ERRATUM 2] 去重身份按 authority kind 分型**：
-  - **`explicit_decision`**：`approval_decision.sha256` = **one-shot consumption key**；一个决定**只能进入一次外部执行**（broker 以此 key 在 journal 标 `CONSUMED`，重复呈现直接拒绝、不重放）。
+  - **`explicit_decision`**：`approval_decision.sha256` = **one-shot consumption key**；进入 `RESERVED` 时 broker 以该 key **原子唯一占用**，重复 reserve（同 key 再次呈现）直接拒绝、不重放 → 一个决定只能进入一次外部执行。**不新增 `CONSUMED` 状态**——消费即 `RESERVED` 的原子唯一占用，`COMMITTED` / `UNKNOWN_STATE` 为外部执行终态（冻结 4 态）。
   - **`pre_authorized`**：dedup key = `authorization_sha256 + execution_nonce`；**同 (lease, nonce) 重试只走 reconcile、不重复执行**；**新 nonce 才消耗一次 lease count**（count/rate 上限见 §2.3）。
   - **`operation_id`**：由 broker **确定性派生**（HMAC over 规范化的 `(authority key, op, target, precondition, nonce)`），**或**必须包含在 operator 已签请求内；**禁止接受 agent 任意提供/更换 `operation_id` 绕过去重**。
   - **domain separator**：HMAC 的 (a) `operation_id`、(b) provider-visible marker（§3.2）、(c) `target_pseudonym` 三者**必须用不同 domain separator label**（如 `"d0:op-id"` / `"d0:provider-marker"` / `"d0:target-pseudo"`），三值不可互换/碰撞；均用 key role ⑤。
@@ -171,7 +171,7 @@ RESERVED → EXECUTING → COMMITTED | UNKNOWN_STATE
 
 ## 8. bindings 完整性
 
-broker uid 私有、agent 无读写权；只存 `owner↔account` / `ssh-alias↔凭据路由` 映射（脱敏类别），**不含 token**；离线签名（key role ②）+ policy epoch（防回滚）+ 防回放（nonce/TTL）+ broker/core 二进制与配置 agent uid 不可改写。降敏净效果 = 模型可加载面具名路由清零、broker uid 单点签名留存。
+broker uid 私有、agent 无读写权；只存 `owner↔account` / `ssh-alias↔凭据路由` 映射（脱敏类别），**不含 token**；离线签名（key role ②）+ policy epoch（防回滚）+ 防回放（nonce/TTL）+ broker/core 二进制与配置 agent uid 不可改写。**「模型可加载面具名路由零命中」是 activation 必须满足的前置不变量（§7 exit gate 实测项），本 SPEC 不宣称当前已达成；broker uid 单点签名留存为降敏目标态。**
 
 ## 9. Receipt（L0 对齐 + rollback 语义）
 
@@ -190,18 +190,18 @@ M1 = D2 脱敏评估，不发生写、不依赖 D0；M1 真正前置 = 独立 co
 
 ## 12. D2 处置边界
 
-本 repo（公开）内**不含任何具名工件**：本 SSOT 完全抽象化。具名路由映射（若有）只存 broker uid 签名 bindings（§8），**不进任何模型可加载面、不进公开 repo**。真正的 `deny_read` 是未来 containment profile 的义务（M1 面），本 SPEC 登记为绑定义务，不假装已实现。
+**本 SSOT 正文完全抽象化——不含具名路由标识、ASIN、凭据**（自证属性，合并后永真）。设计不变量（normative）：具名路由映射只允许存于 broker uid 签名 bindings（§8），**不得进入任何模型可加载面或公开 repo**；「公开 repo 具名工件零命中」是 activation 前置不变量，须由 §7 exit gate + M1 containment profile 实证，**本 SPEC 不断言当前全仓已达成**。真正的 `deny_read` 是未来 containment profile 的义务（M1 面），本 SPEC 登记为绑定义务，不假装已实现。
 
 ## 13. 停点与 Stage-1 授权阶梯（互不继承）
 
-**本 SSOT 阶段 = 零实现。** fail-closed 默认:授权阶梯上除已 ratify 的契约文本外,**每一级默认 NO-GO,直到 operator 逐级显式翻牌**;上一级批准不继承下一级。(本轮 review 的 operator verdict matrix 属 ephemeral 状态,见 PR description,不入 canonical 正文。)
+**本 SSOT 阶段 = 零实现。** fail-closed 默认:授权阶梯上除已 ratify 的契约文本外,**每一级默认 NO-GO,直到 operator 逐级显式翻牌**;上一级批准不继承下一级。
 
 冻结授权阶梯（每级独立 operator 翻牌，不继承）：
 ```
-SSOT PR review（本步，停在此）→ merge 单独翻牌（ratify 本文本）
+SSOT PR review → merge 单独翻牌（ratify 本文本）
 → 实现锚 merged SSOT blob → implementation review
 → capability provisioning（创建 App / 装凭据入 broker）→ credential revocation / cutover
 → runtime activation（§7）
 ```
-- **不能从任何 outputs 工作稿或本 PR 未合状态直接进入实现**；实现必须锚定 **merged SSOT blob**。
+- **实现必须锚定 merged SSOT blob**；不得从任何 outputs 工作稿或未合入的 PR 状态直接进入实现。
 - **明确不做**：实现 broker/wrapper/hook/journal、创建 App、迁移凭据、撤销 agent 全局写能力、provisioning/cutover/activation、进入 R2/M1、承接移出 v0 的高风险写轨道。
