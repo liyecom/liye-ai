@@ -2,7 +2,11 @@
 
 **Version**: 2.0
 **Date**: 2025-12-30
-**Status**: Enforced (Schema + Semantic + CI)
+**Status**: RETIRED 2026-07-23 — BMAD concept fully retired. The enforcement workflows
+described here (`bmad-dehydration-guard.yml`, `constitution-bmad-boundary-gate.yml`) and
+the semantic blacklist (`_meta/governance/bmad_semantic_blacklist.txt`) were removed as
+part of CI de-rusting. This document is retained as a historical design record only; the
+original incident record lives in `docs/incidents/2025-12-bmad-boundary/`.
 
 ---
 

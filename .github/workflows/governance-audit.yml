@@ -67,7 +67,6 @@ jobs:
           echo "### Check 2: Governance Workflows ###"
           REQUIRED_WORKFLOWS=(
             "architecture-gate.yml"
-            "constitution-bmad-boundary-gate.yml"
             "governance-file-change-gate.yml"
             "layer-dependency-gate.yml"
             "constitution-external-tools-gate.yml"
