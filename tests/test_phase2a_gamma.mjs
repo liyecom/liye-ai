@@ -496,13 +496,13 @@ test('DoD#11/#7: input anchors + 1e producer + confidence_formulas + File-B are 
   }
 });
 
-test('DoD#10: d11_rolling_30d_v1 is registered in validate-contracts schemaFiles; gate count == 21', () => {
-  // γ's own carve-out landed 19->20. Phase-4 (phase4_prereq_attestation_v1) then added the 21st
-  // schema (deterministic +1), so the absolute count is now 21. γ's schema must STILL be registered.
+test('DoD#10: d11_rolling_30d_v1 is registered in validate-contracts schemaFiles; gate count == 22', () => {
+  // γ's own carve-out landed 19->20. Phase-4 (phase4_prereq_attestation_v1) added the 21st,
+  // engine_manifest v2.1 (eval_suites) added the 22nd. γ's schema must STILL be registered.
   const vc = readFileSync(join(REPO, '_meta/contracts/scripts/validate-contracts.mjs'), 'utf-8');
   assert.ok(/d11_rolling_30d_v1\.schema\.yaml/.test(vc), 'schema must be registered in schemaFiles array');
   const out = spawnSync('node', [join(REPO, '_meta/contracts/scripts/validate-contracts.mjs')], { encoding: 'utf-8' });
-  assert.match(out.stdout, /Passed:\s*21/, `expected gate count 21 (γ 19->20 carve-out; Phase-4 +1 -> 21); got:\n${out.stdout}`);
+  assert.match(out.stdout, /Passed:\s*22/, `expected gate count 22 (γ 19->20 carve-out; Phase-4 +1 -> 21; engine_manifest v2.1 +1 -> 22); got:\n${out.stdout}`);
 });
 
 test('CLI --help exits 0 and documents the fixed 30-day span', () => {

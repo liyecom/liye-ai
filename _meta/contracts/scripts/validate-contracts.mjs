@@ -5,7 +5,7 @@
  *
  * 校验模式：
  * 1. 默认模式：Schema + 目录分区 + Lifecycle 校验
- *    含 Phase 0c.2 engine_manifest dual-routing (v1 legacy ↔ v2 by schema_version field).
+ *    含 Phase 0c.2 engine_manifest 版本路由 (v1 legacy / "2.0" / "2.1" by schema_version field).
  *    含 GHL Phase 0b 新增 9 learning schemas + confidence_formulas formula instance.
  * 2. Bundle 模式（--bundle <path>）：校验 learned-bundle.tgz
  * 3. Self-test 模式（--self-test）：内联 fixture 验证 routeManifestSchema (Phase 0c.2)
@@ -315,16 +315,19 @@ function validateLearnedPolicies() {
 }
 
 /**
- * 路由 engine_manifest schema 版本（Phase 0c.2 dual-schema routing）
+ * 路由 engine_manifest schema 版本（Phase 0c.2 dual-schema routing; v2.1 三收 per
+ * prompting-playbook Phase 3 eval registry）
  *
  * 规则（fail-closed）：
  * - 缺 schema_version 字段（或 null）→ v1 schema (legacy)
- * - schema_version === "2.0"        → v2 schema
- * - 其他值（含 "1.0" / "1.0.0" / "2.1" 等显式但未声明的版本）→ 拒绝 (fail-closed)
+ * - schema_version === "2.0"        → v2 schema（双收期内继续接受）
+ * - schema_version === "2.1"        → v2.1 schema（-write_capability / +eval_suites）
+ * - 其他值（含 "1.0" / "1.0.0" / "2.2" 等显式但未声明的版本）→ 拒绝 (fail-closed)
  *
- * 注：legacy v1 schema 自身未声明 schema_version 字段；v2 schema 强制 enum ["2.0"]（Tranche 1 fix）.
+ * 注：legacy v1 schema 自身未声明 schema_version 字段；v2 schema 强制 enum ["2.0"]
+ * （Tranche 1 fix）；v2.1 schema 强制 enum ["2.1"]。
  */
-function routeManifestSchema(data, v1Schema, v2Schema) {
+function routeManifestSchema(data, v1Schema, v2Schema, v21Schema) {
   const sv = data && Object.prototype.hasOwnProperty.call(data, 'schema_version') ? data.schema_version : undefined;
   if (sv === undefined || sv === null) {
     return { schema: v1Schema, route: 'v1-legacy-no-schema-version' };
@@ -332,8 +335,11 @@ function routeManifestSchema(data, v1Schema, v2Schema) {
   if (sv === '2.0') {
     return { schema: v2Schema, route: 'v2' };
   }
+  if (sv === '2.1') {
+    return { schema: v21Schema, route: 'v2.1' };
+  }
   return {
-    error: `Unsupported engine_manifest schema_version: ${JSON.stringify(sv)}. Valid: omit (=v1) | "2.0" (=v2). Fail-closed per Phase 0c.2.`,
+    error: `Unsupported engine_manifest schema_version: ${JSON.stringify(sv)}. Valid: omit (=v1) | "2.0" (=v2) | "2.1" (=v2.1). Fail-closed per Phase 0c.2.`,
   };
 }
 
@@ -402,20 +408,23 @@ function runSelfTest() {
 
   const v1Schema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
   const v2Schema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'));
+  const v21Schema = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.1.yaml'));
 
   const fixtures = [
     { name: 'legacy manifest (no schema_version) → v1',     data: { engine_id: 'legacy' },                       expect: { route: 'v1-legacy-no-schema-version' } },
     { name: 'schema_version="2.0" → v2',                    data: { schema_version: '2.0', engine_id: 'v2' },    expect: { route: 'v2' } },
+    { name: 'schema_version="2.1" → v2.1',                  data: { schema_version: '2.1', engine_id: 'v21' },   expect: { route: 'v2.1' } },
     { name: 'schema_version="9.9.9" → fail-closed',         data: { schema_version: '9.9.9' },                   expect: { error: true } },
     { name: 'schema_version="1.0" (legacy explicit) → fail-closed', data: { schema_version: '1.0' },             expect: { error: true } },
     { name: 'schema_version=null → v1 (null=absent)',       data: { schema_version: null, engine_id: 'null' },   expect: { route: 'v1-legacy-no-schema-version' } },
-    { name: 'schema_version="2.1" → fail-closed',           data: { schema_version: '2.1' },                     expect: { error: true } },
+    { name: 'schema_version="2.2" → fail-closed',           data: { schema_version: '2.2' },                     expect: { error: true } },
     { name: 'schema_version=2.0 (number, not string) → fail-closed', data: { schema_version: 2.0 },              expect: { error: true } },
+    { name: 'schema_version=2.1 (number, not string) → fail-closed', data: { schema_version: 2.1 },              expect: { error: true } },
   ];
 
   let pass = 0, fail = 0;
   for (const fx of fixtures) {
-    const routed = routeManifestSchema(fx.data, v1Schema, v2Schema);
+    const routed = routeManifestSchema(fx.data, v1Schema, v2Schema, v21Schema);
     const gotErr = !!routed.error;
     const wantErr = !!fx.expect.error;
     let ok;
@@ -455,6 +464,7 @@ function validateEngineManifests() {
 
   const manifestSchemaV1 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.yaml'));
   const manifestSchemaV2 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'));
+  const manifestSchemaV21 = loadSchema(join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.1.yaml'));
 
   // 候选 manifest 路径列表。
   // ENGINE_MANIFEST_PATH（如设置）优先；视为完整文件路径，用于跨仓库 manifest 发现
@@ -478,8 +488,8 @@ function validateEngineManifests() {
         const content = readFileSync(manifestPath, 'utf-8');
         const data = parseYaml(content);
 
-        // Phase 0c.2: route by schema_version
-        const routed = routeManifestSchema(data, manifestSchemaV1, manifestSchemaV2);
+        // Phase 0c.2: route by schema_version (v2.1 三收 per Phase 3 eval registry)
+        const routed = routeManifestSchema(data, manifestSchemaV1, manifestSchemaV2, manifestSchemaV21);
         if (routed.error) {
           logError(manifestPath, routed.error);
           continue;
@@ -532,6 +542,8 @@ function validateContractSchemas() {
     join(CONTRACTS_DIR, 'learning', 'phase4_prereq_attestation_v1.schema.yaml'),
     // GHL Phase 0b engine manifest v2
     join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.yaml'),
+    // Prompting-playbook Phase 3 engine manifest v2.1 (-write_capability / +eval_suites)
+    join(CONTRACTS_DIR, 'engine', 'engine_manifest.schema.v2.1.yaml'),
     // Note: confidence_formulas.yaml is a formula INSTANCE (not a JSON Schema) — validated by validateFormulaInstances()
   ];
 

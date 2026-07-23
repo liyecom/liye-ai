@@ -1,0 +1,61 @@
+# Self-test fixture: v2.1 manifest (-write_capability / +eval_suites). All reality checks PASS.
+# Exercises R5 "2.1" routing + schema_check v2.1 delegation (required eval_suites present,
+# deprecated v1 write_capability absent).
+schema_version: "2.1"
+engine_id: amazon-growth-engine
+engine_version: "1.0.0"
+domain: amazon-advertising
+contracts_compat: ">=2.0 <3.0"
+
+playbooks:
+  - id: anomaly_detect
+    entrypoint: src/playbooks/anomaly_detect.py
+    description: "fixture placeholder"
+    required_permissions:
+      - read:metrics
+    io_schema:
+      inputs: {}
+      outputs: {}
+    status: placeholder
+
+data_sources:
+  - type: ads_api
+    description: "Amazon Ads API (read-only)"
+    required: true
+
+write_capability_declared: none
+write_capability_effective: none
+
+capabilities:
+  - id: emit_fact_run_outcome
+    description: "fixture placeholder D-14 fact emit"
+    boundary: fact_emit
+    required_permissions:
+      - write:fact_events
+    runtime_gate_refs:
+      - emit_fact_enabled
+    status: placeholder
+
+runtime_gates:
+  - id: emit_fact_enabled
+    kind: env_var
+    var_name: AGE_FACT_EMIT_ENABLED
+    description: "fixture placeholder"
+    default_state: closed
+    evidence_required_for_open: "Phase 1a impl + 30d PASS"
+
+eval_suites:
+  - id: campaign_blueprint
+    decision_point: "asin-growth Step 8 campaign blueprint authoring/freeze quality"
+    suite_path: eval/campaign_blueprint
+    prompt_surfaces:
+      - .claude/skills/asin-growth/SKILL.md
+    split_sizes:
+      scenarios: 11
+    promotion_gate:
+      gate_commands:
+        - "uv run --extra dev python -m pytest tests/campaign_blueprint -q"
+        - "uv run --extra dev python -m eval.campaign_blueprint.selfcheck"
+      threshold: "all gate_commands exit 0"
+    last_green_run: null
+    status: active

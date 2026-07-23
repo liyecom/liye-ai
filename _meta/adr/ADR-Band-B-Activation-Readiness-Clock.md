@@ -12,6 +12,7 @@ is_bghs_doctrine: no
 **Date**: 2026-06-22
 **Accepted-Date**: 2026-06-22
 **Note**: §5 (S9 replacement readout) was **APPROVED by the operator on 2026-06-23** with narrow semantics (see §5/§6); all other sections Accepted per operator rulings 2026-06-22. Executor=launchd installed 2026-06-23 (§6).
+**Status note (truth-sync 2026-07-17)**: calendar dates in §4/§4a/§6/Consequences derived from the 2026-06-22 day-0 window (`2026-07-21`/`2026-07-22`/`2026-07-23`) are historical and **SUPERSEDED by ledger continuity** — see the Status Appendix at the end of this file. The authoritative window is always derived from the ledger `continuity` block, never from calendar dates in this document.
 **Scope**: Start the manifest-reality 30-day clock that paces the AGE `engine_manifest.yaml` gate `emit_fact_enabled`, WITHOUT any production action. This ADR authorizes **no** manifest flip, gate open, Ads write, `learning_sources.enabled` flip, or `expected_manifest_hash` arming.
 **Related**: `ADR-Governed-Heuristic-Learning.md` (D-14, Sprint 9 readout gate), `.claude/config/learning_sources.yaml`, AGE `engine_manifest.yaml` gate `emit_fact_enabled`.
 
@@ -99,3 +100,36 @@ A current, operator-signable readiness readout substituting for the never-produc
 - No production surface changed: manifest closed, `enabled: false`, `expected_manifest_hash: null`, zero Ads/DB/out-facts writes. This amendment is **docs-only** and changes none of those.
 - Resolved operator decisions (2026-06-23): (a) S9 replacement readout **APPROVED** (narrow semantics); (b) clock executor = **launchd, installed**; (c) day-0 schema-v1 **accepted**.
 - Remaining (each separately authorized): complete the 30-day PASS clock (earliest `2026-07-22`), then the B3→B8 sequence (candidate approval → manifest flip → dry-run rehearsal → first live APPLIED CBU write → Door2 fact verify → liye ingestion flip + `expected_manifest_hash` arming).
+
+## Status Appendix — clock continuity truth-sync (2026-07-17)
+
+All rulings above are preserved verbatim; this appendix records what the
+append-only ledger actually did after they were written. The authoritative
+audit/gate window is ALWAYS derived from the ledger `continuity` block
+(`_meta/contracts/ledger/manifest_reality_amazon-growth-engine.jsonl`), never
+from calendar dates in this ADR.
+
+- **2026-06-24 … 2026-06-27 missing** (no appends) → fail-closed break; streak
+  restarted `2026-06-28` (never-backfill honored). This invalidated the day-0-era
+  dates `2026-07-21`/`2026-07-22`/`2026-07-23` in §4/§4a/§6/Consequences.
+- **2026-07-02 … 2026-07-03 missing** → the `2026-07-04` entry records
+  `continuity_break=true` + `streak_reset=true` (`gap_days` =
+  `['2026-07-02','2026-07-03']`). This invalidated the post-06-28-reset date
+  `2026-07-28` (formerly hardcoded in the C12 detection-exercise SPEC §6, removed
+  in the same truth-sync PR as this appendix). **Current window starts
+  `2026-07-04`.**
+- As of `2026-07-17`: `current_streak_len=14/30`, all PASS, no further break.
+- **30th consecutive PASS day = `2026-08-02`; earliest entry into the final
+  readiness AUDIT = `2026-08-03`** (operator ruling 2026-07-17). Audit ≠
+  activation: passing the audit only admits the B3→B8 sequence, each step
+  separately authorized. No C-track activation, manifest flip, hash arming, or
+  live write is implied.
+- Any future gap or FAIL resets the window again. The derivation rule is the
+  truth; the dates in this appendix are orientation only (non-normative) and do
+  not need re-editing to stay correct.
+- Operational note (2026-07-17): `validate_manifest_reality.py` imports
+  `jsonschema`; run it with the AGE venv interpreter
+  (`/Users/liye/github/amazon-growth-engine/.venv/bin/python3`, which the
+  launchd job already uses) or any interpreter that has `jsonschema` installed.
+  Apple's `/usr/bin/python3` lacks it — a `ModuleNotFoundError` from that
+  interpreter is an environment error, NOT a contract failure.

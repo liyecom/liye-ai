@@ -126,8 +126,18 @@ end-to-end firing record separately prove those properties.
 
 ## 6. Time gate for any later live-equivalent exercise
 
-No live-equivalent experiment may occur before Band B gate-open on or after
-`2026-07-28`, and none is implied by merging C12. A later attempt requires a new
+No live-equivalent experiment may occur before Band B gate-open, and none is
+implied by merging C12. Gate-open is NOT a fixed calendar date: it is derived
+from the live ledger `continuity` block
+(`_meta/contracts/ledger/manifest_reality_amazon-growth-engine.jsonl`) —
+`current_streak_len` must reach 30 consecutive UTC-day PASS, which then admits
+only the final readiness audit; activation still requires the separately
+authorized B3→B8 sequence. Any gap or FAIL resets the window (fail-closed,
+never backfilled), and the date this section previously hardcoded is
+automatically invalidated by any such reset — which is exactly what happened
+to it (see the Status Appendix of
+`_meta/adr/ADR-Band-B-Activation-Readiness-Clock.md` for the reset history and
+the current non-normative orientation dates). A later attempt requires a new
 operator packet naming the exact manifest copy strategy, blast radius, UTC
 window, abort owner, live-clock protection, and receipt. The default remains:
 
