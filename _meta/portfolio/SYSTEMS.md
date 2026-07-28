@@ -176,7 +176,7 @@ LiYe Systems 所有组件归属四种 concern 之一（正交于 Layer 0/1/2/3�
 - **Hands** — 执行动作的 tools / executors / adapters
 - **Session** — 外部化、持久化的事件日志 + replay 契约
 
-规则（详见 `_meta/adr/ADR-Architecture-Doctrine-BGHS-Separation.md`，待写入）：
+规则（详见 `_meta/adr/ADR-Architecture-Doctrine-BGHS-Separation.md`，已 Accepted 2026-04-17）：
 - BGHS 是分类视角，不是 runtime 层级或目录结构
 - 每个 component 声明 primary_concern + 可选 secondary_concern
 - 混合组件允许，但必须声明未来拆分方向
