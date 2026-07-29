@@ -221,6 +221,7 @@ artifact_name, source_kind (concept|fork|paper|vendor_doc), source_uri
 | claw-price-intel | Layer 2 数据源 | Amazon 价格情报 MCP server（Keepa 集成） | — |
 | financial-services | 只读供应商参考 | 金融工作流 agents / plugins / managed-agent patterns；不作为 runtime 依赖 | anthropics/financial-services |
 | FirstLightClaw | 外部协作参考 | 独立产品代码库；LiYe Systems 只读参考，不取得其业务逻辑控制权 | external owner |
+| pi (upstream) | 只读上游参考（非 fork） | agent harness 参考（多供应商 transport 归一、agent loop 工具授权拦截点、session 树、供应链闸门）；参考锚 `earendil-works/pi@cced6a2`（v0.82.1）；不作为 runtime 依赖、不使用 pi-server、其 session 不作为 evidence/truth、不建维护性 fork；直接依赖属 Fork 纪律偏离，须真实 consumer 所在 engine/cell 的 decision ADR + operator 批准的窄范围例外；recon 见 `_meta/portfolio/pi-upstream-reference-recon-2026-07-29.md` | earendil-works/pi |
 
 此表是原 workspace root“索引外仓库”关系的 canonical 归宿，不是“本机所有 Git roots”枚举。未进入 Codebase Registry 的条目不因出现在本表而获得 Portfolio 席位、投资优先级或执行权限。
 
