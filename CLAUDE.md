@@ -52,7 +52,7 @@ launchd `com.liye.manifest-reality-clock`：每日本地 09:05 跑 `_meta/contra
 
 ## 工作纪律（机器门之上的手工纪律）
 
-1. **禁 `git add -A` / `git add .`**——一律按名 add。仓库根常驻 untracked 工件（`.codegraph/` 等），误 add 即污染。
+1. **禁 `git add -A` / `git add .`**——一律按名 add。工具在仓库根产生的未 ignore 工件，误 add 即污染（历史案例 `.codegraph/` 已随该索引器于 2026-07-31 退役；继任的 codebase-memory-mcp 索引落 `~/.cache/` 不入库——但下一个工具未必，规则不放松）。
 2. **禁 `--no-verify`**。本地 hooks（`bin/install-hooks.sh` → `.claude/.githooks/`）是 LOCAL GUARDRAILS 不是 enforcement，真执行在 CI——但绕过本地门仍是违规。
 3. merge 只用 `gh pr merge N --squash --delete-branch`；author 不自 approve、不自合。
 4. **主 checkout 不可碰**：改动从 `origin/main` 起 sibling worktree（多会话并发是常态）。
