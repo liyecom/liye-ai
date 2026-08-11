@@ -78,7 +78,7 @@ jobs:
           for wf in "${REQUIRED_WORKFLOWS[@]}"; do
             if [ -f ".github/workflows/$wf" ]; then
               echo "✅ $wf exists"
-              ((WORKFLOWS_FOUND++))
+              WORKFLOWS_FOUND=$((WORKFLOWS_FOUND + 1))
             else
               echo "❌ $wf MISSING"
               WORKFLOWS_MISSING="$WORKFLOWS_MISSING $wf"
@@ -105,7 +105,7 @@ jobs:
           for gp in "${GOVERNANCE_PATHS[@]}"; do
             if grep -q "$gp" .github/CODEOWNERS 2>/dev/null; then
               echo "✅ $gp covered"
-              ((COVERED_PATHS++))
+              COVERED_PATHS=$((COVERED_PATHS + 1))
             else
               echo "⚠️  $gp NOT covered"
               UNCOVERED_PATHS="$UNCOVERED_PATHS $gp"
