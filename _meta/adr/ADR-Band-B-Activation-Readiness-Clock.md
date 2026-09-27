@@ -1,4 +1,15 @@
-# Band B readiness clock — public boundary notice
+---
+artifact_scope: ghl-band-b
+artifact_name: Band-B-Activation-Readiness-Clock
+artifact_role: contract
+target_layer: cross
+is_bghs_doctrine: no
+---
+
+# ADR — Band B readiness clock public boundary notice
+
+**Status**: Deprecated
+**Date**: 2026-06-22
 
 The original decision record contained domain-specific operational details.
 It is preserved in a private evidence repository and is withdrawn from this
