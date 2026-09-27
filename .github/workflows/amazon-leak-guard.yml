@@ -35,6 +35,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Reject private clock evidence and producer
+        run: |
+          for path in \
+            _meta/contracts/ledger/manifest_reality_amazon-growth-engine.jsonl \
+            _meta/contracts/scripts/manifest_reality_clock.py; do
+            if git ls-files --error-unmatch "$path" >/dev/null 2>&1; then
+              echo "::error::Private clock asset is tracked in this public repository: $path"
+              exit 1
+            fi
+          done
+
       - name: Check for forbidden code paths
         run: |
           echo "🔍 Checking for forbidden Amazon code paths..."

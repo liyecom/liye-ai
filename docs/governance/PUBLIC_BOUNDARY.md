@@ -18,6 +18,8 @@ The following assets are **not** shipped in this public repository:
 - Customer identifiers, customer data, and any production datasets
 - API keys, secrets, tokens, and production configurations
 - Any domain pack that would enable reconstruction of private operations
+- Raw daily readiness ledgers, local absolute paths, and private-domain
+  producer scripts or scheduler configuration
 
 ## Extension model (How to add domains safely)
 Domains are designed as **domain packs** that integrate via stable interfaces.
