@@ -1,40 +1,31 @@
-# Manifest Reality Clock Continuity Tests
+# Manifest Reality Validator Tests
 #
-# Dedicated Python test gate for the manifest-reality detector and 30-day clock.
+# Dedicated Python test gate for the public manifest-reality validator.
 # All suites are fixture/tempdir-only with ZERO cross-repo / runtime network
-# dependency. C12 does not touch the live manifest, ledger, launchd job, or
-# clock_eligible_day contract.
+# dependency. Domain-specific producers and raw ledgers live outside this repo.
 
-name: Manifest Reality Clock Tests
+name: Manifest Reality Validator Tests
 
 on:
   pull_request:
     paths:
-      - '_meta/contracts/scripts/manifest_reality_clock.py'
-      - '_meta/contracts/scripts/test_manifest_reality_clock.py'
       - '_meta/contracts/scripts/validate_manifest_reality.py'
       - '_meta/contracts/scripts/test_manifest_reality_detection_exercise.py'
       - '_meta/contracts/scripts/validate_manifest_reality_fixtures/**'
       - '_meta/contracts/engine/engine_manifest.schema.v2.yaml'
-      - '_meta/contracts/scripts/manifest_reality_clock_README.md'
-      - '_meta/specs/band-b-detection-exercise/SPEC.md'
       - '.github/workflows/manifest-reality-clock-tests.yml'
   push:
     branches: [main]
     paths:
-      - '_meta/contracts/scripts/manifest_reality_clock.py'
-      - '_meta/contracts/scripts/test_manifest_reality_clock.py'
       - '_meta/contracts/scripts/validate_manifest_reality.py'
       - '_meta/contracts/scripts/test_manifest_reality_detection_exercise.py'
       - '_meta/contracts/scripts/validate_manifest_reality_fixtures/**'
       - '_meta/contracts/engine/engine_manifest.schema.v2.yaml'
-      - '_meta/contracts/scripts/manifest_reality_clock_README.md'
-      - '_meta/specs/band-b-detection-exercise/SPEC.md'
       - '.github/workflows/manifest-reality-clock-tests.yml'
 
 jobs:
   python-tests:
-    name: fixture-only R1-R6 + clock continuity
+    name: fixture-only R1-R6
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +43,3 @@ jobs:
 
       - name: Run C12 controlled R1-R6 detection exercise
         run: python3 _meta/contracts/scripts/test_manifest_reality_detection_exercise.py
-
-      - name: Run manifest reality clock continuity unittest
-        run: python3 _meta/contracts/scripts/test_manifest_reality_clock.py

@@ -26,7 +26,6 @@
 | 学习源注册表 | `.claude/config/learning_sources.yaml` | 写门之一：enabled + expected_manifest_hash 双字段；arm 只授权 import 信任，不授权 emit/平台写 |
 | 外源引入 | `tools/source-intake/` | URL→artifact 受控轨道 S0-S6 七阶三门；`tools/github-scout/` 只读探查 |
 | skill 工厂 | `_meta/skill-factory/` | SFC v0.2 契约 + 单一 SSOT frontmatter 解析器 + `sfc-ci.yml` |
-| 台账 | `_meta/contracts/ledger/` | manifest reality 每日 append-only 记录（Band B 时钟证据） |
 | 改革蓝图 | `_meta/reform/` | v1.1 |
 | Portfolio disposition evidence | `_meta/portfolio/decommission/` | 主轴 B 与 websites 的 inventory；只记录证据/目标处置，不授权迁移、关停或逐仓定级 |
 
@@ -46,9 +45,9 @@ node --test .claude/scripts/learning/tests/                      # learning 套�
 - ⚠️ governance 测试共享 `execution_tiers.yaml` 临时改写：**本地串行跑，禁并行**（并行=假阴性）。
 - ⚠️ vitest 与 `node --test` 收集范围互斥（vitest.config.ts 显式 exclude），勿用一个 runner 跑另一个的套件。
 
-## 无人值守自动化（当前仅一条，勿凭旧文档假设更多）
+## 无人值守自动化
 
-launchd `com.liye.manifest-reality-clock`：每日本地 09:05 跑 `_meta/contracts/scripts/manifest_reality_clock.py --append`，对 AGE manifest 做 R1-R6 reality 校验，append 到 `_meta/contracts/ledger/manifest_reality_amazon-growth-engine.jsonl`。Band B 30 天 streak：**漏一天即 reset，fail-closed 不 backfill**。日志 `~/Library/Logs/liye/`。学习管线没有任何 cron/launchd 挂载。
+本公开仓只提供可复用的治理契约和校验器，不存放私有领域的每日生产者、原始账本或运行时调度配置。学习管线没有由本仓安装的 cron/launchd 挂载。私有领域的实际调度和状态应在其受控证据仓库读回。
 
 ## 工作纪律（机器门之上的手工纪律）
 
